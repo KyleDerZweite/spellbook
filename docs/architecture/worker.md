@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: code
-- Update Triggers: complete face-color projection and explicit color evidence validation, Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
-- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
+- Update Triggers: managed Category removal, complete face-color projection and explicit color evidence validation, Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence
+- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for API and workers, grouped under `backend/` while retaining independent processes.
@@ -70,27 +70,6 @@ Inspect the active generation and worker logs to confirm first-publication readi
 A failed scheduled sync is not retried until the next daily or weekly interval.
 [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns operator commands and recovery.
 
-## Oracle Tags publication
-
-Each scheduled run independently attempts the public `oracle_tags` source after Catalog synchronization.
-Its trusted descriptor supplies source ID/type/time and download URL for that exact payload.
-Filenames and later live metadata never establish an older export's timestamp.
-[oracle_tags.py](../../backend/workers/catalog/src/worker/oracle_tags.py) validates complete Oracle records, UUIDs, redundant graph endpoints, cycles, membership weights and every starter mapping root.
-It derives descendant closure, hashes the exact payload and publishes taxonomy/membership/mapping atomically under a dedicated advisory lock.
-Labels are presentation, UUIDs are identity; weights record prominence and do not rank categories.
-
-Oracle Tags retains current and previous immutable publications independently of Catalog generation pruning.
-Successful unchanged payload checks preserve original provenance and clear a previous failure status.
-Parser or mapping changes rebuild the same payload.
-Failed metadata/download/parse/publication attempts retain the prior view and record safe exception-class status after rollback.
-The worker never writes account definitions or assignments.
-[Category rules](./category-rules.md#implemented-starter-entry-decisions) owns evaluation and assignment lifecycle.
-
-Catalog publication additionally COPYs validated raw Oracle UUID/type evidence with its generation and transform version in the same transaction.
-Older Catalogs without that extraction cannot establish tag absence.
-This Catalog transform version is independent of a price extractor version.
-Source and schema changes require the sequenced migration before starting the worker; [deployment recovery](../operations/deployment.md#catalog-migration-and-recovery) owns rollout.
-
 ## Scryfall reference publication
 
 The same import also publishes immutable Scryfall prices, supplied product links and strict printing-variant mappings.
@@ -129,55 +108,15 @@ Download/parse failures belong to the coordinator; once publication begins the p
 Public source publication, independent recovery and history semantics are owned by [valuation](./valuation.md#optional-references-and-public-source-history).
 No adapter reads private holdings.
 
-Catalog transform version 3 adds nullable raw keyword facts to the same generation publication as raw Oracle identity and types.
-Missing keyword arrays remain Unknown; an explicit empty array is known empty.
-Existing version 2 generations cannot establish keyword predicates.
-The paired price publication and price extractor version remain independent.
-[Category rules](./category-rules.md) owns rule evaluation.
-
-## Optional Commander Spellbook synchronization
-
-`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and the Python API.
-Disabled runs perform no combo fetch or database operation and add no readiness dependency.
-Enabled runs fetch the fixed official public gzip bulk on `SYNC_INTERVAL`, independently after the other providers, including when those providers fail.
-Manual mode reports failure after every enabled provider has had its attempt; periodic failure waits the usual interval.
-No private Deck information reaches the provider.
-
-[combo.py](../../backend/workers/catalog/src/worker/combo.py) streams both `variants` and `aliases`, validates the entire gzip/JSON root, and reduces variants into temporary SQLite staging.
-Validation rejects malformed quantities, duplicate identities, inconsistent outcome definitions and dangling aliases before publication.
-Unsupported semantic constraints retain their known mandatory ingredients, outcome labels, templates, face/commander/zone/state fields and unsupported reasons.
-Parser version 1 and policy `ingredients-v1` identify the reduced format.
-[Category rules](./category-rules.md#optional-local-combo-adapter) owns matching and the presentation of unchecked prerequisites.
-
-Migration `0023` adds the independent public combo tables.
-Publication COPYs bounded rows under a dedicated transaction advisory lock and atomically selects the complete publication.
-It retains current and previous snapshots independently of Catalog pruning.
-The descriptor records embedded source timestamp/version, compressed/decoded SHA-256 hashes, complete variant/outcome/alias counts, attribution and transfer evidence.
-PostgreSQL records import time and parser/policy versions.
-An unchanged digest/parser/policy retains the original publication and clears refresh failure status.
-Failed refresh preserves both valid snapshots and records only the safe exception class after owned work has settled.
-
-Positive `COMBO_*` settings default to `COMBO_COMPRESSED_BYTES=134217728`, `COMBO_DECOMPRESSED_BYTES=1073741824`, `COMBO_RECORD_BYTES=2097152`, `COMBO_STAGING_BYTES=2147483648`, `COMBO_PROGRESS_SECONDS=30`, `COMBO_CONNECT_SECONDS=10`, `COMBO_DOWNLOAD_SECONDS=600`, `COMBO_PARSE_SECONDS=600`, `COMBO_PUBLICATION_SECONDS=600` and `COMBO_IMPORT_SECONDS=1800`.
-One monotonic import deadline covers download, digest, decompression, JSON parsing, SQLite, hostname resolution, connection, SQL I/O and commit.
-Each stage has its shorter configured deadline.
-Owned stage processes receive a deadline alarm; interrupted stages receive SIGTERM and are reaped before return.
-The adapter never force-kills processes.
-The existing PostgreSQL transport helper closes timed-out owned connections.
-Failure status has its separate ten-second connection/SQL budget.
-Temporary artifacts are removed after settlement.
-[Deployment](../operations/deployment.md) owns operator recovery and enablement.
-
 ## Private state worker candidate
 
-The unmerged Python [state package](../../backend/workers/state/README.md) owns ValueHistory and WholeDeckCategory scheduling separately from HTTP and public ingestion.
+The unmerged Python [state package](../../backend/workers/state/README.md) owns ValueHistory scheduling separately from HTTP and public ingestion.
 It uses the same Core application/SQL modules, with its own finite Psycopg pool and no API imports, HTTP listener or broker.
-WholeDeckCategory retains durable coalesced jobs and generation/token/revision fencing; ValueHistory retains the advisory lease, reporting timezone and pre-midnight observation policy.
-Both start immediately, avoid overlapping their own work, perform controlled retries and await cleanup before pool closure.
-`VALUE_HISTORY_ENABLED`, `VALUE_HISTORY_TIMEZONE` and `COMMANDER_SPELLBOOK_ENABLED` retain their existing defaults and semantics.
-ICU is an ordinary system dependency for Combo witness collation in both API and state images.
+ValueHistory retains its advisory lease, reporting timezone and pre-midnight observation policy.
+The runner starts immediately, avoids overlapping captures, retries controlled failures and awaits cleanup before pool closure.
+`VALUE_HISTORY_ENABLED` and `VALUE_HISTORY_TIMEZONE` retain their defaults and semantics.
 
 Default Compose and launchers start Python API and the independent State worker after successful one-shot Python migration.
 The replaced Node source and embedded scheduler owner are removed from the candidate.
 State installed-wheel and lifecycle tests establish packaging and local ownership.
-Root separately verified an actual installed Category job; the [migration evidence](./python-migration-evidence-baseline.md#activation-and-contraction-2026-10-23) records its bounded effects and graceful stop.
 Scheduled daily ValueHistory observation and deployment acceptance remain separate.

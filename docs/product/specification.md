@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: Inventory New badge UTC creation date, selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+- Update Triggers: managed Category removal, Inventory New badge UTC creation date, selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
 Visitors can search the local catalog and inspect printings without an account.
@@ -33,10 +33,9 @@ Value-only reporting is described below.
 The accepted PWA/QR delivery extends this same web application; independent Kotlin/Compose Android delivery is in progress under the [implementation contract](../architecture/independent-applications.md).
 A separate future play application may consume catalog and deck data.
 
-The accepted pass covers clearer frontend/backend modules, shared app-ready contracts, online-first saved-state sync, UI consolidation, bounded Inventory loading, external marketplace links, Deck entry categories and whole-deck categories.
+The accepted pass covers clearer frontend/backend modules, shared app-ready contracts, online-first saved-state sync, UI consolidation, bounded Inventory loading and external marketplace links.
 Workspace/application foundations, Account/Profile/Dashboard, bounded Inventory reads and retry-safe mutations, Deck backend/shared UI, Scan contracts, SavedState transport and mounted consumers are implemented.
 Current Scryfall and optional Cardmarket/MTGJSON references, supplied product links and bounded public source history are implemented.
-Starter primary entry categories and reviewed destination merges are implemented.
 Rendered acceptance and deployment remain separate evidence.
 
 Kyle changed value tracking to market reference values and personal Inventory history only on 2026-10-07.
@@ -45,16 +44,12 @@ The former Costs slice remains excluded; [ADR-0022](../decisions/0022-daily-valu
 The earlier nineteen-slice Q56 approval does not establish readiness for superseded costs or history dependencies.
 [Valuation](../architecture/valuation.md) owns implemented reference mechanics and the implemented private history boundary.
 
-Account category rules and entry Review/Reset are implemented.
-Whole-deck evaluation and bounded Deck Library reads are implemented.
-The optional local Commander Spellbook adapter evaluates documented ingredients and outcomes from an imported public source.
-Gameplay prerequisites remain unchecked.
-[Card grouping](./card-grouping.md#deck-categories) owns Sources/Rules categories, reusable definitions, manual overrides and Review/Reset.
-Free-text semantic classification and production Jev integration remain outside this pass.
+Bounded Deck Library reads are implemented.
 Physical locations and sorter integration, automatic scan recognition and gameplay remain later work.
 Native Android implementation and acceptance are tracked separately in the [design handoff](./mobile-app-exploration.md#native-implementation-handoff).
 Preserve existing workflows and ownership.
-The [application contract](../architecture/application-contract.md) and [category rules](../architecture/category-rules.md) own their reviewed mechanisms and acceptance evidence.
+The [application contract](../architecture/application-contract.md) owns the reviewed mechanisms and acceptance evidence.
+[Card grouping](./card-grouping.md#deck-presentation) owns the accepted Deck type groups and read-only related Token appendix.
 
 Scan UI development is paused for this pass.
 Navigation, Inventory and Dashboard omit Scan entrypoints; the existing route, sessions and API remain available.
@@ -332,7 +327,6 @@ Ordinary row decrement stops at one atomically; explicit Remove remains separate
 Description saves detect stale text independently of quantities and retain the draft for explicit rebase.
 Printing replacement keeps the same canonical identity, retaining source identity unless it merges into an existing destination.
 Shared Deck UI and native task entry are implemented; [Frontend](../architecture/frontend.md#shared-deck-ui) owns their component and form adapters.
-Primary categories and category-aware destination merging are implemented; [Card grouping](./card-grouping.md#deck-categories) owns current account rules and entry categories, and independent whole-deck scope.
 
 The deck workspace must keep the selected deck, card search, role sections, and availability visible or readily accessible.
 Show card counts and explicit save or mutation feedback.

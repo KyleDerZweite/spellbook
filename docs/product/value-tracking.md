@@ -3,7 +3,7 @@
 - Status: Market references, public source history, personal daily history, Dashboard and selected-Deck estimates implemented
 - Last Reviewed: 2026-11-02
 - Source of Truth: implemented reference contracts and Kyle's value-only scope decision of 2026-10-07
-- Update Triggers: preview-only personal History and direct Dashboard links, daily metric totals and Dashboard History preview, explicit static Demo valuation and simplified History presentation, price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
+- Update Triggers: managed Category removal, preview-only personal History and direct Dashboard links, daily metric totals and Dashboard History preview, explicit static Demo valuation and simplified History presentation, price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
 - Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Valuation](../architecture/valuation.md), [Application contract](../architecture/application-contract.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md)
 
 ## Selected scope
@@ -119,7 +119,6 @@ Selected-Deck reporting estimates the reference value of all required cards and 
 Deck entries lack a finish, so the calculation uses nonfoil references and exposes unknown quantities and coverage.
 These estimates do not change ownership, availability or nonreservation.
 
-Sources/Rules categories, reusable definitions, manual overrides, Review/Reset and the later separate app keep their existing scope.
 [Card grouping](./card-grouping.md) and [the application contract](../architecture/application-contract.md) remain their owners.
 
 The former Costs slice 12 remains excluded.

@@ -1,10 +1,10 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-11-02
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: current-version Scan receipt replay and removal of historical compatibility promises, unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and current-version replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
+- Update Triggers: managed Category removal, current-version Scan receipt replay and removal of historical compatibility promises, unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and current-version replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
 Its [manifest](../../frontend/static/manifest.webmanifest) launches `/app`; `frontend/src/app.html` links it.
@@ -134,7 +134,6 @@ The account routes expose Profile read/patch, Dashboard summaries, password rota
 [Authentication](./auth.md#account-http-contract) owns their exact contract; [route inventory](../product/routing-and-games.md) lists their paths.
 External clients authenticate with local session bearer tokens; the `/mtg/scan` workspace uses its browser cookie with origin protection on mutations.
 See [authentication](./auth.md) for acquisition and revocation.
-The [HTTP module interface](./independent-applications.md#http-module-interface) adds public Printing-by-ID and owned Category-definition reads, plus one closed command endpoint with nine typed web intents.
 Its [credential form contract](./independent-applications.md#authority-and-compatibility) adds three fixed raw-form routes.
 Core form/schema verification remains in progress; these additions preserve existing domain, receipt and cache semantics.
 
@@ -191,18 +190,6 @@ Omission never selects a Deck.
 Unknown/repeated parameters and invalid values return 400, and invalid authentication returns 401.
 [OpenAPI](../../contracts/openapi.json) owns exact wire schemas.
 The Card picker and native Card actions remain planned.
-
-## Category Library HTTP contract
-
-Authenticated scoped definition pages, immutable version saves, future-adoption archive state, local label/removal and entry Review/Reset use the same trusted backend actor interface as native forms.
-[Routes](../product/routing-and-games.md) lists their paths; [OpenAPI](../../contracts/openapi.json) owns exact JSON schemas.
-New Library/preview/local commands accept strict streamed 64 KiB objects.
-Existing starter initialization, Manual and merge routes retain their 16 KiB budget.
-Extra authority fields are rejected.
-Unknown or foreign subjects share 404.
-Conflicting intent, expiry, definitions, composition or source publications return 409; exhausted operational work or four live previews return safe 503.
-Whole-deck Review/Reset uses the implemented scoped engine; absent optional combo evidence stays Unknown within supported entry and whole-deck rules.
-[Category rules](./category-rules.md#entry-reviewreset-transactions) owns complete-plan commits and cleanup-independent replay.
 
 ## Request validation
 
@@ -455,44 +442,17 @@ Tray placement, copy tracking, and deck assignment require their own confirmed d
 External recognition sources above were reviewed on 2026-10-03.
 No OCR accuracy, embedding advantage, Jetson compatibility, or robot throughput has been measured for Spellbook.
 
-## Primary Deck entry category HTTP contract
+## Bounded Deck directory HTTP contract
 
-Authenticated `GET /api/v1/mtg/decks/{deckId}/categories` reads the JSON-safe adopted bundle, decisions and safe source status without mutation.
-`POST /decks/{deckId}/categories/initialize` accepts only `{requestId}` and returns the original compact initialization acknowledgement.
-`PATCH /deck-cards/{entryId}/category` accepts only `{deckId, categoryId: UUID|null, expectedDecisionRevision, requestId}` and records Manual provenance.
-Ownership comes from the trusted actor; missing/foreign Deck, entry and definition identities return the same 404.
-Unknown fields fail 400, stale decisions return 409 with current saved state and conflicting request intent returns 409.
-
-`POST /decks/{deckId}/categories/merge-preview` accepts `{entryId, catalogCardId, role, quantity}` and returns destination/source decision consequences and a revision-bound token.
-Existing move/replace operations and scalar entry PATCH accept optional `categoryPreview`.
-A conflicting merge without a current token returns 409 with a fresh preview.
-Confirmation keeps the destination's complete decision; original Deck acknowledgements include compact category decision revisions/affected IDs.
-Category JSON bodies are bounded to 16 KiB; tokens are bounded to 12,000 characters.
-Cookie mutations preserve existing Origin validation and bearer behavior.
-Web initialization, native/enhanced Manual save and merge-confirmation forms call these same backend commands.
-[Category rules](./category-rules.md#implemented-starter-entry-decisions) owns source/evaluation lifecycle.
-Account editing and entry Review/Reset are implemented through the [Category Library HTTP contract](#category-library-http-contract).
-Whole-deck evaluation is implemented separately below.
-The optional local combo adapter is implemented.
-The authenticated rule-choices route provides at most 50 searched outcomes and a separate lookup of at most 100 selected outcome IDs.
-Copied participant and aggregate witnesses retain concrete variant evidence.
-[Category rules](./category-rules.md#optional-local-combo-adapter) owns matching, source fences and unchecked prerequisites.
-
-## Whole-deck categories and bounded directory HTTP contract
-
-Authenticated `GET /api/v1/mtg/deck-library` accepts `dirQ`, `dirFormat`, repeated `dirCategory` immutable version UUIDs, `dirSort=updated:desc|name:asc|name:desc`, `offset`, `limit=1..200` and optional `expectedRevision`.
+Authenticated `GET /api/v1/mtg/deck-library` accepts `dirQ`, `dirFormat`, `dirSort=updated:desc|name:asc|name:desc`, `offset`, `limit=1..200` and optional `expectedRevision`.
 Default limit is 40.
 `revision` is a supported expected-revision alias.
 The directory query is separate from the Web selected Deck's Catalog `q`.
 Responses include normalized query identity, directory revision, unique matching/global totals and bounded metadata.
-Each row includes at most three category badges and an accurate remaining count.
-Compositions, Inventory and full rule evidence are absent.
+Compositions and Inventory are absent.
 
-`GET /deck-library/categories` reads bounded version/name/meaning/count options and directly resolves repeated `selectedVersionId` values.
 `GET /deck-library/locate?deckId=UUID` uses the identical normalized query and deterministic sort.
 Expected-revision mismatches return 409 `RevisionChanged`.
-Version selections combine with OR; other query fields combine with AND.
-Manual and retained-valid automatic memberships remain version-safe and counts deduplicate Deck identities.
 
 Existing `GET /decks` and default `GET /decks/{deckId}` retain their public Snapshot contracts.
 `GET /decks/{deckId}?selectedOnly=true` independently loads only the owned selected Deck and its relevant composition/ownership/value evidence.
@@ -503,20 +463,6 @@ Invalid or repeated `includeLegality` values and invalid narrow combinations ret
 Both successful projections use `Cache-Control: no-store`.
 The existing `selectedOnly` parser remains compatible.
 [Frontend refresh ownership](./frontend.md#selected-deck-refresh-contract) defines which consumers may retain previous Legality/documents.
-
-`GET /decks/{deckId}/whole-categories` reads exact adopted versions and copied outcomes without initialization.
-`PATCH /decks/{deckId}/whole-categories/{versionId}` accepts only `{requestId, expectedDecisionRevision, manual: Include|Exclude}` or `{requestId, expectedDecisionRevision, name}`.
-`DELETE` accepts only `{requestId, expectedDecisionRevision}` and suppresses the origin including retained historical versions.
-Bodies are bounded to 64 KiB.
-Missing or foreign identities return 404; stale decisions and conflicting request reuse return 409.
-Original scope-specific acknowledgements contain `versionIds`, never entry IDs.
-
-The existing Category preview routes accept `scope=deck`.
-Whole Review preserves historical Manual versions alongside newer automatic versions.
-Whole Reset releases Manual choices only in whole scope, including suppressed instances.
-It preserves suppression until explicitly restored.
-Commit applies exactly the frozen complete preview after its Library, composition, decision and source fences.
-[Category rules](./category-rules.md#reviewed-whole-deck-implementation-contract) owns source evidence, Unknown retention, durable generation/lease fencing and runtime physical settlement.
 
 ## Reference price HTTP contract
 

@@ -1,9 +1,9 @@
 # Spellbook client, recognition and sorter research
 
 - Status: Research and decision support; not an accepted architecture
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-02
 - Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification and explicitly identified engineering assessments
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, independent Android direction and complete Figma flow handoff, PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
+- Update Triggers: managed Category removal, versioned MTG routes and module ownership, Python source activation and server contraction, independent Android direction and complete Figma flow handoff, PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
 - Related Docs: [Product specification](../product/specification.md), [Mobile exploration](../product/mobile-app-exploration.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
 
 ## Mobile UX follow-up, 2026-10-19
@@ -93,7 +93,6 @@ The maintainer's separate local hardware tests and 3D prototypes have no recorde
 The repository has a SvelteKit website, shared backend application modules, JSON-safe contracts and Scan upload/review APIs.
 Backend owns database resources, transactions and Scan orchestration; at that baseline frontend composition exposed application operations and named transport helpers rather than database handles.
 The current [independent runtime contract](../architecture/independent-applications.md) replaces those imports with HTTP, without changing database or recognition authority.
-Category rules, optional local Commander Spellbook matching, market references and Inventory value history are implemented.
 These capabilities establish no camera or recognition evidence.
 The [application contract](../architecture/application-contract.md) owns implementation status and remaining client work.
 
@@ -334,7 +333,6 @@ Reusing particular code or designs requires separate code/license review.
 Current [deployment](../operations/deployment.md#services-and-startup) requires no recognition GPU.
 The Catalog worker imports metadata and image URLs, not a complete image collection.
 The [bulk importer](../../backend/workers/catalog/src/worker/bulk.py) supports JSON arrays and JSONL; the [Scryfall client](../../backend/workers/catalog/src/worker/scryfall.py) handles compressed downloads.
-Public price, Oracle Tags and optional Combo publication are also implemented.
 None of these provides a finished embedding or local recognition-index build.
 
 Scryfall documentation reviewed on 2026-10-07 described daily bulk exports as `jsonl.gz`.
@@ -499,3 +497,5 @@ The retrieved rules do not settle every redistribution right for possible artifa
 Unknowns include exact webcam/phone models, installed JetPack version, selected encoder/OCR, real captures, movement deadline, allowed backlog and actual actuator/sensor hardware.
 No speed, accuracy, unit cost, battery life or general compatibility is promised.
 Only research and documentation checks were performed for this report.
+
+Market references, public price publication and Inventory value history remain implemented.

@@ -1,10 +1,10 @@
 # System overview
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-11-02
 - Source of Truth: code and explicitly marked design requirements
-- Update Triggers: Python default activation and source contraction, Python API/worker language selection and migration planning, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
-- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers: managed Category removal, Python default activation and source contraction, Python API/worker language selection and migration planning, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
+- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 Spellbook has an independent SvelteKit web runtime and Python/FastAPI API.
 The API owns Auth, Profile, Dashboard, Catalog, Inventory/Groups, Deck, Valuation, Scan and SavedState use cases.
@@ -24,7 +24,7 @@ The browser and installed web app share one frontend and session cookie.
 Root pnpm workspace packages separate `frontend/` and `contracts/`; independent Python packages live under `backend/`.
 Frontend server composition exposes a request-bound remote adapter through `API_INTERNAL_URL`.
 The Python API owns its database pool, SavedState listener/streams, password executor and Scan resource lifetime.
-The independent State worker owns ValueHistory and WholeDeckCategory scheduling.
+The independent State worker owns ValueHistory scheduling.
 Frontend owns SSR, native form presentation, cookies and streaming HTTP forwarding.
 Web runtime imports of backend implementation, pg, Drizzle and password hashing are forbidden.
 Native operators and public Demo fixtures also belong to backend.
@@ -96,8 +96,7 @@ No database replacement is selected.
 Kyle accepted the earlier nineteen-slice design in Q56 on 2026-10-06.
 The 2026-10-07 [value-only decision](../decisions/0020-value-only-inventory-history.md) removes cost mechanisms.
 [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) records the implemented aggregate daily observations that replace cost-dependent personal history.
-It leaves implemented application, saved-state, public reference and category boundaries intact.
-[The application contract](./application-contract.md), [Valuation](./valuation.md) and [category rules](./category-rules.md) own current implementation and remaining plans.
+[The application contract](./application-contract.md) and [Valuation](./valuation.md) own current implementation and remaining plans.
 Design acceptance does not establish implementation, scalability, synchronization evidence or deployment.
 [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md) still describes the delivered web client; [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) replaces its future capture and recognition placement.
 The shared SvelteKit PWA supplies the implemented install/QR delivery; a separate Android application is the selected next client.

@@ -1,9 +1,9 @@
 # Independent applications implementation contract
 
 - Status: Independent Python API and workers implemented; native target verification pending
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-11-02
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: native global search read and shared DTO, raw Web header multiplicity and native boolean queries, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: managed Category removal, native global search read and shared DTO, raw Web header multiplicity and native boolean queries, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -12,7 +12,7 @@ Retain `frontend/`, `backend/` and `contracts/`, with independent Catalog and Sc
 Add the independent Gradle project `android/`.
 SvelteKit owns rendering, native form actions and browser presentation.
 The Python API owns credential authentication, PostgreSQL, application use cases, Scan storage and SavedState lifetime.
-The independent Python State process owns ValueHistory and WholeDeckCategory schedulers.
+The independent Python State process owns the ValueHistory scheduler.
 Android owns native navigation, presentation, credentials and bounded local state.
 Contracts contain serialized DTOs and pure shared validation/presentation helpers only.
 No web runtime may import backend implementation, PostgreSQL, Drizzle or password hashing.
@@ -32,7 +32,7 @@ Existing PWA compatibility remains available, but it is not the Android applicat
 [ADR-0028](../decisions/0028-versioned-game-api.md) selects versioned game routes in PR 276.
 [ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes replaced interfaces immediately and requires older clients to update.
 Canonical routes use `/api/v1/auth/...`, `/api/v1/account/...` and `/api/v1/mtg/...`.
-The latter owns Catalog search/printing reads under `/catalog`, Inventory, Decks, Categories, Valuation, Scan, Dashboard and the nine closed mutation commands under `/commands`.
+The latter owns Catalog search/printing reads under `/catalog`, Inventory, Decks, Valuation, Scan, Dashboard and the nine closed mutation commands under `/commands`.
 Raw-form bridges use `/api/v1/web/auth/login`, `/api/v1/web/auth/register` and `/api/v1/web/password`.
 Page paths remain `/mtg/...`, `/auth/...` and `/settings/...`.
 
@@ -55,7 +55,7 @@ Current-head production-app HTTP acceptance remains an integration-owner check.
 
 `backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
 `create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent `close` callbacks.
-`create_http_application` composes explicitly supplied Auth, Catalog, Inventory, Deck, Category, Scan, Valuation, Profile, Dashboard and SavedState dependencies.
+`create_http_application` composes explicitly supplied Auth, Catalog, Inventory, Deck, Scan, Valuation, Profile, Dashboard and SavedState dependencies.
 The route factories return native `APIRouter` instances with `{parameter}` segments.
 `http/application.py` includes Valuation before Inventory so `/inventory/value` and `/inventory/value-history` precede `/inventory/{entryId}`.
 Literal routes precede parameter routes within each router.
@@ -75,7 +75,7 @@ Core imports neither HTTP nor a client framework; workers import Core without im
 The native Python boundary checker enforces those directions.
 Frontend requests use the remote application and carry no serialized actor or database handle.
 
-Canonical reads include `GET /api/v1/mtg/catalog/printings/{printingId}` and owned `GET /api/v1/mtg/category-definitions/{originId}` for existing web reads.
+Canonical reads include `GET /api/v1/mtg/catalog/printings/{printingId}`.
 `POST /api/v1/mtg/commands` accepts exactly the nine typed intents in `contracts/src/web.ts`.
 Its strict Pydantic command models reject unknown keys and authority fields, preserve absent optional fields, limit JSON to 1 MiB and call the original use case with the original source and request ID.
 Results are the existing DTO directly.
@@ -83,7 +83,7 @@ Domain validators, fingerprints and transactions remain backend-owned.
 
 Web commands return the existing safe structured error fields.
 The frontend remote decoder reconstructs frontend-local error classes or updates all relevant predicates coherently.
-Notes, Quantity, Description, Category and merge conflicts must retain their latest values and revision tokens.
+Notes, Quantity, Description and merge conflicts must retain their latest values and revision tokens.
 Unexpected infrastructure failures remain generic 500 responses.
 No generic RPC, serialized actor authority, SQL details or new global response envelope is introduced.
 
@@ -92,7 +92,6 @@ The serializer derives `status` from the HTTP error, overriding any conflicting 
 At 409, `NotesConflict` carries flat `entryId`, `notes`, `notesRevision`; the remote decoder reconstructs `.latest` from those fields.
 `QuantityChanged` carries `latestQuantity`, including null.
 `DescriptionConflict` carries flat `description`, `descriptionRevision`, reconstructed as `.latest`.
-`CategoryConflict` carries `latest`; `CategoryMergeConflict` carries `preview`.
 Other known failures retain their existing kind, status and safe message.
 The core HTTP owner implements serialization; the web owner implements and tests the matching decoder.
 Optional fields are not silently filled.

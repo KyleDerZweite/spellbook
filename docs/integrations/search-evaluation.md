@@ -1,9 +1,9 @@
 # Global search evaluation
 
 - Status: Executed local evaluation and implemented global palette
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-11-02
 - Source of Truth: repository search code and cited official PostgreSQL/extension documentation
-- Update Triggers: Printing deep-link browser regression, search scope selection, relevance evaluation, extension or embedding-model selection
+- Update Triggers: managed Category removal, Printing deep-link browser regression, search scope selection, relevance evaluation, extension or embedding-model selection
 - Related Docs: [Integrations](./README.md), [UI direction](../product/ui-design-direction.md#proposed-global-command-menu), [Catalog](../architecture/catalog.md#search-behavior), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [t3code search](../reference/t3code-search.md)
 
 Kyle requested exploration of Autocomplete, PostgreSQL improvements, an additional search index and possible pgvector retrieval on 2026-10-29.
@@ -222,7 +222,6 @@ Proposed improvements are:
 
 Reviewed aliases can connect German/English navigation terms and selected domain concepts.
 Existing Oracle Tag publications are possible explicit search sources with stable IDs and versions.
-This does not change [Category evaluation](../architecture/category-rules.md#bounded-rule-interface), infer assignments or select free-text classification.
 
 ## Additional search documents and pgvector
 

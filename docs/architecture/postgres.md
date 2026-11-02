@@ -1,10 +1,10 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-02
 - Source of Truth: code
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
+- Update Triggers: managed Category removal, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
@@ -49,23 +49,6 @@ Existing account/session tables retain their identities.
 - `inventory_value_days`
 - `inventory_value_holdings`
 - `inventory_value_references`
-- `catalog_oracle_facts`
-- `category_library_state`
-- `category_definition_origins`
-- `category_definition_versions`
-- `category_change_previews`
-- `category_preview_differences`
-- `category_mutation_requests`
-- `deck_category_bundles`
-- `deck_entry_category_decisions`
-- `oracle_tag_closure`
-- `oracle_tag_memberships`
-- `oracle_tag_publications`
-- `oracle_tag_state`
-- `oracle_tags`
-
-Additive migration [0016](../../backend/drizzle/0016_deck_entry_categories.sql) adds the category/source tables.
-[Category rules](./category-rules.md) owns their publication, adopted-bundle and immutable decision semantics.
 
 ## Current Model Notes
 
@@ -223,3 +206,7 @@ Its constraint restricts observation time to the final 60 seconds.
 Migration 0020 also notifies account-scoped `values` after checkpoint commit and emits the strict two-key public `values` invalidation after public price-state changes.
 Rollback emits neither.
 [Application contract](./application-contract.md#saved-state-synchronization) owns transport isolation.
+
+The accepted forward migration removes managed Category and source tables while preserving unrelated private records.
+The historical SQL migration chain remains required for fresh database installation.
+Migration execution and deployment require separate verification.

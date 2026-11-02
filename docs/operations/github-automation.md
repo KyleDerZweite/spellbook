@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-11-02
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: manual global-search evaluation runner and captured evidence, upstream hosted-generation recheck and existing evidence-manifest owner, hosted updater Python patch limitation and manual frozen dependency refresh, bounded uv updater compatibility, uv-aware dependency automation and bounded maintenance evidence, frozen package test refresh, bounded safe diagnostics and focused shutdown ordering, native listener lifecycle assertions and evidence ownership, raw Web header rejection and deterministic Category recovery, native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: managed Category removal, manual global-search evaluation runner and captured evidence, upstream hosted-generation recheck and existing evidence-manifest owner, hosted updater Python patch limitation and manual frozen dependency refresh, bounded uv updater compatibility, uv-aware dependency automation and bounded maintenance evidence, frozen package test refresh, bounded safe diagnostics and focused shutdown ordering, native listener lifecycle assertions and evidence ownership, native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -77,10 +77,6 @@ Its small [Python fixture](../../frontend/tests/fixtures/proxy-api.py) supplies 
 Known-length/chunked limits, early 413, forwarded credentials/Origin, separate cookies, SSE cancellation and upload abort remain covered.
 The default web cap is 512 KiB for that regression; `TEST_PROXY_WEB_BODY_LIMIT=12M` selects normal allowance.
 
-Category Library recovery injects SQLSTATE `57014` at receipt insertion to verify 503, rollback and retained retry state; it does not require a fixed transaction duration limit.
-The Category and Combo HTTP fixtures verify the complete canonical public bundle, publish owned subsets and restore previous Catalog pointers.
-Do not run them with another publisher on the same target.
-The [WholeDeckCategory HTTP test](../../frontend/tests/whole-deck-http.test.ts) starts and closes its own installed State worker independently of API.
 [SavedState HTTP](../../frontend/tests/saved-state-http.test.ts) builds two origin-matched web artifacts and uses two installed Python API replicas.
 Its listener queries use each API PID's Python application name.
 It covers actual TCP delivery, account isolation, session revocation, listener recovery and graceful shutdown; rendered journeys remain separate.
@@ -133,7 +129,7 @@ Run Core's real PostgreSQL tests from its own frozen development environment wit
 Core's development extra includes `psycopg-pool` for test fixtures; runtime pools remain owned by API and State.
 Read each selected file's explicit target guard before execution.
 The existing `P02B_CORE_NATIVE_DATABASE`, `P02B_INVENTORY_NATIVE_DATABASE` and `P02B_SCAN_NATIVE_DATABASE` cases retain their exclusive assigned target.
-Categories use `CATEGORY_NATIVE_DATABASE` and `CATEGORY_JOB_NATIVE_DATABASE`; Deck uses `DECK_NATIVE_DATABASE`; Catalog/Valuation uses `SPELLBOOK_DOMAIN_TEST_DATABASE`.
+Deck uses `DECK_NATIVE_DATABASE`; Catalog/Valuation uses `SPELLBOOK_DOMAIN_TEST_DATABASE`.
 Operator and migration suites have separate guarded disposable-target/reset requirements.
 Selecting a suite without its opt-in reports skipped coverage and establishes no database result.
 
@@ -334,7 +330,7 @@ The scope job has a five-minute timeout; Application Checks, Python API/Core and
 [Application Integration](../../.github/workflows/application-integration.yml) and [Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by `workflow_dispatch`.
 Neither has an automatic trigger or a `workflow_call` entry point, and automatic CI never invokes them.
 Each manual workflow has one job with a thirty-minute timeout and no concurrency cancellation of another manual run.
-Application Integration retains disposable PostgreSQL 18, the actual locked Scan worker, Python migration and guarded Category/Deck PostgreSQL checks, the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`.
+Application Integration retains disposable PostgreSQL 18, the actual locked Scan worker, Python migration and guarded Deck PostgreSQL checks, the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`.
 Android Build retains explicit SDK 37.0, build-tools 36.0.0, setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
 GitHub requires the workflow file to exist on the default branch before manual dispatch is available.
 Before integration into `main`, use the documented local checks.
@@ -355,7 +351,6 @@ Paths are NUL-delimited and rename detection is disabled so additions and deleti
 `backend/api/`, `backend/core/`, `backend/workers/state/` and the Python boundary scripts select Python API/Core.
 State package, Core and SQL changes also select the state package step in that existing job.
 API-only edits keep state checks unselected.
-The job installs ordinary ICU before Core Combo tests and retains all other existing CI ownership; broader CI audit proposals remain unselected.
 Shared `contracts/` select both Application Checks and Python API/Core, including Discovery compatibility.
 Other `frontend/`, `backend/` and `scripts/` source paths select Application Checks.
 Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core, the state package step and Catalog worker tests.
@@ -564,21 +559,6 @@ Run real guarded cases against the assigned migrated target and record skipped c
 Controlled-clock captures establish eligibility and consistency; an actual scheduled midnight observation remains a separate Root-owned check.
 Provider refresh, rendered presentation, owner acceptance and deployment remain separate evidence.
 [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns relevant failure scenarios.
-
-## Local combo verification
-
-[Core matcher cases](../../backend/core/tests/test_categories_combo.py), [native editor/proof cases](../../frontend/tests/unit/combo-category-ui.test.ts), [transaction cases](https://github.com/KyleDerZweite/spellbook/blob/87cc4a3d153616bcce46fad046246b6a3271e563/frontend/tests/integration/combo-categories.integration.test.ts) and [built HTTP cases](../../frontend/tests/combo-http.test.ts) own local Combo evidence.
-The transaction and HTTP fixtures consume the complete verified public Demo bundle and publish the recorded Oak/Denizen subset with proven raw Oracle identities.
-The source fixture retains the recorded official `2850-4186` variant; an explicitly synthetic commander variant tests role authority.
-Fixture cleanup restores the exact preceding Catalog/Combo state.
-These subset fixtures establish semantics, not full-source import compatibility or candidate-query resource use.
-
-The HTTP suite explicitly enables the adapter only for its owned built application child.
-Deployment defaults remain disabled.
-Run it through the existing disposable-database, origin and graceful-cleanup rules.
-Full-source evidence separately records the actual official bulk transfer, embedded timestamp/version, hashes, counts, publication resources and analyzed candidate plans for Oak-only, Oak/Denizen and the recorded Upgrades Unleashed Deck.
-Native wide/360px and no-JavaScript journeys remain separate from HTTP/source tests.
-Preserve publication provenance with those results; never present a new source's metadata as a prior recorded export.
 
 ## Manual global-search evaluation
 

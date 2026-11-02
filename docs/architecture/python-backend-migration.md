@@ -1,9 +1,9 @@
 # Python backend migration contract
 
 - Status: Source merged through PR 276; owner acceptance and production operations remain separate
-- Last Reviewed: 2026-10-28
+- Last Reviewed: 2026-11-02
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: merged PR 276 and local tracker reconciliation, accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: managed Category removal, merged PR 276 and local tracker reconciliation, accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -45,7 +45,7 @@ Core remains framework-free with current-version fingerprints and receipts.
 Historical NULL-hash/acknowledgement and ScanLegacyNoRepeat adapters, public legacy DTOs and client branches are removed.
 Introduce no generic repository or new broker.
 Shared Core owns Auth, identity preferences, database, password, QR and SavedState infrastructure.
-`spellbook_core.mtg` owns Catalog, Inventory/Groups, Decks, Categories/Library, Valuation/History, Dashboard, Scan and MTG projections.
+`spellbook_core.mtg` owns Catalog, Inventory/Groups, Decks, Valuation/History, Dashboard, Scan and MTG projections.
 Shared Profile has an explicit dependency on `mtg.profile`.
 HTTP game adapters live in `spellbook_api.http.mtg`; Auth, account preferences and transport remain shared.
 SQL modules own parameterized queries, transactions, isolation, lock order and exact numeric decoding.
@@ -59,16 +59,16 @@ backend/
   api/                  # FastAPI host, HTTP adapters and operator entrypoints
   core/                 # Typed application/SQL modules and migration helpers
   workers/
-    catalog/            # Catalog, Price, Oracle Tags and Combo publishers
+    catalog/            # Catalog and Price publishers
     scan/               # Existing no_match compatibility scaffold
-    state/              # Separate ValueHistory and WholeDeckCategory runners
+    state/              # Separate ValueHistory runners
   drizzle/              # Preserved SQL, journal and historical snapshots
 ```
 
 Each runnable package owns its project/lock, image and start command.
 Core is a local dependency with no process or global resources.
 API and workers retain independent process lifetimes and deployment ownership.
-Move ValueHistory and WholeDeckCategory scheduling out of HTTP while preserving synchronous effects, enqueue operations, advisory leases, generation/token/revision fencing and transactions.
+Move ValueHistory scheduling out of HTTP while preserving its advisory lease, reporting calendar and transactions.
 Keep one active mutation/publisher/scheduler owner for each responsibility.
 Bulk/CPU work runs outside HTTP; bounded pools, password offload, request/body limits and SavedState queues remain practical safeguards.
 Existing foundation limits are reusable settings, not mandatory comparative performance gates.
@@ -131,14 +131,12 @@ Compare the complete native operation set with canonical OpenAPI and exercise cu
   Existing credential formats may change under the pre-release policy; Node password-length and encoding quirks are not mandatory.
 - Keep deterministic normalized intent and fingerprints for current-version idempotency.
   Mutation, revisions, original receipt and related effects commit atomically; replay returns the original receipt after later edits/deletion/recreation.
-  Preserve Profile/session fencing, Scan-session-before-Inventory, Inventory-before-entry-before-group and Deck/Category lock order, read snapshots and revision behavior on no-ops.
-- Preserve Notes, Description, Quantity, Category and merge conflicts with their exact latest-value/revision fields, including `latestQuantity: null`.
-  Preserve bounded reads, Catalog generation coherence, Inventory query resets, Classification/Library filters, optional local Combo matching, daily ValueHistory/frozen evidence and Scan storage/commit cleanup.
+  Preserve Profile/session fencing, Scan-session-before-Inventory, Inventory-before-entry-before-group and Deck lock order, read snapshots and revision behavior on no-ops.
+- Preserve Notes, Description, Quantity and merge conflicts with their exact latest-value/revision fields, including `latestQuantity: null`.
   Keep native/enhanced web forms, retained drafts and explicit recovery after an ambiguous save.
 - Preserve SavedState events and account isolation, no durable replay, bounded queues and delivery-time session checks.
   Retain 10-second revalidation, 15-second heartbeats, 30-second slow-consumer disposal, 5-second operation/setup deadlines, listener recovery, cancellation and unbuffered web/proxy forwarding.
-- Reuse streaming COPY and atomic Catalog/Price publication, raw Oracle facts, pointer/pruning transaction, original advisory keys and paired recovery.
-  Optional prices keep their shared Catalog lock; Oracle Tags and Combo retain their own locks and independent retention/provenance.
+- Reuse streaming COPY and atomic Catalog/Price publication, pointer/pruning transaction, original advisory keys and paired recovery.
   Publication failure leaves the last complete snapshot active; `state.json` remains operator status.
   Preserve opt-ins, resource limits and safe handling of current private data and Scan objects.
 
@@ -152,9 +150,8 @@ Three explicit Python operator entrypoints use bundled canonical Demo fixtures, 
 The API owns Scan storage/worker construction from existing environment variables, request settlement and adapter close before its pool.
 Boto3 supplies S3/SigV4, python-multipart supplies upload parsing and the existing httpx2 dependency supplies the worker client.
 No-DB Discovery creates neither adapter.
-The independently packaged `spellbook-state-worker` owns WholeDeckCategory and ValueHistory scheduling on its own Core-configured pool.
+The independently packaged `spellbook-state-worker` owns ValueHistory scheduling on its own Core-configured pool.
 HTTP enqueues and performs synchronous effects but starts neither runner.
-API and state images use system ICU for Combo witness collation.
 Default Compose, `./dev.sh` and `pnpm start` use installed Python API and independent workers after successful one-shot Python migration.
 The temporary Python Compose override is removed.
 The API normally binds loopback port 3001, supports explicit container IP addresses and requires database configuration unless schema-only mode is explicitly selected.

@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
-- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
+- Update Triggers: managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
 The Python API provides public read-only search and printing lookup through `/api/v1/mtg/catalog/search`, `/api/v1/mtg/catalog/cards/{oracleId}/printings` and `/api/v1/mtg/catalog/printings/{printingId}`.
@@ -251,15 +251,6 @@ Scan candidate enrichment resolves authoritative metadata by printing ID through
 The [domain glossary](../../GLOSSARY.md) owns the distinction between canonical cards, printings, inventory entries, and deck entries.
 [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns catalog migration and recovery.
 
-## Internal category facts
-
-Catalog publication stores original validated `oracle_id`, printing UUID, available combined-face types and the Catalog transform version in `catalog_oracle_facts` within the same generation transaction.
-These rows prove internal source provenance for category evaluation.
-They add no authority flag to public CardDocument.
-Compatibility printing-ID fallback and old generations without proven extraction cannot establish a false Oracle Tag predicate.
-[Category rules](./category-rules.md#implemented-starter-entry-decisions) owns the batched fact reader and missing-fact policy.
-Oracle Tags has an independent current/previous publication lifecycle and no disposable Catalog foreign key.
-
 ## Baseline price correspondence
 
 Scryfall refresh now publishes Catalog metadata and its reference-price view atomically.
@@ -267,9 +258,3 @@ The recorded pair supports coherent operator recovery.
 Independent immutable price publications do not cascade with disposable Catalog generations.
 Catalog DTOs stay explicit; callers obtain prices/product links from the bounded [Valuation contract](./valuation.md#implemented-market-references).
 Demo Catalog publication alone establishes no price view.
-
-Catalog transform version 3 adds nullable raw keyword facts to the same generation publication as raw Oracle identity and types.
-Missing keyword arrays remain Unknown; an explicit empty array is known empty.
-Existing version 2 generations cannot establish keyword predicates.
-The paired price publication and price extractor version remain independent.
-[Category rules](./category-rules.md) owns rule evaluation.

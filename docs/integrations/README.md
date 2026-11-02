@@ -1,10 +1,10 @@
 # Integrations
 
 - Status: Canonical
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-11-02
 - Source of Truth: mixed
-- Update Triggers: executed lexical/BM25/vector search comparison, PostgreSQL and semantic search evaluation, functional Python acceptance and current migration status, Python API/worker language selection and migration planning, external system contracts, integration scope, provider evaluations and scanner-platform research
-- Related Docs: [Market price research](./market-prices.md), [Card and deck categorization](./card-categorization.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [Backend language evaluation](./backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
+- Update Triggers: managed Category removal, executed lexical/BM25/vector search comparison, PostgreSQL and semantic search evaluation, functional Python acceptance and current migration status, Python API/worker language selection and migration planning, external system contracts, integration scope, provider evaluations and scanner-platform research
+- Related Docs: [Market price research](./market-prices.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Backend language evaluation](./backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
 [Backend language evaluation](./backend-language-evaluation.md) compares Go, Python, Rust and the current TypeScript API, with worker grouping and migration gates.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers; the migration contract selects the stack and boundaries, with dormant foundations implemented and full functional migration pending.
@@ -28,10 +28,6 @@ Scryfall EUR references and supplied product links are implemented.
 Optional Cardmarket and MTGJSON adapters and bounded public market history are implemented with explicit opt-ins.
 Acquisition-cost tracking is removed from scope.
 Marketplace account connections remain outside this pass; a sales/trading ledger is not implemented.
-
-[Card and deck categorization](./card-categorization.md) records Oracle Tags coverage and the Jev/local-model evaluation.
-[Card grouping](../product/card-grouping.md) owns implemented starter entry categories and later category behavior.
-The optional local Commander Spellbook adapter is implemented; [category rules](../architecture/category-rules.md) owns implemented public facts and starter decisions and local ingredient matching.
 
 [Realtime backend evaluation](./realtime-backends.md) records dated Convex pricing, client and auth coupling, and the choice to retain PostgreSQL for the current pass.
 Q56 accepted PostgreSQL LISTEN/NOTIFY with account-scoped SSE; [application contract](../architecture/application-contract.md#saved-state-synchronization) owns the mechanisms.

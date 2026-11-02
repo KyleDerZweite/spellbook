@@ -1,19 +1,18 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-11-02
 - Source of Truth: repo config
-- Update Triggers: static Demo valuation in API and State, shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
-- Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers: managed Category removal, static Demo valuation in API and State, shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml).
 Keep live domains, account details, and secret references in private operator notes.
 
 The unmerged candidate uses the Python API image and an explicit one-shot `spellbook-migrate` service.
 API, Catalog and State wait for successful migration; Scan remains an independent service.
-State is the sole scheduled ValueHistory and WholeDeckCategory owner.
+State is the sole scheduled ValueHistory owner.
 API performs synchronous effects and enqueues work but starts no schedulers.
-Both API and State images include system ICU for Combo witness collation.
 Source activation does not authorize a production cutover or retire the retained Node rollback artifact.
 
 ## Local development
@@ -89,7 +88,7 @@ Stop the session with `./dev.sh stop`; existing Demo edits persist on restart.
 These commands do not create a PostgreSQL container or install dependencies; complete the local prerequisites above first.
 
 Sign in at `/auth/login` with the documented Demo credentials.
-Review Dashboard, Search/Card details, Inventory and Decks, then Categories and Settings against the [interface acceptance criteria](../product/specification.md#interface-acceptance).
+Review Dashboard, Search/Card details, Inventory and Decks, then Settings against the [interface acceptance criteria](../product/specification.md#interface-acceptance).
 Use desktop and narrow layouts, keyboard navigation, and pending/error states.
 The [UI direction](../product/ui-design-direction.md) owns shared controls, brand and scrolling behavior.
 Record the selected journey and concrete rough edges before agreeing on a useful implementation slice with the maintainer.
@@ -245,7 +244,7 @@ API/State image contexts are the repository root; Catalog/Scan retain package-ro
 | `worker`       | Scryfall catalog ingestion and synchronization                        |
 | `frontend`     | SvelteKit rendering, forms and same-origin streaming API proxy        |
 | `api`          | Python HTTP authentication, use cases, database and resource lifetime |
-| `state-worker` | Scheduled ValueHistory and WholeDeckCategory jobs                     |
+| `state-worker` | Scheduled ValueHistory jobs                     |
 | `scan-worker`  | Scan API scaffold that returns no matches                             |
 | `newt`         | Optional Pangolin tunnel, enabled by the `tunnel` profile             |
 
@@ -349,18 +348,13 @@ OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables ar
 Browser catalog reads are public; account operations and the versioned integration API require authentication.
 Remove obsolete search origins and credentials from deployment configuration.
 
-The optional `TYPESAFE_API_KEY` in `.env.example` belongs only to the isolated [Jev evaluation](../integrations/card-categorization.md).
-The prototype reads it explicitly from a protected env file.
-The application does not consume it and Compose does not forward it.
-Do not expose it through public frontend variables.
-A production classifier integration remains unselected.
 
 ## Application and native operator ownership
 
 The [Python API host](../../backend/api/src/spellbook_api/main.py) supplies configuration to the [backend application constructor](../../backend/api/src/spellbook_api/application.py).
 API owns its database pool, SavedState, password executor and Scan resources.
 State owns scheduled runners and its independent pool.
-It validates database presence, timezone and Combo configuration before acquisition.
+It validates database presence, timezone configuration before acquisition.
 The State configuration validates its history enable flag independently.
 SIGINT/SIGTERM close SSE before draining HTTP, then await application cleanup and pool closure, including after cleanup failure.
 Web owns no backend resource or shutdown/HMR hook.
@@ -579,21 +573,6 @@ Scryfall continues to use its paired Catalog/Price recovery.
 Verify public/private reference reads before restarting ingestion.
 [Valuation](../architecture/valuation.md#optional-references-and-public-source-history) owns evidence retention and selection.
 
-## Oracle Tags and category rollout
-
-Apply the sequenced category migration before the API or Worker that uses category tables.
-Migration 0016 follows the Inventory and price migrations 0014/0015 in the coherent journal.
-Apply migrations in sequence before starting the upgraded application.
-Catalog transform changes require a fresh publication that includes internal raw Oracle/type facts.
-Until that publication exists, primary tag predicates remain Unknown; saved decisions remain readable and Manual choices work.
-
-Worker sync imports the exact trusted Oracle Tags descriptor and payload, then atomically activates complete facts/mapping.
-Inspect `oracle_tag_state` active/previous publication and safe refresh status together with immutable publication source time/digest/parser/mapping versions.
-A failed refresh preserves prior valid facts.
-Recovery retries the same source; filenames or new metadata must not redatestamp an old offline export.
-[Worker](../architecture/worker.md#oracle-tags-publication) owns import mechanics and [category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns account assignment behavior.
-Public recovery never triggers existing automatic reassignment.
-
 ## Personal value history upgrade
 
 Apply the coherent migration journal through [0020](../../backend/drizzle/0020_inventory_value_history.sql) before starting the upgraded application.
@@ -614,38 +593,3 @@ Normal development starts the configured Catalog/Price worker; `SYNC_INTERVAL=ma
 A running capture timer does not establish provider refresh or known-price coverage.
 Operator refresh, actual midnight observation, deployment and owner acceptance require separate evidence.
 The remaining integration verification is tracked with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
-
-## Optional local combo rollout and recovery
-
-Apply [migration 0023](../../backend/drizzle/0023_commander_spellbook.sql) after 0022 before starting the updated application and Worker.
-It adds public Combo tables without rewriting private definitions, decisions or receipts.
-`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in API and Worker.
-Set it to `true` in the existing protected root environment to enable independent public ingestion and local ingredient evaluation.
-Restart API and Worker after changing the flag.
-Disabled ingestion fetches nothing and adds no readiness dependency; existing combo criteria evaluate Unknown.
-
-The fixed official Commander Spellbook bulk is synchronized on the existing `SYNC_INTERVAL`.
-Resource overrides are positive integers: `COMBO_COMPRESSED_BYTES`, `COMBO_DECOMPRESSED_BYTES`, `COMBO_RECORD_BYTES`, `COMBO_PROGRESS_SECONDS`, `COMBO_CONNECT_SECONDS`, `COMBO_DOWNLOAD_SECONDS`, `COMBO_PARSE_SECONDS`, `COMBO_PUBLICATION_SECONDS`, `COMBO_IMPORT_SECONDS` and `COMBO_STAGING_BYTES`.
-[`.env.example`](../../.env.example) lists all ten native defaults, and Compose forwards those settings to Worker.
-[Worker](../architecture/worker.md#optional-commander-spellbook-synchronization) owns transfer validation and publication limits.
-No private Deck data is sent to the provider.
-
-Inspect the publication through the existing protected database connection:
-
-```sql
-SELECT s.active_publication, s.previous_publication, s.refresh_status,
-       p.source_updated_at, p.source_version, p.payload_digest, p.decoded_digest,
-       p.parser_version, p.policy_version, p.variant_count, p.outcome_count, p.alias_count
-FROM combo_state s
-LEFT JOIN combo_publications p ON p.id = s.active_publication
-WHERE s.id = 1;
-```
-
-A usable active publication can remain available after a failed refresh.
-Inspect `refresh_status` separately from the publication metadata.
-Retry the fixed source through the existing manual Worker command after resolving transfer, resource or database failures.
-Publication rollback preserves both previous pointers.
-Do not delete Combo tables or private evidence to recover a failed refresh.
-Public refresh does not reassign existing Entry decisions or enqueue whole-deck jobs.
-Review/Reset is the explicit account action for renewed adoption and evaluation; an outdated source-fenced preview requires a new preview.
-[Category rules](../architecture/category-rules.md#optional-local-combo-adapter) owns those lifecycle rules.

@@ -1,9 +1,9 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-11-01
+- Last Reviewed: 2026-11-02
 - Source of Truth: route handlers and server hooks
-- Update Triggers: removed standalone personal History page, shortcut-only global power-user search, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: managed Category removal, removed standalone personal History page, shortcut-only global power-user search, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused.
@@ -35,7 +35,6 @@ The [backend route registry](../../backend/api/src/spellbook_api/http/applicatio
 | `/mtg/inventory/[entryId]`                 | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
 | `/mtg/inventory`                           | Authenticated bounded Inventory pages, GET filters and form actions               |
 | `/mtg/scan`                                | Authenticated image upload, candidate review, and explicit inventory commit       |
-| `/mtg/categories`                          | Authenticated scoped reusable Category Library and native criteria editor         |
 | `/mtg/decks`                               | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
 | `/mtg/decks/[deckId]/export`               | Authenticated text export of an owned deck                                        |
 | `/settings`                                | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
@@ -99,9 +98,6 @@ The Deck page supports `flow=create|edit|import|delete|search` for native task e
 [Frontend](../architecture/frontend.md#shared-deck-ui) owns the form adapters and shared presentation responsibilities.
 These queries add no API path or method.
 
-Category controls use `localCategory`, `preview` and `previewOffset` for pure native GET selection/paging.
-Their POST actions delegate to the [Category owner](../architecture/category-rules.md#entry-reviewreset-transactions).
-
 Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved.
 Login and registration default to `/mtg/inventory` when no safe destination is supplied.
 An explicit safe `returnTo`, including `/` or `/mtg/decks?deck=ID`, remains authoritative.
@@ -134,7 +130,6 @@ Canonical Catalog reads are public; private MTG operations accept bearer or brow
 | Relative path                                              | Purpose                                                        |
 | ---------------------------------------------------------- | -------------------------------------------------------------- |
 | `/catalog/search`                                          | Catalog queries                                                |
-| `/category-definitions/[originId]`                         | Authenticated read of one owned reusable definition            |
 | `/catalog/cards/[oracleId]/printings`                      | Printings for a canonical card                                 |
 | `/inventory/value`                                         | Authenticated current Inventory estimate and coverage          |
 | `/inventory/value-history`                                 | Authenticated closed daily checkpoints and explicit gaps       |
@@ -149,12 +144,6 @@ Canonical Catalog reads are public; private MTG operations accept bearer or brow
 | `/decks/ownership`                                         | Owned-printing aggregates for at most 100 canonical identities |
 | `/decks/[deckId]`                                          | Owned deck retrieval, metadata changes, and deletion           |
 | `/decks/[deckId]/availability`                             | Owned deck availability counts without inventory mutation      |
-| `/category-definitions`                                    | Scoped definition pages and immutable version saves            |
-| `/category-definitions/[originId]/archive`                 | Future-adoption archive or restore                             |
-| `/decks/[deckId]/categories/[categoryId]`                  | Local label PATCH or all-role replacement/suppression DELETE   |
-| `/decks/[deckId]/category-previews`                        | Entry Review/Reset POST with explicit restoration selections   |
-| `/category-previews/[previewId]`                           | Stable paged consequences GET                                  |
-| `/category-previews/[previewId]/commit`                    | Complete atomic reviewed commit POST                           |
 | `/decks/[deckId]/cards`                                    | Deck entries and additions                                     |
 | `/decks/[deckId]/cards/bulk`                               | Idempotent deck entry mutations                                |
 | `/decks/[deckId]/export`                                   | Arena-style text export                                        |
