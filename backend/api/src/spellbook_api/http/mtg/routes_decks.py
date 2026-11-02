@@ -306,11 +306,18 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
         deck_id = deckId
-        if scalar(request, "format", "arena") != "arena":
-            raise HttpError(400, "Only arena export is supported")
+        format = scalar(request, "format", "arena") or "arena"
+        if format not in ("arena", "simple", "csv", "json"):
+            raise HttpError(400, "Unsupported Deck export format")
+        media = {"csv": "text/csv", "json": "application/json"}.get(format, "text/plain")
+        extension = {"csv": "csv", "json": "json"}.get(format, "txt")
         return Response(
-            await decks.export_decklist(actor, deck_id),
-            headers={"content-type": "text/plain; charset=utf-8"},
+            await decks.export_decklist(actor, deck_id, format),
+            headers={
+                "content-type": media + "; charset=utf-8",
+                "content-disposition": f'attachment; filename="deck.{extension}"',
+                "cache-control": "no-store",
+            },
         )
 
     router.add_api_route("/api/v1/mtg/deck-library", library, methods=["GET"], response_model=None)

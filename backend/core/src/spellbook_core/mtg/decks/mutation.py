@@ -301,7 +301,11 @@ class DeckMutations:
         game(input["game"])
         request = assert_request_id(input.get("requestId", MISSING))
         source = normalize_source(input.get("source", MISSING), DECK_SOURCES, "web")
-        normalized = [] if catalog_add else normalize_operations(input.get("operations"))
+        normalized = (
+            []
+            if catalog_add or (create and input.get("operations") == [])
+            else normalize_operations(input.get("operations"))
+        )
         fingerprint = mutation_fingerprint(
             intent
             if intent is not None
@@ -398,6 +402,7 @@ class DeckMutations:
                     "UPDATE decks SET composition_revision=%s,updated_at=%s WHERE id=%s::uuid",
                     (revision, now, deck_id),
                 )
+            if semantic or create:
                 await advance_deck_library_revision(tx, account)
             acknowledgement = DeckAcknowledgement(
                 requestId=request,

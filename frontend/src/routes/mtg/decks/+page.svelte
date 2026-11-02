@@ -560,6 +560,7 @@
 			formData.set('requestId', requestId);
 		}
 		const savedRequestId = String(formData.get('requestId') || '');
+		const submittedImportText = importText;
 		const submittedDetails = target.searchParams.has('/updateDeck')
 			? {
 					name: String(formData.get('name')),
@@ -593,6 +594,18 @@
 					!isCurrentSave(submission)
 				)
 					return;
+				if (
+					(result.type === 'success' || result.type === 'failure') &&
+					target.searchParams.has('/previewImport') &&
+					importText === submittedImportText
+				) {
+					const previewText = result.data?.importDraft?.text;
+					if (typeof previewText === 'string' && previewText) {
+						importText = previewText;
+						const file = formElement.querySelector<HTMLInputElement>('input[type=file]');
+						if (file) file.value = '';
+					}
+				}
 				if (result.type === 'success' || result.type === 'redirect') {
 					saveStatus = 'Saved';
 					for (const [payload, id] of pendingRequests)
@@ -704,6 +717,22 @@
 								href: `/mtg/decks/${selectedDeck.id}/export`,
 								download: true
 							},
+							{
+								label: 'Export simple text',
+								href: `/mtg/decks/${selectedDeck.id}/export?format=simple`,
+								download: true
+							},
+							{
+								label: 'Export CSV',
+								href: `/mtg/decks/${selectedDeck.id}/export?format=csv`,
+								download: true
+							},
+							{
+								label: 'Export Spellbook JSON',
+								href: `/mtg/decks/${selectedDeck.id}/export?format=json`,
+								download: true
+							},
+							{ label: 'Print deck', href: `/mtg/decks/${selectedDeck.id}/print` },
 							{ label: 'Delete deck', destructive: true, onSelect: () => openEditor('delete') }
 						]}
 						onCloseAutoFocus={(event) => {
@@ -724,10 +753,9 @@
 							>{/snippet}
 					</ActionMenu>
 				{/if}
-				{#if !selectedDeck}<Button
-						href={flowHref('create')}
-						onclick={openCreate}
-						disabled={busy || deletedTarget}><PlusIcon />New deck</Button
+				{#if !selectedDeck}<Button href="/mtg/decks/import" variant="secondary">Import deck</Button
+					><Button href={flowHref('create')} onclick={openCreate} disabled={busy || deletedTarget}
+						><PlusIcon />New deck</Button
 					>{/if}
 			</div>
 		{/snippet}
@@ -931,13 +959,14 @@
 					pending={busy}
 					cancelHref={flowHref()}
 					variant="import"
-					description="Paste an Arena decklist. Preview the matches before adding cards to this deck."
+					description="Paste or upload Arena text, simple text, Spellbook CSV or JSON v1. Imports add quantities to this Deck and retain its details."
 					returnFocus={actionsTrigger}
 					bind:open={importOpen}
 				>
 					<form
 						method="POST"
 						action={action('previewImport')}
+						enctype="multipart/form-data"
 						use:enhance={save}
 						class="form-stack"
 					>
@@ -951,10 +980,22 @@
 							class="input decklist-input"
 							rows="9"
 							maxlength="100000"
-							required
 							bind:value={importText}
 							placeholder={"Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n10 Forest"}
-						></textarea><Button type="submit" variant="secondary" disabled={busy || deletedTarget}
+						></textarea>
+						<label class="label" for="import-file">Or upload a UTF-8 file</label>
+						<input
+							id="import-file"
+							type="file"
+							name="file"
+							accept=".txt,.csv,.json,text/plain,text/csv,application/json"
+						/>
+						<p>
+							Maximum 100,000 characters, 400,000 file bytes and 1,000 card records. Simple text
+							loses printing choices and roles.
+						</p>
+						<a href="/mtg/decks/import">Import as a complete new Deck</a>
+						<Button type="submit" variant="secondary" disabled={busy || deletedTarget}
 							>{busy ? 'Working...' : 'Preview import'}</Button
 						>
 					</form>
@@ -964,7 +1005,7 @@
 						<div class="import-preview" aria-live="polite">
 							<p>{importableCount} cards matched for import.</p>
 							{#if preview.unresolved.length || preview.ambiguous.length}<p class="warning">
-									These lines will be skipped. Edit the list and preview again to resolve them.
+									Resolve every record before importing. Edit the list and preview again.
 								</p>{/if}
 							<ul>
 								{#each preview.unresolved as item}<li>
@@ -977,7 +1018,8 @@
 							{#if preview.resolved.some(({ line }) => line.role === 'maybeboard')}<p
 									class="warning"
 								>
-									Maybeboard cards will be skipped.
+									Maybeboard is unsupported. Move these cards into a supported Deck section before
+									importing.
 								</p>{/if}
 							<details>
 								<summary>Matched cards</summary>
@@ -1001,8 +1043,14 @@
 									type="hidden"
 									name="text"
 									value={importText}
-								/><Button type="submit" variant="default" disabled={busy || !importableCount}
-									><PlusIcon />Add {importableCount} matched cards</Button
+								/><Button
+									type="submit"
+									variant="default"
+									disabled={busy ||
+										!importableCount ||
+										preview.unresolved.length > 0 ||
+										preview.ambiguous.length > 0}
+									><PlusIcon />Add all {importableCount} cards</Button
 								>
 							</form>
 						</div>
@@ -1050,7 +1098,13 @@
 				<a class="inline-flex items-center gap-2" href={flowHref('create')}><PlusIcon />New deck</a>
 				· <a href={flowHref('edit')}>Edit details</a> ·
 				<a href={flowHref('import')}>Import decklist</a>
-				· <a href={flowHref('delete')}>Delete deck</a> · <a href={flowHref('search')}>Find cards</a>
+				· <a href={`/mtg/decks/${selectedDeck.id}/export?format=json`}>Export Spellbook JSON</a> ·
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=csv`}>Export CSV</a>
+				· <a href={`/mtg/decks/${selectedDeck.id}/export`}>Export Arena</a> ·
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=simple`}>Export simple text</a>
+				· <a href={`/mtg/decks/${selectedDeck.id}/print`}>Print deck</a> ·
+				<a href={flowHref('delete')}>Delete deck</a>
+				· <a href={flowHref('search')}>Find cards</a>
 			</nav></noscript
 		>
 		<div class="deck-summary">

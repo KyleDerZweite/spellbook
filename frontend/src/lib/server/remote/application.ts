@@ -136,6 +136,7 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		| 'addCatalogCardToDeck'
 		| 'changeDeckPrinting'
 		| 'importIntoDeck'
+		| 'importTextDeck'
 		| 'updateDeckCard'
 		| 'removeDeckCard'
 	>;
@@ -181,8 +182,17 @@ export function createRemoteApplication(client: () => RemoteClient) {
 			>(queryPath(`${base}/decks/${id(deckId)}`, { selectedOnly: true }), { domain: 'decks' });
 			return { warnings, deckDocuments };
 		},
-		exportDecklist: (_actor, deckId) =>
-			client().request(`${base}/decks/${id(deckId)}/export`, { text: true, domain: 'decks' }),
+		exportDecklist: (_actor, deckId, format = 'arena') =>
+			client().request(queryPath(`${base}/decks/${id(deckId)}/export`, { format }), {
+				text: true,
+				domain: 'decks'
+			}),
+		importTextDeck: (_actor, input) =>
+			client().request(`${base}/decks/import/commit`, {
+				method: 'POST',
+				body: input,
+				domain: 'decks'
+			}),
 		previewMtgImport: (_actor, text, format = '') =>
 			client().request(`${base}/decks/import/preview`, {
 				method: 'POST',

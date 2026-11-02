@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import datetime
+from typing import Literal, cast
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool, Transaction, iso_timestamp, transaction
@@ -18,6 +19,7 @@ from spellbook_core.mtg.decks.common import (
     require_deck,
     rows,
 )
+from spellbook_core.mtg.decks.exchange import export_deck
 from spellbook_core.mtg.decks.models import (
     DeckCard,
     DeckLegality,
@@ -28,7 +30,6 @@ from spellbook_core.mtg.decks.models import (
 from spellbook_core.mtg.decks.rules import (
     allocate_deck_availability,
     canonical_quantities,
-    format_arena_decklist,
     legality_warnings,
 )
 from spellbook_core.mtg.decks.tokens import related_tokens
@@ -247,10 +248,14 @@ class DeckReads:
             deckDocuments=documents,
         )
 
-    async def export_decklist(self, actor: Actor, deck_id: str) -> str:
-        cards = await self.get_deck_cards_for_deck(actor, deck_id)
-        try:
-            documents = await self._resolve(cards)
-        except Exception:
-            documents = {}
-        return format_arena_decklist(cards, documents)
+    async def export_decklist(self, actor: Actor, deck_id: str, format: str = "arena") -> str:
+        if format not in ("arena", "simple", "csv", "json"):
+            raise ValidationError("Unsupported Deck export format")
+        account = (await self.auth.require_actor(actor)).account_id
+        async with transaction(self.pool, read_only=True, repeatable_read=True) as tx:
+            deck = await require_deck(tx, account, deck_id)
+            cards = await read_cards(tx, account, deck_id)
+        documents = await self._resolve(cards) if format == "arena" else {}
+        return export_deck(
+            deck, cards, documents, cast(Literal["arena", "simple", "csv", "json"], format)
+        )

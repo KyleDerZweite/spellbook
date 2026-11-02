@@ -343,3 +343,51 @@ def test_choice_queries_reject_repeated_or_unknown_keys(routes: tuple[Any, TestC
     for suffix in ("?query=one&query=two", "?unknown=x", "?limit=0"):
         assert client.get(BASE + "/decks/choices" + suffix).status_code == 400
     decks.get_deck_choices.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("format", "media", "extension"),
+    [
+        ("arena", "text/plain", "txt"),
+        ("simple", "text/plain", "txt"),
+        ("csv", "text/csv", "csv"),
+        ("json", "application/json", "json"),
+    ],
+)
+def test_all_portable_downloads_are_private_and_forward_format(
+    routes: tuple[Any, TestClient], format: str, media: str, extension: str
+) -> None:
+    decks, client = routes
+    response = client.get(BASE + "/decks/" + DECK + "/export?format=" + format)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == media + "; charset=utf-8"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["content-disposition"] == f'attachment; filename="deck.{extension}"'
+    decks.export_decklist.assert_awaited_once_with(ACTOR, DECK, format)
+
+
+def test_unsupported_export_is_rejected_before_application(routes: tuple[Any, TestClient]) -> None:
+    decks, client = routes
+    assert client.get(BASE + "/decks/" + DECK + "/export?format=dek").status_code == 400
+    decks.export_decklist.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        ("GET", "/decks/" + DECK + "/export?format=json"),
+        ("POST", "/decks/import/preview"),
+        ("POST", "/decks/import/commit"),
+    ],
+)
+def test_exchange_requires_authentication_before_application(method: str, path: str) -> None:
+    auth = create_autospec(SessionAuth, instance=True)
+    auth.validate_session.return_value = None
+    decks = create_autospec(Decks, instance=True)
+    app = application(create_deck_routes(auth, decks, ORIGIN), ORIGIN, auth)
+    with TestClient(app) as client:
+        response = client.request(method, BASE + path, json={})
+    assert response.status_code == 401
+    decks.preview_mtg_import.assert_not_awaited()
+    decks.import_text_deck.assert_not_awaited()
+    decks.export_decklist.assert_not_awaited()

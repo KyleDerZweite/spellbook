@@ -1,9 +1,9 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-03
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: managed Category removal, current-version Scan receipt replay and removal of historical compatibility promises, unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and current-version replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: portable Deck exchange and complete import rejection, managed Category removal, current-version Scan receipt replay and removal of historical compatibility promises, unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and current-version replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
@@ -149,7 +149,7 @@ Experimental v1 Deck responses now use explicit [Deck DTOs](../../contracts/src/
 `GET /api/v1/mtg/decks` returns library metadata, totals and covers; optional `deck=UUID` loads one owned composition and its relevant ownership aggregates.
 It removes the previous full `inventoryCards` and `mutationRequests` fields.
 `GET /decks/{deckId}` adds legality warnings and resolved safe documents.
-Existing paths, authentication and text export formats remain.
+Existing authentication and ownership checks apply to every Deck import and export.
 
 `GET /decks/search?q=...` returns Catalog hits with account-owned aggregates.
 `GET /decks/ownership` accepts repeated `canonicalCardId` values, at most 100, and returns owned-printing quantities.
@@ -169,6 +169,41 @@ Clients of the former snapshot mutations must retain the request ID for a failed
 Changed-payload reuse returns 409 `RequestConflict`; Description conflict requires deliberate review/rebase.
 [The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../contracts/openapi.json) owns exact schemas and validation.
 Deck aggregate results outside the safe JSON integer range fail explicitly rather than return rounded quantities.
+
+## Portable Deck exchange
+
+`POST /decks/import/preview` detects Arena/simple text, Spellbook CSV or Spellbook Deck JSON v1 from the submitted `text`.
+It returns parsed records, resolved current Catalog documents, unresolved/ambiguous records, warnings and optional Deck metadata.
+Arena supports `About` and `Name` headers plus `Commander`, `Deck`, `Sideboard` and `Companion` sections.
+Set and collector-number hints guide Catalog resolution; Arena text does not guarantee an exact Scryfall printing identity.
+Simple quantity-name text intentionally loses printing choices, roles and Deck details.
+
+`POST /decks/import/commit` creates a complete new Deck in the existing receipt transaction.
+The `decks.importInto` web command adds every imported quantity to an owned existing Deck, merging identical printing/role entries while retaining the target's name, format and description.
+Both commands reject malformed, unsupported, ambiguous or unresolved records instead of dropping entries.
+Commit resolves again, and the mutation transaction verifies every selected printing against the current Catalog before writing.
+Existing request IDs, fingerprints, ownership checks and original acknowledgement replay remain authoritative.
+
+`GET /decks/{deckId}/export?format=arena|simple|csv|json` downloads the requested format with `Cache-Control: no-store`.
+CSV and JSON preserve Deck name, format, description, exact `catalogCardId`, quantity and all four roles.
+JSON has exactly `schema: "spellbook.deck"`, integer `version: 1`, `name`, `format`, `description` and `cards`.
+Each card has exactly `catalogCardId`, integer `quantity` and `role`.
+[OpenAPI PortableDeckV1](../../contracts/openapi.json) owns the schema; unsupported versions, duplicate JSON keys and extra fields fail explicitly.
+Account IDs, revisions, Inventory and derived Token requirements are excluded.
+
+CSV requires the exact header `name,format,description,catalogCardId,quantity,role`.
+The first data record supplies Deck metadata; later records leave all three metadata cells empty or repeat identical values.
+Records use standard CSV quoting for commas, quotes and multiline descriptions.
+A single metadata row with its three card fields empty represents an empty Deck.
+CSV and JSON metadata supplies the new Deck's details; Arena `About`/`Name` supplies its name, and text without that header requires the caller's name.
+Empty portable Decks are supported.
+Imports and exports are bounded to 100,000 UTF-16 code units, 1,000 card records and quantities from 1 through 10,000 per record.
+Merged quantities remain subject to the existing command limit.
+Web uploads additionally require UTF-8, at most 400,000 file bytes and a total form body of at most 1 MiB.
+
+There is no PDF API, MTGO `.dek` adapter, hosted-URL fetch or share-code import.
+These formats have parser/roundtrip coverage, not verified external-client acceptance.
+The [frontend owner](./frontend.md#shared-deck-ui) records native browser printing and import entrypoints.
 
 ## Deck choice read
 

@@ -126,7 +126,23 @@ export interface DeckBulkInput {
 	game: string;
 	operations: DeckOperation[];
 }
+export type DeckExchangeFormat = 'arena' | 'simple' | 'csv' | 'json';
+
+export interface PortableDeckV1 {
+	schema: 'spellbook.deck';
+	version: 1;
+	name: string;
+	format: string;
+	description: string;
+	cards: { catalogCardId: string; quantity: number; role: DeckRole }[];
+}
+
+export interface DeckImportPreview extends ImportPreview {
+	metadata: Pick<Deck, 'name' | 'format' | 'description'> | null;
+}
+
 export interface ImportLine {
+	catalogCardId?: string;
 	quantity: number;
 	name: string;
 	normalizedName: string;
@@ -214,8 +230,8 @@ export interface DecksApplication {
 		warnings: LegalityWarning[];
 		deckDocuments: Record<string, CardDocument>;
 	}>;
-	exportDecklist(actor: AuthUser, deckId: string): Promise<string>;
-	previewMtgImport(actor: AuthUser, text: string, format?: string): Promise<ImportPreview>;
+	exportDecklist(actor: AuthUser, deckId: string, format?: DeckExchangeFormat): Promise<string>;
+	previewMtgImport(actor: AuthUser, text: string, format?: string): Promise<DeckImportPreview>;
 	addCatalogCardToDeck(
 		actor: AuthUser,
 		input: {

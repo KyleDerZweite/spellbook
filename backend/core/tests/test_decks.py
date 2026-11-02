@@ -496,8 +496,8 @@ def test_import_preview_uses_real_parser_and_legality_with_resolved_catalog() ->
         assert [r["line"]["quantity"] for r in result["resolved"]] == [2, 1]
         assert result["unresolved"][0]["reason"] == "Unrecognized card line"
         assert result["warnings"][0]["code"] == "commander_singleton"
-        committed = decks._import_operations(result)
-        assert len(committed) == 1 and committed[0]["quantity"] == 2
+        with pytest.raises(ValidationError, match="every"):
+            decks._import_operations(result)
 
     asyncio.run(scenario())
 

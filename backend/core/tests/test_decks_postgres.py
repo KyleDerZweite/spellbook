@@ -266,7 +266,8 @@ def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> Non
                 f.printing
             ]["id"] == f.printing
             assert (
-                await f.decks.export_decklist(f.actor, deck_id) == "Deck\n3 Deck Fixture (TST) 1\n"
+                await f.decks.export_decklist(f.actor, deck_id)
+                == "About\nName Functional Deck\n\nDeck\n3 Deck Fixture (TST) 1\n"
             )
             page = await f.decks.get_deck_library(f.actor)
             assert page["items"][0]["id"] == deck_id
@@ -457,5 +458,85 @@ def test_real_rollback_merge_replay_concurrent_retry_and_session_recheck() -> No
                 )
             with pytest.raises(ActorError):
                 await f.decks.add_catalog_card_to_deck(f.actor, input)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("exchange_format", ["json", "csv"])
+def test_portable_roundtrip_additive_import_and_atomic_rejection(exchange_format: str) -> None:
+    async def scenario() -> None:
+        import json
+
+        from spellbook_core.errors import ValidationError
+
+        async with fixture() as f:
+            original = await f.decks.create_deck_record(
+                f.actor,
+                dict(
+                    game="mtg",
+                    name='Portable, "雪"',
+                    format="Modern",
+                    description='First\n"Second", line',
+                ),
+            )
+            await f.decks.bulk_mutate_deck_cards(
+                f.actor,
+                dict(
+                    deckId=original["id"],
+                    requestId=str(uuid4()),
+                    source="web",
+                    game="mtg",
+                    operations=[
+                        dict(
+                            op="add",
+                            card=dict(
+                                catalogCardId=f.printing if i % 2 else f.alternate,
+                                canonicalCardId="untrusted",
+                                name="untrusted",
+                            ),
+                            quantity=i + 1,
+                            role=role,
+                        )
+                        for i, role in enumerate(("main", "sideboard", "commander", "companion"))
+                    ],
+                ),
+            )
+            value = await f.decks.export_decklist(f.actor, original["id"], exchange_format)
+            receipt = await f.decks.import_text_deck(
+                f.actor,
+                dict(
+                    game="mtg",
+                    requestId=str(uuid4()),
+                    text=value,
+                ),
+            )
+            created = await f.decks.get_deck(f.actor, receipt["deckId"])
+            assert {
+                key: created["decks"][0][key] for key in ("name", "format", "description")
+            } == {key: original[key] for key in ("name", "format", "description")}
+            expected = {
+                (entry["catalogCardId"], entry["role"]): entry["quantity"]
+                for entry in created["deckCards"]
+            }
+            assert len(expected) == 4
+            addition = dict(deckId=receipt["deckId"], requestId=str(uuid4()), text=value)
+            await f.decks.import_into_deck(f.actor, addition)
+            await f.decks.import_into_deck(f.actor, addition)
+            assert {
+                (entry["catalogCardId"], entry["role"]): entry["quantity"]
+                for entry in await f.decks.get_deck_cards_for_deck(f.actor, receipt["deckId"])
+            } == {key: quantity * 2 for key, quantity in expected.items()}
+            with pytest.raises(DeckNotFoundError):
+                await f.decks.export_decklist(f.other, receipt["deckId"], exchange_format)
+            payload = json.loads(await f.decks.export_decklist(f.actor, original["id"], "json"))
+            payload["cards"].append(dict(catalogCardId=str(uuid4()), quantity=1, role="main"))
+            before = await f.decks.get_deck_library(f.actor)
+            with pytest.raises(ValidationError):
+                await f.decks.import_text_deck(
+                    f.actor, dict(game="mtg", requestId=str(uuid4()), text=json.dumps(payload))
+                )
+            assert (await f.decks.get_deck_library(f.actor))["globalTotal"] == before[
+                "globalTotal"
+            ]
 
     asyncio.run(scenario())

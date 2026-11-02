@@ -27,6 +27,7 @@ import { ValidationError } from '#lib/server/mtg/validation.ts';
 import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import type { CardDocument } from '#lib/search/types.ts';
+import { deckImportText, readDeckImportForm } from '#lib/server/mtg/deck-import.ts';
 import type { LegalityWarning } from '#lib/server/mtg/legality.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -351,24 +352,29 @@ export const actions = {
 		return { success: true, message: 'Card removed from deck.' };
 	}),
 	previewImport: guarded(async ({ request, locals }) => {
-		const form = await request.formData();
-		const snapshot = await application.decks.getDeck(locals.user!, field(form, 'deckId'));
-		const deck = snapshot.decks.find((entry) => entry.id === field(form, 'deckId'));
-		if (!deck) return fail(404, { message: 'Deck not found.' });
-		const text = field(form, 'text');
-		if (!text || text.length > 100_000)
-			return fail(400, {
-				message: 'Paste a decklist of up to 100,000 characters.',
-				importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
-			});
-		return {
-			preview: await application.decks.previewMtgImport(locals.user!, text, deck.format),
-			importText: text,
-			importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
-		};
+		const form = await readDeckImportForm(request);
+		let text = field(form, 'text');
+		try {
+			text = await deckImportText(form);
+			const snapshot = await application.decks.getDeck(locals.user!, field(form, 'deckId'));
+			const deck = snapshot.decks.find((entry) => entry.id === field(form, 'deckId'));
+			if (!deck) return fail(404, { message: 'Deck not found.' });
+			return {
+				preview: await application.decks.previewMtgImport(locals.user!, text, deck.format),
+				importText: text,
+				importDraft: { text, requestId: field(form, 'requestId') }
+			};
+		} catch (cause) {
+			if (cause instanceof ValidationError && !(cause instanceof DeckNotFoundError))
+				return fail(400, {
+					message: cause.message,
+					importDraft: { text, requestId: field(form, 'requestId') }
+				});
+			throw cause;
+		}
 	}),
 	commitImport: guarded(async ({ request, locals }) => {
-		const form = await request.formData();
+		const form = await readDeckImportForm(request);
 		const text = field(form, 'text');
 		if (!text || text.length > 100_000)
 			return fail(400, {
@@ -392,6 +398,11 @@ export const actions = {
 				});
 			throw cause;
 		}
-		return { success: true, imported: true, message: 'Resolved cards added to the deck.' };
+		return {
+			success: true,
+			imported: true,
+			message:
+				'All imported cards added. Matching printing and role quantities were increased. Deck details were retained.'
+		};
 	})
 } satisfies Actions;
