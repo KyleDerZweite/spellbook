@@ -198,6 +198,10 @@ The Deck grid uses three columns when its content has room, two at intermediate 
 Each tile places its name at the upper left and its format in a compact tag at the upper right.
 Larger genuine Commander frames sit directly beside the availability ring; center counts fit wholly inside its hole.
 Exact, alternate and missing values remain available through chart inspection, without a persistent missing-count caption.
+Deck tiles use the shared quiet surfaces without individual card outlines; the enclosing panel retains its existing boundary.
+The format tag includes the Mana Font Commander symbol when the actual format is Commander.
+Card-type labels in Dashboard charts, Search filters and Deck groups share the existing Mana Font type symbols.
+Set data retains real Set symbols rather than substituting unrelated decorative icons.
 Quick Actions links to existing Add cards, New deck, Scan cards and Box management workspaces, without creating a second search input.
 Deck previews use larger actual Commander artwork or an honest unavailable-art placeholder, a clear Deck title and compact exact/alternate/missing availability.
 The lower panels are 480px high on wide screens; the Deck list scrolls natively, and narrow screens show its natural height.
@@ -232,9 +236,10 @@ Remove the standalone `/mtg/history` page and its navigation links rather than r
 The Inventory inspector retains identity-filtered personal history through the same preview.
 
 The supplied compact metric reference replaces the full-width sparkline rows.
-Use a short label, current figure, a concise seven-day comparison and a small adjacent chart.
+Use a short label, current figure, a concise last-month comparison over 30 closed daily reporting dates and a small adjacent chart.
+The four metric cards are approximately 140px high on wide screens, with reduced padding and no clipped figures or trend labels.
 Counts use actual daily bars; value uses a restrained line with explicit gaps.
-Partial price coverage stays identifiable without repeating a long technical label across every card.
+Partial price coverage remains in the expanded details; the compact cards omit the visible Partial value and covered captions.
 Keep exact BigInt arithmetic, real captured observations and unknown legacy Deck counts.
 
 Product: Spellbook manages an MTG player's owned cards and Decks.
@@ -602,7 +607,8 @@ Search, Filter, Sort and the matching entry/copy count share the toolbar.
 Column labels remain direct sorting controls.
 The shared filter popover contains searchable full set names with multiple selection, finish and condition.
 Active chips reopen the relevant control for editing; a separate clear button removes each value.
-New entries have a small New badge with an explicit date and seven-day duration.
+New entries have a small New badge only on their displayed UTC creation date, excluding future or invalid timestamps.
+The badge expires when that day ends, including while Inventory remains open, without changing stored entry timestamps or ordering.
 The controls remain available on narrow screens and when filters match no entries.
 [The specification](./specification.md#owned-inventory) owns ordering and filter semantics.
 
@@ -642,6 +648,7 @@ Kyle's further feedback on 2026-10-31 selects softer shared graphite surfaces, c
 Keep the existing logo, fonts, navigation and accessible text contrast; color belongs mainly to card artwork, meaningful Mana symbols and data series.
 The subsequent 2026-11-01 correction restores an artwork-led Deck Library grid.
 Use real framed card artwork with Deck name, format/count/edited metadata in responsive tiles.
+Deck Library tiles keep quiet, borderless surfaces; pointer hover and keyboard focus still identify the actionable Deck.
 The search toolbar retains Inventory-style Filter and Sort controls.
 Keep existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
 The Category Library now leads with saved categories and visible starter names, separates Cards in decks from Whole decks, and opens authoring through New category.
@@ -649,6 +656,7 @@ Technical ordering, roles and source search remain under native disclosures; fai
 These changes preserve category rules, immutable definition versions and explicit adoption.
 Mana charts and Dashboard prototypes share the semantic WUBRG chart palette in app.css.
 The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
+Mana charts use a dark graphite Black series, distinct from the neutral Colorless series in both themes.
 Color identity is the default measure.
 The default analysis scope is Main plus Commander; Main, Sideboard, Companion and All sections remain explicit choices after hydration.
 Without JavaScript the default analysis and exact chart data remain readable, while the interactive measure selectors stay disabled.
