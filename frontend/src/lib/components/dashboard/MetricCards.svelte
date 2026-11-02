@@ -65,11 +65,13 @@
 			{:else}<a class="metric-card dashboard-surface" href={metric.href}
 					>{@render card(metric, trend)}</a
 				>{/if}
-			<span class="metric-visual"
+			<span
+				class="metric-visual"
+				style:color={`var(--color-nav-${metric.key === 'value' ? 'dashboard' : metric.key === 'total' ? 'search' : metric.key === 'sets' ? 'inventory' : 'decks'})`}
 				><MetricMiniChart
 					{trend}
 					kind={metric.key === 'value' ? 'line' : 'bars'}
-					label={`${metric.label}, seven closed reporting dates${trend.partial ? ', covered subtotal with partial price coverage' : ''}`}
+					label={`${metric.label}, 30 closed reporting dates${trend.partial ? ', covered subtotal with partial price coverage' : ''}`}
 				/></span
 			>
 		</li>
@@ -94,16 +96,10 @@
 					>{trend.delta > 0n ? '↗' : trend.delta < 0n ? '↘' : ''}</span
 				>
 				{metricChange(trend.delta, metric.key === 'value')}
-				<span class="comparison">{trend.partial ? 'covered · 7 days' : 'over 7 days'}</span
-				>{:else}<span class="comparison"
+				<span class="comparison">over last month</span>{:else}<span class="comparison"
 					>{trend.captured ? 'No comparison yet' : 'No history yet'}</span
 				>{/if}
 		</span>
-		{#if metric.key === 'value' && estimate && !estimate.complete}<span
-				class="coverage"
-				title={`${estimate.coveredQuantity} of ${estimate.totalQuantity} copies priced`}
-				>Partial value</span
-			>{/if}
 	</span>
 {/snippet}
 {#if historyOpen}<InventoryHistoryDialog
@@ -122,7 +118,7 @@
 	.metric-cards {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 16px;
+		gap: 12px;
 		padding: 0;
 		margin: 24px 0;
 		list-style: none;
@@ -136,11 +132,11 @@
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: auto auto 1fr;
 		align-content: start;
-		gap: 10px 22px;
+		gap: 6px 16px;
 		width: 100%;
-		min-height: 172px;
+		min-height: 140px;
 		height: 100%;
-		padding: 24px;
+		padding: 16px;
 		position: relative;
 		overflow: hidden;
 		border: 1px solid var(--color-border);
@@ -177,13 +173,14 @@
 		overflow-wrap: anywhere;
 	}
 	.metric-value > span {
+		overflow-wrap: anywhere;
 		color: var(--color-text-secondary);
 		font: 400 24px/1.1 var(--font-display);
 	}
 	.metric-visual {
 		position: absolute;
 		right: 18px;
-		bottom: 25px;
+		bottom: 16px;
 		width: 80px;
 		height: 44px;
 		pointer-events: none;
@@ -199,11 +196,12 @@
 		font: 400 12px/1.5 var(--font-body);
 	}
 	.metric-change {
+		min-width: 0;
+		overflow-wrap: anywhere;
 		color: var(--color-text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
-	.comparison,
-	.coverage {
+	.comparison {
 		color: var(--color-text-muted);
 	}
 	.positive {
@@ -214,8 +212,8 @@
 	}
 	@media (min-width: 1150px) and (max-width: 1450px) {
 		.metric-card {
-			gap: 10px 12px;
-			padding: 22px 16px;
+			gap: 6px 12px;
+			padding: 16px;
 		}
 		.metric-footer {
 			grid-column: 1 / -1;
@@ -232,8 +230,8 @@
 			gap: 12px;
 		}
 		.metric-card {
-			gap: 12px;
-			padding: 18px 14px;
+			gap: 6px;
+			padding: 16px 14px;
 		}
 		.metric-value,
 		.metric-footer {

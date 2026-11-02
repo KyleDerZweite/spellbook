@@ -5,9 +5,9 @@ export type MetricKey = 'value' | 'total' | 'names' | 'sets' | 'decks';
 export function metricTrend(history: InventoryValueHistory | null, key: MetricKey) {
 	if (!history) return { points: [], delta: null, captured: 0, partial: false, from: '', to: '' };
 	const to = history.window.to;
-	const points = Array.from({ length: 7 }, (_, index) => {
+	const points = Array.from({ length: 30 }, (_, index) => {
 		const day = new Date(to + 'T00:00:00Z');
-		day.setUTCDate(day.getUTCDate() - 6 + index);
+		day.setUTCDate(day.getUTCDate() - 29 + index);
 		const label = day.toISOString().slice(0, 10);
 		const point = history.points.find((p) => p.day === label);
 		let value: bigint | null = null;
@@ -24,7 +24,7 @@ export function metricTrend(history: InventoryValueHistory | null, key: MetricKe
 		};
 	});
 	const first = points[0].value,
-		last = points[6].value;
+		last = points[points.length - 1].value;
 	return {
 		points,
 		delta: first !== null && last !== null ? last - first : null,

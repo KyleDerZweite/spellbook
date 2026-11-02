@@ -41,26 +41,43 @@ function captured(
 	};
 }
 describe('daily metric trends', () => {
-	it('uses the last seven closed reporting dates and the actual endpoints', () => {
+	it('uses the last 30 closed reporting dates and the actual endpoints', () => {
 		const r = metricTrend(
-			history([captured('2026-10-23', 100), captured('2026-10-24', 4), captured('2026-10-30', 9)]),
+			history([captured('2026-09-30', 100), captured('2026-10-01', 4), captured('2026-10-30', 9)]),
 			'total'
 		);
-		expect(r.points).toHaveLength(7);
-		expect(r.from).toBe('2026-10-24');
+		expect(r.points).toHaveLength(30);
+		expect(r.from).toBe('2026-10-01');
+		expect(r.to).toBe('2026-10-30');
 		expect(r.delta).toBe(5n);
 		expect(r.captured).toBe(2);
 		expect(r.points[1].value).toBeNull();
 	});
 	it('does not invent legacy Deck counts or a missing comparison', () => {
-		const h = history([captured('2026-10-24', 4), captured('2026-10-30', 9, '1.00', 5)]);
+		const h = history([captured('2026-10-01', 4), captured('2026-10-30', 9, '1.00', 5)]);
 		expect(metricTrend(h, 'decks').delta).toBeNull();
 		expect(metricTrend(h, 'decks').captured).toBe(1);
 		expect(metricTrend(history([captured('2026-10-30', 9)]), 'total').delta).toBeNull();
 	});
+	it('does not substitute the latest captured date for a missing final endpoint', () => {
+		const r = metricTrend(history([captured('2026-10-01', 4), captured('2026-10-29', 9)]), 'total');
+		expect(r.delta).toBeNull();
+		expect(r.points[29]).toMatchObject({ day: '2026-10-30', value: null });
+	});
+	it('counts daily reporting dates across a leap-day boundary', () => {
+		const h = history([]);
+		h.window = { from: '2024-02-01', to: '2024-03-01', days: 30 };
+		const r = metricTrend(h, 'total');
+		expect(r.from).toBe('2024-02-01');
+		expect(r.points[28]).toMatchObject({ day: '2024-02-29', value: null });
+		expect(r.to).toBe('2024-03-01');
+		expect(r.captured).toBe(0);
+		expect(r.delta).toBeNull();
+	});
+
 	it('preserves actual zeroes and exact currency beyond JavaScript number precision', () => {
 		const h = history([
-			captured('2026-10-24', 0, '9007199254740993.01'),
+			captured('2026-10-01', 0, '9007199254740993.01'),
 			captured('2026-10-30', 0, '9007199254740993.03')
 		]);
 		expect(metricTrend(h, 'value').delta).toBe(2n);
@@ -68,7 +85,7 @@ describe('daily metric trends', () => {
 		expect(metricChange(-2n, true)).toBe('−€0.02');
 	});
 	it('does not turn wholly unknown prices or filtered totals into zero trends', () => {
-		const first = captured('2026-10-24', 2);
+		const first = captured('2026-10-01', 2);
 		if (first.kind === 'Captured') {
 			first.estimate.coveredQuantity = 0;
 			first.estimate.unknownQuantity = 2;
@@ -80,7 +97,7 @@ describe('daily metric trends', () => {
 		expect(metricTrend(null, 'value').points).toEqual([]);
 	});
 	it('marks historical partial coverage independently of the current estimate', () => {
-		const first = captured('2026-10-24', 2);
+		const first = captured('2026-10-01', 2);
 		if (first.kind === 'Captured') {
 			first.estimate.complete = false;
 			first.estimate.coveredQuantity = 1;

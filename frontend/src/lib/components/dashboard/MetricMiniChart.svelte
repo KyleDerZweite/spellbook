@@ -13,7 +13,7 @@
 	const points = $derived(
 		trend.points.map((point, index) => ({
 			...point,
-			x: 4 + index * 12,
+			x: 4 + (index * 72) / Math.max(1, trend.points.length - 1),
 			y:
 				point.value === null
 					? 40
@@ -24,6 +24,7 @@
 							: 40 - Number(((point.value - minimum) * 3400n) / (maximum - minimum)) / 100
 		}))
 	);
+	const barWidth = $derived(Math.min(6, 56 / Math.max(1, trend.points.length)));
 	const path = $derived(
 		line<(typeof points)[number]>()
 			.defined((point) => point.value !== null)
@@ -58,17 +59,17 @@
 				stroke-linejoin="round"
 			/>
 		{:else}{#each points as point}{#if point.value === 0n}<line
-						x1={point.x - 3}
-						x2={point.x + 3}
+						x1={point.x - barWidth / 2}
+						x2={point.x + barWidth / 2}
 						y1="40"
 						y2="40"
 						stroke="currentColor"
 						stroke-width="1.5"><title>{point.day}: 0</title></line
 					>
 				{:else if point.value !== null}<rect
-						x={point.x - 3}
+						x={point.x - barWidth / 2}
 						y={point.y}
-						width="6"
+						width={barWidth}
 						height={40 - point.y}
 						rx="1"
 						opacity={point.day === trend.to ? 1 : 0.6}
@@ -82,7 +83,7 @@
 		display: block;
 		width: 80px;
 		height: 44px;
-		color: var(--color-chart-dashboard-accent);
+		color: inherit;
 		fill: currentColor;
 	}
 </style>
