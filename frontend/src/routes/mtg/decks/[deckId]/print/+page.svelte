@@ -117,6 +117,10 @@
 	@media print {
 		@page {
 			margin: 14mm;
+			background: white;
+		}
+		:global(html:has(.deck-print)) {
+			color-scheme: light;
 		}
 		:global(html:has(.deck-print)),
 		:global(body:has(.deck-print)),
