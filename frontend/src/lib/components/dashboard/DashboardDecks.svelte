@@ -50,7 +50,7 @@
 								{/if}
 							</a>
 							<div class="deck-status">
-								<span class="format-label"
+								<span class="format-label" title={deck.format}
 									><i
 										class={`ms ms-${deck.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
 										aria-hidden="true"
@@ -167,7 +167,12 @@
 		align-items: center;
 		gap: 4px;
 		flex: 0 1 auto;
-		padding: 2px 6px;
+		padding: 2px 4px;
+		box-sizing: border-box;
+		max-width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		font-size: 11px;
