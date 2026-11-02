@@ -659,6 +659,8 @@ These changes preserve category rules, immutable definition versions and explici
 Mana charts and Dashboard prototypes share the semantic WUBRG chart palette in app.css.
 The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
 Mana charts use a dark graphite Black series, distinct from the neutral Colorless series in both themes.
+On wide screens Deck analysis stacks beneath Add cards in the right column, leaving the Deck cards first in the main column.
+On narrow screens that analysis remains visible below the Deck cards while the Add cards dialog retains the search workflow.
 Color identity is the default measure.
 The default analysis scope is Main plus Commander; Main, Sideboard, Companion and All sections remain explicit choices after hydration.
 Without JavaScript the default analysis and exact chart data remain readable, while the interactive measure selectors stay disabled.

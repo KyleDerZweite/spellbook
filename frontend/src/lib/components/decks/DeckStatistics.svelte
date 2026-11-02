@@ -157,6 +157,7 @@
 
 <style>
 	.deck-statistics {
+		container-type: inline-size;
 		min-width: 0;
 		margin: 0 0 1.5rem;
 	}
@@ -313,12 +314,12 @@
 		color: var(--color-text-secondary);
 		text-align: center;
 	}
-	@media (max-width: 760px) {
+	@container (max-width: 760px) {
 		.analysis-grid {
 			grid-template-columns: 1fr;
 		}
 	}
-	@media (max-width: 360px) {
+	@container (max-width: 360px) {
 		.color-distribution {
 			gap: 0.75rem;
 		}

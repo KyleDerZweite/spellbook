@@ -71,7 +71,7 @@
 	--color-chart-indigo: #91a6f7;
 	--color-chart-mana-white: #c8b88b;
 	--color-chart-mana-blue: #7fa9ca;
-	--color-chart-mana-black: #a39aad;
+	--color-chart-mana-black: #343238;
 	--color-chart-mana-red: #cf8e79;
 	--color-chart-mana-green: #80ae91;
 	--color-chart-mana-gold: #c2ac76;
@@ -81,6 +81,13 @@
 	--font-body: 'IBM Plex Mono', monospace;
 	--font-mono: var(--font-body);
 	--font-interface: ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+	--color-nav-dashboard: #b7a7e5;
+	--color-nav-search: #8cbbdd;
+	--color-nav-inventory: #d4ac86;
+	--color-nav-decks: #93bea6;
 }
 
 html.light {
@@ -98,6 +105,10 @@ html.light {
 	--color-secondary-foreground: #202020;
 	--color-accent: #326184;
 	--color-violet: #70539d;
+	--color-nav-dashboard: #7156a0;
+	--color-nav-search: #326184;
+	--color-nav-inventory: #845830;
+	--color-nav-decks: #35694d;
 	--color-chart-dashboard-accent: #7750c5;
 	--color-border: #d5d5d5;
 	--color-command: #ffffff;
@@ -123,7 +134,7 @@ html.light {
 	--color-chart-indigo: #5261bd;
 	--color-chart-mana-white: #8d7643;
 	--color-chart-mana-blue: #477ba2;
-	--color-chart-mana-black: #74627f;
+	--color-chart-mana-black: #3c3942;
 	--color-chart-mana-red: #a65f4b;
 	--color-chart-mana-green: #467953;
 	--color-chart-mana-gold: #957b3d;
@@ -642,7 +653,7 @@ button:disabled {
 .dashboard-surface {
 	--color-chart-mana-white: #e5d39a;
 	--color-chart-mana-blue: #639fe8;
-	--color-chart-mana-black: #a98ac2;
+	--color-chart-mana-black: #343238;
 	--color-chart-mana-red: #ed795f;
 	--color-chart-mana-green: #49bb8f;
 	--color-chart-mana-gold: #d2b258;
@@ -657,7 +668,7 @@ button:disabled {
 html:not(.dark) .dashboard-surface {
 	--color-chart-mana-white: #a68b3c;
 	--color-chart-mana-blue: #3679bd;
-	--color-chart-mana-black: #8056a1;
+	--color-chart-mana-black: #3c3942;
 	--color-chart-mana-red: #bf5944;
 	--color-chart-mana-green: #278761;
 	--color-chart-mana-gold: #a37c26;

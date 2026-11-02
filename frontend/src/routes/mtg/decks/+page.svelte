@@ -1271,7 +1271,6 @@
 		{/if}
 		<div class="workspace">
 			<section class="deck-list" aria-label="Deck cards" aria-busy={busy}>
-				<DeckStatistics cards={deckCards} documents={savedDecks.deckDocuments} />
 				<div class="list-controls">
 					<div class="view-controls" aria-label="Deck view">
 						<Button
@@ -1476,10 +1475,13 @@
 						</ul>{:else}<p>No warnings from the available checks.</p>{/if}
 				</details>
 			</section>
-			{#if data.flow !== 'search'}<aside class="catalog desktop-search" aria-label="Find cards">
-					<h2 class="catalog-title">Add cards</h2>
-					{@render discovery()}
-				</aside>{/if}
+			<aside class="deck-sidebar" aria-label="Deck tools and analysis">
+				{#if data.flow !== 'search'}<section class="catalog desktop-search" aria-label="Find cards">
+						<h2 class="catalog-title">Add cards</h2>
+						{@render discovery()}
+					</section>{/if}
+				<DeckStatistics cards={deckCards} documents={savedDecks.deckDocuments} />
+			</aside>
 		</div>
 	{:else}<DeckLibrary
 			page={data.deckLibrary}
@@ -1712,9 +1714,12 @@
 	.deck-list {
 		min-width: 0;
 	}
+	.deck-sidebar {
+		display: grid;
+		gap: 24px;
+		min-width: 0;
+	}
 	.catalog {
-		position: sticky;
-		top: calc(var(--app-header-height) + 5rem);
 		min-width: 0;
 		padding: 1rem;
 		background: var(--color-surface);
