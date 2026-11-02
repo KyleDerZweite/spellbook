@@ -658,6 +658,13 @@ The search toolbar retains Inventory-style Filter and Sort controls.
 Keep existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
 Mana charts and Dashboard prototypes share the semantic WUBRG chart palette in app.css.
 The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
+Deck estimates distinguish the whole Deck from its missing quantities and show the actual priced-copy coverage.
+Both use selected printing nonfoil EUR references, not the value of owned alternate printings, a lowest-price optimization or a checkout quote.
+Deck transfer supports Arena text, simple text, schema-defined CSV and versioned Spellbook JSON, plus a native browser print view.
+Import accepts pasted or uploaded data, keeps preview and explicit commit, and supports creating a complete new Deck as well as adding to an existing one.
+Spellbook JSON preserves Deck name, format, description, roles, quantities and exact available printing identities; account IDs, revisions, ownership and derived token references are not portable requirements.
+Unsupported versions, malformed records and unresolved printings remain visible and cannot silently drop entries from a whole-Deck import.
+Direct hosted-service link or share-ID ingestion remains outside the implemented exchange contract until the provider interface can be verified; exported file import does not fetch arbitrary user URLs.
 Mana charts use a dark graphite Black series, distinct from the neutral Colorless series in both themes.
 On wide screens Deck analysis stacks beneath Add cards in the right column, leaving the Deck cards first in the main column.
 On narrow screens that analysis remains visible below the Deck cards while the Add cards dialog retains the search workflow.
