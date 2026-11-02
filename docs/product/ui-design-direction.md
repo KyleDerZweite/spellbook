@@ -642,11 +642,12 @@ Without JavaScript the editor renders List with every native quantity form avail
 Mana Font group symbols describe actual types or the Commander role; alternate and missing markers preserve text and accessible names.
 A compact overview combines stored Commander artwork, actual Commander color identity, exact/alternate/missing Inventory matches and covered required/missing value estimates.
 Unknown availability remains explicit, and price coverage remains available through the shared native disclosure.
-Deck notes and category management use native disclosures, leaving the cards visible without removing existing controls, draft recovery or category decisions.
-Category grouping does not automatically open category administration.
-Primary category management selects one actual Deck entry, retains unsaved drafts when switching entries, and uses the same selected-entry form without JavaScript.
-The advanced management region has its own bounded scroll area; whole-deck rules remain separately disclosed.
-Native category fieldsets use the shared border token rather than a browser fallback.
+Deck notes use a native disclosure, leaving the cards visible without removing editing controls or draft recovery.
+Main Deck entries group directly by their actual primary card types, with existing Mana Font symbols.
+Commander, Main Deck, Sideboard and Companion remain distinct Deck sections; Sideboard and Companion have their own headings and actual counts instead of appearing among the Main Deck type groups.
+The managed Category feature, Account Category Library, custom definitions, assignments, previews, source matchers and whole-deck jobs are removed from all clients and runtimes.
+Their routes and contracts are deleted without aliases, feature flags or compatibility adapters; current Deck mutation receipts, ownership, valuation and Inventory Boxes retain their separate responsibilities.
+Tokens form a derived reference appendix below the Deck, independent of Deck quantities and ownership; do not infer counts from rules text or add tokens to Main Deck requirements.
 
 Kyle's further feedback on 2026-10-31 selects softer shared graphite surfaces, cool gray text and restrained blue primary controls instead of near-black backgrounds and white buttons.
 Keep the existing logo, fonts, navigation and accessible text contrast; color belongs mainly to card artwork, meaningful Mana symbols and data series.
@@ -655,9 +656,6 @@ Use real framed card artwork with Deck name, format/count/edited metadata in res
 Deck Library tiles retain their quiet outlines, surfaces, hover and keyboard-focus states.
 The search toolbar retains Inventory-style Filter and Sort controls.
 Keep existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
-The Category Library now leads with saved categories and visible starter names, separates Cards in decks from Whole decks, and opens authoring through New category.
-Technical ordering, roles and source search remain under native disclosures; failed submissions and dirty drafts reopen the editor.
-These changes preserve category rules, immutable definition versions and explicit adoption.
 Mana charts and Dashboard prototypes share the semantic WUBRG chart palette in app.css.
 The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
 Mana charts use a dark graphite Black series, distinct from the neutral Colorless series in both themes.
