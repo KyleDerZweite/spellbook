@@ -194,9 +194,10 @@ Keep four equal metric cards, followed by four aligned panels in this order: Car
 The next row uses two thirds of its width for a Your decks grid and one third for the Recent activity list.
 Deck tiles retain a leading name, genuine Commander frames and inspected exact/alternate/missing availability.
 Below 1150px these lower panels stack with Decks first.
-The Deck grid uses three columns when its content has room, two at intermediate widths and one readable column on narrow screens.
-Each tile places its name at the upper left and its format in a compact tag at the upper right.
-Larger genuine Commander frames sit directly beside the availability ring; center counts fit wholly inside its hole.
+The Deck grid fits four narrow tiles when its content has room, falling back to three, two and one readable column as needed.
+Each tile keeps its name above the artwork and puts the format tag directly above the availability ring in the right-hand column.
+The ring sits lower beside a slightly enlarged genuine Commander frame; center counts fit wholly inside its hole.
+Long names reserve a consistent two-line heading area, wrap unbroken strings and retain their complete accessible link name and full-name inspection without expanding every tile.
 Exact, alternate and missing values remain available through chart inspection, without a persistent missing-count caption.
 Individual Deck tiles keep their quiet outlines and keyboard focus states.
 The large Dashboard metric and analysis boxes use card surfaces without visible outer lines; this shared treatment preserves their geometry and excludes nested Deck tiles and controls.
