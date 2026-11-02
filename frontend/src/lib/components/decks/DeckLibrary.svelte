@@ -4,7 +4,6 @@
 	import { page as route } from '$app/state';
 	import type {
 		DeckLibraryPage,
-		DeckLibraryCategories,
 		DeckLibraryItem,
 		DeckLibraryLocation
 	} from '@spellbook/contracts/deck-library.ts';
@@ -14,7 +13,6 @@
 		deckLibraryGeometry,
 		deckLibraryMountedRows,
 		readDeckLibraryJSON,
-		mergeDeckLibraryCategories,
 		deckLibraryTiles,
 		deckLibraryMeasurement,
 		DeckLibraryLocateAttempts,
@@ -35,13 +33,9 @@
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 
-	let {
-		page,
-		categories,
-		accountId
-	}: { page: DeckLibraryPage; categories: DeckLibraryCategories; accountId: string } = $props();
+	let { page, accountId }: { page: DeckLibraryPage; accountId: string } = $props();
 	const directoryFormId = $props.id();
-	let categoryFilterOpen = $state(false);
+	let filterOpen = $state(false);
 	let selectedFormat = $state(untrack(() => page.query.format));
 	let selectedSort = $state(untrack(() => page.query.sort));
 	async function sortBy(sort: DeckLibraryPage['query']['sort']) {
@@ -57,10 +51,6 @@
 		visibleTop = $state(0),
 		viewportHeight = $state(0),
 		focused = $state<{ index: number; item: DeckLibraryItem; revision: string } | null>(null);
-	let categoryPage = $state(untrack(() => categories));
-	let categoryError = $state('');
-	let categorySelection = $state(untrack(() => [...page.query.categoryVersionIds]));
-	let retainedOptions = $state<DeckLibraryCategories['items']>([]);
 	let subscription: ResourceSubscription | undefined = $state();
 	const heights = new Map<string, number>();
 	let anchor: {
@@ -222,9 +212,6 @@
 			library.retain(fresh.item);
 		}
 	}
-	const options = $derived(
-		mergeDeckLibraryCategories(categoryPage, retainedOptions, categorySelection)
-	);
 	$effect(() => {
 		const seed = page,
 			account = accountId;
@@ -237,11 +224,8 @@
 			focusError = '';
 			heights.clear();
 			library.seed(account, seed);
-			categoryPage = categories;
-			categorySelection = [...seed.query.categoryVersionIds];
 			selectedFormat = seed.query.format;
 			selectedSort = seed.query.sort;
-			retainedOptions = [];
 			positioned = false;
 			if (enhanced) schedule();
 		});
@@ -508,11 +492,6 @@
 		url.searchParams.delete('flow');
 		return url.pathname + url.search;
 	}
-	function categoryHref(offset: number) {
-		const url = new URL(route.url.href);
-		url.searchParams.set('dirCategoryOffset', String(offset));
-		return url.pathname + url.search;
-	}
 	function pageHref(offset: number) {
 		const url = new URL(route.url.href);
 		url.searchParams.set('dirPage', String(Math.floor(offset / 200) + 1));
@@ -524,52 +503,12 @@
 		const form = event.currentTarget as HTMLFormElement;
 		const values = new FormData(form),
 			url = new URL(route.url.href);
-		for (const key of [
-			'dirQ',
-			'dirFormat',
-			'dirSort',
-			'dirCategory',
-			'dirPage',
-			'dirCategoryOffset'
-		])
-			url.searchParams.delete(key);
+		for (const key of ['dirQ', 'dirFormat', 'dirSort', 'dirPage']) url.searchParams.delete(key);
 		for (const [key, value] of values)
 			if (key !== 'q' && typeof value === 'string' && value) url.searchParams.append(key, value);
 		url.searchParams.set('dirPage', '1');
-		categoryFilterOpen = false;
+		filterOpen = false;
 		await goto(url);
-	}
-	async function readCategories(offset: number, signal: AbortSignal, currentLease: () => boolean) {
-		const page = library.current;
-		if (!page) return;
-		const value = await library.read(
-			async (signal, owned) =>
-				readDeckLibraryJSON<DeckLibraryCategories | { kind: 'RevisionChanged'; revision: string }>(
-					`/api/v1/mtg/deck-library/categories?${deckLibraryParams(page.query, offset, 200, page.revision)}`,
-					signal,
-					() => owned() && alive && !terminal,
-					() => workspaceSavedState.expire()
-				),
-			signal,
-			currentLease
-		);
-		if (value && 'kind' in value)
-			throw new Error('Deck Library changed while loading category options. Try again.');
-		if (value && currentLease()) {
-			retainedOptions = options.filter((item) => categorySelection.includes(item.versionId));
-			categoryPage = value;
-			categoryError = '';
-		}
-	}
-	async function categoryNext(offset: number) {
-		const controller = new AbortController(),
-			identity = library.identity;
-		const owned = () => alive && !terminal && identity === library.identity;
-		try {
-			await readCategories(offset, controller.signal, owned);
-		} catch {
-			if (owned()) categoryError = 'Category options could not be loaded. Try again.';
-		}
 	}
 	onMount(() => {
 		alive = true;
@@ -585,10 +524,6 @@
 			clear: () => {
 				terminal = true;
 				library.clear();
-				categoryPage = { ...categoryPage, items: [], selected: [] };
-				retainedOptions = [];
-				categorySelection = [];
-				categoryError = '';
 				positionError = '';
 				focusError = '';
 				locateAttempts.clear();
@@ -602,7 +537,6 @@
 					lease.current() && alive && !terminal && accountId === account && page.queryKey === query;
 				await library.refresh(current);
 				if (current() && library.error) throw new Error(library.error);
-				if (current()) await readCategories(categoryPage.offset, lease.signal, current);
 			}
 		});
 		schedule();
@@ -620,11 +554,6 @@
 <SavedStateStatus resource={subscription} />
 {#if !terminal}
 	<form id={directoryFormId} class="directory-controls" method="GET" onsubmit={filter}>
-		{#if enhanced}{#each categorySelection as id}<input
-					type="hidden"
-					name="dirCategory"
-					value={id}
-				/>{/each}{/if}
 		{#if route.url.searchParams.get('q')}<input
 				type="hidden"
 				name="q"
@@ -653,11 +582,7 @@
 		{#if enhanced}<input type="hidden" name="dirFormat" value={selectedFormat} />{/if}
 		{#if enhanced}
 			<input type="hidden" name="dirSort" value={selectedSort} />
-			<FilterPopover
-				bind:open={categoryFilterOpen}
-				active={!!selectedFormat || categorySelection.length > 0}
-				label="Filter decks"
-			>
+			<FilterPopover bind:open={filterOpen} active={!!selectedFormat} label="Filter decks">
 				{@render filterChoices()}
 				<Button type="submit" form={directoryFormId} variant="secondary">Apply filters</Button>
 			</FilterPopover>
@@ -682,7 +607,7 @@
 					>Sort{/snippet}
 			</ActionMenu>
 		{:else}
-			<details class="directory-categories">
+			<details class="directory-filters">
 				<summary>Filter</summary>{@render filterChoices()}
 			</details>
 			<label
@@ -712,51 +637,8 @@
 					>{/each}</select
 			></label
 		>
-		{#if options.length || categorySelection.length}{@render categoryChoices()}{/if}
 	{/snippet}
-	{#snippet categoryChoices()}<div
-			class="category-choices"
-			role="group"
-			aria-label="Filter Deck categories"
-		>
-			<p id="category-filter-help">Match any selected version</p>
-			{#each options as option}<label class="category-option"
-					><input
-						type="checkbox"
-						name={enhanced ? undefined : 'dirCategory'}
-						value={option.versionId}
-						bind:group={categorySelection}
-						aria-describedby="category-filter-help"
-					/><span
-						>{option.name} · v{option.version}{option.historical ? ' · historical' : ''}<small
-							>{option.count} decks</small
-						></span
-					></label
-				>{/each}
-		</div>{/snippet}
-	{#if categorySelection.length}<details class="category-meanings">
-			<summary>Selected category meanings</summary
-			>{#each options.filter((item) => categorySelection.includes(item.versionId)) as option}<p>
-					<strong>{option.name}</strong> · v{option.version}{option.historical
-						? ' · historical'
-						: ''}. {option.meaning}
-				</p>{/each}
-		</details>{/if}
-	{#if categoryPage.total > 200}<div class="category-options">
-			{#if enhanced}{#if categoryPage.offset > 0}<Button
-						class="directory-action"
-						onclick={() => categoryNext(Math.max(0, categoryPage.offset - 200))}
-						>Earlier categories</Button
-					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<Button
-						class="directory-action"
-						onclick={() => categoryNext(categoryPage.offset + 200)}>More categories</Button
-					>{/if}{:else}{#if categoryPage.offset > 0}<a
-						href={categoryHref(Math.max(0, categoryPage.offset - 200))}>Earlier categories</a
-					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<a
-						href={categoryHref(categoryPage.offset + 200)}>More categories</a
-					>{/if}{/if}
-		</div>{/if}
-	{#if categoryError}<p role="alert">{categoryError}</p>{/if}
+
 	{#if positionError || focusError}<p role="alert">
 			{focusError || positionError}
 			<Button class="directory-action" onclick={retryPosition}>Retry position</Button>
@@ -825,14 +707,6 @@
 			</div>
 			<div class="deck-name">
 				<strong>{item.name}</strong>
-				{#if item.categories.length}<span class="category-badges"
-						>{#each item.categories as category}<small
-								title={category.historical ? 'Historical saved version' : ''}
-								>{category.name}{category.historical ? ' · historical' : ''}</small
-							>{/each}{#if item.remainingCategoryCount}<small
-								>+{item.remainingCategoryCount} categories</small
-							>{/if}</span
-					>{/if}
 			</div>
 			<span class="deck-format"
 				><i
@@ -952,21 +826,6 @@
 		color: var(--color-text-muted);
 		margin-top: auto;
 	}
-	.category-badges {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-		margin-top: 0.375rem;
-	}
-	.category-badges small {
-		padding: 0.125rem 0.375rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.25rem;
-		background: var(--color-stone);
-		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
-		overflow-wrap: anywhere;
-	}
 	.directory-controls {
 		display: flex;
 		flex-wrap: wrap;
@@ -1005,37 +864,12 @@
 		margin-bottom: 0.75rem;
 		font-size: 0.75rem;
 	}
-	.directory-categories > summary {
+	.directory-filters > summary {
 		min-height: 44px;
 		display: flex;
 		align-items: center;
 		padding: 0.5rem;
 		cursor: pointer;
-	}
-	.category-choices {
-		max-height: 20rem;
-		overflow-y: auto;
-		margin-bottom: 0.75rem;
-		font-size: 0.75rem;
-	}
-	.category-choices p {
-		color: var(--color-text-secondary);
-		margin-bottom: 0.75rem;
-	}
-	.category-option {
-		display: flex;
-		align-items: start;
-		gap: 0.75rem;
-		padding: 0.5rem 0;
-	}
-	.category-option input {
-		margin-top: 0.25rem;
-		accent-color: var(--color-accent);
-	}
-	.category-option small {
-		display: block;
-		color: var(--color-text-secondary);
-		margin-top: 0.25rem;
 	}
 	.empty-state {
 		padding: 3rem 1rem;

@@ -13,7 +13,6 @@ const PROTECTED_PATH_PREFIXES = [
 	'/mtg/dashboard',
 	'/mtg/inventory',
 	'/mtg/decks',
-	'/mtg/categories',
 	'/mtg/scan',
 	'/settings',
 	'/app/connect'

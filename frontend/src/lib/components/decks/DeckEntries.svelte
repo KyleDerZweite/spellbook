@@ -7,6 +7,7 @@
 	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	let {
+		showGroupHeadings = true,
 		groups,
 		view,
 		documents,
@@ -15,9 +16,9 @@
 		updateAction,
 		requestId,
 		submit,
-		onInspect,
-		categories
+		onInspect
 	}: {
+		showGroupHeadings?: boolean;
 		groups: [string, DeckCard[], string?][];
 		view: 'list' | 'stacks';
 		documents: Record<string, CardDocument>;
@@ -27,7 +28,6 @@
 		requestId: string;
 		submit: SubmitFunction;
 		onInspect: (card: CardDocument, entry: DeckCard) => void;
-		categories?: import('@spellbook/contracts/categories.ts').DeckEntryCategories | null;
 	} = $props();
 </script>
 
@@ -40,20 +40,19 @@
 					? cardTypeSymbol(group)
 					: undefined}
 			<section class="card-group" aria-label={`${group} cards`}>
-				<h2
-					class="role-heading"
-					class:commander-role={cards.every((card) => card.role === 'commander')}
-				>
-					<span
-						>{#if symbol}<i class={`ms ms-${symbol}`} aria-hidden="true"></i>{/if}{group}</span
+				{#if showGroupHeadings}<h2
+						class="role-heading"
+						class:commander-role={cards.every((card) => card.role === 'commander')}
 					>
-					<span class="group-count">{cards.reduce((sum, card) => sum + card.quantity, 0)}</span>
-				</h2>
+						<span
+							>{#if symbol}<i class={`ms ms-${symbol}`} aria-hidden="true"></i>{/if}{group}</span
+						>
+						<span class="group-count">{cards.reduce((sum, card) => sum + card.quantity, 0)}</span>
+					</h2>{/if}
 				<div class="group-cards" style:--stack-rows={cards.length - 1}>
 					{#each cards as card (card.id)}
 						{@const owned = availability[card.id]}
 						{@const document = documents[card.catalogCardId] ?? storedCardDocument(card)}
-						{@const decision = categories?.decisions.find((d) => d.entryId === card.id)}
 						{@const ownership = !owned
 							? 'Availability unavailable'
 							: owned.missing
@@ -105,15 +104,7 @@
 									{/snippet}
 								</QuantityControl>
 								<button class="card-name" onclick={() => onInspect(document, card)}>
-									<span
-										>{card.name}{#if card.role === 'main' && decision?.state === 'Pending'}<span
-												class="pending"
-												title="Category pending"
-												aria-label="Category pending"
-											>
-												·</span
-											>{/if}</span
-									>
+									<span>{card.name}</span>
 									{#if document.mana_cost}<span class="row-mana"
 											><ManaCost cost={document.mana_cost} /></span
 										>{/if}

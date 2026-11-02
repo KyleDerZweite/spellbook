@@ -1,12 +1,3 @@
-import {
-	LibraryConflict,
-	CategoryPreviewExpired,
-	CategoryPreviewCapacity,
-	CategoryUnavailable,
-	CategoryNotFound,
-	CategoryConflict,
-	CategoryMergeConflict
-} from '#lib/server/composition.ts';
 import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
 import {
 	InventoryNotFoundError,
@@ -24,10 +15,6 @@ export function badRequestIfValidation(cause: unknown, fallback = 'Invalid reque
 			kind: 'RevisionChanged',
 			message: 'Deck Library changed. Read the latest directory and retry.'
 		});
-	if (cause instanceof LibraryConflict || cause instanceof CategoryPreviewExpired)
-		throw error(409, { kind: cause.kind, message: cause.message });
-	if (cause instanceof CategoryPreviewCapacity || cause instanceof CategoryUnavailable)
-		throw error(503, { kind: cause.kind, message: cause.message });
 	if (
 		cause &&
 		typeof cause === 'object' &&
@@ -37,12 +24,6 @@ export function badRequestIfValidation(cause: unknown, fallback = 'Invalid reque
 		throw error(500, 'Inventory totals cannot be represented exactly.');
 	if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 		throw error(401, 'Authentication required');
-	if (cause instanceof CategoryNotFound)
-		throw error(404, { kind: 'NotFound', message: cause.message });
-	if (cause instanceof CategoryConflict)
-		throw error(409, { kind: cause.kind, message: cause.message, latest: cause.latest });
-	if (cause instanceof CategoryMergeConflict)
-		throw error(409, { kind: cause.kind, message: cause.message, preview: cause.preview });
 	if (cause instanceof NotesConflictError)
 		throw error(409, { kind: 'NotesConflict', message: cause.message, ...cause.latest });
 	if (cause instanceof InventoryQuantityChangedError)

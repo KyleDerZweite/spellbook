@@ -2,8 +2,7 @@ import type {
 	DeckLibraryPage,
 	DeckLibraryQuery,
 	DeckLibraryItem,
-	DeckLibraryLocation,
-	DeckLibraryCategories
+	DeckLibraryLocation
 } from '@spellbook/contracts/deck-library.ts';
 import { initialLoadedSpan, admitLoadedSpan, type LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 
@@ -538,7 +537,6 @@ export function deckLibraryParams(
 		offset: String(offset),
 		limit: String(limit)
 	});
-	for (const id of query.categoryVersionIds) params.append('dirCategory', id);
 	if (revision !== undefined) params.set('revision', revision);
 	return params;
 }
@@ -637,20 +635,6 @@ export async function readDeckLibraryJSON<T>(
 		throw cause;
 	}
 }
-export function mergeDeckLibraryCategories(
-	fresh: DeckLibraryCategories,
-	retained: DeckLibraryCategories['items'],
-	selected: string[]
-) {
-	const current = new Map(
-		[...fresh.items, ...fresh.selected].map((item) => [item.versionId, item])
-	);
-	for (const item of retained)
-		if (selected.includes(item.versionId) && !current.has(item.versionId))
-			current.set(item.versionId, item);
-	return [...current.values()];
-}
-
 /** Fresh records own their slots; retained keyboard focus owns only its Deck identity. */
 export function deckLibraryTiles(
 	indices: number[],

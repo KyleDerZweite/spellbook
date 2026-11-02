@@ -418,84 +418,55 @@ export async function verifyIndependentHttp(
 		}
 	);
 
-	await t.test(
-		'category lookup is owned and native password rotation replaces request credentials',
-		async () => {
-			const definition = await request(apiOrigin, '/api/v1/mtg/category-definitions', 'POST', {
-				requestId: randomUUID(),
-				originId: null,
-				expectedLibraryRevision: '0',
-				scope: 'entry',
-				name: 'Independent artifacts',
-				meaning: 'Artifact cards',
-				priority: 0,
-				displayOrder: 0,
-				roles: ['main'],
-				rule: { op: 'type', value: 'Artifact' },
-				confirmRetainedRule: false
+	await t.test('native password rotation replaces request credentials', async () => {
+		for (const enhanced of [false, true]) {
+			const actor = await register();
+			const response = await fetch(origin + '/settings/password', {
+				method: 'POST',
+				redirect: 'manual',
+				headers: {
+					cookie: `spellbook_session=${actor.token}`,
+					origin,
+					accept: enhanced ? 'application/json' : 'text/html',
+					...(enhanced ? { 'x-sveltekit-action': 'true' } : {}),
+					'content-type': 'application/x-www-form-urlencoded'
+				},
+				body: new URLSearchParams({
+					currentPassword: password,
+					newPassword: password + '-rotated',
+					confirmPassword: password + '-rotated'
+				})
 			});
-			assert.equal(definition.status, 200);
-			const { originId } = await definition.json();
-			for (const target of [apiOrigin, origin]) {
-				const path = `/api/v1/mtg/category-definitions/${originId}`;
-				const own = await request(target, path);
-				assert.equal(own.status, 200);
-				assert.equal((await own.json()).current.name, 'Independent artifacts');
-				assert.equal(
-					(await request(target, path, 'GET', undefined, { authorization: `Bearer ${b.token}` }))
-						.status,
-					404
-				);
-			}
-			for (const enhanced of [false, true]) {
-				const actor = await register();
-				const response = await fetch(origin + '/settings/password', {
-					method: 'POST',
-					redirect: 'manual',
-					headers: {
-						cookie: `spellbook_session=${actor.token}`,
-						origin,
-						accept: enhanced ? 'application/json' : 'text/html',
-						...(enhanced ? { 'x-sveltekit-action': 'true' } : {}),
-						'content-type': 'application/x-www-form-urlencoded'
-					},
-					body: new URLSearchParams({
-						currentPassword: password,
-						newPassword: password + '-rotated',
-						confirmPassword: password + '-rotated'
+			assert.equal(
+				response.status,
+				200,
+				'Post-action load must authenticate with the replacement token'
+			);
+			const text = await response.text();
+			assert.match(text, /Password changed/);
+			assert.doesNotMatch(text, /Authentication required|Internal Error/);
+			const replacementCookie = response.headers
+				.getSetCookie()
+				.find((value) => value.startsWith('spellbook_session='));
+			assert.ok(replacementCookie);
+			assert.match(replacementCookie, /HttpOnly/i);
+			assert.notEqual(replacementCookie.split(';')[0], `spellbook_session=${actor.token}`);
+			assert.equal(
+				(
+					await request(apiOrigin, '/api/v1/auth/session', 'GET', undefined, {
+						authorization: `Bearer ${actor.token}`
 					})
-				});
-				assert.equal(
-					response.status,
-					200,
-					'Post-action load must authenticate with the replacement token'
-				);
-				const text = await response.text();
-				assert.match(text, /Password changed/);
-				assert.doesNotMatch(text, /Authentication required|Internal Error/);
-				const replacementCookie = response.headers
-					.getSetCookie()
-					.find((value) => value.startsWith('spellbook_session='));
-				assert.ok(replacementCookie);
-				assert.match(replacementCookie, /HttpOnly/i);
-				assert.notEqual(replacementCookie.split(';')[0], `spellbook_session=${actor.token}`);
-				assert.equal(
-					(
-						await request(apiOrigin, '/api/v1/auth/session', 'GET', undefined, {
-							authorization: `Bearer ${actor.token}`
-						})
-					).status,
-					401
-				);
-				assert.equal(
-					(
-						await request(origin, '/settings', 'GET', undefined, {
-							cookie: replacementCookie.split(';')[0]
-						})
-					).status,
-					200
-				);
-			}
+				).status,
+				401
+			);
+			assert.equal(
+				(
+					await request(origin, '/settings', 'GET', undefined, {
+						cookie: replacementCookie.split(';')[0]
+					})
+				).status,
+				200
+			);
 		}
-	);
+	});
 }

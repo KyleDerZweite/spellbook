@@ -1,9 +1,8 @@
-import type { WholeCategoryDraft } from '#lib/decks/whole-drafts.ts';
 import {
 	deckLibraryQueryFromParams,
 	deckLibraryQueryKey
 } from '@spellbook/contracts/deck-library.ts';
-import type { DeckLibraryPage, DeckLibraryCategories } from '@spellbook/contracts/deck-library.ts';
+import type { DeckLibraryPage } from '@spellbook/contracts/deck-library.ts';
 import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
 import { parseLazyBrowsePagination } from '#lib/browsing/pagination.ts';
 import { error, fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
@@ -21,20 +20,9 @@ import {
 	getDeckLegality,
 	importIntoDeck
 } from '#lib/server/mtg/deck-builder.ts';
-import {
-	application,
-	CategoryNotFound,
-	CategoryConflict,
-	CategoryMergeConflict,
-	LibraryConflict,
-	CategoryPreviewExpired,
-	CategoryPreviewCapacity,
-	CategoryUnavailable
-} from '#lib/server/composition.ts';
+import { application } from '#lib/server/composition.ts';
 import { getPrintings } from '#lib/server/catalog/search.ts';
 import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
-import { readCategoryForm } from '#lib/server/categories/forms.ts';
-import { readQueryInteger } from '#lib/server/http/request.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
 import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
@@ -64,16 +52,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		globalTotal: 0,
 		items: []
 	};
-	let deckLibraryCategories: DeckLibraryCategories = {
-		query: directoryQuery,
-		queryKey: deckLibrary.queryKey,
-		revision: '0',
-		offset: 0,
-		limit: 200,
-		total: 0,
-		items: [],
-		selected: []
-	};
 	let deckLibraryReadError = '';
 	try {
 		for (let attempt = 0; attempt < 2; attempt++) {
@@ -91,22 +69,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 								limit: 200
 							})
 						: page;
-				const options = await application.decks.getDeckLibraryCategories(locals.user, {
-					...directoryQuery,
-					offset: readQueryInteger(
-						url.searchParams.get('dirCategoryOffset'),
-						'dirCategoryOffset',
-						0
-					),
-					limit: 200,
-					expectedRevision: boundedPage.revision
-				});
-				if (options.revision !== boundedPage.revision)
-					throw Object.assign(new Error('Deck Library revision changed.'), {
-						kind: 'RevisionChanged'
-					});
 				deckLibrary = boundedPage;
-				deckLibraryCategories = options;
 				break;
 			} catch (cause) {
 				if (
@@ -134,17 +97,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			: 'Deck Library is unavailable. Reload to try again.';
 		if (!selectedDeckId) throw error(changed ? 409 : 503, deckLibraryReadError);
 	}
-	const recovery =
-		locals.categoryPageRecovery?.accountId === locals.user.accountId &&
-		locals.categoryPageRecovery.deckId === selectedDeckId
-			? locals.categoryPageRecovery
-			: undefined;
-	let categoryReadError = '';
 	let snapshot: DeckSnapshot;
 	try {
 		snapshot = selectedDeckId
 			? await application.decks.getDeck(locals.user, selectedDeckId)
 			: {
+					relatedTokens: {
+						status: 'unavailable',
+						items: [],
+						unresolved: [],
+						unavailableEntryIds: []
+					},
 					decks: [],
 					deckCards: [],
 					deckTotals: {},
@@ -157,14 +120,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				};
 	} catch (cause) {
 		if (cause instanceof DeckNotFoundError) throw error(404, 'Deck not found');
-		if (
-			recovery &&
-			!(cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
-		) {
-			snapshot = recovery.snapshot;
-			categoryReadError =
-				'Current Deck evidence is unavailable. Earlier controls are retained and disabled until refreshed.';
-		} else throw cause;
+		throw cause;
 	}
 	const selectedDeck = snapshot.decks.find((deck) => deck.id === selectedDeckId);
 	if (selectedDeckId && !selectedDeck) throw error(404, 'Deck not found');
@@ -224,56 +180,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			}
 		})()
 	]);
-	let categoryPreview = null,
-		entryCategories = null,
-		wholeCategories = null;
-	try {
-		if (selectedDeck)
-			entryCategories = await application.categories.getDeckEntryCategories(
-				locals.user,
-				selectedDeck.id
-			);
-		if (selectedDeck)
-			wholeCategories = await application.categories.getDeckWholeCategories(
-				locals.user,
-				selectedDeck.id
-			);
-		if (selectedDeck && url.searchParams.has('preview')) {
-			categoryPreview = await application.categories.getCategoryPreview(locals.user, {
-				previewId: url.searchParams.get('preview')!,
-				offset: readQueryInteger(url.searchParams.get('previewOffset'), 'previewOffset', 0)
-			});
-			if (categoryPreview.deckId !== selectedDeck.id)
-				throw error(404, 'Preview not found for this Deck');
-		}
-	} catch (cause) {
-		if (
-			recovery &&
-			!isHttpError(cause) &&
-			!(cause instanceof ValidationError) &&
-			!(cause instanceof CategoryNotFound) &&
-			!(cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
-		) {
-			entryCategories = recovery.categories;
-			wholeCategories = recovery.wholeCategories ?? null;
-			categoryPreview = recovery.preview ?? null;
-			categoryReadError =
-				'Current category evidence is unavailable. Your receipt and earlier controls are retained; refresh before another change.';
-		} else badRequestIfValidation(cause);
-	}
 	return {
 		...snapshot,
 		deckLibrary,
 		deckLibraryReadError,
-		deckLibraryCategories,
-		wholeCategories,
-		wholeCategoryVersion: url.searchParams.get('wholeCategoryVersion') ?? null,
-		categoryReadError,
-		categoryPreview,
-		localCategoryId: url.searchParams.get('localCategory'),
-		categoryEntryId: url.searchParams.get('categoryEntry'),
-		entryCategories,
-		grouping: url.searchParams.get('group') === 'category' ? 'category' : 'type',
 		flow: ['create', 'edit', 'import', 'delete', 'search'].includes(
 			url.searchParams.get('flow') ?? ''
 		)
@@ -300,15 +210,6 @@ function guarded(action: Action): Action {
 			if (isRedirect(cause) || isHttpError(cause)) throw cause;
 			if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 				throw redirect(303, '/auth/login?returnTo=/mtg/decks');
-			if (cause instanceof LibraryConflict || cause instanceof CategoryPreviewExpired)
-				return fail(409, { message: cause.message });
-			if (cause instanceof CategoryPreviewCapacity || cause instanceof CategoryUnavailable)
-				return fail(503, { message: cause.message });
-			if (cause instanceof CategoryNotFound) return fail(404, { message: cause.message });
-			if (cause instanceof CategoryConflict)
-				return fail(409, { message: cause.message, categoryConflict: cause.latest });
-			if (cause instanceof CategoryMergeConflict)
-				return fail(409, { message: cause.message, categoryMerge: cause.preview });
 			if (cause instanceof DescriptionConflictError)
 				return fail(409, { message: cause.message, conflict: cause.latest });
 			if (cause instanceof RequestConflictError) return fail(409, { message: cause.message });
@@ -320,306 +221,11 @@ function guarded(action: Action): Action {
 	};
 }
 
-async function rememberCategoryPage(event: Parameters<Action>[0], deckId: string) {
-	// Native action rendering may read again after the command has already committed.
-	if (event.request.headers.get('x-sveltekit-action') === 'true' || !event.locals.user) return;
-	try {
-		const snapshot = await application.decks.getDeck(event.locals.user, deckId);
-		const categories = await application.categories.getDeckEntryCategories(
-			event.locals.user,
-			deckId
-		);
-		let wholeCategories;
-		try {
-			wholeCategories = await application.categories.getDeckWholeCategories(
-				event.locals.user,
-				deckId
-			);
-		} catch {
-			/* Optional whole evidence cannot veto a later command. */
-		}
-		event.locals.categoryPageRecovery = {
-			accountId: event.locals.user.accountId,
-			deckId,
-			snapshot,
-			categories,
-			wholeCategories
-		};
-	} catch {
-		/* Optional earlier evidence cannot veto a later authoritative command. */
-	}
-}
-
 function field(form: FormData, name: string): string {
 	return String(form.get(name) ?? '').trim();
 }
 
-function removalIntent(form: FormData, prefix = '') {
-	const read = (name: string) =>
-		field(form, prefix ? prefix + name[0].toUpperCase() + name.slice(1) : name);
-	return {
-		deckId: read('deckId'),
-		categoryId: read('categoryId'),
-		replacementCategoryId: read('replacementCategoryId') || null,
-		expectedDecisionRevision: read('expectedDecisionRevision'),
-		requestId: read('requestId')
-	};
-}
-
-function wholeIntent(form: FormData, kind: WholeCategoryDraft['kind']): WholeCategoryDraft {
-	return {
-		kind,
-		deckId: field(form, 'deckId'),
-		versionId: field(form, 'versionId'),
-		requestId: field(form, 'requestId'),
-		expectedDecisionRevision: field(form, 'expectedDecisionRevision'),
-		name: String(form.get('name') ?? ''),
-		manual: field(form, 'manual') === 'Exclude' ? 'Exclude' : 'Include'
-	};
-}
-async function wholeAction(event: Parameters<Action>[0], kind: WholeCategoryDraft['kind']) {
-	let wholeDraft: WholeCategoryDraft | undefined;
-	const result = await guarded(async ({ request, locals }) => {
-		const form = await readCategoryForm(request);
-		wholeDraft = wholeIntent(form, kind);
-		await rememberCategoryPage(event, wholeDraft.deckId);
-		const input = {
-			requestId: wholeDraft.requestId,
-			deckId: wholeDraft.deckId,
-			versionId: wholeDraft.versionId,
-			expectedDecisionRevision: wholeDraft.expectedDecisionRevision
-		};
-		if (
-			kind === 'manual' &&
-			field(form, 'manual') !== 'Include' &&
-			field(form, 'manual') !== 'Exclude'
-		)
-			throw new ValidationError('Select Include or Exclude');
-		if (kind === 'remove' && field(form, 'confirmRemoval') !== 'yes')
-			throw new ValidationError('Confirm suppression of this whole-deck origin');
-		const acknowledgement =
-			kind === 'manual'
-				? await application.categories.setWholeCategory(locals.user!, {
-						...input,
-						manual: wholeDraft.manual
-					})
-				: kind === 'rename'
-					? await application.categories.renameWholeCategory(locals.user!, {
-							...input,
-							name: wholeDraft.name
-						})
-					: await application.categories.removeWholeCategory(locals.user!, input);
-		return { success: true, message: 'Whole-deck category change saved.', acknowledgement };
-	})(event);
-	return result && 'status' in result && 'data' in result
-		? fail(result.status, { ...result.data, wholeDraft })
-		: result;
-}
-
 export const actions = {
-	setWholeCategory: (event) => wholeAction(event, 'manual'),
-	renameWholeCategory: (event) => wholeAction(event, 'rename'),
-	removeWholeCategory: (event) => wholeAction(event, 'remove'),
-	rebaseWholeDraft: async (event) => {
-		let wholeDraft: WholeCategoryDraft | undefined;
-		const result = await guarded(async ({ request, locals }) => {
-			const form = await readCategoryForm(request);
-			wholeDraft = wholeIntent(form, field(form, 'draftKind') as WholeCategoryDraft['kind']);
-			const current = await application.categories.getDeckWholeCategories(
-				locals.user!,
-				wholeDraft.deckId
-			);
-			wholeDraft = {
-				...wholeDraft,
-				requestId: crypto.randomUUID(),
-				expectedDecisionRevision: current.decisionRevision
-			};
-			return { message: 'Draft rebased. Review it and save again.' };
-		})(event);
-		return result && 'status' in result && 'data' in result
-			? fail(result.status, { ...result.data, wholeDraft })
-			: result && typeof result === 'object'
-				? { ...result, wholeDraft }
-				: result;
-	},
-
-	renameCategory: async (event) => {
-		let renameDraft:
-			| {
-					deckId: string;
-					categoryId: string;
-					name: string;
-					expectedDecisionRevision: string;
-					requestId: string;
-			  }
-			| undefined;
-		const result = await guarded(async ({ request, locals }) => {
-			const form = await readCategoryForm(request);
-			await rememberCategoryPage(event, field(form, 'deckId'));
-			renameDraft = {
-				deckId: field(form, 'deckId'),
-				categoryId: field(form, 'categoryId'),
-				name: String(form.get('name') ?? ''),
-				expectedDecisionRevision: field(form, 'expectedDecisionRevision'),
-				requestId: field(form, 'requestId')
-			};
-			const acknowledgement = await application.categories.renameLocalCategory(
-				locals.user!,
-				renameDraft
-			);
-			return {
-				success: true,
-				message: 'Local label saved. Reusable meaning and assignments are unchanged.',
-				acknowledgement
-			};
-		})(event);
-		return result && 'status' in result && 'data' in result
-			? fail(result.status, { ...result.data, renameDraft })
-			: result && typeof result === 'object'
-				? { ...result, renameDraft }
-				: result;
-	},
-	removeCategory: async (event) => {
-		let removalDraft: ReturnType<typeof removalIntent> | undefined;
-		let removalRetry: ReturnType<typeof removalIntent> | undefined;
-		const result = await guarded(async ({ request, locals }) => {
-			const form = await readCategoryForm(request);
-			removalDraft = removalIntent(form);
-			if (field(form, 'retryRequestId')) removalRetry = removalIntent(form, 'retry');
-			await rememberCategoryPage(event, removalDraft.deckId);
-			if (field(form, 'confirmRemoval') !== 'yes')
-				throw new ValidationError('Review and confirm the local replacement.');
-			const acknowledgement = await application.categories.removeLocalCategory(
-				locals.user!,
-				removalDraft
-			);
-			if (removalRetry?.requestId === acknowledgement.requestId) removalRetry = undefined;
-			return {
-				success: true,
-				message: 'Local category removed and replacement saved.',
-				acknowledgement
-			};
-		})(event);
-		return result && 'status' in result && 'data' in result
-			? fail(result.status, {
-					...result.data,
-					removalDraft,
-					removalRetry: removalRetry ?? (result.status >= 500 ? removalDraft : undefined)
-				})
-			: result && typeof result === 'object'
-				? { ...result, removalDraft, removalRetry }
-				: result;
-	},
-	rebaseRemoval: async (event) => {
-		let removalDraft: ReturnType<typeof removalIntent> | undefined;
-		let removalRetry: ReturnType<typeof removalIntent> | undefined;
-		const result = await guarded(async ({ request, locals }) => {
-			const form = await readCategoryForm(request);
-			removalDraft = removalIntent(form);
-			if (field(form, 'retryRequestId')) removalRetry = removalIntent(form, 'retry');
-			await rememberCategoryPage(event, removalDraft.deckId);
-			const current = await application.categories.getDeckEntryCategories(
-				locals.user!,
-				removalDraft.deckId
-			);
-			removalDraft = {
-				...removalDraft,
-				expectedDecisionRevision: current.decisionRevision,
-				requestId: crypto.randomUUID()
-			};
-			return { message: 'Removal draft rebased. Review the replacement and confirm again.' };
-		})(event);
-		return result && 'status' in result && 'data' in result
-			? fail(result.status, { ...result.data, removalDraft, removalRetry })
-			: result && typeof result === 'object'
-				? { ...result, removalDraft, removalRetry }
-				: result;
-	},
-	previewCategories: guarded(async ({ request, locals }) => {
-		const form = await readCategoryForm(request);
-		const categoryPreview = await application.categories.previewCategoryChange(locals.user!, {
-			requestId: field(form, 'requestId'),
-			deckId: field(form, 'deckId'),
-			scope: field(form, 'scope') as 'entry' | 'deck',
-			mode: field(form, 'mode') as 'Review' | 'Reset',
-			restoreOriginIds: form.getAll('restoreOriginIds').map(String)
-		});
-		return {
-			success: true,
-			message: 'Review the complete preview before saving.',
-			categoryPreview
-		};
-	}),
-	commitCategories: guarded(async (event) => {
-		const { request, locals } = event;
-		const form = await readCategoryForm(request);
-		if (field(form, 'confirmPreview') !== 'yes')
-			throw new ValidationError('Confirm the reviewed complete preview.');
-		await rememberCategoryPage(event, field(form, 'deckId'));
-		const ownedPreview = await application.categories.getCategoryPreview(locals.user!, {
-			previewId: field(form, 'previewId')
-		});
-		if (ownedPreview.deckId !== field(form, 'deckId'))
-			throw new ValidationError('The preview belongs to another Deck.');
-		const acknowledgement = await application.categories.commitCategoryChange(locals.user!, {
-			requestId: field(form, 'requestId'),
-			previewId: field(form, 'previewId')
-		});
-		// The committed receipt is authoritative even when optional current evidence is unavailable.
-		const categoryPreview = { ...ownedPreview, status: 'Committed' as const, acknowledgement };
-		if (locals.categoryPageRecovery) locals.categoryPageRecovery.preview = categoryPreview;
-		return {
-			success: true,
-			message: 'Complete reviewed category change saved.',
-			acknowledgement,
-			categoryPreview
-		};
-	}),
-	initializeCategories: guarded(async ({ request, locals }) => {
-		const form = await request.formData();
-		const acknowledgement = await application.categories.initializeDeckCategories(locals.user!, {
-			deckId: field(form, 'deckId'),
-			requestId: field(form, 'requestId')
-		});
-		return { success: true, message: 'Deck categories initialized.', acknowledgement };
-	}),
-
-	setCategory: guarded(async ({ request, locals }) => {
-		const form = await request.formData();
-		const categoryDraft = {
-			deckId: field(form, 'deckId'),
-			entryId: field(form, 'entryId'),
-			categoryId: field(form, 'categoryId') || null,
-			expectedDecisionRevision: field(
-				form,
-				form.has('rebaseCategory') ? 'rebaseCategory' : 'expectedDecisionRevision'
-			),
-			requestId: field(form, 'requestId')
-		};
-		try {
-			const acknowledgement = await application.categories.setEntryCategory(
-				locals.user!,
-				categoryDraft
-			);
-			return { success: true, message: 'Category saved.', acknowledgement };
-		} catch (cause) {
-			if (cause instanceof CategoryConflict)
-				return fail(409, { message: cause.message, categoryConflict: cause.latest, categoryDraft });
-			if (cause instanceof LibraryConflict || cause instanceof CategoryPreviewExpired)
-				return fail(409, { message: cause.message });
-			if (cause instanceof CategoryPreviewCapacity || cause instanceof CategoryUnavailable)
-				return fail(503, { message: cause.message });
-			if (cause instanceof CategoryNotFound)
-				return fail(404, { message: cause.message, categoryDraft });
-			if (cause instanceof RequestConflictError)
-				return fail(409, { message: cause.message, categoryDraft });
-			if (cause instanceof ValidationError)
-				return fail(400, { message: cause.message, categoryDraft });
-			if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
-				throw cause;
-			return fail(503, { message: 'The category could not be saved. Try again.', categoryDraft });
-		}
-	}),
 	createDeck: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
 		const createDraft = {
@@ -715,22 +321,7 @@ export const actions = {
 			role: field(form, 'role'),
 			requestId: field(form, 'requestId')
 		};
-		let acknowledgement;
-		try {
-			acknowledgement = await changeDeckPrinting(locals.user!, {
-				...mergeDraft,
-				categoryPreview: form.has('categoryPreview') ? field(form, 'categoryPreview') : undefined
-			});
-		} catch (cause) {
-			if (cause instanceof CategoryMergeConflict)
-				return fail(409, {
-					message: cause.message,
-					categoryMerge: cause.preview,
-					mergeDraft,
-					mergeAction: 'changePrinting'
-				});
-			throw cause;
-		}
+		const acknowledgement = await changeDeckPrinting(locals.user!, mergeDraft);
 		return { success: true, message: 'Card saved.', acknowledgement };
 	}),
 
@@ -743,27 +334,15 @@ export const actions = {
 			requestId: field(form, 'requestId'),
 			delta: form.has('delta') ? Number(form.get('delta')) : undefined
 		};
-		try {
-			await updateDeckCard(
-				locals.user!,
-				mergeDraft.entryId,
-				mergeDraft.quantity,
-				mergeDraft.role || undefined,
-				mergeDraft.requestId,
-				mergeDraft.delta,
-				'web',
-				form.has('categoryPreview') ? field(form, 'categoryPreview') : undefined
-			);
-		} catch (cause) {
-			if (cause instanceof CategoryMergeConflict)
-				return fail(409, {
-					message: cause.message,
-					categoryMerge: cause.preview,
-					mergeDraft,
-					mergeAction: 'updateCard'
-				});
-			throw cause;
-		}
+		await updateDeckCard(
+			locals.user!,
+			mergeDraft.entryId,
+			mergeDraft.quantity,
+			mergeDraft.role || undefined,
+			mergeDraft.requestId,
+			mergeDraft.delta,
+			'web'
+		);
 		return { success: true, message: 'Card updated.' };
 	}),
 	removeCard: guarded(async ({ request, locals }) => {

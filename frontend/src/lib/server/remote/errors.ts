@@ -1,6 +1,5 @@
 import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { SUMMARY_RANGE_MESSAGE } from '@spellbook/contracts/profile.ts';
-import type { DeckEntryCategories, CategoryMergePreview } from '@spellbook/contracts/categories.ts';
 
 export class RemoteError extends Error {
 	constructor(
@@ -20,12 +19,6 @@ export class RequestConflictError extends ValidationError {
 	constructor(message = 'Request ID was already used for a different mutation') {
 		super(message);
 		this.name = 'RequestConflictError';
-	}
-}
-export class LibraryConflict extends RemoteError {
-	declare readonly kind: 'RequestConflict';
-	constructor(message = 'Request ID was already used for a different mutation') {
-		super(409, 'RequestConflict', message);
 	}
 }
 export class DeckNotFoundError extends ValidationError {
@@ -58,54 +51,12 @@ export class DescriptionConflictError extends ValidationError {
 		super(message);
 	}
 }
-export class CategoryNotFound extends RemoteError {
-	declare readonly kind: 'NotFound';
-	constructor(message = 'Category not found') {
-		super(404, 'NotFound', message);
-	}
-}
-export class CategoryConflict extends RemoteError {
-	declare readonly kind: 'CategoryConflict';
-	constructor(
-		readonly latest: DeckEntryCategories,
-		message = 'Categories changed. Read the latest categories and retry.'
-	) {
-		super(409, 'CategoryConflict', message);
-	}
-}
-export class CategoryMergeConflict extends RemoteError {
-	declare readonly kind: 'CategoryMergeConflict';
-	constructor(
-		readonly preview: CategoryMergePreview,
-		message = 'Review the category merge before saving.'
-	) {
-		super(409, 'CategoryMergeConflict', message);
-	}
-}
-export class CategoryPreviewExpired extends RemoteError {
-	declare readonly kind: 'CategoryPreviewExpired';
-	constructor(message = 'Category preview expired.') {
-		super(409, 'CategoryPreviewExpired', message);
-	}
-}
-export class CategoryPreviewCapacity extends RemoteError {
-	declare readonly kind: 'CategoryPreviewCapacity';
-	constructor(message = 'Category preview capacity is temporarily unavailable.') {
-		super(503, 'CategoryPreviewCapacity', message);
-	}
-}
-export class CategoryUnavailable extends RemoteError {
-	declare readonly kind: 'CategoryUnavailable';
-	constructor(message = 'Categories are temporarily unavailable.') {
-		super(503, 'CategoryUnavailable', message);
-	}
-}
 export class QrAuthError extends RemoteError {
 	declare readonly kind:
 		'ValidationFailed' | 'NotFound' | 'Conflict' | 'Unauthenticated' | 'RateLimited';
 }
 
-export type ErrorDomain = 'inventory' | 'decks' | 'categories' | 'qr';
+export type ErrorDomain = 'inventory' | 'decks' | 'qr';
 const record = (value: unknown): value is Record<string, unknown> =>
 	!!value && typeof value === 'object' && !Array.isArray(value);
 
@@ -156,29 +107,17 @@ export function decodeRemoteError(status: number, value: unknown, domain?: Error
 				{ description: body.description, descriptionRevision: body.descriptionRevision },
 				message
 			);
-		if (kind === 'CategoryConflict' && record(body.latest))
-			return new CategoryConflict(body.latest as DeckEntryCategories, message);
-		if (kind === 'CategoryMergeConflict' && record(body.preview))
-			return new CategoryMergeConflict(body.preview as CategoryMergePreview, message);
-		if (kind === 'RequestConflict')
-			return domain === 'categories'
-				? new LibraryConflict(message)
-				: new RequestConflictError(message);
-		if (kind === 'CategoryPreviewExpired') return new CategoryPreviewExpired(message);
+		if (kind === 'RequestConflict') return new RequestConflictError(message);
 	}
 	if (status === 404) {
 		if (domain === 'decks') return new DeckNotFoundError(message);
 		if (domain === 'inventory') return new InventoryNotFoundError(message);
-		if (domain === 'categories') return new CategoryNotFound(message);
 	}
 	if (status === 400 && (!kind || kind === 'ValidationFailed')) {
 		const failure = new ValidationError(message);
 		if (record(body.fields)) Object.assign(failure, { fields: body.fields });
 		return failure;
 	}
-	if (status === 503 && kind === 'CategoryPreviewCapacity')
-		return new CategoryPreviewCapacity(message);
-	if (status === 503 && kind === 'CategoryUnavailable') return new CategoryUnavailable(message);
 	if (status === 503 && (kind === 'SummaryOutOfRange' || message === SUMMARY_RANGE_MESSAGE))
 		return new RemoteError(status, 'SummaryOutOfRange', SUMMARY_RANGE_MESSAGE);
 	if (
