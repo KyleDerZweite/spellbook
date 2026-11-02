@@ -238,6 +238,8 @@ The Inventory inspector retains identity-filtered personal history through the s
 The supplied compact metric reference replaces the full-width sparkline rows.
 Use a short label, current figure, a concise last-month comparison over 30 closed daily reporting dates and a small adjacent chart.
 The four metric cards are approximately 140px high on wide screens, with reduced padding and no clipped figures or trend labels.
+Their mini-charts follow the navigation colors from left to right: Dashboard violet for value, Search blue for cards, Inventory amber for Sets and Decks green for Deck count.
+Positive and negative change text retains its semantic green and red colors independently of each chart's series color.
 Counts use actual daily bars; value uses a restrained line with explicit gaps.
 Partial price coverage remains in the expanded details; the compact cards omit the visible Partial value and covered captions.
 Keep exact BigInt arithmetic, real captured observations and unknown legacy Deck counts.
