@@ -174,19 +174,18 @@ Signed-in users open their private account summary at `/mtg/dashboard`; Inventor
 
 Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks.
 Set, finish and condition distributions use owned quantities.
-The regular Dashboard follows the selected two-row reference: four metric cards above Collection by Set, Card Types, Mana Color Identity and Recently edited panels.
+The regular Dashboard follows the selected card reference: four metric cards above Card Types, Mana Color Identity, Collection by Set and Quick Actions.
 The Set panel ranks the five largest owned-copy quantities with full Set names, symbols and complete quantities in a disclosure.
 Card Types uses an exclusive primary-type donut; Mana Color Identity retains actual WUBRG, Multicolor, Colorless and unknown quantities.
 The recent panel displays four genuine recently edited holdings, not invented activity events.
-Deck availability and Finish/Condition/Extra-copy breakdowns remain available in a disclosure below the overview.
+Below that analysis row, a Deck grid occupies two thirds of the width and Recent activity occupies one third, stacking in that order on narrow screens.
 Four actionable metric cards show Inventory value, Total / unique cards, Sets and Decks.
 They combine current values with compact charts across 30 closed daily reporting dates and distinguish positive/negative changes.
 Cards and Sets link directly to Inventory; Decks links directly to the Deck Library.
 Only Inventory value opens the wide History preview, with visible period/custom-date filters and a top-corner Close control.
 There is no separate personal History page or footer navigation from the preview.
 The combined Cards metric distinguishes physical copies from distinct Canonical Cards.
-Missing history remains unavailable, and historical price coverage is explicit.
-Finish, Condition and copies beyond one per distinct Canonical Card use independent proportional bars; detailed zero quantities remain available.
+Missing history remains unavailable, and historical price coverage stays explicit in the expanded details.
 Recent edits do not establish an acquisition history.
 
 Each deck reports required, exact, alternate and missing quantities following the existing [availability rules](#deck-availability), independently against the full inventory.
