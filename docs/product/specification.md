@@ -180,7 +180,7 @@ Card Types uses an exclusive primary-type donut; Mana Color Identity retains act
 The recent panel displays four genuine recently edited holdings, not invented activity events.
 Deck availability and Finish/Condition/Extra-copy breakdowns remain available in a disclosure below the overview.
 Four actionable metric cards show Inventory value, Total / unique cards, Sets and Decks.
-They combine current values with compact charts across seven closed reporting dates and distinguish positive/negative changes.
+They combine current values with compact charts across 30 closed daily reporting dates and distinguish positive/negative changes.
 Cards and Sets link directly to Inventory; Decks links directly to the Deck Library.
 Only Inventory value opens the wide History preview, with visible period/custom-date filters and a top-corner Close control.
 There is no separate personal History page or footer navigation from the preview.

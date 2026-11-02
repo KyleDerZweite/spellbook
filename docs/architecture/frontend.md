@@ -273,6 +273,7 @@ It uses the shared ProportionChart and the inline ValueSummary variant; the latt
 DeckEntries uses intrinsic card aspect ratios and explicit title-strip rows rather than fixed negative overlaps.
 Its Stacks and List presentations share the same QuantityControl forms, inspection callback, availability records and category decisions.
 DeckStatistics consumes the pure selected-composition aggregation in decks/statistics.ts and the existing resolved Catalog documents.
+It lives below Add cards in the wide Deck sidebar and below the Deck cards on narrow screens, independently of the Search dialog's availability.
 D3 owns curve scaling; the shared ProportionChart owns color shares and inspection.
 No additional Catalog, Inventory or ownership requests are introduced for statistics.
 Category administration renders one selected entry plus hidden dirty entries whose component state must survive selection changes.
