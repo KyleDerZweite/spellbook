@@ -84,6 +84,7 @@
 	}
 	h1 {
 		font-size: 2rem;
+		font-family: var(--font-display);
 	}
 	h2 {
 		margin-block: 1.5rem 0.5rem;
@@ -117,6 +118,7 @@
 		@page {
 			margin: 14mm;
 		}
+		:global(html:has(.deck-print)),
 		:global(body:has(.deck-print)),
 		:global(body:has(.deck-print) .app-shell) {
 			background: white !important;
@@ -139,6 +141,13 @@
 			max-width: none;
 			padding: 0;
 			font-size: 10pt;
+		}
+		h1 {
+			font-size: 18pt;
+			line-height: 1.25;
+		}
+		h2 {
+			font-size: 12pt;
 		}
 		h1,
 		h2,
