@@ -235,6 +235,31 @@ describe('Search hybrid URL and history state', () => {
 });
 
 describe('color expression navigation', () => {
+	it('restores NOT selections across mode changes, native precedence and history', () => {
+		const input = parseSearchUrl(
+			new URL('/mtg/search?color=W&colorAnd=U&colorNot=R&colorMode=identity', origin)
+		);
+		const session = new SearchSession();
+		session.hydrate(input);
+		expect(session.filters.colorNot).toEqual(new Set(['R']));
+		session.filters.setColorField('color');
+		expect(session.input.filters.colorMatch?.not).toEqual(['R']);
+		session.hydrate(input);
+		expect(parseSearchUrl(new URL(searchHref(session.input), origin))).toEqual(input);
+		const conflicting = parseSearchUrl(
+			new URL('/mtg/search?color=R&colorAnd=R&colorNot=R', origin)
+		);
+		expect(conflicting.filters.colorMatch).toEqual({
+			field: 'color',
+			any: [],
+			all: [],
+			not: ['R']
+		});
+		session.filters.removeColor('R');
+		expect(session.filters.selectedColors.has('R')).toBe(false);
+		session.filters.clear();
+		expect(session.filters.colorNot.size).toBe(0);
+	});
 	it('restores OR, AND and field through direct visits and browser history', () => {
 		const session = new SearchSession();
 		const first = parseSearchUrl(

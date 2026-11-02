@@ -25,9 +25,12 @@ function values<T extends string>(
 export function parseSearchUrl(url: {
 	searchParams: Pick<URLSearchParams, 'get' | 'getAll'>;
 }): SearchInput {
-	const all = values(url.searchParams, 'colorAnd', MANA_COLORS);
+	const not = values(url.searchParams, 'colorNot', MANA_COLORS);
+	const all = values(url.searchParams, 'colorAnd', MANA_COLORS).filter(
+		(color) => !not.includes(color)
+	);
 	const any = values(url.searchParams, 'color', MANA_COLORS).filter(
-		(color) => !all.includes(color)
+		(color) => !all.includes(color) && !not.includes(color)
 	);
 	return {
 		query: url.searchParams.get('q') ?? '',
@@ -43,7 +46,8 @@ export function parseSearchUrl(url: {
 			...browserColorFilters({
 				field: url.searchParams.get('colorMode') === 'identity' ? 'identity' : 'color',
 				any,
-				all
+				all,
+				...(not.length ? { not } : {})
 			}),
 			rarities: values(url.searchParams, 'rarity', RARITIES),
 			types: values(url.searchParams, 'type', CARD_TYPES),
@@ -58,6 +62,7 @@ export function searchHref({ query, filters, pagination }: SearchInput): string 
 	for (const [key, selected] of [
 		['color', filters.colorMatch?.any],
 		['colorAnd', filters.colorMatch?.all],
+		['colorNot', filters.colorMatch?.not],
 		['rarity', filters.rarities],
 		['type', filters.types],
 		['legal', filters.legalities]

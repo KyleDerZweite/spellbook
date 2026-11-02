@@ -31,7 +31,8 @@ export function buildSearchContextKey({
 			colorMatch: {
 				field: filters.colorMatch?.field ?? 'color',
 				any: [...new Set(filters.colorMatch?.any ?? [])].sort(),
-				all: [...new Set(filters.colorMatch?.all ?? [])].sort()
+				all: [...new Set(filters.colorMatch?.all ?? [])].sort(),
+				not: [...new Set(filters.colorMatch?.not ?? [])].sort()
 			},
 			colors: [...new Set(filters.colors ?? [])].sort(),
 			colorIdentity: [...new Set(filters.colorIdentity ?? [])].sort(),

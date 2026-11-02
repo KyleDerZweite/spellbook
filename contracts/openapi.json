@@ -11508,8 +11508,12 @@
 										},
 										"totals": {
 											"anyOf": [
-												{ "$ref": "#/components/schemas/InventoryHistoryTotals" },
-												{ "type": "null" }
+												{
+													"$ref": "#/components/schemas/InventoryHistoryTotals"
+												},
+												{
+													"type": "null"
+												}
 											]
 										}
 									},
@@ -17557,7 +17561,7 @@
 				"type": "object",
 				"additionalProperties": false,
 				"required": ["field", "any", "all"],
-				"description": "(OR any selected color) AND every required color. Empty any adds no restriction. Arrays must be disjoint. Additional card colors are permitted; C means an empty color set.",
+				"description": "(OR any selected color) AND every required color, excluding every not color. Empty any adds no restriction; omitted not is empty. Arrays must be pairwise disjoint. Additional card colors are permitted unless excluded; C means an empty color set.",
 				"properties": {
 					"field": {
 						"enum": ["color", "identity"]
@@ -17570,6 +17574,13 @@
 						}
 					},
 					"all": {
+						"type": "array",
+						"maxItems": 6,
+						"items": {
+							"enum": ["W", "U", "B", "R", "G", "C"]
+						}
+					},
+					"not": {
 						"type": "array",
 						"maxItems": 6,
 						"items": {

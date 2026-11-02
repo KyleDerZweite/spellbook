@@ -17,10 +17,11 @@ export class SearchFilterState {
 
 	colorAny: Set<ManaColor> = $state(new Set());
 	colorAll: Set<ManaColor> = $state(new Set());
+	colorNot: Set<ManaColor> = $state(new Set());
 	colorField: ColorMatch['field'] = $state('color');
 
 	get selectedColors(): Set<ManaColor> {
-		return new Set([...this.colorAny, ...this.colorAll]);
+		return new Set([...this.colorAny, ...this.colorAll, ...this.colorNot]);
 	}
 	selectedRarities: Set<Rarity> = $state(new Set());
 	selectedTypes: Set<CardType> = $state(new Set());
@@ -31,7 +32,8 @@ export class SearchFilterState {
 			...browserColorFilters({
 				field: this.colorField,
 				any: [...this.colorAny],
-				all: [...this.colorAll]
+				all: [...this.colorAll],
+				...(this.colorNot.size ? { not: [...this.colorNot] } : {})
 			}),
 			rarities: [...this.selectedRarities],
 			types: [...this.selectedTypes],
@@ -41,20 +43,26 @@ export class SearchFilterState {
 
 	toggleColor(color: ManaColor): void {
 		const any = new Set(this.colorAny),
-			all = new Set(this.colorAll);
-		if (all.has(color)) all.delete(color);
-		else if (any.has(color)) {
+			all = new Set(this.colorAll),
+			not = new Set(this.colorNot);
+		if (not.has(color)) not.delete(color);
+		else if (all.has(color)) {
+			all.delete(color);
+			not.add(color);
+		} else if (any.has(color)) {
 			any.delete(color);
 			all.add(color);
 		} else any.add(color);
 		this.colorAny = any;
 		this.colorAll = all;
+		this.colorNot = not;
 		this.changed();
 	}
 
 	removeColor(color: ManaColor): void {
 		this.colorAny = new Set([...this.colorAny].filter((value) => value !== color));
 		this.colorAll = new Set([...this.colorAll].filter((value) => value !== color));
+		this.colorNot = new Set([...this.colorNot].filter((value) => value !== color));
 		this.changed();
 	}
 
@@ -100,6 +108,7 @@ export class SearchFilterState {
 	clear(): void {
 		this.colorAny = new Set();
 		this.colorAll = new Set();
+		this.colorNot = new Set();
 		this.selectedRarities = new Set();
 		this.selectedTypes = new Set();
 		this.selectedLegalities = new Set();

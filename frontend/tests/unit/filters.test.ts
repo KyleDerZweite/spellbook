@@ -33,7 +33,7 @@ describe('SearchFilterState', () => {
 		});
 		expect(state.hasFilters).toBe(false);
 	});
-	it('cycles every color off to OR to AND to off, with one change notification per click', () => {
+	it('cycles every color off to OR to AND to NOT to off, with one change notification per click', () => {
 		const changed = vi.fn(),
 			state = new SearchFilterState(changed);
 		for (const color of ['W', 'U', 'B', 'R', 'G', 'C'] as const) {
@@ -42,9 +42,16 @@ describe('SearchFilterState', () => {
 			state.toggleColor(color);
 			expect(state.catalogFilters.colorMatch).toEqual({ field: 'color', any: [], all: [color] });
 			state.toggleColor(color);
+			expect(state.catalogFilters.colorMatch).toEqual({
+				field: 'color',
+				any: [],
+				all: [],
+				not: [color]
+			});
+			state.toggleColor(color);
 			expect(state.hasFilters).toBe(false);
 		}
-		expect(changed).toHaveBeenCalledTimes(18);
+		expect(changed).toHaveBeenCalledTimes(24);
 	});
 	it('represents (White OR Blue) AND Black and preserves selections when switching fields', () => {
 		const state = new SearchFilterState();

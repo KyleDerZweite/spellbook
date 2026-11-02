@@ -306,7 +306,7 @@
 							/> Identity</label
 						>
 					</fieldset>
-					{#each [{ name: 'color', label: 'Colors · OR', options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: 'Colors · AND', options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'rarity', label: 'Rarity', options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: 'Card type', options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: 'Legality', options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
+					{#each [{ name: 'color', label: 'Colors · OR', options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: 'Colors · AND', options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'colorNot', label: 'Colors · NOT', options: MANA_COLORS, selected: input.filters.colorMatch?.not }, { name: 'rarity', label: 'Rarity', options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: 'Card type', options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: 'Legality', options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
 						<fieldset>
 							<legend
 								title={group.name === 'colorAnd'

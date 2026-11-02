@@ -92,6 +92,7 @@ export class SearchSession {
 		this.pagination = input.pagination!;
 		this.filters.colorAny = new Set(input.filters.colorMatch?.any);
 		this.filters.colorAll = new Set(input.filters.colorMatch?.all);
+		this.filters.colorNot = new Set(input.filters.colorMatch?.not);
 		this.filters.colorField = input.filters.colorMatch?.field ?? 'color';
 		this.filters.selectedRarities = new Set(input.filters.rarities);
 		this.filters.selectedTypes = new Set(input.filters.types);

@@ -316,7 +316,7 @@ A later refetched Deck never substitutes for this acknowledgement, so an interve
 
 Search color state owns disjoint OR, AND and NOT sets plus the Color/Identity field.
 Each click cycles Off, OR, AND, NOT, then Off; explicit removal clears the color directly.
-The structured Catalog request combines the OR set with every AND requirement.
+The structured Catalog request combines the OR set with every AND requirement and excludes the NOT set.
 `browserColorFilters` adds the matching existing palette restriction for AND-only selections; both reactive state and native URL parsing use this owner.
 OR-only and mixed expressions retain presence matching, and context keys include the derived palette.
 Search URLs, session hydration, native forms and result-context keys retain the field and all three color groups.

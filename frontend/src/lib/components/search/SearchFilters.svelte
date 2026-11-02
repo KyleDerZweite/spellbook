@@ -22,10 +22,12 @@
 	let legalityOpen = $state(false);
 	const orColors = $derived(MANA_COLORS.filter((color) => filters.colorAny.has(color.id)));
 	const andColors = $derived(MANA_COLORS.filter((color) => filters.colorAll.has(color.id)));
+	const notColors = $derived(MANA_COLORS.filter((color) => filters.colorNot.has(color.id)));
 	const expressionText = $derived(
 		[
 			...(orColors.length ? [`(${orColors.map((color) => color.label).join(' OR ')})`] : []),
-			...andColors.map((color) => color.label)
+			...andColors.map((color) => color.label),
+			...notColors.map((color) => `NOT ${color.label}`)
 		].join(' AND ') || 'Any color'
 	);
 	const exactColors = $derived(andColors.length > 0 && orColors.length === 0);
@@ -65,7 +67,7 @@
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<p id={descriptionId} class="sr-only">
-				Click to cycle OR, AND, then off. AND-only selections exclude all other colors.
+				Click to cycle OR, AND, NOT, then off. AND-only selections exclude all other colors.
 			</p>
 			<div
 				class="filter-colors"
@@ -74,17 +76,19 @@
 				aria-describedby={descriptionId}
 			>
 				{#each MANA_COLORS as color}
-					{@const logic = filters.colorAll.has(color.id)
-						? 'AND'
-						: filters.colorAny.has(color.id)
-							? 'OR'
-							: 'off'}
+					{@const logic = filters.colorNot.has(color.id)
+						? 'NOT'
+						: filters.colorAll.has(color.id)
+							? 'AND'
+							: filters.colorAny.has(color.id)
+								? 'OR'
+								: 'off'}
 					<button
 						type="button"
 						onclick={() => filters.toggleColor(color.id)}
 						class="filter-color"
 						data-logic={logic}
-						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : 'off'}`}
+						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : logic === 'AND' ? 'NOT' : 'off'}`}
 						title={`${color.label}: ${logic}${logic === 'AND' && exactColors ? ' · only selected colors' : ''}`}
 						aria-pressed={logic !== 'off'}
 					>
@@ -261,6 +265,19 @@
 		outline: 1px solid var(--color-text-primary);
 		outline-offset: 3px;
 	}
+	.filter-color[data-logic='NOT'] i {
+		outline: 1px solid var(--color-error);
+		outline-offset: 3px;
+	}
+	.filter-color[data-logic='NOT'] i::after {
+		content: '';
+		position: absolute;
+		width: 26px;
+		height: 2px;
+		background: var(--color-error);
+		transform: rotate(-45deg);
+		border-radius: 1px;
+	}
 	.filter-colors {
 		display: grid;
 		grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -279,6 +296,7 @@
 		cursor: pointer;
 	}
 	.filter-color i {
+		position: relative;
 		display: grid;
 		width: 30px;
 		height: 30px;

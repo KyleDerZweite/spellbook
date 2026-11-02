@@ -4,6 +4,21 @@ import { buildSearchContextKey } from '#lib/search/requestContext.ts';
 import { parseSearchUrl } from '#lib/search/navigation.ts';
 
 describe('structured color matching', () => {
+	it('accepts NOT-only matching, normalizes exclusions and preserves omitted legacy groups', () => {
+		expect(
+			parseCatalogSearchRequest({
+				filters: { colorMatch: { field: 'identity', any: [], all: [], not: ['R', 'R', 'C'] } }
+			}).filters.colorMatch
+		).toEqual({ field: 'identity', any: [], all: [], not: ['R', 'C'] });
+		const key = (not: ('R' | 'C')[]) =>
+			buildSearchContextKey({
+				game: 'mtg',
+				query: '',
+				filters: { colorMatch: { field: 'identity', any: [], all: [], not } }
+			});
+		expect(key(['R', 'C'])).toBe(key(['C', 'R']));
+		expect(key(['R'])).not.toBe(key(['C']));
+	});
 	it('isolates exact browser AND results from inclusive API AND results', () => {
 		const filters = parseSearchUrl(
 			new URL('https://spellbook.test/mtg/search?colorAnd=W&colorAnd=U')
@@ -27,7 +42,12 @@ describe('structured color matching', () => {
 		{ field: 'color', any: ['W'], all: ['W'] },
 		{ field: 'color', any: [], all: ['X'] },
 		{ field: 'color', any: [], all: [], raw: 'SQL' },
-		{ field: 'color', any: [], all: Array(7).fill('B') }
+		{ field: 'color', any: [], all: Array(7).fill('B') },
+		{ field: 'color', any: ['R'], all: [], not: ['R'] },
+		{ field: 'color', any: [], all: ['C'], not: ['C'] },
+		{ field: 'color', any: [], all: [], not: null },
+		{ field: 'color', any: [], all: [], not: ['X'] },
+		{ field: 'color', any: [], all: [], not: Array(7).fill('R') }
 	])('rejects malformed expressions %j', (colorMatch) => {
 		expect(() => parseCatalogSearchRequest({ filters: { colorMatch } })).toThrow();
 	});

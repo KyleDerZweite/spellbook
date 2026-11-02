@@ -114,9 +114,10 @@ The OR colors form one optional disjunction; every AND color must also match, an
 An empty OR group adds no restriction; colors are unfiltered only when all three groups are empty.
 An omitted `not` group is empty, preserving existing API requests; NOT-only filters are valid.
 For example, OR White/Blue and AND Black means `(White OR Blue) AND Black`.
-Matching requires the selected colors to be present and permits additional colors.
+Positive OR/AND requirements match the presence of their colors and permit additional colors unless explicitly excluded.
 `color` examines printed colors, while `identity` examines the stored color identity.
 Colorless means an empty color set; colorless AND a colored requirement correctly has no matches.
+NOT Colorless requires a nonempty color set.
 Each array accepts at most six known colors, and a color cannot occur in more than one group.
 Identity matching enumerates the at most 32 valid masks for the existing indexed projection.
 This new filter combines with the other supplied Catalog filters using AND.
