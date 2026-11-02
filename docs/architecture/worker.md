@@ -1,7 +1,7 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-11-02
 - Source of Truth: code
 - Update Triggers: Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
 - Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)

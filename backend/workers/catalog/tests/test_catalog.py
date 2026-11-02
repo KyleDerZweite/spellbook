@@ -93,7 +93,18 @@ def test_publish_localized_records_and_replay_is_idempotent(publisher, tmp_path)
         ).fetchone() == (2, True)
 
 
-@pytest.mark.parametrize("failure", ["malformed", "empty", "duplicate", "invalid_id", "nonfinite"])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "malformed",
+        "empty",
+        "duplicate",
+        "invalid_id",
+        "nonfinite",
+        "missing_colors",
+        "invalid_colors",
+    ],
+)
 def test_failure_retains_last_good_catalog(publisher, tmp_path, failure):
     publisher.publish(*snapshot(tmp_path))
     before = state(publisher)
@@ -102,6 +113,10 @@ def test_failure_retains_last_good_catalog(publisher, tmp_path, failure):
         card["id"] = "not-a-uuid"
     if failure == "nonfinite":
         card["cmc"] = float("nan")
+    if failure == "missing_colors":
+        card.pop("colors")
+    if failure == "invalid_colors":
+        card["colors"] = ["invalid"]
     path, info = snapshot(
         tmp_path, version=2, cards=[card, card] if failure == "duplicate" else [card]
     )

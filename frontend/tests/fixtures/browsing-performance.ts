@@ -247,7 +247,7 @@ export async function publishPerformanceCatalog(
 		manifest.previousState = (await client.query(stateSelection + ' FOR UPDATE')).rows[0] ?? null;
 		await checkpoint();
 		await client.query(
-			"INSERT INTO catalog_generations(id,source_type,source_updated_at,schema_version) VALUES($1,'test-recorded-browsing-bundle','2026-10-07T00:00:00Z',2)",
+			"INSERT INTO catalog_generations(id,source_type,source_updated_at,schema_version) VALUES($1,'test-recorded-browsing-bundle','2026-11-02T00:00:00Z',4)",
 			[manifest.generationId]
 		);
 		const verified = await consumePerformanceBundle(async (batch) => {
@@ -260,7 +260,7 @@ export async function publishPerformanceCatalog(
 			);
 			await client.query(
 				`INSERT INTO catalog_oracle_facts(generation_id,printing_id,raw_oracle_id,types,transform_version)
-				 SELECT $1,(r.document->>'id')::uuid,r.raw_oracle_id,r.types,2
+				 SELECT $1,(r.document->>'id')::uuid,r.raw_oracle_id,r.types,4
 				 FROM jsonb_to_recordset($2::jsonb) r(document jsonb,raw_oracle_id uuid,types text[])`,
 				[manifest.generationId, JSON.stringify(batch)]
 			);

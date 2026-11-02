@@ -37,7 +37,7 @@ When that array is absent, the native transform combines complete face-defined c
 Missing or invalid color evidence fails publication instead of silently classifying the printing as colorless.
 This transform correction requires rebuilding and publishing a generation; restarting readers does not repair flattened documents already stored in an older generation.
 
-The versioned Demo Catalog bundle `catalog-default-en-20261007.jsonl.gz` contains 109,393 searchable English Printings and 34,948 Oracle IDs, including all 70 starter Printing IDs.
+The versioned Demo Catalog bundle `catalog-default-en-20261102.jsonl.gz` contains 109,393 searchable English Printings and 34,948 Oracle IDs, including all 70 starter Printing IDs.
 Its native builder uses the existing Worker transform and exclusions against the local default bulk export.
 The Demo publisher streams 500-record batches and writes native printing and Oracle-fact projections under the existing Catalog publisher advisory transaction lock.
 It activates only a completely validated generation, retains existing generations and leaves all Price state unchanged.

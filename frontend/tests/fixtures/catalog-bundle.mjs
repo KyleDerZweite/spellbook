@@ -5,7 +5,7 @@ import { createGunzip } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
 
 const manifestURL = new URL(
-	'../../../backend/scripts/demo/catalog-default-en-20261007.manifest.json',
+	'../../../backend/scripts/demo/catalog-default-en-20261102.manifest.json',
 	import.meta.url
 );
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -29,7 +29,7 @@ export async function verifyBundle(url = manifestURL) {
 		manifest.sourceType !== 'demo-bundle' ||
 		manifest.providerUpdatedAt !== null ||
 		!uuid.test(manifest.generationId) ||
-		manifest.catalogTransformVersion !== 2 ||
+		manifest.catalogTransformVersion !== 4 ||
 		!/^catalog-default-en-\d{8}\.jsonl\.gz$/.test(manifest.file) ||
 		!digest.test(manifest.gzipSHA256) ||
 		!digest.test(manifest.jsonlSHA256) ||

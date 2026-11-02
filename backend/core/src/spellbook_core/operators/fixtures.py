@@ -14,7 +14,8 @@ from uuid import NAMESPACE_URL, uuid5
 
 from . import OperatorError
 
-MANIFEST_NAME = "catalog-default-en-20261007.manifest.json"
+MANIFEST_NAME = "catalog-default-en-20261102.manifest.json"
+CATALOG_TRANSFORM_VERSION = 4
 _UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
 _DIGEST = re.compile(r"[0-9a-f]{64}")
 type Record = dict[str, Any]
@@ -122,7 +123,7 @@ def verify_bundle(directory: Path) -> DemoBundle:
         if not isinstance(raw, dict):
             raise ValueError
         version = datetime.fromisoformat(raw["bundleVersion"].replace("Z", "+00:00"))
-        name = f"spellbook-demo-catalog:1:2:{raw['jsonlSHA256']}"
+        name = f"spellbook-demo-catalog:1:{CATALOG_TRANSFORM_VERSION}:{raw['jsonlSHA256']}"
         if (
             type(raw["formatVersion"]) is not int
             or raw["formatVersion"] != 1
@@ -130,7 +131,7 @@ def verify_bundle(directory: Path) -> DemoBundle:
             or raw["providerUpdatedAt"] is not None
             or not _uuid(raw["generationId"])
             or type(raw["catalogTransformVersion"]) is not int
-            or raw["catalogTransformVersion"] != 2
+            or raw["catalogTransformVersion"] != CATALOG_TRANSFORM_VERSION
             or not re.fullmatch(r"catalog-default-en-\d{8}\.jsonl\.gz", raw["file"])
             or not _DIGEST.fullmatch(raw["gzipSHA256"])
             or not _DIGEST.fullmatch(raw["jsonlSHA256"])
@@ -143,7 +144,7 @@ def verify_bundle(directory: Path) -> DemoBundle:
         manifest = BundleManifest(
             raw["generationId"],
             version,
-            2,
+            CATALOG_TRANSFORM_VERSION,
             raw["counts"]["documents"],
             raw["canonicalCount"],
             raw["starterPrintingCount"],

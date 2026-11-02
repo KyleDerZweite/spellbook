@@ -81,8 +81,8 @@ def test_source_fixture_location_is_canonical() -> None:
     for name in (
         "cards.json",
         "upgrades-unleashed.json",
-        "catalog-default-en-20261007.manifest.json",
-        "catalog-default-en-20261007.jsonl.gz",
+        "catalog-default-en-20261102.manifest.json",
+        "catalog-default-en-20261102.jsonl.gz",
     ):
         assert (actual / name).read_bytes() == (canonical / name).read_bytes()
 

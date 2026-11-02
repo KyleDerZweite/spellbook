@@ -26,7 +26,7 @@ FIXTURES = Path(__file__).resolve().parents[2] / "scripts/demo"
 
 def test_shipped_bundle_has_complete_identity_facts_and_bounded_batches() -> None:
     bundle = verify_bundle(FIXTURES)
-    count = faces = 0
+    count = faces = aang = 0
     for batch in bundle.batches():
         assert 0 < len(batch) <= 500
         count += len(batch)
@@ -38,9 +38,13 @@ def test_shipped_bundle_has_complete_identity_facts_and_bounded_batches() -> Non
             assert d["image_uri"]
             if d.get("back_face_name"):
                 faces += 1
+            if d["oracle_id"] == "96e5d4a1-e59f-4140-823f-a17e15ee5d8d":
+                assert d["colors"] == ["W", "U", "G"]
+                aang += 1
     assert count == bundle.manifest.documents == 109393
     assert bundle.manifest.canonical_count == 34948
     assert faces > 0
+    assert aang == 4
 
 
 def test_shipped_precon_and_legacy_deterministic_selection() -> None:
@@ -119,23 +123,23 @@ def test_demo_guard_accepts_disposable_targets(url: str) -> None:
 
 def small_bundle(directory: Path, *, payload: bytes | None = None) -> DemoBundle:
     # Real gzip/JSON/digest validation, using one unchanged versioned record.
-    with gzip.open(FIXTURES / "catalog-default-en-20261007.jsonl.gz", "rb") as stream:
+    with gzip.open(FIXTURES / "catalog-default-en-20261102.jsonl.gz", "rb") as stream:
         record = json.loads(stream.readline())
     if payload is None:
         payload = json.dumps(record).encode() + b"\n"
     digest = hashlib.sha256(payload).hexdigest()
     compressed = gzip.compress(payload)
-    filename = "catalog-default-en-20261007.jsonl.gz"
+    filename = "catalog-default-en-20261102.jsonl.gz"
     (directory / filename).write_bytes(compressed)
     (directory / "cards.json").write_text(json.dumps([record["document"]]))
     manifest = {
         "formatVersion": 1,
         "bundleVersion": "2026-10-07T00:00:00Z",
         "file": filename,
-        "generationId": str(uuid5(NAMESPACE_URL, f"spellbook-demo-catalog:1:2:{digest}")),
+        "generationId": str(uuid5(NAMESPACE_URL, f"spellbook-demo-catalog:1:4:{digest}")),
         "sourceType": "demo-bundle",
         "providerUpdatedAt": None,
-        "catalogTransformVersion": 2,
+        "catalogTransformVersion": 4,
         "counts": {"documents": 1},
         "canonicalCount": 1,
         "starterPrintingCount": 1,

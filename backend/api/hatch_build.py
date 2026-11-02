@@ -22,8 +22,8 @@ class CustomBuildHook(BuildHookInterface):
         for filename in (
             "cards.json",
             "upgrades-unleashed.json",
-            "catalog-default-en-20261007.manifest.json",
-            "catalog-default-en-20261007.jsonl.gz",
+            "catalog-default-en-20261102.manifest.json",
+            "catalog-default-en-20261102.jsonl.gz",
         ):
             name = f"operators/assets/{filename}"
             assets.append(
