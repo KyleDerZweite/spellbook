@@ -54,6 +54,7 @@ export interface DeckAvailabilityResponse {
 	totals: DeckAvailability & { required: number };
 }
 export interface DeckSnapshot {
+	relatedTokens: import('./deck-tokens.ts').DeckRelatedTokens;
 	valueEstimates: DeckValueEstimates | null;
 	valuationError: { kind: 'PriceReadUnavailable'; message: string } | null;
 	decks: Deck[];
