@@ -17,14 +17,10 @@
 				{#each dashboard.decks as deck (deck.id)}
 					<li>
 						<div class="deck-heading">
-							<a class="deck-name" href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}
-								>{deck.name}</a
-							>
-							<span class="format-label"
-								><i
-									class={`ms ms-${deck.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
-									aria-hidden="true"
-								></i>{deck.format}</span
+							<a
+								class="deck-name"
+								title={deck.name}
+								href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>{deck.name}</a
 							>
 						</div>
 						<div class="deck-content">
@@ -39,8 +35,8 @@
 											<img
 												src={commander.imageUri}
 												alt={commander.name}
-												width="104"
-												height="145"
+												width="112"
+												height="156"
 												loading="lazy"
 											/>
 										{:else}
@@ -53,28 +49,36 @@
 									>
 								{/if}
 							</a>
-							{#if deck.required > 0}
-								<div
-									class="availability"
-									style:--deck-count-size={`${Math.min(
-										18,
-										80 /
-											Math.max(
-												(deck.exact + deck.alternate).toLocaleString().length,
-												deck.required.toLocaleString().length
-											)
-									)}px`}
+							<div class="deck-status">
+								<span class="format-label"
+									><i
+										class={`ms ms-${deck.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
+										aria-hidden="true"
+									></i>{deck.format}</span
 								>
-									<DeckAvailabilityRing {deck} />
-								</div>
-							{:else}
-								<div class="empty-deck">
-									<span class="dashboard-note">No cards yet</span><a
-										class="panel-link"
-										href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>Start building ↗</a
+								{#if deck.required > 0}
+									<div
+										class="availability"
+										style:--deck-count-size={`${Math.min(
+											18,
+											64 /
+												Math.max(
+													(deck.exact + deck.alternate).toLocaleString().length,
+													deck.required.toLocaleString().length
+												)
+										)}px`}
 									>
-								</div>
-							{/if}
+										<DeckAvailabilityRing {deck} />
+									</div>
+								{:else}
+									<div class="empty-deck">
+										<span class="dashboard-note">No cards yet</span><a
+											class="panel-link"
+											href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>Start building ↗</a
+										>
+									</div>
+								{/if}
+							</div>
 						</div>
 					</li>
 				{/each}
@@ -119,6 +123,7 @@
 		text-decoration: underline;
 	}
 	.deck-scroll {
+		container: deck-grid / inline-size;
 		min-height: 0;
 		padding: 3px;
 	}
@@ -130,27 +135,29 @@
 	.deck-list {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		gap: 12px;
+		gap: 10px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 	.deck-list > li {
 		min-width: 0;
-		padding: 12px;
+		padding: 8px;
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
 	}
 	.deck-heading {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 8px;
+		min-width: 0;
 		margin-bottom: 12px;
 	}
 	.deck-name {
 		min-width: 0;
-		display: block;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		height: 2.6em;
+		overflow: hidden;
 		overflow-wrap: anywhere;
 		color: var(--color-text-primary);
 		font: 400 18px/1.3 var(--font-display);
@@ -175,10 +182,9 @@
 	}
 	.deck-content {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: flex-start;
-		gap: 8px;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 4px;
 	}
 	.commander-previews {
 		display: flex;
@@ -190,17 +196,16 @@
 	.commander-previews img,
 	.art-placeholder {
 		box-sizing: border-box;
-		flex: 0 0 104px;
-		width: 104px;
-		height: 145px;
+		flex: 0 0 112px;
+		width: 112px;
+		height: 156px;
 		border-radius: 4px;
 	}
 	.commander-previews > :first-child {
 		z-index: 1;
 	}
 	.commander-previews > :nth-child(2) {
-		margin-left: -76px;
-		transform: translateY(6px);
+		margin-left: -96px;
 	}
 	.commander-previews img {
 		object-fit: contain;
@@ -218,19 +223,27 @@
 		text-align: center;
 		overflow-wrap: anywhere;
 	}
+	.deck-status {
+		display: flex;
+		flex: 0 0 88px;
+		min-width: 0;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+	}
 	.availability {
-		flex: 0 0 104px;
+		width: 88px;
 		min-width: 0;
 	}
 	.availability :global(.proportion-ring) {
-		width: 104px;
-		height: 104px;
+		width: 88px;
+		height: 88px;
 	}
 	.availability :global(.chart-center strong) {
 		margin: 0;
 		font-size: var(--deck-count-size);
 		white-space: nowrap;
-		max-width: 56px;
+		max-width: 48px;
 	}
 	.availability :global(.chart-center strong span) {
 		display: block;
@@ -240,7 +253,7 @@
 	}
 	.availability :global(.proportion-ring:has(.native-chart-data) svg),
 	.availability :global(.proportion-ring:has(.native-chart-data) .chart-center) {
-		height: 104px;
+		height: 88px;
 	}
 	.art-placeholder i {
 		font-size: 24px;
@@ -251,14 +264,19 @@
 		gap: 8px;
 		min-width: 0;
 	}
-	@container (min-width: 570px) {
+	@container deck-grid (min-width: 486px) {
 		.deck-list {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	@container (min-width: 840px) {
+	@container deck-grid (min-width: 734px) {
 		.deck-list {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+	@container deck-grid (min-width: 982px) {
+		.deck-list {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
 		}
 	}
 	@media (min-width: 1150px) {
