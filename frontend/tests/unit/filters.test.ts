@@ -2,6 +2,27 @@ import { describe, it, expect, vi } from 'vitest';
 import { SearchFilterState } from '../../src/lib/search/filters.svelte.ts';
 
 describe('SearchFilterState', () => {
+	it('excludes additional printed colors from a pure White AND Blue selection', () => {
+		const state = new SearchFilterState();
+		for (const color of ['W', 'U'] as const) {
+			state.toggleColor(color);
+			state.toggleColor(color);
+		}
+		expect(state.catalogFilters.colorMatch).toEqual({ field: 'color', any: [], all: ['W', 'U'] });
+		expect(state.catalogFilters.colors).toEqual(['W', 'U']);
+		const snapshot = state.catalogFilters;
+		snapshot.colors!.push('R');
+		snapshot.colorMatch!.all.push('G');
+		expect(state.catalogFilters.colors).toEqual(['W', 'U']);
+		expect(state.catalogFilters.colorMatch?.all).toEqual(['W', 'U']);
+		state.setColorField('identity');
+		expect(state.catalogFilters.colorIdentity).toEqual(['W', 'U']);
+		expect(state.catalogFilters.colors).toBeUndefined();
+		state.toggleColor('B');
+		expect(state.catalogFilters.colorIdentity).toBeUndefined();
+		state.clear();
+		expect(state.catalogFilters.colorIdentity).toBeUndefined();
+	});
 	it('starts unfiltered with printed Color selected', () => {
 		const state = new SearchFilterState();
 		expect(state.catalogFilters).toEqual({

@@ -28,6 +28,7 @@
 			...andColors.map((color) => color.label)
 		].join(' AND ') || 'Any color'
 	);
+	const exactColors = $derived(andColors.length > 0 && orColors.length === 0);
 </script>
 
 {#snippet groupLabel(label: string, open: boolean, selected: number)}
@@ -63,7 +64,9 @@
 			{@render groupLabel('Colors', colorsOpen, filters.selectedColors.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
-			<p id={descriptionId} class="sr-only">Click to cycle OR, AND, then off.</p>
+			<p id={descriptionId} class="sr-only">
+				Click to cycle OR, AND, then off. AND-only selections exclude all other colors.
+			</p>
 			<div
 				class="filter-colors"
 				role="group"
@@ -82,7 +85,7 @@
 						class="filter-color"
 						data-logic={logic}
 						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : 'off'}`}
-						title={`${color.label}: ${logic}`}
+						title={`${color.label}: ${logic}${logic === 'AND' && exactColors ? ' · only selected colors' : ''}`}
 						aria-pressed={logic !== 'off'}
 					>
 						<i class="ms ms-cost {color.msClass}" aria-hidden="true"></i>
@@ -103,7 +106,7 @@
 				{/each}
 			</fieldset>
 			<span class="sr-only" role="status" aria-label="Color filter expression"
-				>{expressionText}</span
+				>{exactColors ? `Only ${expressionText}` : expressionText}</span
 			>
 		</Collapsible.Content>
 	</Collapsible.Root>

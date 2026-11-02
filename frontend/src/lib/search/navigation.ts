@@ -1,5 +1,6 @@
 import { MANA_COLORS, RARITIES, CARD_TYPES, LEGALITY_FORMATS } from './filter-options.ts';
 import type { CatalogFilters } from './types.ts';
+import { browserColorFilters } from './color-filters.ts';
 import { parseLazyBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
 
 export const SEARCH_DEFAULT_PAGE_SIZE = 'lazy';
@@ -39,11 +40,11 @@ export function parseSearchUrl(url: {
 			SEARCH_MAX_OFFSET
 		),
 		filters: {
-			colorMatch: {
+			...browserColorFilters({
 				field: url.searchParams.get('colorMode') === 'identity' ? 'identity' : 'color',
 				any,
 				all
-			},
+			}),
 			rarities: values(url.searchParams, 'rarity', RARITIES),
 			types: values(url.searchParams, 'type', CARD_TYPES),
 			legalities: values(url.searchParams, 'legal', LEGALITY_FORMATS)

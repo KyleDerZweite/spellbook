@@ -5,6 +5,15 @@ import { SearchSession } from '../../src/lib/search/session.svelte.ts';
 
 const origin = 'https://spellbook.test';
 describe('Search navigation', () => {
+	it('restores exact AND combinations from native URLs and browser history', () => {
+		for (const field of ['color', 'identity'] as const) {
+			const parsed = parseSearchUrl(
+				new URL(`/mtg/search?colorAnd=W&colorAnd=U&colorMode=${field}`, origin)
+			);
+			expect(parsed.filters[field === 'color' ? 'colors' : 'colorIdentity']).toEqual(['W', 'U']);
+			expect(parseSearchUrl(new URL(searchHref(parsed), origin))).toEqual(parsed);
+		}
+	});
 	it('round trips query and all supported filter categories for direct visits and full view', () => {
 		const input = {
 			query: 'Lightning Bolt & "elf"',

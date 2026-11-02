@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { parseCatalogSearchRequest } from '@spellbook/contracts/catalog-query.ts';
 import { buildSearchContextKey } from '#lib/search/requestContext.ts';
+import { parseSearchUrl } from '#lib/search/navigation.ts';
 
 describe('structured color matching', () => {
+	it('isolates exact browser AND results from inclusive API AND results', () => {
+		const filters = parseSearchUrl(
+			new URL('https://spellbook.test/mtg/search?colorAnd=W&colorAnd=U')
+		).filters;
+		const key = (selected: typeof filters) =>
+			buildSearchContextKey({ game: 'mtg', query: '', filters: selected });
+		expect(key(filters)).not.toBe(key({ colorMatch: filters.colorMatch }));
+		expect(parseCatalogSearchRequest({ filters }).filters).toEqual(filters);
+	});
 	it('normalizes duplicates while retaining OR and AND and the selected field', () => {
 		expect(
 			parseCatalogSearchRequest({

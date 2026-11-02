@@ -6,6 +6,7 @@ import type {
 	ManaColor,
 	Rarity
 } from './types.ts';
+import { browserColorFilters } from './color-filters.ts';
 
 /**
  * Reactive filter state for card search.
@@ -27,7 +28,11 @@ export class SearchFilterState {
 
 	get catalogFilters(): CatalogFilters {
 		return {
-			colorMatch: { field: this.colorField, any: [...this.colorAny], all: [...this.colorAll] },
+			...browserColorFilters({
+				field: this.colorField,
+				any: [...this.colorAny],
+				all: [...this.colorAll]
+			}),
 			rarities: [...this.selectedRarities],
 			types: [...this.selectedTypes],
 			legalities: [...this.selectedLegalities]
