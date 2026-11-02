@@ -85,6 +85,7 @@
 
 <style>
 	.dashboard-decks {
+		container-type: inline-size;
 		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
@@ -125,18 +126,18 @@
 		outline-offset: 2px;
 	}
 	.deck-list {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 16px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 	.deck-list > li {
-		padding: 18px 0;
-	}
-	.deck-list > li:first-child {
-		padding-top: 0;
-	}
-	.deck-list > li + li {
-		border-top: 1px solid var(--color-border);
+		min-width: 0;
+		padding: 16px;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
 	}
 	.deck-heading {
 		margin-bottom: 12px;
@@ -233,6 +234,11 @@
 		flex-direction: column;
 		gap: 8px;
 		min-width: 0;
+	}
+	@container (min-width: 580px) {
+		.deck-list {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 	@media (min-width: 1150px) {
 		.dashboard-decks {

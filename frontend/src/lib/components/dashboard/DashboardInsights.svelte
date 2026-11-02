@@ -237,13 +237,15 @@
 	</section>
 	<DashboardQuickActions />
 	<div class="dashboard-secondary">
+		<DashboardDecks {dashboard} />
 		<section class="panel dashboard-surface recent">
 			<header>
 				{@render heading('Recent activity')}<a class="view-all" href="/mtg/inventory"
 					>View all <span aria-hidden="true">→</span></a
 				>
 			</header>
-			<div class="entries">
+			<!-- svelte-ignore a11y_no_noninteractive_tabindex (Native scrolling region needs keyboard access.) -->
+			<div class="entries" role="region" aria-label="Recent inventory updates" tabindex="0">
 				{#each dashboard.recentEntries.slice(0, 4) as entry}<a
 						class="entry"
 						href={`/mtg/inventory/${encodeURIComponent(entry.id)}`}
@@ -262,20 +264,13 @@
 							><time
 								class="entry-time"
 								datetime={entry.updatedAt}
-								title={timestamp(entry.updatedAt)}
-								>{new Date(entry.updatedAt).toLocaleDateString('en-GB', {
-									day: 'numeric',
-									month: 'short',
-									year: 'numeric',
-									timeZone: 'UTC'
-								})}</time
+								title={timestamp(entry.updatedAt)}>{timestamp(entry.updatedAt)}</time
 							>
 						</div>
 						<span class="chevron" aria-hidden="true">›</span></a
 					>{:else}<p>No recent inventory updates.</p>{/each}
 			</div>
 		</section>
-		<DashboardDecks {dashboard} />
 	</div>
 </div>
 
@@ -293,7 +288,12 @@
 		min-width: 0;
 	}
 	.recent {
-		min-height: 480px;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+	.recent header {
+		flex-wrap: wrap;
 	}
 	.panel {
 		min-width: 0;
@@ -508,6 +508,8 @@
 	}
 	.entries {
 		display: grid;
+		align-content: start;
+		min-height: 0;
 	}
 	.entry {
 		display: flex;
@@ -540,8 +542,8 @@
 		min-width: 0;
 		flex: 1;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: 4px 16px;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 4px;
 	}
 	.entry-title {
 		grid-column: 1;
@@ -558,17 +560,18 @@
 		overflow-wrap: anywhere;
 	}
 	.entry-time {
-		grid-column: 2;
-		grid-row: 1 / 3;
+		grid-column: 1;
+		grid-row: 3;
 		align-self: center;
 		color: var(--color-text-muted);
 		font-size: 11px;
-		white-space: nowrap;
+		overflow-wrap: anywhere;
 	}
 	.chevron {
 		color: var(--color-text-muted);
 		font-size: 22px;
 	}
+	.entries:focus-visible,
 	button:focus-visible,
 	a:focus-visible,
 	summary:focus-visible {
@@ -596,6 +599,17 @@
 			padding: 3px 0;
 		}
 	}
+	@media (min-width: 1150px) {
+		.recent {
+			box-sizing: border-box;
+			height: 480px;
+		}
+		.entries {
+			overflow-y: auto;
+			scrollbar-gutter: stable;
+			padding: 4px;
+		}
+	}
 	@media (max-width: 1149px) {
 		.insights {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -604,7 +618,7 @@
 			grid-template-columns: minmax(0, 1fr);
 		}
 		.recent {
-			min-height: 414px;
+			min-height: 0;
 		}
 	}
 	@media (max-width: 620px) {
