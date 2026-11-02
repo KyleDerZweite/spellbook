@@ -25,7 +25,9 @@ describe('structured color matching', () => {
 		).filters;
 		const key = (selected: typeof filters) =>
 			buildSearchContextKey({ game: 'mtg', query: '', filters: selected });
-		expect(key(filters)).not.toBe(key({ colorMatch: filters.colorMatch }));
+		expect(key(filters)).not.toBe(
+			key({ colorMatch: { field: 'color', any: [], all: ['W', 'U'] } })
+		);
 		expect(parseCatalogSearchRequest({ filters }).filters).toEqual(filters);
 	});
 	it('normalizes duplicates while retaining OR and AND and the selected field', () => {

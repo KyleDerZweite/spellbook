@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import SearchBar from './SearchBar.svelte';
 	import SearchFilters from './SearchFilters.svelte';
+	import { formatColorExpression } from '#lib/search/color-filters.ts';
 	import SearchResults from './SearchResults.svelte';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import CardBrowsingActions from '#lib/components/cards/CardBrowsingActions.svelte';
@@ -284,8 +285,22 @@
 				>Filters{activeFilters.length ? ` (${activeFilters.length})` : ''}</button
 			>
 		{:else}
+			{@const nativeExpression = formatColorExpression(
+				input.filters.colorMatch ?? { field: 'color', any: [], all: [] }
+			)}
 			<details class="w-full">
 				<summary>Filters</summary>
+				<div
+					class="native-color-formula"
+					role="status"
+					aria-label={input.filters.colorMatch?.field === 'identity'
+						? 'Color identity filter expression'
+						: 'Color filter expression'}
+				>
+					<code aria-hidden="true">{nativeExpression.visual}</code><span class="sr-only"
+						>{nativeExpression.spoken}</span
+					>
+				</div>
 				<div class="grid gap-4 sm:grid-cols-4">
 					<fieldset>
 						<legend>Match colors by</legend>
@@ -310,7 +325,7 @@
 						<fieldset>
 							<legend
 								title={group.name === 'colorAnd'
-									? 'AND-only selections exclude all other colors'
+									? 'A second color filter assigns NOT to remaining colors; Clear filters resets the selection'
 									: undefined}>{group.label}</legend
 							>{#each group.options as option}<label class="flex items-center gap-2"
 									><input
@@ -411,6 +426,13 @@
 {/if}
 
 <style>
+	.native-color-formula {
+		margin-block: 8px;
+		color: var(--color-text-secondary);
+		font: 400 12px/1.5 var(--font-mono);
+		overflow-wrap: anywhere;
+	}
+
 	.search-sidebar {
 		width: 260px;
 	}

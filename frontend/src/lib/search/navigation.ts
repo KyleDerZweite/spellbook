@@ -1,6 +1,6 @@
 import { MANA_COLORS, RARITIES, CARD_TYPES, LEGALITY_FORMATS } from './filter-options.ts';
 import type { CatalogFilters } from './types.ts';
-import { browserColorFilters } from './color-filters.ts';
+import { browserColorFilters, completeColorMatch } from './color-filters.ts';
 import { parseLazyBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
 
 export const SEARCH_DEFAULT_PAGE_SIZE = 'lazy';
@@ -58,18 +58,19 @@ export function parseSearchUrl(url: {
 
 export function searchHref({ query, filters, pagination }: SearchInput): string {
 	const params = new URLSearchParams();
+	const match = filters.colorMatch ? completeColorMatch(filters.colorMatch) : undefined;
 	if (query) params.set('q', query);
 	for (const [key, selected] of [
-		['color', filters.colorMatch?.any],
-		['colorAnd', filters.colorMatch?.all],
-		['colorNot', filters.colorMatch?.not],
+		['color', match?.any],
+		['colorAnd', match?.all],
+		['colorNot', match?.not],
 		['rarity', filters.rarities],
 		['type', filters.types],
 		['legal', filters.legalities]
 	] as const) {
 		for (const value of [...new Set(selected ?? [])].sort()) params.append(key, value);
 	}
-	if (filters.colorMatch?.field === 'identity') params.set('colorMode', 'identity');
+	if (match?.field === 'identity') params.set('colorMode', 'identity');
 	if (pagination) {
 		params.set('pageSize', String(pagination.pageSize));
 		params.set('page', String(pagination.page));

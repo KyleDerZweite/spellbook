@@ -6,7 +6,7 @@ import type {
 	ManaColor,
 	Rarity
 } from './types.ts';
-import { browserColorFilters } from './color-filters.ts';
+import { browserColorFilters, completeColorMatch } from './color-filters.ts';
 
 /**
  * Reactive filter state for card search.
@@ -23,6 +23,10 @@ export class SearchFilterState {
 	get selectedColors(): Set<ManaColor> {
 		return new Set([...this.colorAny, ...this.colorAll, ...this.colorNot]);
 	}
+	get colorCycleLocked(): boolean {
+		return this.selectedColors.size === 6;
+	}
+
 	selectedRarities: Set<Rarity> = $state(new Set());
 	selectedTypes: Set<CardType> = $state(new Set());
 	selectedLegalities: Set<LegalityFormat> = $state(new Set());
@@ -45,24 +49,34 @@ export class SearchFilterState {
 		const any = new Set(this.colorAny),
 			all = new Set(this.colorAll),
 			not = new Set(this.colorNot);
-		if (not.has(color)) not.delete(color);
-		else if (all.has(color)) {
+		if (not.has(color)) {
+			not.delete(color);
+			if (this.colorCycleLocked) any.add(color);
+		} else if (all.has(color)) {
 			all.delete(color);
 			not.add(color);
 		} else if (any.has(color)) {
 			any.delete(color);
 			all.add(color);
 		} else any.add(color);
-		this.colorAny = any;
-		this.colorAll = all;
-		this.colorNot = not;
+		const completed = completeColorMatch({
+			field: this.colorField,
+			any: [...any],
+			all: [...all],
+			not: [...not]
+		});
+		this.colorAny = new Set(completed.any);
+		this.colorAll = new Set(completed.all);
+		this.colorNot = new Set(completed.not);
 		this.changed();
 	}
 
 	removeColor(color: ManaColor): void {
+		const locked = this.colorCycleLocked;
 		this.colorAny = new Set([...this.colorAny].filter((value) => value !== color));
 		this.colorAll = new Set([...this.colorAll].filter((value) => value !== color));
 		this.colorNot = new Set([...this.colorNot].filter((value) => value !== color));
+		if (locked) this.colorNot = new Set([...this.colorNot, color]);
 		this.changed();
 	}
 

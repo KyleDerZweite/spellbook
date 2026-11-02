@@ -2,41 +2,52 @@ import { describe, it, expect, vi } from 'vitest';
 import { SearchFilterState } from '../../src/lib/search/filters.svelte.ts';
 
 describe('SearchFilterState', () => {
-	it('keeps AND selections exact when an explicit NOT exclusion is added', () => {
+	it('completes other colors once when a second filter is set, then cycles three states', () => {
+		const changed = vi.fn(),
+			state = new SearchFilterState(changed);
+		state.toggleColor('W');
+		expect(state.colorCycleLocked).toBe(false);
+		state.toggleColor('U');
+		expect(changed).toHaveBeenCalledTimes(2);
+		expect(state.colorCycleLocked).toBe(true);
+		expect(state.colorNot).toEqual(new Set(['B', 'R', 'G', 'C']));
+		state.toggleColor('R');
+		expect(state.colorAny.has('R')).toBe(true);
+		state.toggleColor('R');
+		expect(state.colorAll.has('R')).toBe(true);
+		state.toggleColor('R');
+		expect(state.colorNot.has('R')).toBe(true);
+		expect(state.selectedColors.size).toBe(6);
+		state.removeColor('W');
+		expect(state.colorNot.has('W')).toBe(true);
+		state.clear();
+		expect(state.colorCycleLocked).toBe(false);
+		expect(state.hasFilters).toBe(false);
+	});
+	it('sends only the explicit predicate and preserves its independent snapshots across fields', () => {
 		const state = new SearchFilterState();
 		state.toggleColor('W');
 		state.toggleColor('W');
-		state.toggleColor('R');
-		state.toggleColor('R');
-		state.toggleColor('R');
-		expect(state.catalogFilters.colors).toEqual(['W']);
+		expect(state.catalogFilters).not.toHaveProperty('colors');
+		state.toggleColor('U');
+		state.toggleColor('U');
 		expect(state.catalogFilters.colorMatch).toEqual({
 			field: 'color',
 			any: [],
-			all: ['W'],
-			not: ['R']
+			all: ['W', 'U'],
+			not: ['B', 'R', 'G', 'C']
 		});
-	});
-	it('excludes additional printed colors from a pure White AND Blue selection', () => {
-		const state = new SearchFilterState();
-		for (const color of ['W', 'U'] as const) {
-			state.toggleColor(color);
-			state.toggleColor(color);
-		}
-		expect(state.catalogFilters.colorMatch).toEqual({ field: 'color', any: [], all: ['W', 'U'] });
-		expect(state.catalogFilters.colors).toEqual(['W', 'U']);
 		const snapshot = state.catalogFilters;
-		snapshot.colors!.push('R');
 		snapshot.colorMatch!.all.push('G');
-		expect(state.catalogFilters.colors).toEqual(['W', 'U']);
-		expect(state.catalogFilters.colorMatch?.all).toEqual(['W', 'U']);
+		snapshot.colorMatch!.not!.push('W');
 		state.setColorField('identity');
-		expect(state.catalogFilters.colorIdentity).toEqual(['W', 'U']);
-		expect(state.catalogFilters.colors).toBeUndefined();
-		state.toggleColor('B');
-		expect(state.catalogFilters.colorIdentity).toBeUndefined();
-		state.clear();
-		expect(state.catalogFilters.colorIdentity).toBeUndefined();
+		expect(state.catalogFilters.colorMatch).toEqual({
+			field: 'identity',
+			any: [],
+			all: ['W', 'U'],
+			not: ['B', 'R', 'G', 'C']
+		});
+		expect(state.catalogFilters).not.toHaveProperty('colorIdentity');
 	});
 	it('starts unfiltered with printed Color selected', () => {
 		const state = new SearchFilterState();
@@ -78,7 +89,8 @@ describe('SearchFilterState', () => {
 		expect(state.catalogFilters.colorMatch).toEqual({
 			field: 'identity',
 			any: ['W', 'U'],
-			all: ['B']
+			all: ['B'],
+			not: ['R', 'G', 'C']
 		});
 		state.removeColor('W');
 		expect(state.catalogFilters.colorMatch?.any).toEqual(['U']);
