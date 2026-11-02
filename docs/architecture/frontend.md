@@ -800,7 +800,9 @@ Recent activity presents the bounded recently updated Inventory holdings and the
 `DashboardDecks` owns read-only Deck availability, larger Commander previews and a bounded native scrolling list; narrow screens use its natural height.
 These presentation components consume the existing account summary without new backend reads.
 `WorkspaceHeader` supplies an overview heading variant while preserving ordinary workspace headings.
-`MetricCards` serves the ordinary Dashboard and retained design prototypes; `metric-trends.ts` selects seven closed dates with exact BigInt changes and explicit gaps/partial coverage.
+`MetricCards` serves the ordinary Dashboard and retained design prototypes; `metric-trends.ts` selects 30 closed daily reporting dates with exact BigInt changes and explicit gaps/partial coverage.
+Shared navigation color tokens also color the four compact metric charts; visible price-coverage explanations belong in the expanded History details.
+The shared `mtg/type-symbol.ts` mapping supplies truthful Mana Font card-type symbols to Dashboard, Search and Deck groups without assigning type semantics to custom category names.
 `InventoryValueHistoryPreview` owns its mounted SavedState lease, period query and reporting-boundary refresh; it reuses shared History controls and chart in the wider `history` FormDialog variant.
 The existing exact-value normalizer retains gap, unknown and known-zero semantics before value-history positioning.
 An accessible exact-data table remains available without JavaScript; keyboard and touch users can inspect captured values through a native range control.
