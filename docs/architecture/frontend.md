@@ -323,6 +323,7 @@ Context keys retain all explicit groups, including automatic exclusions.
 Search URLs, session hydration, native forms and result-context keys retain the field and all three color groups.
 Changing a color state or field uses the existing filter navigation and resets the result anchor.
 The same SearchFilters component serves the full route and overlay; native forms expose equivalent labelled selections.
+Native Clear filters links preserve the query, selected field and page size while resetting the groups and page; filtered empty native results use the same working link.
 
 Server loads and actions reach the same backend use cases as `/api/v1/mtg/...` through HTTP.
 Backend derives account authority from validated sessions and scopes mutations and reads accordingly.

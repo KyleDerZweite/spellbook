@@ -30,6 +30,7 @@
 		onSelect?: (card: CardDocument) => void;
 		onRetry?: () => void;
 		onClearFilters?: () => void;
+		clearFiltersHref?: string;
 		hasFilters?: boolean;
 		class?: string;
 	}
@@ -58,6 +59,7 @@
 		onSelect,
 		onRetry,
 		onClearFilters,
+		clearFiltersHref,
 		hasFilters = false,
 		class: className = ''
 	}: Props = $props();
@@ -92,7 +94,11 @@
 					{:else if hasFilters}No cards match these filters.
 					{:else}No cards are available in this catalog.{/if}
 				</p>
-				{#if hasFilters && onClearFilters}<button
+				{#if hasFilters && clearFiltersHref}<a
+						class="btn btn-secondary mt-4"
+						href={clearFiltersHref}>Clear filters</a
+					>
+				{:else if hasFilters && onClearFilters}<button
 						class="btn btn-secondary mt-4"
 						onclick={onClearFilters}>Clear filters</button
 					>{:else if onRetry}<button class="btn btn-secondary mt-4" onclick={onRetry}

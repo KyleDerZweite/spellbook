@@ -99,6 +99,30 @@
 	const error = $derived(mounted ? snapshot.error : serverError);
 	const browseMode = $derived(input.query.trim().length < 2);
 	const activeFilters = $derived(getActiveFilters(filters));
+	const hasFilters = $derived(
+		mounted
+			? filters.hasFilters
+			: Boolean(
+					input.filters.colorMatch?.any.length ||
+					input.filters.colorMatch?.all.length ||
+					input.filters.colorMatch?.not?.length ||
+					input.filters.rarities?.length ||
+					input.filters.types?.length ||
+					input.filters.legalities?.length ||
+					input.filters.sets?.length ||
+					input.filters.colors?.length ||
+					input.filters.colorIdentity?.length
+				)
+	);
+	const nativeClearHref = $derived(
+		searchHref({
+			query: input.query,
+			filters: {
+				colorMatch: { field: input.filters.colorMatch?.field ?? 'color', any: [], all: [] }
+			},
+			pagination: searchPagination(paging.pageSize)
+		})
+	);
 	const pageCards = $derived(
 		!mounted ? (serverResult?.hits ?? []) : (snapshot.pages.get(paging.offset) ?? [])
 	);
@@ -339,6 +363,7 @@
 					{/each}
 				</div>
 				<button class="btn btn-secondary" type="submit">Apply filters</button>
+				<a class="btn btn-secondary" href={nativeClearHref}>Clear filters</a>
 			</details>
 		{/if}
 		{@render controls?.()}
@@ -390,7 +415,8 @@
 				{browseMode}
 				onRetry={() => catalog.retry()}
 				onClearFilters={() => filters.clear()}
-				hasFilters={activeFilters.length > 0}
+				clearFiltersHref={!mounted ? nativeClearHref : undefined}
+				{hasFilters}
 				selectedId={selectedCard?.id}
 				onSelect={handleSelect}
 			/>
