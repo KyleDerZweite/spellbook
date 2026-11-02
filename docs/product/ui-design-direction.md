@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: explicit NOT color exclusion, exact AND-only Search combinations, Dashboard Quick Actions and two-thirds activity row, reordered Dashboard panels and removed Inventory composition, explicit Add icons and Deck stack motif, stronger Dashboard chart colors, restored Deck grid and icon-free card interiors, selected two-row reference for the regular Dashboard, direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: visible color formula and automatic NOT completion, explicit NOT color exclusion, exact AND-only Search combinations, Dashboard Quick Actions and two-thirds activity row, reordered Dashboard panels and removed Inventory composition, explicit Add icons and Deck stack motif, stronger Dashboard chart colors, restored Deck grid and icon-free card interiors, selected two-row reference for the regular Dashboard, direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -191,8 +191,10 @@ This revision remains a local prototype comparison until Kyle selects a producti
 On 2026-11-01 Kyle selected the supplied [Dashboard reference](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-reference.png) for the regular Dashboard, replacing the previous large Deck/Set composition.
 Keep the actual application shell, navigation, fonts and neutral page background.
 Keep four equal metric cards, followed by four aligned panels in this order: Card Types, Mana Color Identity, Collection by Set and Quick Actions.
-The next row uses two thirds of its width for Recent activity and one third for Your decks.
-Below 1150px these lower panels stack in that reading order.
+The next row uses two thirds of its width for a Your decks grid and one third for the Recent activity list.
+Deck tiles retain a leading name, genuine Commander frames and inspected exact/alternate/missing availability.
+Below 1150px these lower panels stack with Decks first.
+The Deck grid uses two columns when its content has room, with one readable column at narrow widths.
 Quick Actions links to existing Add cards, New deck, Scan cards and Box management workspaces, without creating a second search input.
 Deck previews use larger actual Commander artwork or an honest unavailable-art placeholder, a clear Deck title and compact exact/alternate/missing availability.
 The lower panels are 480px high on wide screens; the Deck list scrolls natively, and narrow screens show its natural height.
@@ -562,18 +564,23 @@ QuickAdd reports success or failure beside the form and retains its inputs; pend
 
 The Search sidebar has a fixed desktop width and shares the active native page or modal viewport.
 Expanding groups changes the page layout without adding a separate sidebar scrollbar.
-Six color controls remain in one row and cycle Off, OR, AND, NOT, then Off.
+Six color controls remain in one row.
+Before two distinct colors are filtered, they cycle Off, OR, AND, NOT, then Off.
+Setting a second distinct color filter automatically assigns NOT to all remaining colors; all six controls then cycle OR, AND, NOT with no Off state.
+Clear filters resets this mode; removing an individual color in the full mode assigns NOT.
+URL parsing and native form submission apply the same completion, including when the two explicit filters are exclusions.
 Show OR with a single selection ring, AND with a double ring and NOT with a semantic exclusion stroke; unselected colors stay muted.
-Do not add visible operator badges, helper sentences or a formula below the color buttons.
+Keep operator badges out of individual color buttons.
+A compact read-only formula may show the actual color expression below Color/Identity, with normal wrapping and an accessible plain-language equivalent.
 State names and the next action remain available through accessible names and concise tooltips.
 The underlying OR colors form one group, combine with every AND color and exclude every NOT color.
 Place the native Color/Identity radios below the six color icons.
 Keep each glyph visually centered in the same circular control across Off, OR, AND and NOT states.
 The radios choose printed colors or color identity without clearing the selections.
 The default is Color.
-Browser selections containing only AND colors match exactly the selected printed colors or Color identity, excluding all additional colors.
-Expressions with OR selections retain presence matching and may include additional colors unless explicitly excluded.
-Adding NOT selections does not relax an exact AND palette without OR.
+The browser sends the explicit OR/AND/NOT expression without an additional hidden palette restriction.
+Compound exactness follows from the automatically assigned NOT colors; a single-color AND expression tests presence.
+The formula, button states, URLs and actual request predicates must agree.
 Colorless matches an empty selected field.
 Native no-JavaScript Search exposes equivalent OR/AND/NOT checkboxes and the same field choice.
 Collapsed groups retain their selection count, and removal actions remove a color directly instead of advancing its cycle.
