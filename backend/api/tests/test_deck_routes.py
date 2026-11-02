@@ -1,4 +1,4 @@
-"""All nineteen Deck routes exercise native dispatch, validation and application calls."""
+"""All native Deck routes exercise native dispatch, validation and application calls."""
 
 import json
 from collections.abc import Iterator
@@ -12,7 +12,6 @@ from http_helpers import application, native_routes
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
-from spellbook_core.mtg.categories import CategoryMergeConflict
 from spellbook_core.mtg.decks import DeckLibraryRevisionChanged, Decks
 from spellbook_core.mtg.errors import DeckNotFoundError, DescriptionConflictError
 
@@ -46,7 +45,6 @@ def routes() -> Iterator[tuple[Any, TestClient]]:
     decks = create_autospec(Decks, instance=True)
     defaults: dict[str, object] = dict(
         get_deck_library={"items": []},
-        get_deck_library_categories={"selected": []},
         locate_deck={"offset": None},
         get_deck_snapshot=SNAPSHOT,
         create_deck_record={"id": DECK},
@@ -80,14 +78,6 @@ def test_factory_matches_all_existing_deck_routes() -> None:
         (method.upper(), path)
         for path, methods in oracle["paths"].items()
         if path.startswith(BASE + "/deck")
-        and not (
-            path.startswith(BASE + "/decks/")
-            and any(
-                segment in path.split("/")
-                for segment in ("categories", "whole-categories", "category-previews")
-            )
-        )
-        and not path.endswith("/category")
         for method in methods
         if method in ("get", "post", "patch", "delete")
     }
@@ -102,14 +92,13 @@ def test_factory_matches_all_existing_deck_routes() -> None:
         )
         for method in r.methods or ()
     }
-    assert actual == expected and len(actual) == 19
+    assert actual == expected and len(actual) == 18
 
 
 @pytest.mark.parametrize(
     ("method", "path", "body", "application_method"),
     [
         ("GET", "/deck-library", None, "get_deck_library"),
-        ("GET", "/deck-library/categories", None, "get_deck_library_categories"),
         ("GET", "/deck-library/locate?deckId=" + DECK, None, "locate_deck"),
         ("GET", "/decks", None, "get_deck_snapshot"),
         ("POST", "/decks", dict(name="Name"), "create_deck_record"),
@@ -168,23 +157,19 @@ def test_every_adapter_calls_its_real_application_method(
         assert response.headers["cache-control"] == "no-store"
 
 
-def test_scalar_queries_select_last_and_array_queries_retain_all_values(
+def test_scalar_queries_select_last_value(
     routes: tuple[Any, TestClient],
 ) -> None:
     decks, client = routes
     response = client.get(
         BASE
-        + "/deck-library?dirQ=first&dirQ=second&offset=bad&offset=1&dirCategory="
-        + ENTRY
-        + "&dirCategory="
-        + DECK
+        + "/deck-library?dirQ=first&dirQ=second&offset=bad&offset=1"
         + "&expectedRevision=1&expectedRevision=2"
     )
     assert response.status_code == 200
     input = decks.get_deck_library.await_args.args[1]
     assert input["query"] == "second" and input["offset"] == 1
     assert input["expectedRevision"] == "2"
-    assert input["categoryVersionIds"] == [ENTRY, DECK]
     assert client.get(BASE + "/decks/search?q=first&q=second").status_code == 200
     decks.search.assert_awaited_once_with(ACTOR, "second")
     assert (
@@ -306,7 +291,7 @@ def test_json_presence_and_type_errors_match_node(
     assert response.status_code == 400 and response.json()["message"] == message
 
 
-def test_patch_keeps_description_revision_delta_and_merge_preview(
+def test_patch_keeps_description_revision_and_delta(
     routes: tuple[Any, TestClient],
 ) -> None:
     decks, client = routes
@@ -322,12 +307,12 @@ def test_patch_keeps_description_revision_delta_and_merge_preview(
     assert (
         client.patch(
             BASE + "/deck-cards/" + ENTRY,
-            json=dict(requestId="r", delta=-2, role="sideboard", categoryPreview="token"),
+            json=dict(requestId="r", delta=-2, role="sideboard"),
         ).status_code
         == 200
     )
     decks.update_deck_card.assert_awaited_once_with(
-        ACTOR, ENTRY, None, "sideboard", "r", -2, "mobile", "token"
+        ACTOR, ENTRY, None, "sideboard", "r", -2, "mobile"
     )
 
 
@@ -342,7 +327,6 @@ def test_patch_keeps_description_revision_delta_and_merge_preview(
             409,
             "DescriptionConflict",
         ),
-        (CategoryMergeConflict(dict(required=True)), 409, "CategoryMergeConflict"),
     ],
 )
 def test_domain_failures_are_public_without_shared_error_changes(

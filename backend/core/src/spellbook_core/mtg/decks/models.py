@@ -1,6 +1,6 @@
 """Deck DTOs and JSON operation boundaries shared by application and HTTP callers."""
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from spellbook_core.mtg.models import CardDocument
 
@@ -84,8 +84,6 @@ class DeckAcknowledgement(TypedDict):
     revision: str
     changes: list[Change]
     removedEntryIds: list[str]
-    categoryDecisionRevision: NotRequired[str]
-    categoryEntryIds: NotRequired[list[str]]
 
 
 class DeckChoice(TypedDict):

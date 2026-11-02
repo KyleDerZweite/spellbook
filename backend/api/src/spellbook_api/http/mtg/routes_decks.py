@@ -1,4 +1,4 @@
-"""Nineteen native Deck routes adapt typed queries and bounded request bodies."""
+"""Native Deck routes adapt typed queries and bounded request bodies."""
 
 from typing import Annotated
 
@@ -39,7 +39,6 @@ def library_input(request: Request) -> dict[str, object]:
         result: dict[str, object] = dict(
             query=scalar(request, "dirQ", ""),
             format=scalar(request, "dirFormat", ""),
-            categoryVersionIds=request.query_params.getlist("dirCategory"),
             sort=scalar(request, "dirSort", "updated:desc"),
             offset=read_query_integer(scalar(request, "offset"), "offset", 0),
             limit=read_query_integer(scalar(request, "limit"), "limit", 40),
@@ -64,19 +63,6 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         request: Request, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
         return json_response(await decks.get_deck_library(actor, library_input(request)))
-
-    async def categories(
-        request: Request, actor: Annotated[Actor, Depends(authenticated)]
-    ) -> Response:
-        return json_response(
-            await decks.get_deck_library_categories(
-                actor,
-                {
-                    **library_input(request),
-                    "selectedVersionIds": request.query_params.getlist("selectedVersionId"),
-                },
-            )
-        )
 
     async def locate(
         request: Request, actor: Annotated[Actor, Depends(authenticated)]
@@ -189,9 +175,6 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
                 read_string(body.get("requestId", MISSING), "requestId", ""),
                 read_number(body["delta"], "delta") if "delta" in body else None,
                 "mobile",
-                read_string(body["categoryPreview"], "categoryPreview")
-                if "categoryPreview" in body
-                else None,
             )
         )
 
@@ -331,9 +314,6 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         )
 
     router.add_api_route("/api/v1/mtg/deck-library", library, methods=["GET"], response_model=None)
-    router.add_api_route(
-        "/api/v1/mtg/deck-library/categories", categories, methods=["GET"], response_model=None
-    )
     router.add_api_route(
         "/api/v1/mtg/deck-library/locate", locate, methods=["GET"], response_model=None
     )

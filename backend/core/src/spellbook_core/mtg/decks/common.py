@@ -22,7 +22,6 @@ from spellbook_core.mtg.decks.models import (
     Document,
 )
 from spellbook_core.mtg.errors import DeckNotFoundError
-from spellbook_core.mtg.inventory_query import validate_revision
 from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import (
     DECK_ROLES,
@@ -66,19 +65,6 @@ def read_acknowledgement(
             or type(change.get("delta")) is not int
         ):
             raise RequestConflictError()
-    if "categoryDecisionRevision" in value and not isinstance(
-        value["categoryDecisionRevision"], str
-    ):
-        raise RequestConflictError()
-    try:
-        validate_revision(value.get("categoryDecisionRevision"))
-    except ValidationError:
-        raise RequestConflictError() from None
-    if "categoryEntryIds" in value and (
-        not isinstance(value["categoryEntryIds"], list)
-        or not all(isinstance(identifier, str) for identifier in value["categoryEntryIds"])
-    ):
-        raise RequestConflictError()
     return cast(DeckAcknowledgement, value)
 
 
@@ -252,11 +238,6 @@ def normalize_operations(value: object) -> list[Document]:
         normalized: Document = dict(op=op, target=dict(entryId=entry))
         if op in ("move", "replace"):
             normalized["role"] = assert_deck_role(raw.get("role", MISSING))
-            preview = raw.get("categoryPreview", MISSING)
-            if preview is not MISSING:
-                if not isinstance(preview, str) or utf16_length(preview) > 12000:
-                    raise ValidationError("Invalid category preview")
-                normalized["categoryPreview"] = preview
         if op == "replace":
             normalized["catalogCardId"] = text(raw.get("catalogCardId"), "catalogCardId", 100)
         if op not in ("remove", "move"):

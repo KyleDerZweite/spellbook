@@ -12,6 +12,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Protocol, cast
 from uuid import uuid4
 
@@ -20,12 +21,11 @@ from psycopg.conninfo import conninfo_to_dict
 from psycopg.types.json import Jsonb
 
 from spellbook_core.auth import SessionAuth, create_session_auth, hash_session_token
-from spellbook_core.db import ConnectionPool
+from spellbook_core.db import ConnectionPool, transaction
 from spellbook_core.errors import ActorError, RequestConflictError
+from spellbook_core.migrations import read_migrations, validate_ledger
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog, create_catalog
-from spellbook_core.mtg.categories import CategoryMergeConflict, create_categories
-from spellbook_core.mtg.categories.common import category_transaction
 from spellbook_core.mtg.decks import Decks, create_decks
 from spellbook_core.mtg.decks.common import first
 from spellbook_core.mtg.decks.library import DeckLibraryRevisionChanged
@@ -80,10 +80,14 @@ async def fixture() -> AsyncIterator[Fixture]:
     seeded = False
     now = datetime.now(UTC)
     try:
-        async with category_transaction(pool) as tx:
-            assert await (
-                await tx.execute("SELECT count(*) FROM drizzle.__drizzle_migrations")
-            ).fetchone() == (25,)
+        async with transaction(pool) as tx:
+            migrations = read_migrations(Path(__file__).resolve().parents[2] / "drizzle")
+            ledger = await (
+                await tx.execute(
+                    "SELECT id,hash,created_at FROM drizzle.__drizzle_migrations ORDER BY id"
+                )
+            ).fetchall()
+            assert validate_ledger(migrations, ledger) == len(migrations)
             backup = await (
                 await tx.execute(
                     "SELECT active_generation,previous_generation "
@@ -173,7 +177,7 @@ async def fixture() -> AsyncIterator[Fixture]:
     finally:
         try:
             if seeded:
-                async with category_transaction(pool) as tx:
+                async with transaction(pool) as tx:
                     current = await (
                         await tx.execute(
                             "SELECT active_generation FROM catalog_state WHERE id=1 FOR UPDATE"
@@ -209,25 +213,6 @@ async def create_deck(f: Fixture, name: str = "Functional Deck") -> str:
 def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> None:
     async def scenario() -> None:
         async with fixture() as f:
-            categories = create_categories(f.pool, f.auth)
-            definition = await categories.save_definition(
-                f.actor,
-                dict(
-                    requestId=str(uuid4()),
-                    originId=None,
-                    expectedLibraryRevision="0",
-                    scope="deck",
-                    name="Creatures",
-                    meaning="Creature requirements",
-                    priority=0,
-                    displayOrder=0,
-                    roles=["main"],
-                    rule=dict(
-                        op="minimumCopies", minimum=1, predicate=dict(op="type", value="Creature")
-                    ),
-                    confirmRetainedRule=False,
-                ),
-            )
             deck_id = await create_deck(f)
             request = str(uuid4())
             input = dict(
@@ -242,14 +227,14 @@ def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> Non
                 requestId=request,
             )
             added = await f.decks.add_deck_card(f.actor, input)
-            assert added["revision"] == "1" and added["categoryEntryIds"]
+            assert added["revision"] == "1"
             entry = added["changes"][0]["entryId"]
             cards = await f.decks.get_deck_cards_for_deck(f.actor, deck_id)
             assert (
                 cards[0]["canonicalCardId"] == f.canonical and cards[0]["name"] == "Deck Fixture"
             )
             assert cards[0]["imageUri"] == "image"
-            async with category_transaction(f.pool) as tx:
+            async with transaction(f.pool) as tx:
                 await tx.execute(
                     "INSERT INTO inventories(id,account_id,game) VALUES(%s,%s,'mtg')",
                     (f.actor.account_id, f.actor.account_id),
@@ -283,35 +268,16 @@ def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> Non
             assert (
                 await f.decks.export_decklist(f.actor, deck_id) == "Deck\n3 Deck Fixture (TST) 1\n"
             )
-            whole = await categories.get_deck_whole_categories(f.actor, deck_id)
-            await categories.set_whole_category(
-                f.actor,
-                dict(
-                    requestId=str(uuid4()),
-                    deckId=deck_id,
-                    versionId=definition["versionId"],
-                    manual="Include",
-                    expectedDecisionRevision=whole["decisionRevision"],
-                ),
-            )
             page = await f.decks.get_deck_library(f.actor)
             assert page["items"][0]["id"] == deck_id
-            assert page["items"][0]["categories"][0]["name"] == "Creatures"
-            filtered = await f.decks.get_deck_library(
-                f.actor, dict(categoryVersionIds=[definition["versionId"]])
-            )
-            assert filtered["matchingTotal"] == 1
-            choices_page = await f.decks.get_deck_library_categories(
-                f.actor, dict(selectedVersionIds=[definition["versionId"]])
-            )
-            assert choices_page["selected"][0]["count"] == 1
+            assert page["matchingTotal"] == page["globalTotal"] == 1
+            assert page["items"][0]["quantity"] == 3
             assert (await f.decks.locate_deck(f.actor, deck_id))["offset"] == 0
             choices = await f.decks.get_deck_choices(
                 f.actor, dict(query="missing", selectedDeckId=deck_id)
             )
             assert choices["selected"] is not None
             assert choices["selected"]["id"] == deck_id
-            assert (await f.decks.get_deck_library_categories(f.actor))["total"] >= 0
             assert len(await f.decks.ownership(f.actor, [f.canonical])) == 2
             assert (await f.decks.search(f.actor, "Deck Fixture"))["ownedByCanonical"] == {
                 f.canonical: 2
@@ -438,12 +404,7 @@ def test_real_rollback_merge_replay_concurrent_retry_and_session_recheck() -> No
             )
             assert first_add == replay
             entry = first_add["changes"][0]["entryId"]
-            async with category_transaction(f.pool) as tx:
-                before = await first(
-                    tx,
-                    "SELECT generation::text FROM deck_whole_category_jobs WHERE deck_id=%s::uuid",
-                    (deck_id,),
-                )
+            before = await f.decks.get_deck_library(f.actor)
             failure_request = str(uuid4())
             with pytest.raises(DeckNotFoundError):
                 await f.decks.bulk_mutate_deck_cards(
@@ -460,21 +421,13 @@ def test_real_rollback_merge_replay_concurrent_retry_and_session_recheck() -> No
                     ),
                 )
             assert (await f.decks.get_deck_cards_for_deck(f.actor, deck_id))[0]["quantity"] == 2
-            async with category_transaction(f.pool) as tx:
+            async with transaction(f.pool) as tx:
                 assert not await first(
                     tx,
                     "SELECT 1 FROM deck_mutation_requests WHERE account_id=%s AND request_id=%s",
                     (f.actor.account_id, failure_request),
                 )
-                assert (
-                    await first(
-                        tx,
-                        "SELECT generation::text FROM deck_whole_category_jobs "
-                        "WHERE deck_id=%s::uuid",
-                        (deck_id,),
-                    )
-                    == before
-                )
+            assert (await f.decks.get_deck_library(f.actor))["revision"] == before["revision"]
             # Delta decrement keeps one copy; explicit bulk decrement can remove the row.
             floor = await f.decks.update_deck_card(f.actor, entry, None, None, str(uuid4()), -9)
             assert floor["changes"][0]["quantity"] == 1
@@ -482,30 +435,22 @@ def test_real_rollback_merge_replay_concurrent_retry_and_session_recheck() -> No
                 f.actor, {**input, "role": "sideboard", "requestId": str(uuid4())}
             )
             side_id = side["changes"][0]["entryId"]
-            categories = create_categories(f.pool, f.auth)
-            merge = await categories.preview_entry_merge(
-                f.actor,
-                dict(
-                    deckId=deck_id,
-                    entryId=entry,
-                    catalogCardId=f.printing,
-                    role="sideboard",
-                    quantity=1,
-                ),
-            )
-            if merge["required"]:
-                with pytest.raises(CategoryMergeConflict):
-                    await f.decks.update_deck_card(f.actor, entry, None, "sideboard", str(uuid4()))
+            merge_request = str(uuid4())
             merged = await f.decks.update_deck_card(
-                f.actor, entry, None, "sideboard", str(uuid4()), category_preview=merge["token"]
+                f.actor, entry, None, "sideboard", merge_request
             )
+            assert (
+                await f.decks.update_deck_card(f.actor, entry, None, "sideboard", merge_request)
+                == merged
+            )
+            assert merged["changes"][0]["quantity"] == 3
             assert (
                 merged["removedEntryIds"] == [entry] and merged["changes"][0]["entryId"] == side_id
             )
             request = str(uuid4())
             removed = await f.decks.remove_deck_card(f.actor, side_id, request)
             assert await f.decks.remove_deck_card(f.actor, side_id, request) == removed
-            async with category_transaction(f.pool) as tx:
+            async with transaction(f.pool) as tx:
                 await tx.execute(
                     "DELETE FROM auth_sessions WHERE token_hash=%s",
                     (hash_session_token(f.token),),

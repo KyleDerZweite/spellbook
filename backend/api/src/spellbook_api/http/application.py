@@ -7,7 +7,6 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from spellbook_core.auth import LocalAuth, SessionAuth
 from spellbook_core.mtg.catalog import Catalog
-from spellbook_core.mtg.categories import Categories
 from spellbook_core.mtg.dashboard import Dashboard
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.inventory import Inventory
@@ -22,7 +21,6 @@ from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.errors import json_response
 from spellbook_api.http.mtg import (
     routes_catalog,
-    routes_categories,
     routes_commands,
     routes_dashboard,
     routes_decks,
@@ -49,7 +47,6 @@ def create_http_application(
     valuation: Valuation | None = None,
     dashboard: Dashboard | None = None,
     scan: Scan | None = None,
-    categories: Categories | None = None,
     decks: Decks | None = None,
 ) -> FastAPI:
     resource = files("spellbook_api").joinpath("openapi.json")
@@ -106,12 +103,6 @@ def create_http_application(
             raise ValueError("Scan routes require Auth")
         http.include_router(
             routes_scan.create_scan_routes(auth, scan, configuration.public_origin)
-        )
-    if categories is not None:
-        if auth is None:
-            raise ValueError("Category routes require Auth")
-        http.include_router(
-            routes_categories.create_category_routes(auth, categories, configuration.public_origin)
         )
     if decks is not None:
         if auth is None or inventory is None:

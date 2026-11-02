@@ -20,7 +20,6 @@ from spellbook_core.errors import (
 from spellbook_core.fingerprint import mutation_fingerprint
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
-from spellbook_core.mtg.categories import CategoryMergeConflict
 from spellbook_core.mtg.decks import create_decks
 from spellbook_core.mtg.decks.common import normalize_operations, read_acknowledgement
 from spellbook_core.mtg.decks.library import (
@@ -153,7 +152,6 @@ def test_export_preserves_sections_and_falls_back_without_catalog_numbers() -> N
         [dict(op=" add ")],
         [dict(op="increment", target=dict(entryId=ENTRY), quantity=0)],
         [dict(op="set", target=dict(entryId=ENTRY), quantity=True)],
-        [dict(op="move", target=dict(entryId=ENTRY), role="main", categoryPreview=None)],
     ],
 )
 def test_operation_validation_rejects_invalid_and_null_inputs(value: object) -> None:
@@ -171,7 +169,6 @@ def test_operation_normalization_preserves_fingerprint_and_deletion_semantics() 
                 catalogCardId="  replacement  ",
                 quantity=2,
                 role=" main ",
-                categoryPreview="token",
             ),
         ]
     )
@@ -183,22 +180,21 @@ def test_operation_normalization_preserves_fingerprint_and_deletion_semantics() 
             catalogCardId="replacement",
             quantity=2,
             role="main",
-            categoryPreview="token",
         ),
     ]
 
 
-def test_library_query_normalizes_unicode_ids_and_caps_offsets() -> None:
-    query = parse_library_input(
-        dict(query=" e\u0301 ", categoryVersionIds=[ENTRY.upper(), ENTRY])
-    )["query"]
-    assert query == dict(query="é", format="", categoryVersionIds=[ENTRY], sort="updated:desc")
+def test_library_query_normalizes_unicode_and_caps_offsets() -> None:
+    query = parse_library_input(dict(query=" e\u0301 "))["query"]
+    assert query == dict(query="é", format="", sort="updated:desc")
     for invalid in [
         dict(sort=""),
         dict(offset=1000001),
         dict(limit=201),
         dict(expectedRevision="01"),
         dict(unknown=1),
+        dict(categoryVersionIds=[ENTRY]),
+        dict(selectedVersionIds=[ENTRY]),
     ]:
         with pytest.raises(ValidationError):
             parse_library_input(invalid)
@@ -232,7 +228,8 @@ def test_decrement_floor_is_transactional_and_removal_is_explicit(
     asyncio.run(scenario())
 
 
-def test_category_merge_requires_current_preview_before_mutating_destination() -> None:
+@pytest.mark.parametrize("operation", ["move", "replace"])
+def test_entry_merge_adds_quantity_to_destination_and_removes_source(operation: str) -> None:
     async def scenario() -> None:
         tx = cast(Transaction, AsyncMock())
         source = dict(
@@ -246,56 +243,73 @@ def test_category_merge_requires_current_preview_before_mutating_destination() -
             quantity=2,
         )
         destination = {**source, "id": "destination", "role": "sideboard", "quantity": 3}
-        with (
-            patch(
-                "spellbook_core.mtg.decks.mutation.first",
-                AsyncMock(side_effect=[source, destination]),
-            ),
-            patch(
-                "spellbook_core.mtg.decks.mutation.require_category_merge_preview",
-                AsyncMock(side_effect=CategoryMergeConflict(dict(required=True))),
-            ),
-            pytest.raises(CategoryMergeConflict),
-        ):
-            await apply_operation(
-                tx,
-                "owner",
-                DECK,
-                dict(op="move", target=dict(entryId=ENTRY), role="sideboard"),
-                NOW,
-                {},
-                0,
-            )
-        assert tx.execute.call_count == 0  # type: ignore[attr-defined]
         saved = {**destination, "quantity": 5}
-        with (
-            patch(
-                "spellbook_core.mtg.decks.mutation.first",
-                AsyncMock(side_effect=[source, destination, saved]),
-            ),
-            patch(
-                "spellbook_core.mtg.decks.mutation.require_category_merge_preview", AsyncMock()
-            ) as preview,
+        with patch(
+            "spellbook_core.mtg.decks.mutation.first",
+            AsyncMock(side_effect=[source, destination, saved]),
         ):
             result = await apply_operation(
                 tx,
                 "owner",
                 DECK,
                 dict(
-                    op="move",
+                    op=operation,
                     target=dict(entryId=ENTRY),
                     role="sideboard",
-                    categoryPreview="confirmed",
+                    catalogCardId=PRINTING,
+                    quantity=2,
                 ),
                 NOW,
-                {},
+                {PRINTING: {**document(), "oracle_id": "oracle"}},
                 0,
             )
         assert result.change == dict(
             entryId="destination", catalogCardId=PRINTING, role="sideboard", quantity=5, delta=2
         )
-        assert result.removed == ENTRY
-        assert preview.await_args and preview.await_args.args[2] == "confirmed"
+        assert result.changed and result.removed == ENTRY
+        tx.execute.assert_awaited_once_with(  # type: ignore[attr-defined]
+            "DELETE FROM deck_cards WHERE id=%s::uuid", (ENTRY,)
+        )
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("operation", ["move", "replace"])
+def test_unchanged_role_or_printing_preserves_entry_timestamp(operation: str) -> None:
+    async def scenario() -> None:
+        tx = cast(Transaction, AsyncMock())
+        entry = dict(
+            id=ENTRY,
+            catalog_card_id=PRINTING,
+            canonical_card_id="oracle",
+            name="Test",
+            set_code="tst",
+            image_uri="",
+            role="main",
+            quantity=2,
+        )
+        with patch(
+            "spellbook_core.mtg.decks.mutation.first", AsyncMock(return_value=entry)
+        ) as read:
+            result = await apply_operation(
+                tx,
+                "owner",
+                DECK,
+                dict(
+                    op=operation,
+                    target=dict(entryId=ENTRY),
+                    role="main",
+                    catalogCardId=PRINTING,
+                    quantity=2,
+                ),
+                NOW,
+                {PRINTING: {**document(), "oracle_id": "oracle"}},
+                0,
+            )
+        assert read.await_count == 2
+        assert result.change["delta"] == 0
+        assert not result.changed and result.removed is None
+        tx.execute.assert_not_awaited()  # type: ignore[attr-defined]
 
     asyncio.run(scenario())
 
@@ -310,15 +324,12 @@ def test_category_merge_requires_current_preview_before_mutating_destination() -
         ("deckId", "another-deck"),
         ("revision", 1),
         ("revision", "not-a-revision"),
-        ("categoryDecisionRevision", "not-a-revision"),
         (
             "changes",
             [dict(entryId=ENTRY, catalogCardId=PRINTING, role="invalid", quantity=1, delta=1)],
         ),
         ("changes", {}),
         ("changes", [{}]),
-        ("categoryDecisionRevision", 1),
-        ("categoryEntryIds", [1]),
     ],
 )
 def test_text_import_replays_original_and_rejects_incomplete_receipts(
@@ -375,15 +386,12 @@ def test_text_import_replays_original_and_rejects_incomplete_receipts(
         ("deckId", "another-deck"),
         ("revision", 1),
         ("revision", "not-a-revision"),
-        ("categoryDecisionRevision", "not-a-revision"),
         (
             "changes",
             [dict(entryId=ENTRY, catalogCardId=PRINTING, role="invalid", quantity=1, delta=1)],
         ),
         ("changes", {}),
         ("changes", [{}]),
-        ("categoryDecisionRevision", 1),
-        ("categoryEntryIds", [1]),
     ],
 )
 def test_original_receipts_precede_catalog_and_deck_lookups(
@@ -425,7 +433,7 @@ def test_original_receipts_precede_catalog_and_deck_lookups(
             request_hash=mutation_fingerprint(normalized), acknowledgement=ack, deck_id=DECK
         )
         with (
-            patch("spellbook_core.mtg.decks.mutation.category_transaction", context),
+            patch("spellbook_core.mtg.decks.mutation.transaction", context),
             patch("spellbook_core.mtg.decks.mutation.first", AsyncMock(return_value=receipt)),
             patch("spellbook_core.mtg.decks.mutation.require_deck", AsyncMock()) as require,
             patch(
@@ -500,7 +508,7 @@ def test_library_revision_error_preserves_public_failure_kind() -> None:
 
 
 @pytest.mark.parametrize(("quantity", "revision", "changed"), [(2, "1", False), (0, "2", True)])
-def test_mutation_receipt_revision_and_category_effects_are_atomic(
+def test_mutation_receipt_and_library_revision_are_atomic(
     quantity: int, revision: str, changed: bool
 ) -> None:
     async def scenario() -> None:
@@ -515,22 +523,15 @@ def test_mutation_receipt_revision_and_category_effects_are_atomic(
 
         entry = dict(id=ENTRY, catalog_card_id=PRINTING, role="main", quantity=2)
         with (
-            patch("spellbook_core.mtg.decks.mutation.category_transaction", context),
+            patch("spellbook_core.mtg.decks.mutation.transaction", context),
             patch(
                 "spellbook_core.mtg.decks.mutation.require_deck",
                 AsyncMock(return_value=dict(id=DECK, composition_revision=1)),
             ),
             patch(
                 "spellbook_core.mtg.decks.mutation.first",
-                AsyncMock(side_effect=[{}, entry, dict(decision_revision="4")]),
+                AsyncMock(side_effect=[{}, entry]),
             ),
-            patch(
-                "spellbook_core.mtg.decks.mutation.rows",
-                AsyncMock(return_value=[dict(entry_id=ENTRY)]),
-            ),
-            patch(
-                "spellbook_core.mtg.decks.mutation.queue_whole_deck_evaluation", AsyncMock()
-            ) as queue,
             patch(
                 "spellbook_core.mtg.decks.mutation.advance_deck_library_revision", AsyncMock()
             ) as advance,
@@ -548,13 +549,12 @@ def test_mutation_receipt_revision_and_category_effects_are_atomic(
         assert read_acknowledgement(result, "atomic", DECK) is result
         assert result["revision"] == revision
         assert result["removedEntryIds"] == ([ENTRY] if changed else [])
-        assert result["categoryEntryIds"] == ([ENTRY] if changed else [])
-        assert queue.await_count == advance.await_count == int(changed)
+        assert set(result) == {"requestId", "deckId", "revision", "changes", "removedEntryIds"}
+        assert advance.await_count == int(changed)
         statements = [call.args[0] for call in tx.execute.call_args_list]
         assert any("UPDATE decks" in sql for sql in statements) == changed
-        assert any("UPDATE deck_category_bundles" in sql for sql in statements) == changed
         assert "INSERT INTO deck_mutation_requests" in " ".join(statements[-1].split())
-        # The stored receipt is the original response, including removed/category identities.
+        # The stored receipt is the original response, including removed entry identities.
         from spellbook_core.fingerprint import serialize_json
 
         assert tx.execute.call_args.args[1][5] == serialize_json(result)
@@ -636,7 +636,7 @@ def test_catalog_add_replay_ignores_caller_presentation_and_skips_catalog_resolu
             requestId="retry", deckId=DECK, revision="1", changes=[], removedEntryIds=[]
         )
         with (
-            patch("spellbook_core.mtg.decks.mutation.category_transaction", context),
+            patch("spellbook_core.mtg.decks.mutation.transaction", context),
             patch(
                 "spellbook_core.mtg.decks.mutation.first",
                 AsyncMock(
