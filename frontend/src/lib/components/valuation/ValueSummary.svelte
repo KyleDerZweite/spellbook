@@ -41,6 +41,13 @@
 		{:else}<p class="mt-2 text-sm text-text-muted">Value unavailable.</p>{/if}
 	</div>
 	{#if estimate && !error}
+		{#if inline}
+			<p class="value-basis">
+				{estimate.coveredQuantity.toLocaleString()} / {estimate.totalQuantity.toLocaleString()} copies
+				priced
+			</p>
+			{#if referenceNote}<p class="value-basis">{referenceNote}</p>{/if}
+		{/if}
 		{#if compact && estimate.totalQuantity > 0}
 			<div class="coverage-meter">
 				<span>Price coverage</span><strong
@@ -63,7 +70,7 @@
 
 {#snippet coverageDetails()}
 	{#if estimate}
-		{#if referenceNote}<p class="mt-2 text-xs text-text-muted">{referenceNote}</p>{/if}
+		{#if referenceNote && !inline}<p class="mt-2 text-xs text-text-muted">{referenceNote}</p>{/if}
 		<p class="mt-2 text-xs text-text-muted">
 			{estimate.coveredQuantity.toLocaleString()} of {estimate.totalQuantity.toLocaleString()} copies
 			covered. {estimate.unknownQuantity.toLocaleString()} unknown. {estimate.staleQuantity.toLocaleString()}
@@ -84,6 +91,7 @@
 		margin: 0.5rem 0 0.25rem;
 	}
 	.inline .value-label,
+	.inline .value-basis,
 	.inline .coverage-details {
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary);

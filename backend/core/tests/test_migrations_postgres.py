@@ -109,11 +109,11 @@ def _add_migration(directory: Path, sql: str) -> None:
     (directory / f"{tag}.sql").write_text(sql)
 
 
-def test_fresh_all_26_and_noop(database: Database) -> None:
+def test_fresh_all_27_and_noop(database: Database) -> None:
     migrations = read_migrations(SQL_DIRECTORY)
     assert migrate(database, SQL_DIRECTORY) == tuple(item.tag for item in migrations)
     before = _ledger(database)
-    assert validate_ledger(migrations, before) == 26
+    assert validate_ledger(migrations, before) == 27
     assert migrate(database, SQL_DIRECTORY) == ()
     assert _ledger(database) == before
     assert database.execute("SELECT extname FROM pg_extension WHERE extname='pg_trgm'").fetchone()

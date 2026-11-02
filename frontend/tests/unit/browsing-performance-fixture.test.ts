@@ -125,9 +125,7 @@ it('does not report success if the native stream fails after its last useful bat
 			yield verified.records.map(({ document }) => ({
 				document,
 				search_name: document.name,
-				search_text: document.name,
-				raw_oracle_id: document.oracle_id,
-				types: document.card_types
+				search_text: document.name
 			}));
 			throw new Error('Native tail digest mismatch');
 		}

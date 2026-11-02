@@ -79,6 +79,28 @@ describe('bounded file import', () => {
 });
 
 describe('new Deck import actions', () => {
+	it('renders the native POST preview without setting a response header twice', async () => {
+		mocks.preview.mockResolvedValue({
+			resolved: [],
+			unresolved: [],
+			ambiguous: [],
+			warnings: [],
+			metadata: null
+		});
+		const names = new Set<string>();
+		const request = {
+			...event({ text: 'Deck\n1 Opt', intent: 'preview' }),
+			setHeaders: (headers: Record<string, string>) => {
+				for (const name of Object.keys(headers)) {
+					if (names.has(name)) throw new Error('header_already_set');
+					names.add(name);
+				}
+			}
+		};
+		await actions.default(request);
+		await load(request as Parameters<typeof load>[0]);
+		expect(names.has('cache-control')).toBe(true);
+	});
 	it('requires authentication before parsing or committing', async () => {
 		await expect(actions.default(event({}, null))).rejects.toMatchObject({ status: 303 });
 		await expect(load(event({}, null) as Parameters<typeof load>[0])).rejects.toMatchObject({

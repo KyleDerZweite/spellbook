@@ -5,9 +5,10 @@ import { deckImportText, readDeckImportForm } from '#lib/server/mtg/deck-import.
 import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { RequestConflictError } from '#lib/server/remote/errors.ts';
 
-export const load: PageServerLoad = async ({ locals, setHeaders }) => {
+export const load: PageServerLoad = async ({ locals, request, setHeaders }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks/import');
-	setHeaders({ 'cache-control': 'no-store' });
+	// Native POST actions already set this header before SvelteKit reruns the load.
+	if (request.method !== 'POST') setHeaders({ 'cache-control': 'no-store' });
 	return { requestId: crypto.randomUUID() };
 };
 

@@ -1,9 +1,9 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-03
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: compact color formulas and independent Colorless controls, explicit NOT color exclusion, exact AND-only Search combinations, Dashboard Quick Actions and two-thirds Deck grid, reordered Dashboard panels and removed Inventory composition, explicit Add icons and Deck stack motif, stronger Dashboard chart colors, restored Deck grid and icon-free card interiors, selected two-row reference for the regular Dashboard, direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: type-only Deck sections and related Tokens, portable Deck exchange and price-basis presentation, retired comparison prototypes, compact color formulas and independent Colorless controls, explicit NOT color exclusion, exact AND-only Search combinations, Dashboard Quick Actions and two-thirds Deck grid, reordered Dashboard panels and removed Inventory composition, explicit Add icons and Deck stack motif, stronger Dashboard chart colors, restored Deck grid and icon-free card interiors, selected two-row reference for the regular Dashboard, direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -143,31 +143,12 @@ Deck rows preserve exact/alternate/missing quantities, use a larger ring with an
 Set and Inventory breakdowns keep native exact-data disclosures; no permanent Set legend is rendered.
 The explicit native Demo scenario adds real Catalog-backed Inventory and Deck rows; it does not replace account reads with browser fixtures.
 
-### Dashboard design prototypes
+### Dashboard reference inputs
 
-The local comparison contains four complete designs at `/mtg/dashboard/6` through `/mtg/dashboard/9` with a separate selector and the unchanged real application shell.
-Variants 1 through 5 were rejected and removed; their authenticated routes return 404 and their components are absent.
-The saved source images remain unchanged: [Collection workbench](../../frontend/src/lib/components/dashboard/prototypes/references/collection-workbench.png) for 6, [Deck workbench](../../frontend/src/lib/components/dashboard/prototypes/references/deck-workbench.png) for 7, [Collection overview](../../frontend/src/lib/components/dashboard/prototypes/references/collection-overview.png) for 8 and [Dashboard grid](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-grid.png) for 9.
-The prototypes are available only in development or explicit Demo mode and require the ordinary authenticated Dashboard read.
-The regular `/mtg/dashboard` keeps its existing layout while a direction is selected.
-
-All four designs consume the same actual account summary.
-Their top metrics show Inventory value with partial coverage, Total / unique cards, Sets and Decks.
-No frontend fixture, synthetic trend, simulated mutation or additional search field remains.
-Measure filters switch actual Color and Color identity distributions.
-Saved Set names, requirement previews, full Commander artwork and Mana Font color/type/rarity symbols give the layouts their MTG context.
-Commander-format Decks carry the Mana Font Commander symbol.
-Native navigation opens the corresponding Inventory entry or Deck workspace.
-Titles remain visible, while repeated explanatory subheadings and permanent Set legends are excluded.
-These are alternative compositions, not selected production designs.
-
-### Accepted real-data prototype revision
-
-Kyle rejected the previous designs 1 through 5 on 2026-10-30 and requested their removal.
-The remaining reference compositions must use account data throughout, with no simulated analytics, Wishlist, Scan, sync, imports or edits.
+The comparison prototypes are retired after selection of the regular Dashboard direction.
+Git retains the former implementations; the ordinary Dashboard is the current implementation.
+The saved source images remain unchanged: [Collection workbench](../../frontend/src/lib/components/dashboard/prototypes/references/collection-workbench.png), [Deck workbench](../../frontend/src/lib/components/dashboard/prototypes/references/deck-workbench.png), [Collection overview](../../frontend/src/lib/components/dashboard/prototypes/references/collection-overview.png) and [Dashboard grid](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-grid.png).
 Additional Dashboard search fields are excluded; meaningful filters may remain.
-The four saved source references above remain immutable inputs.
-The real application top navigation and shortcut-only Power-user search remain unchanged.
 Mana Font carries actual color, color-identity, rarity and primary-type semantics rather than decorating unrelated controls.
 
 The implementation contract extends the existing account-scoped Dashboard read rather than fetching the entire Inventory in the browser.
@@ -184,7 +165,7 @@ These lists reuse the Deck reader's ownership projection and exact-first allocat
 Frontend consumes this typed summary and existing shared charts, keeps titles, and links actual objects to their existing workspaces.
 Unknown, empty and unavailable states remain explicit.
 Root owns integration and acceptance against API totals, account isolation, missing Catalog data, quantity changes, dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal.
-This revision remains a local prototype comparison until Kyle selects a production direction.
+The selected regular Dashboard consumes this read contract.
 
 ### Selected regular Dashboard reference
 
@@ -656,7 +637,7 @@ Use real framed card artwork with Deck name, format/count/edited metadata in res
 Deck Library tiles retain their quiet outlines, surfaces, hover and keyboard-focus states.
 The search toolbar retains Inventory-style Filter and Sort controls.
 Keep existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
-Mana charts and Dashboard prototypes share the semantic WUBRG chart palette in app.css.
+Mana charts and Dashboard share the semantic WUBRG chart palette in app.css.
 The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
 Deck estimates distinguish the whole Deck from its missing quantities and show the actual priced-copy coverage.
 Both use selected printing nonfoil EUR references, not the value of owned alternate printings, a lowest-price optimization or a checkout quote.
@@ -665,6 +646,11 @@ Import accepts pasted or uploaded data, keeps preview and explicit commit, and s
 Spellbook JSON preserves Deck name, format, description, roles, quantities and exact available printing identities; account IDs, revisions, ownership and derived token references are not portable requirements.
 Unsupported versions, malformed records and unresolved printings remain visible and cannot silently drop entries from a whole-Deck import.
 Direct hosted-service link or share-ID ingestion remains outside the implemented exchange contract until the provider interface can be verified; exported file import does not fetch arbitrary user URLs.
+The 2026-11-03 primary-source comparison separates full-Deck prices from collection-excluded estimates, as described by [Archidekt's moderator](https://archidekt.com/forum/thread/2109653).
+Spellbook keeps its existing price providers and exact/alternate allocation; it does not promise Archidekt's shopping offers or cheapest-printing conversion.
+The inspected public Archidekt Deck endpoint is not a supported integration contract, and its [published terms](https://archidekt.com/terms) restrict automated requests.
+No supported Moxfield import interface or recipient-client roundtrip was verified, so exported files remain the supported transfer path.
+Arena's optional `About`/`Name` syntax follows [Wizards' published import example](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-announcements-february-19-2024).
 Mana charts use a dark graphite Black series, distinct from the neutral Colorless series in both themes.
 On wide screens Deck analysis stacks beneath Add cards in the right column, leaving the Deck cards first in the main column.
 On narrow screens that analysis remains visible below the Deck cards while the Add cards dialog retains the search workflow.
@@ -703,8 +689,6 @@ Assignment uses the row action menu and a shared dialog.
 Group counts represent whole entries; groups do not create ownership or deck requirements.
 Reuse the existing compact rows when opening a group.
 [Card grouping](./card-grouping.md) owns membership semantics and deferred scan integration.
-Starter primary Deck Entry Categories, account rules, scoped Review/Reset and whole-deck categories are implemented.
-[Card grouping](./card-grouping.md#deck-categories) also owns the optional local Combo evidence and its gameplay limits.
 
 Settings separates Profile, Profile Card and Password through three direct route links.
 Center the bounded composition around the same horizontal center as the application header; retain the shared Shell, fonts and tokens.

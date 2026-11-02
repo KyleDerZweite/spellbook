@@ -144,8 +144,6 @@ export interface RecordedPerformancePrinting {
 	document: CardDocument;
 	search_name: string;
 	search_text: string;
-	raw_oracle_id: string;
-	types: string[] | null;
 }
 interface BundleManifest {
 	bundleVersion: string;
@@ -247,7 +245,7 @@ export async function publishPerformanceCatalog(
 		manifest.previousState = (await client.query(stateSelection + ' FOR UPDATE')).rows[0] ?? null;
 		await checkpoint();
 		await client.query(
-			"INSERT INTO catalog_generations(id,source_type,source_updated_at,schema_version) VALUES($1,'test-recorded-browsing-bundle','2026-11-02T00:00:00Z',4)",
+			"INSERT INTO catalog_generations(id,source_type,source_updated_at,schema_version) VALUES($1,'test-recorded-browsing-bundle','2026-11-02T00:00:00Z',5)",
 			[manifest.generationId]
 		);
 		const verified = await consumePerformanceBundle(async (batch) => {
@@ -256,12 +254,6 @@ export async function publishPerformanceCatalog(
 				 SELECT $1,d.id,d.oracle_id,d.name,d.normalized_name,d.printed_name,d.lang,d.set_code,d.collector_number,d.rarity,d.cmc,d.colors,d.card_types,d.legalities,r.search_name,r.search_text,r.document
 				 FROM jsonb_to_recordset($2::jsonb) r(document jsonb,search_name text,search_text text)
 				 CROSS JOIN LATERAL jsonb_to_record(r.document) d(id uuid,oracle_id uuid,name text,normalized_name text,printed_name text,lang text,set_code text,collector_number text,rarity text,cmc double precision,colors text[],card_types text[],legalities jsonb)`,
-				[manifest.generationId, JSON.stringify(batch)]
-			);
-			await client.query(
-				`INSERT INTO catalog_oracle_facts(generation_id,printing_id,raw_oracle_id,types,transform_version)
-				 SELECT $1,(r.document->>'id')::uuid,r.raw_oracle_id,r.types,4
-				 FROM jsonb_to_recordset($2::jsonb) r(document jsonb,raw_oracle_id uuid,types text[])`,
 				[manifest.generationId, JSON.stringify(batch)]
 			);
 		});

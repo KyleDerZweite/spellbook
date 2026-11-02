@@ -6,6 +6,7 @@ import hashlib
 import json
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 import pytest
@@ -206,7 +207,7 @@ def test_manifest_identity_cannot_be_substituted(tmp_path: Path, field: str) -> 
         {"items": [], "unresolved": [], "extra": []},
     ],
 )
-def test_malformed_nested_token_metadata_fails(tmp_path, metadata):
+def test_malformed_nested_token_metadata_fails(tmp_path: Path, metadata: object) -> None:
     with gzip.open(FIXTURES / "catalog-default-en-20261102.jsonl.gz", "rb") as stream:
         record = json.loads(stream.readline())
     record["document"]["related_tokens"] = metadata
@@ -216,7 +217,7 @@ def test_malformed_nested_token_metadata_fails(tmp_path, metadata):
 
 
 @pytest.mark.parametrize("field,value", [("formatVersion", 1), ("catalogTransformVersion", 4)])
-def test_replaced_bundle_formats_fail(tmp_path, field, value):
+def test_replaced_bundle_formats_fail(tmp_path: Path, field: str, value: int) -> None:
     small_bundle(tmp_path)
     path = tmp_path / MANIFEST_NAME
     manifest = json.loads(path.read_text())
@@ -226,9 +227,12 @@ def test_replaced_bundle_formats_fail(tmp_path, field, value):
         verify_bundle(tmp_path)
 
 
-def test_precon_links_resolve_to_nine_exact_token_printings():
+def test_precon_links_resolve_to_nine_exact_token_printings() -> None:
     precon_ids = {e["card"]["id"] for e in load_precon(FIXTURES).cards}
-    seen, tokens, links, unresolved = set(), {}, 0, set()
+    seen: set[str] = set()
+    tokens: dict[str, Any] = {}
+    links = 0
+    unresolved: set[str] = set()
     for batch in verify_bundle(FIXTURES).batches():
         for record in batch:
             doc = record["document"]

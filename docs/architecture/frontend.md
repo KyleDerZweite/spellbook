@@ -455,13 +455,13 @@ The route keeps drafts, confirmed bases, original receipts and retry intents.
 A route-owned `lib/decks/selected-refresh.ts` coordinates reads through the existing SavedState lease and HTTP adapter.
 It does not own persistence or duplicate editor state.
 
-| Read cause                                                          | Selected snapshot | Legality/documents | Active Inspector ownership | Active Search |
-| ------------------------------------------------------------------- | ----------------- | ------------------------------------------ | -------------------------- | ------------- |
-| Initial, explicit retry, context change, reset, reconnect or resume | Read              | Read                                       | Read                       | Read          |
-| `decks`                                                             | Read              | Read                                       | Retain                     | Retain        |
-| `inventory`                                                         | Read              | Retain                                     | Read                       | Read          |
-| `values`                                                            | Read              | Read                                       | Retain                     | Read          |
-| Mixed topics                                                        | Read              | Union of required reads                    | Union                      | Union         |
+| Read cause                                                          | Selected snapshot | Legality/documents      | Active Inspector ownership | Active Search |
+| ------------------------------------------------------------------- | ----------------- | ----------------------- | -------------------------- | ------------- |
+| Initial, explicit retry, context change, reset, reconnect or resume | Read              | Read                    | Read                       | Read          |
+| `decks`                                                             | Read              | Read                    | Retain                     | Retain        |
+| `inventory`                                                         | Read              | Retain                  | Read                       | Read          |
+| `values`                                                            | Read              | Read                    | Retain                     | Read          |
+| Mixed topics                                                        | Read              | Union of required reads | Union                      | Union         |
 
 For confirmed optional results, the matrix above applies directly.
 A direct Inspector/Search request that loses its resource publication lease still needs a result.
@@ -783,7 +783,7 @@ Dashboard renders current Inventory value and bounded personal history.
 The Inspector supplies printing, finish and condition rather than a live entry ID.
 The standalone History route is removed without an alias or redirect; the authenticated History API and saved captures remain unchanged.
 Shared [ValueSummary](../../frontend/src/lib/components/valuation/ValueSummary.svelte) and [InventoryValueHistory](../../frontend/src/lib/components/valuation/InventoryValueHistory.svelte) distinguish covered subtotal, unknown and stale quantities, captured known zero and gaps.
-Selected Deck shows required and missing nonfoil estimates without changing availability or drafts.
+Selected Deck shows whole-Deck and missing-card estimates, priced-copy coverage and the selected-printing nonfoil EUR basis without changing availability or drafts.
 
 Shared chart components under `frontend/src/lib/components/charts/` own responsive SVG and native chart inspection.
 D3 owns scale and path construction; the exact-value helper chooses monetary bounds and ticks before normalized positioning.
@@ -795,7 +795,7 @@ Recent activity presents the bounded recently updated Inventory holdings and the
 `DashboardDecks` owns read-only Deck availability, larger Commander previews and a bounded native scrolling list; narrow screens use its natural height.
 These presentation components consume the existing account summary without new backend reads.
 `WorkspaceHeader` supplies an overview heading variant while preserving ordinary workspace headings.
-`MetricCards` serves the ordinary Dashboard and retained design prototypes; `metric-trends.ts` selects 30 closed daily reporting dates with exact BigInt changes and explicit gaps/partial coverage.
+`MetricCards` serves the ordinary Dashboard; `metric-trends.ts` selects 30 closed daily reporting dates with exact BigInt changes and explicit gaps/partial coverage.
 Shared navigation color tokens also color the four compact metric charts; visible price-coverage explanations belong in the expanded History details.
 The shared `mtg/type-symbol.ts` mapping supplies truthful Mana Font card-type symbols to Dashboard, Search and Deck groups.
 `InventoryValueHistoryPreview` owns its mounted SavedState lease, period query and reporting-boundary refresh; it reuses shared History controls and chart in the wider `history` FormDialog variant.

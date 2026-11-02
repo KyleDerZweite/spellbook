@@ -93,16 +93,18 @@
 		</p>
 	</div>
 	<ValueSummary
-		title="Required value"
-		referenceNote="Nonfoil market references. Each Deck compares against your full Inventory."
+		title="Deck estimate"
+		referenceNote="Selected printings · Nonfoil · EUR"
 		estimate={estimates?.required ?? null}
 		evaluatedAt={estimates?.evaluatedAt}
 		error={valuationError}
 		inline
 	/>
 	<ValueSummary
-		title="Missing value"
+		title="Missing cards estimate"
+		referenceNote="Missing quantities · Selected printings · Nonfoil · EUR"
 		estimate={estimates?.missing ?? null}
+		evaluatedAt={estimates?.evaluatedAt}
 		error={valuationError}
 		inline
 	/>

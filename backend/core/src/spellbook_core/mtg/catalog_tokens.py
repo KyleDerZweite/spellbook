@@ -73,10 +73,10 @@ async def read_transaction_token_facts(
             "ON p.generation_id=s.active_generation WHERE s.id=1 AND p.id=ANY(%s::uuid[])",
             (ids[offset : offset + 500],),
         )
-        for row in await cursor.fetchall():
-            projected = token_facts_dto(row["tokens"])
-            if projected is not None:
-                facts[row["id"]] = projected
+        for printing_id, metadata in await cursor.fetchall():
+            projected = token_facts_dto(metadata)
+            if projected is not None and isinstance(printing_id, str):
+                facts[printing_id] = projected
     return {
         original: facts[normalized]
         for original, normalized in aliases.items()

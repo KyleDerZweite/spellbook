@@ -210,6 +210,69 @@ async def create_deck(f: Fixture, name: str = "Functional Deck") -> str:
     return deck["id"]
 
 
+def test_related_tokens_use_active_catalog_without_changing_requirements() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            deck_id = await create_deck(f)
+            await f.decks.add_catalog_card_to_deck(
+                f.actor,
+                dict(
+                    deckId=deck_id,
+                    catalogCardId=f.printing,
+                    quantity=3,
+                    role="main",
+                    requestId=str(uuid4()),
+                ),
+            )
+            legacy = await f.decks.get_deck(f.actor, deck_id)
+            assert legacy["relatedTokens"]["status"] == "unavailable"
+            token_id = str(uuid4())
+            facts = {
+                "items": [
+                    dict(
+                        catalogCardId=token_id,
+                        canonicalCardId=None,
+                        name="Spirit",
+                        layout="token",
+                        setCode="tst",
+                        collectorNumber="1",
+                        faces=[
+                            dict(
+                                name="Spirit",
+                                typeLine="Token Creature — Spirit",
+                                colors=["R"],
+                                oracleText="Menace",
+                                power="2",
+                                toughness="2",
+                                imageUri=None,
+                                imageUriSmall=None,
+                            )
+                        ],
+                    )
+                ],
+                "unresolved": [],
+            }
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE catalog_printings SET "
+                    "document=jsonb_set(document,'{related_tokens}',%s) "
+                    "WHERE id=%s::uuid AND generation_id="
+                    "(SELECT active_generation FROM catalog_state WHERE id=1)",
+                    (Jsonb(facts), f.printing),
+                )
+            current = await f.decks.get_deck(f.actor, deck_id)
+            assert current["deckCards"] == legacy["deckCards"]
+            assert current["relatedTokens"]["status"] == "available"
+            assert current["relatedTokens"]["items"] == [
+                {**facts["items"][0], "sourceEntryIds": [current["deckCards"][0]["id"]]}
+            ]
+            assert "related_tokens" not in await f.catalog.get_catalog_printing(f.printing)
+            with pytest.raises(DeckNotFoundError):
+                await f.decks.get_deck(f.other, deck_id)
+
+    asyncio.run(scenario())
+
+
 def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> None:
     async def scenario() -> None:
         async with fixture() as f:

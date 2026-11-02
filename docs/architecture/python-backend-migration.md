@@ -108,7 +108,8 @@ Native FastAPI/Pydantic behavior may replace historical Node coercion and valida
 Remove superseded compatibility adapters instead of adding another compatibility layer.
 The existing checked-in OpenAPI publication remains implemented until its owning HTTP change reconciles publication with native FastAPI.
 
-The installed Python one-shot migrator consumes bundled ordered SQL, journal and snapshots from `backend/drizzle/`.
+The installed Python one-shot migrator consumes bundled ordered SQL and its journal from `backend/drizzle/`.
+Historical schema snapshots may remain packaged assets but do not drive migration execution.
 Keep a single schema/migration owner and safe execution/concurrency handling.
 Verify fresh installation, a second-run no-op and interrupted/concurrent runner recovery.
 Existing history may remain where needed for fresh installs; retained-data upgrades, unchanged SQL hashes across versions and same-data Node rollback are not acceptance gates.

@@ -49,7 +49,7 @@ def database() -> Iterator[tuple[str, Client]]:
         ledger = client.execute(
             "SELECT hash,created_at FROM drizzle.__drizzle_migrations ORDER BY created_at"
         ).fetchall()
-        assert len(ledger) == 26, "Requires the complete existing migrated schema"
+        assert len(ledger) == 27, "Requires the complete existing migrated schema"
         try:
             yield url, client
         finally:
