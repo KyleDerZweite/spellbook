@@ -22,13 +22,18 @@ export function browserColorFilters(match: ColorMatch): CatalogFilters {
 	return { colorMatch: completeColorMatch(match) };
 }
 
-export function formatColorExpression(match: ColorMatch): { visual: string; spoken: string } {
-	const labels = (selected: ColorMatch['all']) =>
-		MANA_COLORS.filter(({ id }) => selected.includes(id)).map(({ label }) => label);
-	const any = labels(match.any),
-		all = labels(match.all),
-		not = labels(match.not ?? []);
-	const format = (or: string, and: string, exclude: string) => {
+export function formatColorExpression(
+	match: ColorMatch,
+	compact = false
+): { visual: string; spoken: string } {
+	const labels = (selected: ColorMatch['all'], abbreviate: boolean) =>
+		MANA_COLORS.filter(({ id }) => selected.includes(id)).map(({ id, label }) =>
+			abbreviate ? id : label
+		);
+	const format = (or: string, and: string, exclude: string, abbreviate = false) => {
+		const any = labels(match.any, abbreviate),
+			all = labels(match.all, abbreviate),
+			not = labels(match.not ?? [], abbreviate);
 		const alternative = any.length > 1 ? `(${any.join(or)})` : any[0];
 		return [alternative, ...all, ...not.map((label) => `${exclude}${label}`)]
 			.filter(Boolean)
@@ -36,7 +41,7 @@ export function formatColorExpression(match: ColorMatch): { visual: string; spok
 	};
 	const empty = match.field === 'identity' ? 'Any color identity' : 'Any color';
 	return {
-		visual: format(' || ', ' && ', '!') || empty,
+		visual: format(' || ', ' && ', '!', compact) || empty,
 		spoken: format(' OR ', ' AND ', 'NOT ') || empty
 	};
 }

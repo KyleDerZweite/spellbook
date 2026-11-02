@@ -50,4 +50,15 @@ describe('color expression presentation', () => {
 			expect(completeColorMatch(completed)).toEqual(completed);
 		}
 	});
+	it('abbreviates visual colors without losing the full accessible expression', () => {
+		expect(
+			formatColorExpression(
+				{ field: 'color', any: ['W', 'U', 'C'], all: [], not: ['B', 'R', 'G'] },
+				true
+			)
+		).toEqual({
+			visual: '(W || U || C) && !B && !R && !G',
+			spoken: '(White OR Blue OR Colorless) AND NOT Black AND NOT Red AND NOT Green'
+		});
+	});
 });

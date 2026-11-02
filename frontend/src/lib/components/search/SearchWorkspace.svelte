@@ -97,6 +97,9 @@
 			? formatColorExpression(colorMatch)
 			: null
 	);
+	const compactColorExpression = $derived(
+		colorMatch ? formatColorExpression(colorMatch, true).visual : ''
+	);
 	const paging = $derived(input.pagination ?? searchPagination());
 	const snapshot = $derived(session.snapshot);
 	const total = $derived(!mounted ? (serverResult?.estimatedTotalHits ?? 0) : snapshot.total);
@@ -385,7 +388,8 @@
 							: 'Color filter expression'}
 						title={`${colorMatch?.field === 'identity' ? 'Color identity' : 'Color'}: ${colorExpression.spoken}`}
 					>
-						<code aria-hidden="true">{colorExpression.visual}</code>
+						<code class="full-expression" aria-hidden="true">{colorExpression.visual}</code>
+						<code class="compact-expression" aria-hidden="true">{compactColorExpression}</code>
 						<span class="sr-only">{colorExpression.spoken}</span>
 					</span>
 				{/if}
@@ -471,14 +475,24 @@
 		font: inherit;
 		white-space: normal;
 	}
+	.compact-expression {
+		display: none;
+	}
 
 	.search-sidebar {
 		width: 260px;
 	}
 	.search-status {
+		min-height: 40px;
 		scroll-margin-top: calc(var(--app-header-height, 72px) + 1rem);
 	}
 	@media (max-width: 767px) {
+		.full-expression {
+			display: none;
+		}
+		.compact-expression {
+			display: inline;
+		}
 		.search-content {
 			flex-direction: column;
 		}

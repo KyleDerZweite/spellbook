@@ -153,10 +153,10 @@
 	}
 	.format-label {
 		flex: 0 1 auto;
-		padding: 2px 5px;
+		padding: 2px 6px;
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
-		font-size: 10px;
+		font-size: 11px;
 	}
 	.format-label,
 	.dashboard-note {
@@ -246,7 +246,7 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	@container (min-width: 880px) {
+	@container (min-width: 840px) {
 		.deck-list {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
