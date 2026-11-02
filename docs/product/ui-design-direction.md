@@ -223,7 +223,7 @@ Recent activity presents actual recently edited holdings as Inventory updates wi
 Set bars show actual owned quantities, not completion of an edition.
 Primary card types are mutually exclusive; mana color identity preserves the existing Multicolor, Colorless and Unknown buckets.
 No hardcoded reference counts, fake trends, inferred Deck history or new backend read is permitted.
-Deck availability is visible in the lower right panel, retaining actual exact, alternate and missing counts, Commander previews and Deck links.
+Deck availability is visible in the lower Deck panel, retaining actual exact, alternate and missing counts, Commander previews and Deck links.
 Its bounded list keeps all returned Decks reachable.
 The former lower disclosure and its Finish, Condition, Extra copies and Inventory data summary are removed from the regular Dashboard.
 The metric navigation and History dialog contract below remains unchanged.
