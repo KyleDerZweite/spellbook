@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+from worker.tokens import related_tokens
+
 # Main card types (not supertypes like Legendary/Basic, not subtypes)
 CARD_TYPES = frozenset(
     {
@@ -43,7 +45,7 @@ MULTI_FACE_LAYOUTS = frozenset(
 )
 
 
-def transform_card(raw: dict) -> dict | None:
+def transform_card(raw: dict, token_index: dict[str, dict] | None = None) -> dict | None:
     """Transform a Scryfall card object into a flat catalog document.
 
     Returns None for non-game cards (tokens, art series, etc.)
@@ -69,6 +71,7 @@ def transform_card(raw: dict) -> dict | None:
     is_nonfoil_available = "nonfoil" in finishes
 
     doc = {
+        "related_tokens": related_tokens(raw, token_index),
         "id": card_id,
         "oracle_id": oracle_id,
         "name": raw.get("name", ""),

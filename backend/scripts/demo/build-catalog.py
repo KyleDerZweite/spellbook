@@ -12,6 +12,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'backend/workers/catalog/src'))
 from worker.transform import transform_card
+from worker.tokens import build_token_index
 
 
 def build(source, output, version):
@@ -21,6 +22,7 @@ def build(source, output, version):
                         if isinstance(node, ast.Assign)
                         and any(isinstance(t, ast.Name) and t.id == 'SCHEMA_VERSION' for t in node.targets))
     transform_version = ast.literal_eval(version_node)
+    token_index = build_token_index(source)
     source_hash, payload_hash = hashlib.sha256(), hashlib.sha256()
     counts = {'raw': 0, 'english': 0, 'documents': 0}
     ids, oracles = set(), set()
@@ -36,7 +38,7 @@ def build(source, output, version):
             if raw.get('lang') != 'en':
                 continue
             counts['english'] += 1
-            doc = transform_card(raw)
+            doc = transform_card(raw, token_index)
             if doc is None:
                 continue
             doc['id'] = str(uuid.UUID(doc['id']))
@@ -53,9 +55,7 @@ def build(source, output, version):
             search_text = [search_name, doc['type_line'], doc['oracle_text'], doc['set_name']]
             for face in [raw, *(raw.get('card_faces') or [])]:
                 search_text.extend(face.get(field) or '' for field in ('printed_text', 'printed_type_line'))
-            record = {'document': doc, 'search_name': search_name, 'search_text': ' '.join(search_text),
-                      'raw_oracle_id': str(uuid.UUID(raw['oracle_id'])),
-                      'types': doc['card_types'] if isinstance(raw.get('type_line'), str) and raw['type_line'] else None}
+            record = {'document': doc, 'search_name': search_name, 'search_text': ' '.join(search_text)}
             encoded = (json.dumps(record, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n').encode()
             size += len(encoded)
             payload_hash.update(encoded)
@@ -65,8 +65,8 @@ def build(source, output, version):
         raise ValueError('Bundle does not contain every starter printing')
     digest = payload_hash.hexdigest()
     manifest = {
-        'formatVersion': 1, 'bundleVersion': version, 'file': output.name,
-        'generationId': str(uuid.uuid5(uuid.NAMESPACE_URL, f'spellbook-demo-catalog:1:{transform_version}:' + digest)),
+        'formatVersion': 2, 'bundleVersion': version, 'file': output.name,
+        'generationId': str(uuid.uuid5(uuid.NAMESPACE_URL, f'spellbook-demo-catalog:2:{transform_version}:' + digest)),
         'sourceType': 'demo-bundle', 'providerUpdatedAt': None,
         'sourceFile': source.name, 'sourceBytes': source.stat().st_size,
         'sourceSHA256': source_hash.hexdigest(),

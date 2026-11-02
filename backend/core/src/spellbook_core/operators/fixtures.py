@@ -15,7 +15,7 @@ from uuid import NAMESPACE_URL, uuid5
 from . import OperatorError
 
 MANIFEST_NAME = "catalog-default-en-20261102.manifest.json"
-CATALOG_TRANSFORM_VERSION = 4
+CATALOG_TRANSFORM_VERSION = 5
 _UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
 _DIGEST = re.compile(r"[0-9a-f]{64}")
 type Record = dict[str, Any]
@@ -72,10 +72,10 @@ class DemoBundle:
                         or not isinstance(d.get("cmc"), (int, float))
                         or not math.isfinite(d["cmc"])
                         or d["id"] in ids
-                        or record.get("raw_oracle_id") != d["oracle_id"]
+                        or not _valid_tokens(d.get("related_tokens"))
                         or not isinstance(record.get("search_name"), str)
                         or not isinstance(record.get("search_text"), str)
-                        or not (record.get("types") is None or isinstance(record["types"], list))
+                        or set(record) != {"document", "search_name", "search_text"}
                     ):
                         raise OperatorError("Invalid Demo Catalog printing.")
                     ids.add(d["id"])
@@ -102,6 +102,78 @@ class DemoBundle:
             raise OperatorError("Demo Catalog payload integrity check failed.") from None
 
 
+def _valid_tokens(value: object) -> bool:
+    """Accept only the bounded, known inline projection, never arbitrary nested JSON."""
+
+    def text(v: object) -> bool:
+        return isinstance(v, str) and len(v) <= 20000
+
+    def nullable(v: object) -> bool:
+        return v is None or text(v)
+
+    if not isinstance(value, dict) or set(value) != {"items", "unresolved"}:
+        return False
+    items, unresolved = value["items"], value["unresolved"]
+    if not isinstance(items, list) or not isinstance(unresolved, list):
+        return False
+    if len(items) + len(unresolved) > 100:
+        return False
+    seen = set()
+    for ref in [*items, *unresolved]:
+        if not isinstance(ref, dict) or not _uuid(ref.get("catalogCardId")):
+            return False
+        if ref["catalogCardId"] in seen or not text(ref.get("name")):
+            return False
+        seen.add(ref["catalogCardId"])
+    for ref in unresolved:
+        if set(ref) != {"catalogCardId", "name"}:
+            return False
+    for item in items:
+        if set(item) != {
+            "catalogCardId",
+            "canonicalCardId",
+            "name",
+            "layout",
+            "setCode",
+            "collectorNumber",
+            "faces",
+        }:
+            return False
+        if item["canonicalCardId"] is not None and not _uuid(item["canonicalCardId"]):
+            return False
+        if not all(text(item[k]) for k in ("layout", "setCode", "collectorNumber")):
+            return False
+        faces = item["faces"]
+        if not isinstance(faces, list) or not 1 <= len(faces) <= 10:
+            return False
+        for face in faces:
+            if not isinstance(face, dict) or set(face) != {
+                "name",
+                "typeLine",
+                "colors",
+                "oracleText",
+                "power",
+                "toughness",
+                "imageUri",
+                "imageUriSmall",
+            }:
+                return False
+            if not all(text(face[k]) for k in ("name", "typeLine", "oracleText")):
+                return False
+            if not all(
+                nullable(face[k]) for k in ("power", "toughness", "imageUri", "imageUriSmall")
+            ):
+                return False
+            colors = face["colors"]
+            if (
+                not isinstance(colors, list)
+                or len(colors) > 5
+                or any(c not in ("W", "U", "B", "R", "G") for c in colors)
+            ):
+                return False
+    return True
+
+
 def _uuid(value: object) -> bool:
     return isinstance(value, str) and _UUID.fullmatch(value) is not None
 
@@ -123,10 +195,10 @@ def verify_bundle(directory: Path) -> DemoBundle:
         if not isinstance(raw, dict):
             raise ValueError
         version = datetime.fromisoformat(raw["bundleVersion"].replace("Z", "+00:00"))
-        name = f"spellbook-demo-catalog:1:{CATALOG_TRANSFORM_VERSION}:{raw['jsonlSHA256']}"
+        name = f"spellbook-demo-catalog:2:{CATALOG_TRANSFORM_VERSION}:{raw['jsonlSHA256']}"
         if (
             type(raw["formatVersion"]) is not int
-            or raw["formatVersion"] != 1
+            or raw["formatVersion"] != 2
             or raw["sourceType"] != "demo-bundle"
             or raw["providerUpdatedAt"] is not None
             or not _uuid(raw["generationId"])

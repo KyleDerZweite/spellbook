@@ -36,12 +36,6 @@ def publisher():
                     .replace('"public".', f'"{schema}".')
                 )
                 conn.execute(migration.read_text().replace('"public".', f'"{schema}".'))
-                conn.execute(
-                    "CREATE TABLE catalog_oracle_facts(generation_id uuid REFERENCES "
-                    "catalog_generations(id) ON DELETE CASCADE,printing_id uuid,raw_oracle_id "
-                    "uuid,types text[],keywords text[],transform_version integer,PRIMARY "
-                    "KEY(generation_id,printing_id))"
-                )
             yield CatalogPublisher(scoped)
         finally:
             admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
@@ -357,59 +351,6 @@ def test_price_version_rebuild_and_failed_decimal_keep_original_source(publisher
             .day
             == 1
         )
-
-
-def test_raw_category_facts_share_catalog_generation_but_not_price_extractor_version(
-    publisher, tmp_path
-):
-    from worker.catalog import SCHEMA_VERSION
-    from worker.prices import EXTRACTOR_VERSION, MAPPING_VERSION
-
-    raw = json.loads((FIXTURES / "normal_card.json").read_text())
-    publisher.publish(*snapshot(tmp_path, cards=[raw]))
-    with publisher._connect() as conn:
-        generation, fact_version, oracle, types, extractor, mapping = conn.execute(
-            "SELECT g.schema_version,f.transform_version,f.raw_oracle_id,f.types,"
-            "p.extractor_version,p.mapping_version FROM catalog_state c "
-            "JOIN catalog_generations g ON g.id=c.active_generation "
-            "JOIN catalog_oracle_facts f ON f.generation_id=g.id "
-            "JOIN price_state s ON s.id=1 JOIN price_publications p ON p.id=s.active_publication "
-            "AND p.catalog_generation_id=g.id"
-        ).fetchone()
-        assert generation == fact_version == SCHEMA_VERSION == 4
-        assert (extractor, mapping) == (EXTRACTOR_VERSION, MAPPING_VERSION) == (3, 1)
-        assert oracle == UUID(raw["oracle_id"])
-        assert types == ["Creature"]
-        before = conn.execute(
-            "SELECT c.active_generation,s.active_publication FROM catalog_state c "
-            "CROSS JOIN price_state s"
-        ).fetchone()
-    malformed_price = dict(raw, prices={"eur": "-1"})
-    with pytest.raises(ValueError):
-        publisher.publish(*snapshot(tmp_path, version=2, cards=[malformed_price]))
-    with publisher._connect() as conn:
-        assert (
-            conn.execute(
-                "SELECT c.active_generation,s.active_publication FROM catalog_state c "
-                "CROSS JOIN price_state s"
-            ).fetchone()
-            == before
-        )
-        assert conn.execute("SELECT count(*) FROM catalog_oracle_facts").fetchone()[0] == 1
-
-
-def test_raw_keyword_absence_is_not_known_empty(publisher, tmp_path):
-    base = json.loads((FIXTURES / "normal_card.json").read_text())
-    known = dict(base, id=str(uuid4()), keywords=[])
-    positive = dict(base, id=str(uuid4()), keywords=["Flying"])
-    missing = dict(base, id=str(uuid4()))
-    missing.pop("keywords", None)
-    publisher.publish(*snapshot(tmp_path, cards=[known, positive, missing]))
-    with publisher._connect() as conn:
-        rows = dict(conn.execute("SELECT printing_id::text,keywords FROM catalog_oracle_facts"))
-        assert rows[known["id"]] == []
-        assert rows[positive["id"]] == ["Flying"]
-        assert rows[missing["id"]] is None
 
 
 def test_aang_printed_colors_reach_indexed_projection():

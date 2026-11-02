@@ -370,3 +370,95 @@ class TestPrintedColors:
         raw["colors"] = None
         with pytest.raises(ValueError, match="printed color evidence"):
             transform_card(raw)
+
+
+def test_direct_tokens_are_exact_printings_and_unresolved_without_index(tmp_path):
+    from worker.tokens import build_token_index
+
+    raw = load_fixture("normal_card.json")
+    ids = ["c20e427c-efa5-476c-aa33-e3149648d207", "ca20548f-6324-4858-adbe-87303ff1ca52"]
+    raw["all_parts"] = [{"component": "token", "id": i, "name": "Spirit"} for i in ids]
+    raw["all_parts"].append(raw["all_parts"][0])
+    assert len(transform_card(raw)["related_tokens"]["unresolved"]) == 2
+    tokens = [
+        dict(raw, id=i, name="Spirit", layout="token", colors=c, all_parts=[])
+        for i, c in zip(ids, [["R"], []], strict=True)
+    ]
+    path = tmp_path / "cards.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in [raw, *tokens]))
+    index = build_token_index(path)
+    projection = transform_card(raw, index)["related_tokens"]
+    assert [t["catalogCardId"] for t in projection["items"]] == ids
+    assert [t["faces"][0]["colors"] for t in projection["items"]] == [["R"], []]
+    assert projection["unresolved"] == []
+    assert all(transform_card(t) is None for t in tokens)
+
+
+def test_dfc_token_keeps_face_specific_source_fields():
+    from worker.tokens import project_token
+
+    raw = load_fixture("normal_card.json")
+    raw.update(
+        layout="double_faced_token",
+        card_faces=[
+            dict(
+                name="Vampire",
+                type_line="Token Creature",
+                colors=["B"],
+                oracle_text="Lifelink",
+                power="1",
+                toughness="1",
+                image_uris={"normal": "front", "small": "front-small"},
+            ),
+            dict(
+                name="Treasure",
+                type_line="Token Artifact",
+                colors=[],
+                oracle_text="Sacrifice",
+                image_uris={"normal": "back", "small": "back-small"},
+            ),
+        ],
+    )
+    raw.pop("image_uris", None)
+    faces = project_token(raw)["faces"]
+    assert [f["imageUri"] for f in faces] == ["front", "back"]
+    assert [f["oracleText"] for f in faces] == ["Lifelink", "Sacrifice"]
+    assert faces[1]["power"] is None
+
+
+@pytest.mark.parametrize(
+    "parts", [[{"component": "token", "id": "invalid", "name": "X"}], [None], "invalid"]
+)
+def test_malformed_token_relations_fail(parts):
+    raw = load_fixture("normal_card.json")
+    raw["all_parts"] = parts
+    with pytest.raises((ValueError, TypeError)):
+        transform_card(raw)
+
+
+def test_actual_vampire_treasure_source_has_independent_face_art():
+    from worker.tokens import project_token
+
+    raw = load_fixture("related_dfc_token.json")
+    assert "image_uris" not in raw
+    token = project_token(raw)
+    assert token["catalogCardId"] == "05934d59-7e98-4fff-8ccb-70cd1a61c6fd"
+    assert [f["name"] for f in token["faces"]] == ["Vampire", "Treasure"]
+    for face, source in zip(token["faces"], raw["card_faces"], strict=True):
+        assert face["imageUri"] == source["image_uris"]["normal"]
+        assert face["imageUriSmall"] == source["image_uris"]["small"]
+        assert face["colors"] == source["colors"]
+        assert face["oracleText"] == source["oracle_text"]
+
+
+def test_missing_target_stays_unresolved_with_an_index():
+    raw = load_fixture("normal_card.json")
+    raw["all_parts"] = [
+        {"component": "token", "id": "c20e427c-efa5-476c-aa33-e3149648d207", "name": "Spirit"}
+    ]
+    assert transform_card(raw, {})["related_tokens"] == {
+        "items": [],
+        "unresolved": [
+            {"catalogCardId": "c20e427c-efa5-476c-aa33-e3149648d207", "name": "Spirit"}
+        ],
+    }

@@ -24,7 +24,7 @@ from spellbook_core.operators.fixtures import (
 FIXTURES = Path(__file__).resolve().parents[2] / "scripts/demo"
 
 
-def test_shipped_bundle_has_complete_identity_facts_and_bounded_batches() -> None:
+def test_shipped_bundle_has_token_metadata_and_bounded_batches() -> None:
     bundle = verify_bundle(FIXTURES)
     count = faces = aang = 0
     for batch in bundle.batches():
@@ -33,8 +33,8 @@ def test_shipped_bundle_has_complete_identity_facts_and_bounded_batches() -> Non
         for record in batch:
             d = record["document"]
             assert d["lang"] == "en"
-            assert record["raw_oracle_id"] == d["oracle_id"]
-            assert record["types"] == d["card_types"]
+            assert set(record) == {"document", "search_name", "search_text"}
+            assert set(d["related_tokens"]) == {"items", "unresolved"}
             assert d["image_uri"]
             if d.get("back_face_name"):
                 faces += 1
@@ -133,13 +133,13 @@ def small_bundle(directory: Path, *, payload: bytes | None = None) -> DemoBundle
     (directory / filename).write_bytes(compressed)
     (directory / "cards.json").write_text(json.dumps([record["document"]]))
     manifest = {
-        "formatVersion": 1,
+        "formatVersion": 2,
         "bundleVersion": "2026-10-07T00:00:00Z",
         "file": filename,
-        "generationId": str(uuid5(NAMESPACE_URL, f"spellbook-demo-catalog:1:4:{digest}")),
+        "generationId": str(uuid5(NAMESPACE_URL, f"spellbook-demo-catalog:2:5:{digest}")),
         "sourceType": "demo-bundle",
         "providerUpdatedAt": None,
-        "catalogTransformVersion": 4,
+        "catalogTransformVersion": 5,
         "counts": {"documents": 1},
         "canonicalCount": 1,
         "starterPrintingCount": 1,
@@ -194,3 +194,65 @@ def test_manifest_identity_cannot_be_substituted(tmp_path: Path, field: str) -> 
     path.write_text(json.dumps(manifest))
     with pytest.raises(OperatorError, match="Invalid Demo Catalog manifest"):
         verify_bundle(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        None,
+        {},
+        {"items": [], "unresolved": "bad"},
+        {"items": [{"catalogCardId": "bad"}], "unresolved": []},
+        {"items": [], "unresolved": [], "extra": []},
+    ],
+)
+def test_malformed_nested_token_metadata_fails(tmp_path, metadata):
+    with gzip.open(FIXTURES / "catalog-default-en-20261102.jsonl.gz", "rb") as stream:
+        record = json.loads(stream.readline())
+    record["document"]["related_tokens"] = metadata
+    bundle = small_bundle(tmp_path, payload=json.dumps(record).encode() + b"\n")
+    with pytest.raises(OperatorError, match="Invalid Demo Catalog printing"):
+        list(bundle.batches())
+
+
+@pytest.mark.parametrize("field,value", [("formatVersion", 1), ("catalogTransformVersion", 4)])
+def test_replaced_bundle_formats_fail(tmp_path, field, value):
+    small_bundle(tmp_path)
+    path = tmp_path / MANIFEST_NAME
+    manifest = json.loads(path.read_text())
+    manifest[field] = value
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(OperatorError, match="Invalid Demo Catalog manifest"):
+        verify_bundle(tmp_path)
+
+
+def test_precon_links_resolve_to_nine_exact_token_printings():
+    precon_ids = {e["card"]["id"] for e in load_precon(FIXTURES).cards}
+    seen, tokens, links, unresolved = set(), {}, 0, set()
+    for batch in verify_bundle(FIXTURES).batches():
+        for record in batch:
+            doc = record["document"]
+            relation = doc["related_tokens"]
+            unresolved.update(r["catalogCardId"] for r in relation["unresolved"])
+            if doc["id"] in precon_ids:
+                seen.add(doc["id"])
+                assert relation["unresolved"] == []
+                links += len(relation["items"])
+                tokens.update((t["catalogCardId"], t) for t in relation["items"])
+    assert seen == precon_ids
+    assert links == 10
+    assert set(tokens) == {
+        "c20e427c-efa5-476c-aa33-e3149648d207",
+        "ca20548f-6324-4858-adbe-87303ff1ca52",
+        "7dfd481c-94ad-4a2e-a396-3d4a10bacc33",
+        "686d9c3d-41dc-476d-93b7-75857b48b1b6",
+        "98966946-de7a-4a96-b8c5-875f6e453f94",
+        "2aa672bb-60f3-4601-8c14-f486a54f615b",
+        "6911181d-573b-41eb-96a4-799c96e008fc",
+        "5eb01bef-8989-4b38-a303-0aafab1b33e5",
+        "4b02577e-62ec-4716-8e4c-51630cf1d49e",
+    }
+    # The three globally missing targets are referenced only by non-English printings.
+    assert unresolved == set()
+    assert tokens["c20e427c-efa5-476c-aa33-e3149648d207"]["faces"][0]["colors"] == ["R"]
+    assert tokens["ca20548f-6324-4858-adbe-87303ff1ca52"]["faces"][0]["colors"] == []
