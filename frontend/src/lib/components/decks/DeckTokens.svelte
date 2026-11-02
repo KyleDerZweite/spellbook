@@ -14,10 +14,7 @@
 
 <section aria-label="Related tokens" class="tokens">
 	<h2>Related tokens</h2>
-	<p>
-		Direct token references from the published card source. This is not an exhaustive prediction of
-		tokens the Deck can create.
-	</p>
+	<p>Tokens referenced by cards in this Deck. Other token interactions may not be listed.</p>
 	{#if tokens.status === 'unavailable'}<p role="status">
 			Token source references are unavailable.
 		</p>{:else if tokens.status === 'partial'}<p role="status">
@@ -30,10 +27,9 @@
 			<article>
 				<h3>{token.name}</h3>
 				<small>{token.setCode.toUpperCase()} · {token.collectorNumber}</small>
-				{#if sources(token.sourceEntryIds)}<p>Referenced by {sources(token.sourceEntryIds)}</p>{/if}
 				{#each token.faces as face, index}
 					{#if index === 0}
-						<h4>{face.name}</h4>
+						{#if face.name !== token.name}<h4>{face.name}</h4>{/if}
 						{#if face.imageUri || face.imageUriSmall}<img
 								src={face.imageUri ?? face.imageUriSmall ?? ''}
 								alt={face.name}
@@ -53,6 +49,10 @@
 							<p>{face.oracleText}</p>
 						</details>{/if}
 				{/each}
+				{#if sources(token.sourceEntryIds)}<details class="token-sources">
+						<summary>Referenced by</summary>
+						<p>{sources(token.sourceEntryIds)}</p>
+					</details>{/if}
 			</article>
 		{/each}
 	</div>
@@ -75,6 +75,17 @@
 	small {
 		color: var(--color-text-secondary);
 		font-size: 0.75rem;
+	}
+	h2 {
+		font: 400 1.25rem var(--font-display);
+		margin-bottom: 0.5rem;
+	}
+	h3 {
+		font-weight: 500;
+	}
+	.token-sources {
+		font-size: 0.6875rem;
+		color: var(--color-text-secondary);
 	}
 	.token-grid {
 		display: grid;
