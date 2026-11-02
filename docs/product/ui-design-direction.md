@@ -194,7 +194,10 @@ Keep four equal metric cards, followed by four aligned panels in this order: Car
 The next row uses two thirds of its width for a Your decks grid and one third for the Recent activity list.
 Deck tiles retain a leading name, genuine Commander frames and inspected exact/alternate/missing availability.
 Below 1150px these lower panels stack with Decks first.
-The Deck grid uses two columns when its content has room, with one readable column at narrow widths.
+The Deck grid uses three columns when its content has room, two at intermediate widths and one readable column on narrow screens.
+Each tile places its name at the upper left and its format in a compact tag at the upper right.
+Larger genuine Commander frames sit directly beside the availability ring; center counts fit wholly inside its hole.
+Exact, alternate and missing values remain available through chart inspection, without a persistent missing-count caption.
 Quick Actions links to existing Add cards, New deck, Scan cards and Box management workspaces, without creating a second search input.
 Deck previews use larger actual Commander artwork or an honest unavailable-art placeholder, a clear Deck title and compact exact/alternate/missing availability.
 The lower panels are 480px high on wide screens; the Deck list scrolls natively, and narrow screens show its natural height.
@@ -571,7 +574,8 @@ Clear filters resets this mode; removing an individual color in the full mode as
 URL parsing and native form submission apply the same completion, including when the two explicit filters are exclusions.
 Show OR with a single selection ring, AND with a double ring and NOT with a semantic exclusion stroke; unselected colors stay muted.
 Keep operator badges out of individual color buttons.
-A compact read-only formula may show the actual color expression below Color/Identity, with normal wrapping and an accessible plain-language equivalent.
+A compact read-only pill beside the result count below the Search bar shows the active color expression, with normal wrapping and an accessible plain-language equivalent.
+The sidebar reserves no separate formula area, and unfiltered Search shows no formula pill.
 State names and the next action remain available through accessible names and concise tooltips.
 The underlying OR colors form one group, combine with every AND color and exclude every NOT color.
 Place the native Color/Identity radios below the six color icons.
