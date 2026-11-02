@@ -20,7 +20,12 @@
 							<a class="deck-name" href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}
 								>{deck.name}</a
 							>
-							<span class="format-label">{deck.format}</span>
+							<span class="format-label"
+								><i
+									class={`ms ms-${deck.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
+									aria-hidden="true"
+								></i>{deck.format}</span
+							>
 						</div>
 						<div class="deck-content">
 							<a
@@ -134,8 +139,6 @@
 	.deck-list > li {
 		min-width: 0;
 		padding: 12px;
-		border: 1px solid var(--color-border);
-		border-radius: 6px;
 	}
 	.deck-heading {
 		display: flex;
@@ -152,11 +155,17 @@
 		font: 400 18px/1.3 var(--font-display);
 	}
 	.format-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 		flex: 0 1 auto;
 		padding: 2px 6px;
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		font-size: 11px;
+	}
+	.format-label .ms {
+		font-size: 14px;
 	}
 	.format-label,
 	.dashboard-note {

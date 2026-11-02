@@ -4,6 +4,7 @@
 	import type { SubmitFunction } from '$app/forms';
 	import QuantityControl from '#lib/components/ui/QuantityControl.svelte';
 	import ManaCost from '#lib/components/cards/ManaCost.svelte';
+	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	let {
 		groups,
@@ -28,17 +29,6 @@
 		onInspect: (card: CardDocument, entry: DeckCard) => void;
 		categories?: import('@spellbook/contracts/categories.ts').DeckEntryCategories | null;
 	} = $props();
-	const symbols: Record<string, string> = {
-		Commander: 'commander',
-		Creature: 'creature',
-		Land: 'land',
-		Artifact: 'artifact',
-		Enchantment: 'enchantment',
-		Instant: 'instant',
-		Sorcery: 'sorcery',
-		Planeswalker: 'planeswalker',
-		Battle: 'battle'
-	};
 </script>
 
 <div class="entries" class:stacks={view === 'stacks'}>
@@ -47,7 +37,7 @@
 			{@const symbol = cards.every((card) => card.role === 'commander')
 				? 'commander'
 				: cards.every((card) => documents[card.catalogCardId]?.card_types.includes(group))
-					? symbols[group]
+					? cardTypeSymbol(group)
 					: undefined}
 			<section class="card-group" aria-label={`${group} cards`}>
 				<h2

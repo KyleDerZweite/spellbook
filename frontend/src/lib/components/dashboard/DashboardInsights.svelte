@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 	import DashboardDecks from './DashboardDecks.svelte';
@@ -118,8 +119,17 @@
 					</ProportionChart>
 				</div>
 				<dl class="legend">
-					{#each visibleTypes as item}<div title={`${item.label}: ${item.value} copies`}>
-							<dt><i style:background={item.color}></i>{item.label}</dt>
+					{#each visibleTypes as item}
+						{@const symbol = cardTypeSymbol(item.label)}
+						<div title={`${item.label}: ${item.value} copies`}>
+							<dt>
+								{#if symbol}<i class={`ms ms-${symbol}`} style:color={item.color} aria-hidden="true"
+									></i>{:else}<i
+										class="type-swatch"
+										style:background={item.color}
+										aria-hidden="true"
+									></i>{/if}{item.label}
+							</dt>
 							<dd>
 								<span class="sr-only">{item.value} copies, </span>{percent(item.value, typeTotal)}
 							</dd>
@@ -440,10 +450,16 @@
 		align-items: center;
 		gap: 7px;
 	}
-	.legend i {
+	.legend .type-swatch {
 		width: 9px;
 		height: 9px;
 		border-radius: 3px;
+		flex: none;
+	}
+	.legend .ms {
+		width: 16px;
+		font-size: 14px;
+		text-align: center;
 		flex: none;
 	}
 	.color-chart {

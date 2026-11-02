@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { Collapsible } from 'bits-ui';
 	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import type { FacetResponse } from '#lib/search/types.ts';
@@ -131,15 +132,17 @@
 		<Collapsible.Content>
 			<div class="filter-options filter-option-grid">
 				{#each CARD_TYPES as type}
+					{@const symbol = cardTypeSymbol(type.id)}
 					<button
 						type="button"
 						class="filter-option"
 						onclick={() => filters.toggleType(type.id)}
 						aria-pressed={filters.selectedTypes.has(type.id)}
 					>
-						<span class="selection-mark" aria-hidden="true"></span><span class="option-label"
-							>{type.label}</span
-						>
+						<span class="selection-mark" aria-hidden="true"></span>{#if symbol}<i
+								class={`type-symbol ms ms-${symbol}`}
+								aria-hidden="true"
+							></i>{/if}<span class="option-label">{type.label}</span>
 					</button>
 				{/each}
 			</div>
@@ -325,6 +328,12 @@
 		font-size: 12px;
 		text-align: left;
 		cursor: pointer;
+	}
+	.type-symbol {
+		width: 16px;
+		flex: none;
+		font-size: 14px;
+		text-align: center;
 	}
 	.option-label {
 		white-space: nowrap;
