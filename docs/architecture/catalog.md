@@ -32,6 +32,10 @@ It includes a versioned English Demo bundle; the Worker downloads its configured
 By default, that source is `all_cards`.
 Each catalog document stores card metadata and Scryfall image URLs.
 Spellbook does not copy these images into PostgreSQL or proxy them through the application.
+Printed colors preserve Scryfall's explicit top-level array, including a known colorless empty array.
+When that array is absent, the native transform combines complete face-defined color arrays in WUBRG order, independently of color identity.
+Missing or invalid color evidence fails publication instead of silently classifying the printing as colorless.
+This transform correction requires rebuilding and publishing a generation; restarting readers does not repair flattened documents already stored in an older generation.
 
 The versioned Demo Catalog bundle `catalog-default-en-20261007.jsonl.gz` contains 109,393 searchable English Printings and 34,948 Oracle IDs, including all 70 starter Printing IDs.
 Its native builder uses the existing Worker transform and exclusions against the local default bulk export.
@@ -110,7 +114,8 @@ An omitted filter or empty array applies no restriction.
 Both color filters combine with AND when supplied together.
 Browser Search uses a separate structured `colorMatch` filter with `field: color | identity`, `any`, `all` and optional `not` color arrays.
 Browser colors initially cycle Off, OR, AND, NOT, then Off.
-A second distinct filter completes every unassigned color as NOT; the fully assigned palette cycles OR, AND, NOT without Off until cleared.
+A second distinct filter completes unassigned WUBRG colors as NOT; the fully assigned chromatic palette cycles OR, AND, NOT without Off until cleared.
+Colorless stays unchanged, is never automatically excluded and retains its manual Off, OR, AND and NOT cycle.
 The OR colors form one optional disjunction; every AND color must also match, and every NOT color must be absent.
 An empty OR group adds no restriction; colors are unfiltered only when all three groups are empty.
 An omitted `not` group is empty, preserving existing API requests; NOT-only filters are valid.
@@ -126,9 +131,9 @@ Existing `colors` and `colorIdentity` API palette contracts remain available to 
 
 Browser URLs store OR selections in repeated `color` parameters, AND selections in `colorAnd`, NOT selections in `colorNot`, and the selected field in `colorMode`.
 The default field is Color.
-The browser completes the explicit `colorMatch` groups when two distinct colors are filtered, including two exclusions.
+The browser completes WUBRG in the explicit `colorMatch` groups when two distinct colors are filtered, including two exclusions, while preserving the chosen Colorless state.
 It does not add hidden `colors` or `colorIdentity` palette restrictions.
-The visible formula represents the OR group, every AND requirement and each NOT exclusion with precedence-preserving parentheses.
+The compact pill beside the result count represents the OR group, every AND requirement and each NOT exclusion with precedence-preserving parentheses.
 Colorless in that formula tests an empty selected field; NOT Colorless tests a nonempty field.
 This presentation policy does not change the independent Catalog API contracts above.
 Mode and selections survive browser history, reload, Search overlay navigation and the bounded result-cache context.

@@ -24,16 +24,30 @@ describe('color expression presentation', () => {
 			'White && Colorless'
 		);
 	});
-	it('includes every automatic NOT predicate, even when two exclusions produce an empty result', () => {
+	it('includes every automatic NOT predicate, without inventing a Colorless exclusion', () => {
 		const match = completeColorMatch({ field: 'color', any: ['W', 'U'], all: [] });
-		expect(formatColorExpression(match).visual).toBe(
-			'(White || Blue) && !Black && !Red && !Green && !Colorless'
-		);
+		expect(formatColorExpression(match).visual).toBe('(White || Blue) && !Black && !Red && !Green');
 		expect(completeColorMatch(match)).toEqual(match);
 		expect(
 			formatColorExpression(
 				completeColorMatch({ field: 'identity', any: [], all: [], not: ['R', 'B'] })
 			).visual
-		).toBe('!White && !Blue && !Black && !Red && !Green && !Colorless');
+		).toBe('!White && !Blue && !Black && !Red && !Green');
+	});
+	it('preserves explicit Colorless choices without changing a caller snapshot', () => {
+		for (const group of ['any', 'all', 'not'] as const) {
+			const input = {
+				field: 'color' as const,
+				any: ['W' as const],
+				all: [],
+				not: [],
+				[group]: ['C' as const]
+			};
+			const before = structuredClone(input);
+			const completed = completeColorMatch(input);
+			expect(completed[group]).toContain('C');
+			expect(input).toEqual(before);
+			expect(completeColorMatch(completed)).toEqual(completed);
+		}
 	});
 });

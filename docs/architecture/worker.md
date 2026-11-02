@@ -43,6 +43,8 @@ Malformed records, invalid identities, and snapshots without indexable documents
 The active catalog remains available when publication fails.
 
 [`transform.py`](../../backend/workers/catalog/src/worker/transform.py) owns card document transformation.
+Printed colors use an explicit top-level array or the union of complete per-face arrays; missing and invalid evidence fail the import.
+The transform version changes when this projection changes so an unchanged bulk export is rebuilt.
 [`catalog.py`](../../backend/workers/catalog/src/worker/catalog.py) adds indexed search fields, including printed face text.
 The [catalog architecture](./catalog.md) owns generation publication, reader consistency, grouping, and search behavior.
 

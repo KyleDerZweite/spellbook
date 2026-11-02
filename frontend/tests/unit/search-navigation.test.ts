@@ -14,7 +14,7 @@ describe('Search navigation', () => {
 				field,
 				any: [],
 				all: ['W', 'U'],
-				not: ['B', 'R', 'G', 'C']
+				not: ['B', 'R', 'G']
 			});
 			expect(parseSearchUrl(new URL(searchHref(parsed), origin))).toEqual(parsed);
 		}
@@ -49,7 +49,7 @@ describe('Search navigation', () => {
 		);
 		expect(parsed.query).toBe(input.query);
 		expect(parsed.filters).toEqual({
-			colorMatch: { field: 'identity', any: ['U', 'R'], all: ['B'], not: ['W', 'G', 'C'] },
+			colorMatch: { field: 'identity', any: ['U', 'R'], all: ['B'], not: ['W', 'G'] },
 			rarities: ['common'],
 			types: ['Instant'],
 			legalities: ['modern', 'commander']
@@ -250,7 +250,7 @@ describe('color expression navigation', () => {
 		};
 		session.hydrate(input);
 		expect(session.filters.colorCycleLocked).toBe(true);
-		expect(session.filters.colorNot).toEqual(new Set(['B', 'R', 'G', 'C']));
+		expect(session.filters.colorNot).toEqual(new Set(['B', 'R', 'G']));
 		session.filters.toggleColor('R');
 		expect(session.filters.colorAny.has('R')).toBe(true);
 		session.hydrate(input);
@@ -265,9 +265,9 @@ describe('color expression navigation', () => {
 		);
 		const session = new SearchSession();
 		session.hydrate(input);
-		expect(session.filters.colorNot).toEqual(new Set(['B', 'R', 'G', 'C']));
+		expect(session.filters.colorNot).toEqual(new Set(['B', 'R', 'G']));
 		session.filters.setColorField('color');
-		expect(session.input.filters.colorMatch?.not).toEqual(['B', 'R', 'G', 'C']);
+		expect(session.input.filters.colorMatch?.not).toEqual(['B', 'R', 'G']);
 		session.hydrate(input);
 		expect(parseSearchUrl(new URL(searchHref(session.input), origin))).toEqual(input);
 		const conflicting = parseSearchUrl(
@@ -306,7 +306,7 @@ describe('color expression navigation', () => {
 			field: 'color',
 			any: [],
 			all: ['W', 'B'],
-			not: ['U', 'R', 'G', 'C']
+			not: ['U', 'R', 'G']
 		});
 	});
 });

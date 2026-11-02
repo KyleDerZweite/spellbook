@@ -569,8 +569,9 @@ The Search sidebar has a fixed desktop width and shares the active native page o
 Expanding groups changes the page layout without adding a separate sidebar scrollbar.
 Six color controls remain in one row.
 Before two distinct colors are filtered, they cycle Off, OR, AND, NOT, then Off.
-Setting a second distinct color filter automatically assigns NOT to all remaining colors; all six controls then cycle OR, AND, NOT with no Off state.
-Clear filters resets this mode; removing an individual color in the full mode assigns NOT.
+Setting a second distinct color filter automatically assigns NOT to remaining WUBRG colors; those five controls then cycle OR, AND, NOT with no Off state.
+Colorless stays unchanged and remains manually selectable through Off, OR, AND and NOT.
+Clear filters resets this mode; removing an individual WUBRG color in the full mode assigns NOT, while removing Colorless clears it.
 URL parsing and native form submission apply the same completion, including when the two explicit filters are exclusions.
 Show OR with a single selection ring, AND with a double ring and NOT with a semantic exclusion stroke; unselected colors stay muted.
 Keep operator badges out of individual color buttons.
@@ -589,7 +590,7 @@ Colorless matches an empty selected field.
 Native no-JavaScript Search exposes equivalent OR/AND/NOT checkboxes and the same field choice.
 Collapsed groups retain their selection count, and removal actions remove a color directly instead of advancing its cycle.
 Clear filters keeps a fixed position above the groups.
-Do not add a conditional active-filter row above the results.
+Keep the formula in the existing result-count row; do not add another active-filter row above the results.
 Count, loading and retry occupy one fixed-height status row above the card grid.
 Scrolled artwork cannot appear behind it.
 Choosing filters or reporting a range error cannot move or resize the card grid.

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Collapsible } from 'bits-ui';
-	import { formatColorExpression } from '#lib/search/color-filters.ts';
 	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import type { FacetResponse } from '#lib/search/types.ts';
 	import {
@@ -21,7 +20,6 @@
 	let rarityOpen = $state(true);
 	let typesOpen = $state(false);
 	let legalityOpen = $state(false);
-	const expression = $derived(formatColorExpression(filters.catalogFilters.colorMatch!));
 </script>
 
 {#snippet groupLabel(label: string, open: boolean, selected: number)}
@@ -59,8 +57,8 @@
 		<Collapsible.Content>
 			<p id={descriptionId} class="sr-only">
 				{filters.colorCycleLocked
-					? 'Click to cycle OR, AND, NOT. Clear filters to reset colors.'
-					: 'Click to cycle OR, AND, NOT, then off. A second color filter sets all remaining colors to NOT.'}
+					? 'Click to cycle OR, AND, NOT. Colorless also cycles off. Clear filters to reset colors.'
+					: 'Click to cycle OR, AND, NOT, then off. A second color filter sets remaining WUBRG colors to NOT. Colorless stays unchanged.'}
 			</p>
 			<div
 				class="filter-colors"
@@ -81,7 +79,7 @@
 						onclick={() => filters.toggleColor(color.id)}
 						class="filter-color"
 						data-logic={logic}
-						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : logic === 'AND' ? 'NOT' : filters.colorCycleLocked ? 'OR' : 'off'}`}
+						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : logic === 'AND' ? 'NOT' : color.id !== 'C' && filters.colorCycleLocked ? 'OR' : 'off'}`}
 						title={`${color.label}: ${logic}`}
 						aria-pressed={logic !== 'off'}
 					>
@@ -102,19 +100,6 @@
 					>
 				{/each}
 			</fieldset>
-			<div
-				class="color-formula"
-				role="status"
-				aria-live="polite"
-				aria-atomic="true"
-				aria-label={filters.colorField === 'identity'
-					? 'Color identity filter expression'
-					: 'Color filter expression'}
-			>
-				<code aria-hidden="true">{expression.visual}</code><span class="sr-only"
-					>{expression.spoken}</span
-				>
-			</div>
 		</Collapsible.Content>
 	</Collapsible.Root>
 	<Collapsible.Root bind:open={rarityOpen}>
@@ -244,17 +229,6 @@
 	}
 	.filter-chevron.expanded {
 		transform: rotate(180deg);
-	}
-	.color-formula {
-		min-height: 54px;
-		margin-top: 4px;
-		color: var(--color-text-secondary);
-		font: 400 12px/1.5 var(--font-mono);
-		overflow-wrap: anywhere;
-	}
-	.color-formula code {
-		font: inherit;
-		white-space: normal;
 	}
 	.color-mode {
 		display: flex;

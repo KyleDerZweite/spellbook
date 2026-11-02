@@ -1,13 +1,14 @@
 import type { CatalogFilters, ColorMatch } from './types.ts';
 import { MANA_COLORS } from './filter-options.ts';
 
-/** Two distinct filters complete the six-state palette with explicit exclusions. */
+/** Two distinct filters complete WUBRG; Colorless remains an explicit choice. */
 export function completeColorMatch(match: ColorMatch): ColorMatch {
 	const not = new Set(match.not ?? []);
 	const all = new Set(match.all.filter((color) => !not.has(color)));
 	const any = new Set(match.any.filter((color) => !not.has(color) && !all.has(color)));
 	const active = new Set([...any, ...all, ...not]);
-	if (active.size >= 2) for (const { id } of MANA_COLORS) if (!active.has(id)) not.add(id);
+	if (active.size >= 2)
+		for (const { id } of MANA_COLORS) if (id !== 'C' && !active.has(id)) not.add(id);
 	return {
 		field: match.field,
 		any: MANA_COLORS.filter(({ id }) => any.has(id)).map(({ id }) => id),

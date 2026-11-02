@@ -24,7 +24,8 @@ export class SearchFilterState {
 		return new Set([...this.colorAny, ...this.colorAll, ...this.colorNot]);
 	}
 	get colorCycleLocked(): boolean {
-		return this.selectedColors.size === 6;
+		const selected = this.selectedColors;
+		return (['W', 'U', 'B', 'R', 'G'] as const).every((color) => selected.has(color));
 	}
 
 	selectedRarities: Set<Rarity> = $state(new Set());
@@ -51,7 +52,7 @@ export class SearchFilterState {
 			not = new Set(this.colorNot);
 		if (not.has(color)) {
 			not.delete(color);
-			if (this.colorCycleLocked) any.add(color);
+			if (color !== 'C' && this.colorCycleLocked) any.add(color);
 		} else if (all.has(color)) {
 			all.delete(color);
 			not.add(color);
@@ -76,7 +77,7 @@ export class SearchFilterState {
 		this.colorAny = new Set([...this.colorAny].filter((value) => value !== color));
 		this.colorAll = new Set([...this.colorAll].filter((value) => value !== color));
 		this.colorNot = new Set([...this.colorNot].filter((value) => value !== color));
-		if (locked) this.colorNot = new Set([...this.colorNot, color]);
+		if (color !== 'C' && locked) this.colorNot = new Set([...this.colorNot, color]);
 		this.changed();
 	}
 

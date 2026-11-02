@@ -91,6 +91,12 @@
 	let windowViewport: Window | null = $state(null);
 	const host = $derived(viewport ?? windowViewport);
 	const input = $derived(!mounted && serverInput ? serverInput : session.input);
+	const colorMatch = $derived(input.filters.colorMatch);
+	const colorExpression = $derived(
+		colorMatch && (colorMatch.any.length || colorMatch.all.length || colorMatch.not?.length)
+			? formatColorExpression(colorMatch)
+			: null
+	);
 	const paging = $derived(input.pagination ?? searchPagination());
 	const snapshot = $derived(session.snapshot);
 	const total = $derived(!mounted ? (serverResult?.estimatedTotalHits ?? 0) : snapshot.total);
@@ -309,22 +315,8 @@
 				>Filters{activeFilters.length ? ` (${activeFilters.length})` : ''}</button
 			>
 		{:else}
-			{@const nativeExpression = formatColorExpression(
-				input.filters.colorMatch ?? { field: 'color', any: [], all: [] }
-			)}
 			<details class="w-full">
 				<summary>Filters</summary>
-				<div
-					class="native-color-formula"
-					role="status"
-					aria-label={input.filters.colorMatch?.field === 'identity'
-						? 'Color identity filter expression'
-						: 'Color filter expression'}
-				>
-					<code aria-hidden="true">{nativeExpression.visual}</code><span class="sr-only"
-						>{nativeExpression.spoken}</span
-					>
-				</div>
 				<div class="grid gap-4 sm:grid-cols-4">
 					<fieldset>
 						<legend>Match colors by</legend>
@@ -384,6 +376,19 @@
 						? 'Finding cards…'
 						: `${total.toLocaleString()} ${total === 1 ? 'card' : 'cards'}`}</span
 				>
+				{#if colorExpression}
+					<span
+						class="color-expression"
+						role="status"
+						aria-label={colorMatch?.field === 'identity'
+							? 'Color identity filter expression'
+							: 'Color filter expression'}
+						title={`${colorMatch?.field === 'identity' ? 'Color identity' : 'Color'}: ${colorExpression.spoken}`}
+					>
+						<code aria-hidden="true">{colorExpression.visual}</code>
+						<span class="sr-only">{colorExpression.spoken}</span>
+					</span>
+				{/if}
 				{#if error}<span class="text-error">Search unavailable</span>{#if mounted}<button
 							class="btn btn-ghost"
 							onclick={() => catalog.retry()}>Retry</button
@@ -452,11 +457,19 @@
 {/if}
 
 <style>
-	.native-color-formula {
-		margin-block: 8px;
+	.color-expression {
+		max-width: 100%;
+		padding: 4px 8px;
+		border: 1px solid var(--color-border);
+		border-radius: 12px;
+		background: var(--color-card);
 		color: var(--color-text-secondary);
-		font: 400 12px/1.5 var(--font-mono);
+		font: 400 11px/1.5 var(--font-mono);
 		overflow-wrap: anywhere;
+	}
+	.color-expression code {
+		font: inherit;
+		white-space: normal;
 	}
 
 	.search-sidebar {

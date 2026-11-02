@@ -2,6 +2,26 @@ import { describe, it, expect, vi } from 'vitest';
 import { SearchFilterState } from '../../src/lib/search/filters.svelte.ts';
 
 describe('SearchFilterState', () => {
+	it('keeps Colorless neutral and independently removable in a completed chromatic palette', () => {
+		const state = new SearchFilterState();
+		state.toggleColor('W');
+		state.toggleColor('U');
+		expect(state.colorNot).toEqual(new Set(['B', 'R', 'G']));
+		expect(state.selectedColors.has('C')).toBe(false);
+		expect(state.colorCycleLocked).toBe(true);
+		state.toggleColor('C');
+		expect(state.colorAny.has('C')).toBe(true);
+		state.toggleColor('C');
+		expect(state.colorAll.has('C')).toBe(true);
+		state.toggleColor('C');
+		expect(state.colorNot.has('C')).toBe(true);
+		state.toggleColor('C');
+		expect(state.selectedColors.has('C')).toBe(false);
+		state.toggleColor('C');
+		state.removeColor('C');
+		expect(state.selectedColors.has('C')).toBe(false);
+		expect(state.colorCycleLocked).toBe(true);
+	});
 	it('completes other colors once when a second filter is set, then cycles three states', () => {
 		const changed = vi.fn(),
 			state = new SearchFilterState(changed);
@@ -10,14 +30,14 @@ describe('SearchFilterState', () => {
 		state.toggleColor('U');
 		expect(changed).toHaveBeenCalledTimes(2);
 		expect(state.colorCycleLocked).toBe(true);
-		expect(state.colorNot).toEqual(new Set(['B', 'R', 'G', 'C']));
+		expect(state.colorNot).toEqual(new Set(['B', 'R', 'G']));
 		state.toggleColor('R');
 		expect(state.colorAny.has('R')).toBe(true);
 		state.toggleColor('R');
 		expect(state.colorAll.has('R')).toBe(true);
 		state.toggleColor('R');
 		expect(state.colorNot.has('R')).toBe(true);
-		expect(state.selectedColors.size).toBe(6);
+		expect(state.selectedColors.size).toBe(5);
 		state.removeColor('W');
 		expect(state.colorNot.has('W')).toBe(true);
 		state.clear();
@@ -35,7 +55,7 @@ describe('SearchFilterState', () => {
 			field: 'color',
 			any: [],
 			all: ['W', 'U'],
-			not: ['B', 'R', 'G', 'C']
+			not: ['B', 'R', 'G']
 		});
 		const snapshot = state.catalogFilters;
 		snapshot.colorMatch!.all.push('G');
@@ -45,7 +65,7 @@ describe('SearchFilterState', () => {
 			field: 'identity',
 			any: [],
 			all: ['W', 'U'],
-			not: ['B', 'R', 'G', 'C']
+			not: ['B', 'R', 'G']
 		});
 		expect(state.catalogFilters).not.toHaveProperty('colorIdentity');
 	});
@@ -90,7 +110,7 @@ describe('SearchFilterState', () => {
 			field: 'identity',
 			any: ['W', 'U'],
 			all: ['B'],
-			not: ['R', 'G', 'C']
+			not: ['R', 'G']
 		});
 		state.removeColor('W');
 		expect(state.catalogFilters.colorMatch?.any).toEqual(['U']);
