@@ -318,7 +318,8 @@ Search color state owns disjoint OR, AND and NOT sets plus the Color/Identity fi
 Each click cycles Off, OR, AND, NOT, then Off; explicit removal clears the color directly.
 The structured Catalog request combines the OR set with every AND requirement and excludes the NOT set.
 `browserColorFilters` adds the matching existing palette restriction for AND-only selections; both reactive state and native URL parsing use this owner.
-OR-only and mixed expressions retain presence matching, and context keys include the derived palette.
+Expressions containing OR retain presence matching; adding NOT does not relax the exact palette of an AND selection without OR.
+Context keys include the derived palette and explicit exclusions.
 Search URLs, session hydration, native forms and result-context keys retain the field and all three color groups.
 Changing a color state or field uses the existing filter navigation and resets the result anchor.
 The same SearchFilters component serves the full route and overlay; native forms expose equivalent labelled selections.

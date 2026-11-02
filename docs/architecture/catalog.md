@@ -126,7 +126,8 @@ Existing `colors` and `colorIdentity` API palette contracts remain available to 
 Browser URLs store OR selections in repeated `color` parameters, AND selections in `colorAnd`, NOT selections in `colorNot`, and the selected field in `colorMode`.
 The default field is Color.
 Browser AND-only selections also supply the existing `colors` or `colorIdentity` palette filter for the selected field, so the combination matches exactly its selected colors.
-OR-only and mixed expressions do not add a palette restriction.
+Expressions containing OR selections do not add a palette restriction.
+Explicit NOT selections do not relax the exact palette of AND selections without an OR group.
 This presentation policy does not change the independent Catalog API contracts above.
 Mode and selections survive browser history, reload, Search overlay navigation and the bounded result-cache context.
 Switching fields preserves the selected colors and resets the result range like other filter changes.

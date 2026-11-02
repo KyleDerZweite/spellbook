@@ -572,7 +572,8 @@ Keep each glyph visually centered in the same circular control across Off, OR, A
 The radios choose printed colors or color identity without clearing the selections.
 The default is Color.
 Browser selections containing only AND colors match exactly the selected printed colors or Color identity, excluding all additional colors.
-OR-only and mixed OR/AND expressions retain presence matching and may include additional colors.
+Expressions with OR selections retain presence matching and may include additional colors unless explicitly excluded.
+Adding NOT selections does not relax an exact AND palette without OR.
 Colorless matches an empty selected field.
 Native no-JavaScript Search exposes equivalent OR/AND/NOT checkboxes and the same field choice.
 Collapsed groups retain their selection count, and removal actions remove a color directly instead of advancing its cycle.

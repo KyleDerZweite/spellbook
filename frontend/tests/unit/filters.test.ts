@@ -2,6 +2,21 @@ import { describe, it, expect, vi } from 'vitest';
 import { SearchFilterState } from '../../src/lib/search/filters.svelte.ts';
 
 describe('SearchFilterState', () => {
+	it('keeps AND selections exact when an explicit NOT exclusion is added', () => {
+		const state = new SearchFilterState();
+		state.toggleColor('W');
+		state.toggleColor('W');
+		state.toggleColor('R');
+		state.toggleColor('R');
+		state.toggleColor('R');
+		expect(state.catalogFilters.colors).toEqual(['W']);
+		expect(state.catalogFilters.colorMatch).toEqual({
+			field: 'color',
+			any: [],
+			all: ['W'],
+			not: ['R']
+		});
+	});
 	it('excludes additional printed colors from a pure White AND Blue selection', () => {
 		const state = new SearchFilterState();
 		for (const color of ['W', 'U'] as const) {
