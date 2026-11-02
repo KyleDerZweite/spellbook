@@ -34,8 +34,8 @@
 											<img
 												src={commander.imageUri}
 												alt={commander.name}
-												width="72"
-												height="100"
+												width="104"
+												height="145"
 												loading="lazy"
 											/>
 										{:else}
@@ -51,11 +51,14 @@
 							{#if deck.required > 0}
 								<div
 									class="availability"
-									style:--deck-count-size={deck.required >= 100000
-										? '0.75rem'
-										: deck.required >= 10000
-											? '0.875rem'
-											: '1.125rem'}
+									style:--deck-count-size={`${Math.min(
+										18,
+										80 /
+											Math.max(
+												(deck.exact + deck.alternate).toLocaleString().length,
+												deck.required.toLocaleString().length
+											)
+									)}px`}
 								>
 									<DeckAvailabilityRing {deck} />
 								</div>
@@ -68,11 +71,6 @@
 								</div>
 							{/if}
 						</div>
-						{#if deck.required > 0}
-							<p class="deck-status" class:missing={deck.missing > 0}>
-								{deck.missing > 0 ? `${deck.missing.toLocaleString()} missing` : 'All copies owned'}
-							</p>
-						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -128,29 +126,37 @@
 	.deck-list {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		gap: 16px;
+		gap: 12px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 	.deck-list > li {
 		min-width: 0;
-		padding: 16px;
+		padding: 12px;
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
 	}
 	.deck-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 8px;
 		margin-bottom: 12px;
 	}
 	.deck-name {
+		min-width: 0;
 		display: block;
 		overflow-wrap: anywhere;
 		color: var(--color-text-primary);
 		font: 400 18px/1.3 var(--font-display);
 	}
 	.format-label {
-		display: block;
-		margin-top: 4px;
+		flex: 0 1 auto;
+		padding: 2px 5px;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		font-size: 10px;
 	}
 	.format-label,
 	.dashboard-note {
@@ -161,23 +167,30 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
+		justify-content: flex-start;
+		gap: 8px;
 	}
 	.commander-previews {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
+		align-items: flex-start;
+		isolation: isolate;
 		min-width: 0;
 		max-width: 100%;
 	}
 	.commander-previews img,
 	.art-placeholder {
 		box-sizing: border-box;
-		flex: 0 0 72px;
-		width: 72px;
-		height: 100px;
+		flex: 0 0 104px;
+		width: 104px;
+		height: 145px;
 		border-radius: 4px;
+	}
+	.commander-previews > :first-child {
+		z-index: 1;
+	}
+	.commander-previews > :nth-child(2) {
+		margin-left: -76px;
+		transform: translateY(6px);
 	}
 	.commander-previews img {
 		object-fit: contain;
@@ -204,9 +217,10 @@
 		height: 104px;
 	}
 	.availability :global(.chart-center strong) {
+		margin: 0;
 		font-size: var(--deck-count-size);
-		overflow-wrap: anywhere;
-		max-width: 68px;
+		white-space: nowrap;
+		max-width: 56px;
 	}
 	.availability :global(.chart-center strong span) {
 		display: block;
@@ -218,14 +232,6 @@
 	.availability :global(.proportion-ring:has(.native-chart-data) .chart-center) {
 		height: 104px;
 	}
-	.deck-status {
-		margin: 12px 0 0;
-		font-size: 12px;
-		color: var(--color-success);
-	}
-	.deck-status.missing {
-		color: var(--color-warning);
-	}
 	.art-placeholder i {
 		font-size: 24px;
 	}
@@ -235,9 +241,14 @@
 		gap: 8px;
 		min-width: 0;
 	}
-	@container (min-width: 580px) {
+	@container (min-width: 570px) {
 		.deck-list {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	@container (min-width: 880px) {
+		.deck-list {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
 	}
 	@media (min-width: 1150px) {
