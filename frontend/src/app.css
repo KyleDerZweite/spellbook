@@ -651,6 +651,7 @@ button:disabled {
 
 /* Local material for Dashboard boxes, separate from the page background. */
 .dashboard-surface {
+	border: 1px solid transparent;
 	--color-chart-mana-white: #e5d39a;
 	--color-chart-mana-blue: #639fe8;
 	--color-chart-mana-black: #343238;

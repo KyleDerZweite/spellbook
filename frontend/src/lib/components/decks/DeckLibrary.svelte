@@ -892,13 +892,15 @@
 		min-width: 0;
 		box-sizing: border-box;
 		padding: 0.75rem;
+		border: 1px solid var(--color-border);
 		border-radius: 0.75rem;
-		background: transparent;
+		background: var(--color-surface);
 		color: var(--color-text-primary);
 		text-decoration: none;
 	}
-	.library-card:hover {
-		background: var(--color-surface);
+	.library-card:hover,
+	.library-card:focus-visible {
+		border-color: var(--color-accent);
 	}
 	.library-card:focus-visible {
 		outline: 2px solid var(--color-primary);

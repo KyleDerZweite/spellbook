@@ -139,14 +139,13 @@
 		padding: 16px;
 		position: relative;
 		overflow: hidden;
-		border: 1px solid var(--color-border);
 		border-radius: 10px;
 		color: var(--color-text-primary);
 		text-align: left;
 		text-decoration: none;
 	}
 	.metric-card:hover {
-		border-color: var(--color-text-muted);
+		--color-card: var(--color-surface);
 	}
 	.metric-card:focus-visible {
 		outline: 2px solid var(--color-violet);

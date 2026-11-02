@@ -198,7 +198,8 @@ The Deck grid uses three columns when its content has room, two at intermediate 
 Each tile places its name at the upper left and its format in a compact tag at the upper right.
 Larger genuine Commander frames sit directly beside the availability ring; center counts fit wholly inside its hole.
 Exact, alternate and missing values remain available through chart inspection, without a persistent missing-count caption.
-Deck tiles use the shared quiet surfaces without individual card outlines; the enclosing panel retains its existing boundary.
+Individual Deck tiles keep their quiet outlines and keyboard focus states.
+The large Dashboard metric and analysis boxes use card surfaces without visible outer lines; this shared treatment preserves their geometry and excludes nested Deck tiles and controls.
 The format tag includes the Mana Font Commander symbol when the actual format is Commander.
 Card-type labels in Dashboard charts, Search filters and Deck groups share the existing Mana Font type symbols.
 Set data retains real Set symbols rather than substituting unrelated decorative icons.
@@ -207,7 +208,7 @@ Deck previews use larger actual Commander artwork or an honest unavailable-art p
 The lower panels are 480px high on wide screens; the Deck list scrolls natively, and narrow screens show its natural height.
 At narrow widths all panels follow that same reading order.
 The follow-up removes decorative foreground icons from metric cards and panel headings.
-Use left-aligned figures, small charts at the right, restrained card borders and consistent panel heights.
+Use left-aligned figures, small charts at the right, quiet card surfaces and consistent panel heights.
 Adopt the supplied box interiors through subtle card-local neutral depth and faint product-relevant object artwork, without adding a page background or changing navigation.
 The Deck metric uses a thick stack of card backs, distinct from the individual cards on the Inventory metric.
 The Dashboard has no subtitle; Add actions share a decorative Plus icon and retain their text labels.
@@ -650,7 +651,7 @@ Kyle's further feedback on 2026-10-31 selects softer shared graphite surfaces, c
 Keep the existing logo, fonts, navigation and accessible text contrast; color belongs mainly to card artwork, meaningful Mana symbols and data series.
 The subsequent 2026-11-01 correction restores an artwork-led Deck Library grid.
 Use real framed card artwork with Deck name, format/count/edited metadata in responsive tiles.
-Deck Library tiles keep quiet, borderless surfaces; pointer hover and keyboard focus still identify the actionable Deck.
+Deck Library tiles retain their quiet outlines, surfaces, hover and keyboard-focus states.
 The search toolbar retains Inventory-style Filter and Sort controls.
 Keep existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
 The Category Library now leads with saved categories and visible starter names, separates Cards in decks from Whole decks, and opens authoring through New category.
