@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
@@ -108,27 +108,29 @@ The optional `colorIdentity` filter accepts every color-identity subset of its s
 `C` alone accepts only empty identities; adding `C` to a colored palette does not change the matches.
 An omitted filter or empty array applies no restriction.
 Both color filters combine with AND when supplied together.
-Browser Search uses a separate structured `colorMatch` filter with `field: color | identity`, `any` and `all` color arrays.
-A color cycles Off, OR, AND, then Off.
-The OR colors form one optional disjunction; every AND color must also match.
-An empty OR group adds no restriction, and empty OR/AND arrays leave colors unfiltered.
+Browser Search uses a separate structured `colorMatch` filter with `field: color | identity`, `any`, `all` and optional `not` color arrays.
+A color cycles Off, OR, AND, NOT, then Off.
+The OR colors form one optional disjunction; every AND color must also match, and every NOT color must be absent.
+An empty OR group adds no restriction; colors are unfiltered only when all three groups are empty.
+An omitted `not` group is empty, preserving existing API requests; NOT-only filters are valid.
 For example, OR White/Blue and AND Black means `(White OR Blue) AND Black`.
 Matching requires the selected colors to be present and permits additional colors.
 `color` examines printed colors, while `identity` examines the stored color identity.
 Colorless means an empty color set; colorless AND a colored requirement correctly has no matches.
-Each array accepts at most six known colors, and a color cannot occur in both groups.
+Each array accepts at most six known colors, and a color cannot occur in more than one group.
 Identity matching enumerates the at most 32 valid masks for the existing indexed projection.
 This new filter combines with the other supplied Catalog filters using AND.
 Existing `colors` and `colorIdentity` API palette contracts remain available to their other consumers.
 
-Browser URLs store OR selections in repeated `color` parameters, AND selections in `colorAnd`, and the selected field in `colorMode`.
+Browser URLs store OR selections in repeated `color` parameters, AND selections in `colorAnd`, NOT selections in `colorNot`, and the selected field in `colorMode`.
 The default field is Color.
 Browser AND-only selections also supply the existing `colors` or `colorIdentity` palette filter for the selected field, so the combination matches exactly its selected colors.
 OR-only and mixed expressions do not add a palette restriction.
 This presentation policy does not change the independent Catalog API contracts above.
 Mode and selections survive browser history, reload, Search overlay navigation and the bounded result-cache context.
 Switching fields preserves the selected colors and resets the result range like other filter changes.
-Native Search exposes equivalent labelled OR/AND controls.
+Native Search exposes equivalent labelled OR/AND/NOT controls.
+Contradictory browser parameters use NOT before AND before OR; the API rejects overlapping groups.
 The deck editor's separate catalog search does not apply this browser palette.
 
 Migration `0019_catalog_color_identity.sql` derives a stored nullable five-bit `color_identity_mask` from the already-ingested document and indexes generation plus mask.
