@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { Collapsible } from 'bits-ui';
 	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import type { FacetResponse } from '#lib/search/types.ts';
@@ -20,14 +21,6 @@
 	let rarityOpen = $state(true);
 	let typesOpen = $state(false);
 	let legalityOpen = $state(false);
-	const orColors = $derived(MANA_COLORS.filter((color) => filters.colorAny.has(color.id)));
-	const andColors = $derived(MANA_COLORS.filter((color) => filters.colorAll.has(color.id)));
-	const expressionText = $derived(
-		[
-			...(orColors.length ? [`(${orColors.map((color) => color.label).join(' OR ')})`] : []),
-			...andColors.map((color) => color.label)
-		].join(' AND ') || 'Any color'
-	);
 </script>
 
 {#snippet groupLabel(label: string, open: boolean, selected: number)}
@@ -63,7 +56,11 @@
 			{@render groupLabel('Colors', colorsOpen, filters.selectedColors.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
-			<p id={descriptionId} class="sr-only">Click to cycle OR, AND, then off.</p>
+			<p id={descriptionId} class="sr-only">
+				{filters.colorCycleLocked
+					? 'Click to cycle OR, AND, NOT. Colorless also cycles off. Clear filters to reset colors.'
+					: 'Click to cycle OR, AND, NOT, then off. A second color filter sets remaining WUBRG colors to NOT. Colorless stays unchanged.'}
+			</p>
 			<div
 				class="filter-colors"
 				role="group"
@@ -71,17 +68,19 @@
 				aria-describedby={descriptionId}
 			>
 				{#each MANA_COLORS as color}
-					{@const logic = filters.colorAll.has(color.id)
-						? 'AND'
-						: filters.colorAny.has(color.id)
-							? 'OR'
-							: 'off'}
+					{@const logic = filters.colorNot.has(color.id)
+						? 'NOT'
+						: filters.colorAll.has(color.id)
+							? 'AND'
+							: filters.colorAny.has(color.id)
+								? 'OR'
+								: 'off'}
 					<button
 						type="button"
 						onclick={() => filters.toggleColor(color.id)}
 						class="filter-color"
 						data-logic={logic}
-						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : 'off'}`}
+						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : logic === 'AND' ? 'NOT' : color.id !== 'C' && filters.colorCycleLocked ? 'OR' : 'off'}`}
 						title={`${color.label}: ${logic}`}
 						aria-pressed={logic !== 'off'}
 					>
@@ -102,9 +101,6 @@
 					>
 				{/each}
 			</fieldset>
-			<span class="sr-only" role="status" aria-label="Color filter expression"
-				>{expressionText}</span
-			>
 		</Collapsible.Content>
 	</Collapsible.Root>
 	<Collapsible.Root bind:open={rarityOpen}>
@@ -136,15 +132,17 @@
 		<Collapsible.Content>
 			<div class="filter-options filter-option-grid">
 				{#each CARD_TYPES as type}
+					{@const symbol = cardTypeSymbol(type.id)}
 					<button
 						type="button"
 						class="filter-option"
 						onclick={() => filters.toggleType(type.id)}
 						aria-pressed={filters.selectedTypes.has(type.id)}
 					>
-						<span class="selection-mark" aria-hidden="true"></span><span class="option-label"
-							>{type.label}</span
-						>
+						<span class="selection-mark" aria-hidden="true"></span>{#if symbol}<i
+								class={`type-symbol ms ms-${symbol}`}
+								aria-hidden="true"
+							></i>{/if}<span class="option-label">{type.label}</span>
 					</button>
 				{/each}
 			</div>
@@ -258,6 +256,19 @@
 		outline: 1px solid var(--color-text-primary);
 		outline-offset: 3px;
 	}
+	.filter-color[data-logic='NOT'] i {
+		outline: 1px solid var(--color-error);
+		outline-offset: 3px;
+	}
+	.filter-color[data-logic='NOT'] i::after {
+		content: '';
+		position: absolute;
+		width: 26px;
+		height: 2px;
+		background: var(--color-error);
+		transform: rotate(-45deg);
+		border-radius: 1px;
+	}
 	.filter-colors {
 		display: grid;
 		grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -276,6 +287,7 @@
 		cursor: pointer;
 	}
 	.filter-color i {
+		position: relative;
 		display: grid;
 		width: 30px;
 		height: 30px;
@@ -316,6 +328,12 @@
 		font-size: 12px;
 		text-align: left;
 		cursor: pointer;
+	}
+	.type-symbol {
+		width: 16px;
+		flex: none;
+		font-size: 14px;
+		text-align: center;
 	}
 	.option-label {
 		white-space: nowrap;

@@ -4,12 +4,6 @@ import type { CatalogApplication } from '@spellbook/contracts/catalog.ts';
 import type { InventoryApplication } from '@spellbook/contracts/inventory.ts';
 import type { InventoryValueApplication } from '@spellbook/contracts/inventory-value.ts';
 import type { DecksApplication } from '@spellbook/contracts/decks.ts';
-import type { CategoriesApplication } from '@spellbook/contracts/categories.ts';
-import type {
-	CategoryChangesApplication,
-	CategoryLibraryApplication
-} from '@spellbook/contracts/category-library.ts';
-import type { WholeCategoriesApplication } from '@spellbook/contracts/whole-categories.ts';
 import type { ProfileApplication } from '@spellbook/contracts/profile.ts';
 import type { DashboardApplication } from '@spellbook/contracts/dashboard.ts';
 import type { WebCommandInputs, WebCommandOutputs } from '@spellbook/contracts/web.ts';
@@ -130,7 +124,6 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		DecksApplication,
 		| 'getDeck'
 		| 'getDeckLibrary'
-		| 'getDeckLibraryCategories'
 		| 'search'
 		| 'ownership'
 		| 'getDeckChoices'
@@ -143,6 +136,7 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		| 'addCatalogCardToDeck'
 		| 'changeDeckPrinting'
 		| 'importIntoDeck'
+		| 'importTextDeck'
 		| 'updateDeckCard'
 		| 'removeDeckCard'
 	>;
@@ -157,20 +151,7 @@ export function createRemoteApplication(client: () => RemoteClient) {
 				queryPath(`${base}/deck-library`, input, {
 					query: 'dirQ',
 					format: 'dirFormat',
-					categoryVersionIds: 'dirCategory',
-					sort: 'dirSort',
-					selectedVersionIds: 'selectedVersionId'
-				}),
-				{ domain: 'decks' }
-			),
-		getDeckLibraryCategories: (_actor, input) =>
-			client().request(
-				queryPath(`${base}/deck-library/categories`, input, {
-					query: 'dirQ',
-					format: 'dirFormat',
-					categoryVersionIds: 'dirCategory',
-					sort: 'dirSort',
-					selectedVersionIds: 'selectedVersionId'
+					sort: 'dirSort'
 				}),
 				{ domain: 'decks' }
 			),
@@ -201,8 +182,17 @@ export function createRemoteApplication(client: () => RemoteClient) {
 			>(queryPath(`${base}/decks/${id(deckId)}`, { selectedOnly: true }), { domain: 'decks' });
 			return { warnings, deckDocuments };
 		},
-		exportDecklist: (_actor, deckId) =>
-			client().request(`${base}/decks/${id(deckId)}/export`, { text: true, domain: 'decks' }),
+		exportDecklist: (_actor, deckId, format = 'arena') =>
+			client().request(queryPath(`${base}/decks/${id(deckId)}/export`, { format }), {
+				text: true,
+				domain: 'decks'
+			}),
+		importTextDeck: (_actor, input) =>
+			client().request(`${base}/decks/import/commit`, {
+				method: 'POST',
+				body: input,
+				domain: 'decks'
+			}),
 		previewMtgImport: (_actor, text, format = '') =>
 			client().request(`${base}/decks/import/preview`, {
 				method: 'POST',
@@ -212,128 +202,20 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		addCatalogCardToDeck: (_actor, input) => command('decks.addCatalogCard', input),
 		changeDeckPrinting: (_actor, input) => command('decks.changePrinting', input),
 		importIntoDeck: (_actor, input) => command('decks.importInto', input),
-		updateDeckCard: (
-			_actor,
-			entryId,
-			quantity,
-			role,
-			requestId,
-			delta,
-			source,
-			categoryPreview
-		) => {
+		updateDeckCard: (_actor, entryId, quantity, role, requestId, delta, source) => {
 			webSource(source);
 			return command('decks.updateCard', {
 				entryId,
 				requestId,
 				...(quantity === undefined ? {} : { quantity }),
 				...(role === undefined ? {} : { role }),
-				...(delta === undefined ? {} : { delta }),
-				...(categoryPreview === undefined ? {} : { categoryPreview })
+				...(delta === undefined ? {} : { delta })
 			});
 		},
 		removeDeckCard: (_actor, entryId, requestId, source) => {
 			webSource(source);
 			return command('decks.removeCard', { entryId, requestId });
 		}
-	};
-	const categories: CategoriesApplication &
-		CategoryChangesApplication &
-		CategoryLibraryApplication &
-		WholeCategoriesApplication = {
-		getDeckEntryCategories: (_actor, deckId) =>
-			client().request(`${base}/decks/${id(deckId)}/categories`, { domain: 'categories' }),
-		initializeDeckCategories: (_actor, { deckId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/categories/initialize`, {
-				method: 'POST',
-				body: input,
-				domain: 'categories'
-			}),
-		setEntryCategory: (_actor, { entryId, ...input }) =>
-			client().request(`${base}/deck-cards/${id(entryId)}/category`, {
-				method: 'PATCH',
-				body: input,
-				domain: 'categories'
-			}),
-		previewEntryMerge: (_actor, { deckId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/categories/merge-preview`, {
-				method: 'POST',
-				body: input,
-				domain: 'categories'
-			}),
-		renameLocalCategory: (_actor, { deckId, categoryId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/categories/${id(categoryId)}`, {
-				method: 'PATCH',
-				body: input,
-				domain: 'categories'
-			}),
-		removeLocalCategory: (_actor, { deckId, categoryId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/categories/${id(categoryId)}`, {
-				method: 'DELETE',
-				body: input,
-				domain: 'categories'
-			}),
-		previewCategoryChange: (_actor, { deckId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/category-previews`, {
-				method: 'POST',
-				body: input,
-				domain: 'categories'
-			}),
-		getCategoryPreview: (_actor, { previewId, ...input }) =>
-			client().request(queryPath(`${base}/category-previews/${id(previewId)}`, input), {
-				domain: 'categories'
-			}),
-		commitCategoryChange: (_actor, { previewId, ...input }) =>
-			client().request(`${base}/category-previews/${id(previewId)}/commit`, {
-				method: 'POST',
-				body: input,
-				domain: 'categories'
-			}),
-		getDefinition: (_actor, originId) =>
-			client().request(`${base}/category-definitions/${id(originId)}`, { domain: 'categories' }),
-		getRuleChoices: (_actor, input) =>
-			client().request(
-				queryPath(`${base}/category-rule-choices`, input, {
-					tagIds: 'tagId',
-					oracleIds: 'oracleId',
-					outcomeIds: 'outcomeId'
-				}),
-				{ domain: 'categories' }
-			),
-		getLibrary: (_actor, input) =>
-			client().request(queryPath(`${base}/category-definitions`, input), { domain: 'categories' }),
-		saveDefinition: (_actor, input) =>
-			client().request(`${base}/category-definitions`, {
-				method: 'POST',
-				body: input,
-				domain: 'categories'
-			}),
-		archiveDefinition: (_actor, { originId, ...input }) =>
-			client().request(`${base}/category-definitions/${id(originId)}/archive`, {
-				method: 'POST',
-				body: input,
-				domain: 'categories'
-			}),
-		getDeckWholeCategories: (_actor, deckId) =>
-			client().request(`${base}/decks/${id(deckId)}/whole-categories`, { domain: 'categories' }),
-		setWholeCategory: (_actor, { deckId, versionId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/whole-categories/${id(versionId)}`, {
-				method: 'PATCH',
-				body: input,
-				domain: 'categories'
-			}),
-		renameWholeCategory: (_actor, { deckId, versionId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/whole-categories/${id(versionId)}`, {
-				method: 'PATCH',
-				body: input,
-				domain: 'categories'
-			}),
-		removeWholeCategory: (_actor, { deckId, versionId, ...input }) =>
-			client().request(`${base}/decks/${id(deckId)}/whole-categories/${id(versionId)}`, {
-				method: 'DELETE',
-				body: input,
-				domain: 'categories'
-			})
 	};
 	const profile: ProfileApplication = {
 		get: () => client().request('/api/v1/account/profile'),
@@ -372,7 +254,7 @@ export function createRemoteApplication(client: () => RemoteClient) {
 				await client().request('/api/v1/auth/logout', { method: 'POST', token, bearer: true });
 		}
 	};
-	return { catalog, inventory, decks, categories, profile, dashboard, inventoryValues, auth };
+	return { catalog, inventory, decks, profile, dashboard, inventoryValues, auth };
 }
 
 function webSource(source: string | undefined) {

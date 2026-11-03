@@ -1,8 +1,6 @@
 import type {
 	DeckLibraryInput,
 	DeckLibraryPage,
-	DeckLibraryCategoryInput,
-	DeckLibraryCategories,
 	DeckLibraryLocation,
 	SelectedDeck
 } from './deck-library.ts';
@@ -54,6 +52,7 @@ export interface DeckAvailabilityResponse {
 	totals: DeckAvailability & { required: number };
 }
 export interface DeckSnapshot {
+	relatedTokens: import('./deck-tokens.ts').DeckRelatedTokens;
 	valueEstimates: DeckValueEstimates | null;
 	valuationError: { kind: 'PriceReadUnavailable'; message: string } | null;
 	decks: Deck[];
@@ -80,8 +79,6 @@ export interface DeckAcknowledgement {
 		role: string;
 	}[];
 	removedEntryIds: string[];
-	categoryDecisionRevision?: string;
-	categoryEntryIds?: string[];
 }
 export type DeckFailure =
 	| {
@@ -114,14 +111,13 @@ export type DeckOperation =
 			quantity: number;
 	  }
 	| { op: 'remove'; target: { entryId: string } }
-	| { op: 'move'; target: { entryId: string }; role: DeckRole; categoryPreview?: string }
+	| { op: 'move'; target: { entryId: string }; role: DeckRole }
 	| {
 			op: 'replace';
 			target: { entryId: string };
 			catalogCardId: string;
 			quantity: number;
 			role: DeckRole;
-			categoryPreview?: string;
 	  };
 export interface DeckBulkInput {
 	deckId: string;
@@ -130,7 +126,23 @@ export interface DeckBulkInput {
 	game: string;
 	operations: DeckOperation[];
 }
+export type DeckExchangeFormat = 'arena' | 'simple' | 'csv' | 'json';
+
+export interface PortableDeckV1 {
+	schema: 'spellbook.deck';
+	version: 1;
+	name: string;
+	format: string;
+	description: string;
+	cards: { catalogCardId: string; quantity: number; role: DeckRole }[];
+}
+
+export interface DeckImportPreview extends ImportPreview {
+	metadata: Pick<Deck, 'name' | 'format' | 'description'> | null;
+}
+
 export interface ImportLine {
+	catalogCardId?: string;
 	quantity: number;
 	name: string;
 	normalizedName: string;
@@ -157,10 +169,6 @@ export interface ImportPreview {
 export interface DecksApplication {
 	getDeck(actor: AuthUser, deckId: string): Promise<SelectedDeck>;
 	getDeckLibrary(actor: AuthUser, input?: DeckLibraryInput): Promise<DeckLibraryPage>;
-	getDeckLibraryCategories(
-		actor: AuthUser,
-		input?: DeckLibraryCategoryInput
-	): Promise<DeckLibraryCategories>;
 	locateDeck(
 		actor: AuthUser,
 		deckId: string,
@@ -218,9 +226,12 @@ export interface DecksApplication {
 	getDeckLegality(
 		actor: AuthUser,
 		deckId: string
-	): Promise<{ warnings: LegalityWarning[]; deckDocuments: Record<string, CardDocument> }>;
-	exportDecklist(actor: AuthUser, deckId: string): Promise<string>;
-	previewMtgImport(actor: AuthUser, text: string, format?: string): Promise<ImportPreview>;
+	): Promise<{
+		warnings: LegalityWarning[];
+		deckDocuments: Record<string, CardDocument>;
+	}>;
+	exportDecklist(actor: AuthUser, deckId: string, format?: DeckExchangeFormat): Promise<string>;
+	previewMtgImport(actor: AuthUser, text: string, format?: string): Promise<DeckImportPreview>;
 	addCatalogCardToDeck(
 		actor: AuthUser,
 		input: {
@@ -239,7 +250,6 @@ export interface DecksApplication {
 			quantity: number;
 			role: string;
 			requestId: string;
-			categoryPreview?: string;
 		}
 	): Promise<DeckAcknowledgement>;
 	importIntoDeck(
@@ -265,8 +275,7 @@ export interface DecksApplication {
 		role: string | undefined,
 		requestId: string,
 		delta?: number,
-		source?: string,
-		categoryPreview?: string
+		source?: string
 	): Promise<DeckAcknowledgement>;
 	removeDeckCard(
 		actor: AuthUser,

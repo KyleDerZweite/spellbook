@@ -1,4 +1,4 @@
-"""One process owns private history and durable Category jobs, with graceful stop."""
+"""One process owns private history, with graceful stop."""
 
 import argparse
 import asyncio
@@ -15,12 +15,10 @@ from psycopg import AsyncConnection
 from psycopg.conninfo import conninfo_to_dict
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.auth import create_session_auth
-from spellbook_core.mtg.categories import configure_combo_adapter
 from spellbook_core.mtg.inventory_value import create_inventory_values
 from spellbook_core.mtg.valuation import create_valuation
 from spellbook_core.validation import js_trim
 
-from spellbook_state.categories import WholeDeckCategoryRunner
 from spellbook_state.value_history import create_value_history_runner
 
 
@@ -29,7 +27,6 @@ class Configuration:
     database_url: str = field(repr=False)
     value_history_enabled: bool = True
     value_history_timezone: str = "Europe/Berlin"
-    commander_spellbook_enabled: bool = False
     demo_mode: bool = False
 
     def __post_init__(self) -> None:
@@ -49,11 +46,8 @@ class Configuration:
     @classmethod
     def from_environment(cls, env: Mapping[str, str]) -> Configuration:
         enabled = env.get("VALUE_HISTORY_ENABLED", "true")
-        combo = env.get("COMMANDER_SPELLBOOK_ENABLED", "false")
         if enabled not in {"true", "false"}:
             raise ValueError("VALUE_HISTORY_ENABLED must be true or false")
-        if combo not in {"true", "false"}:
-            raise ValueError("COMMANDER_SPELLBOOK_ENABLED must be true or false")
         demo = env.get("DEMO_MODE", "false")
         if demo not in {"true", "false"}:
             raise ValueError("DEMO_MODE must be true or false")
@@ -61,7 +55,6 @@ class Configuration:
             env.get("DATABASE_URL", ""),
             enabled == "true",
             env.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
-            combo == "true",
             demo == "true",
         )
 
@@ -77,7 +70,6 @@ class StateResources:
             timeout=2.0,
             kwargs={"connect_timeout": 2, "application_name": "spellbook-state-worker"},
         )
-        configure_combo_adapter(self.pool, configuration.commander_spellbook_enabled)
         self.auth = create_session_auth(self.pool)
         self.valuation = create_valuation(
             self.pool,
@@ -89,7 +81,6 @@ class StateResources:
             self.pool, self.valuation, timezone=configuration.value_history_timezone
         )
         self.history = create_value_history_runner(self.pool, self.values)
-        self.categories = WholeDeckCategoryRunner(self.pool)
         self._history_enabled = configuration.value_history_enabled
         self._started = False
         self._closing = False
@@ -104,20 +95,13 @@ class StateResources:
         async with self.pool.connection(timeout=2.0):
             pass
         self._started = True
-        self.categories.start()
         if self._history_enabled:
             self.history.start()
 
     async def _close(self) -> None:
         self._closing = True
         try:
-            # Stop both schedulers and join all transaction cleanup before pool close.
-            results = await asyncio.gather(
-                self.categories.close(), self.history.close(), return_exceptions=True
-            )
-            for result in results:
-                if isinstance(result, BaseException):
-                    raise result
+            await self.history.close()
         finally:
             await self.pool.close()
 
@@ -161,7 +145,7 @@ class Parser(argparse.ArgumentParser):
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = Parser(description="Run ValueHistory and WholeDeckCategory schedulers.")
+    parser = Parser(description="Run the ValueHistory scheduler.")
     parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
     try:

@@ -1,3 +1,4 @@
+import { browserColorFilters } from './color-filters.ts';
 import { getContext, setContext } from 'svelte';
 import { CatalogWindow, type CatalogWindowSnapshot, type CatalogRange } from './catalogWindow.ts';
 import { SearchFilterState } from './filters.svelte.ts';
@@ -78,6 +79,10 @@ export class SearchSession {
 	hydrate(input: SearchInput): void {
 		input = {
 			...input,
+			filters: {
+				...input.filters,
+				...browserColorFilters(input.filters.colorMatch ?? { field: 'color', any: [], all: [] })
+			},
 			pagination: input.pagination
 				? normalizeLazyBrowsePagination(input.pagination)
 				: initialPagination()
@@ -92,6 +97,7 @@ export class SearchSession {
 		this.pagination = input.pagination!;
 		this.filters.colorAny = new Set(input.filters.colorMatch?.any);
 		this.filters.colorAll = new Set(input.filters.colorMatch?.all);
+		this.filters.colorNot = new Set(input.filters.colorMatch?.not);
 		this.filters.colorField = input.filters.colorMatch?.field ?? 'color';
 		this.filters.selectedRarities = new Set(input.filters.rarities);
 		this.filters.selectedTypes = new Set(input.filters.types);

@@ -6,6 +6,7 @@ import type {
 	ManaColor,
 	Rarity
 } from './types.ts';
+import { browserColorFilters, completeColorMatch } from './color-filters.ts';
 
 /**
  * Reactive filter state for card search.
@@ -16,18 +17,29 @@ export class SearchFilterState {
 
 	colorAny: Set<ManaColor> = $state(new Set());
 	colorAll: Set<ManaColor> = $state(new Set());
+	colorNot: Set<ManaColor> = $state(new Set());
 	colorField: ColorMatch['field'] = $state('color');
 
 	get selectedColors(): Set<ManaColor> {
-		return new Set([...this.colorAny, ...this.colorAll]);
+		return new Set([...this.colorAny, ...this.colorAll, ...this.colorNot]);
 	}
+	get colorCycleLocked(): boolean {
+		const selected = this.selectedColors;
+		return (['W', 'U', 'B', 'R', 'G'] as const).every((color) => selected.has(color));
+	}
+
 	selectedRarities: Set<Rarity> = $state(new Set());
 	selectedTypes: Set<CardType> = $state(new Set());
 	selectedLegalities: Set<LegalityFormat> = $state(new Set());
 
 	get catalogFilters(): CatalogFilters {
 		return {
-			colorMatch: { field: this.colorField, any: [...this.colorAny], all: [...this.colorAll] },
+			...browserColorFilters({
+				field: this.colorField,
+				any: [...this.colorAny],
+				all: [...this.colorAll],
+				...(this.colorNot.size ? { not: [...this.colorNot] } : {})
+			}),
 			rarities: [...this.selectedRarities],
 			types: [...this.selectedTypes],
 			legalities: [...this.selectedLegalities]
@@ -36,20 +48,36 @@ export class SearchFilterState {
 
 	toggleColor(color: ManaColor): void {
 		const any = new Set(this.colorAny),
-			all = new Set(this.colorAll);
-		if (all.has(color)) all.delete(color);
-		else if (any.has(color)) {
+			all = new Set(this.colorAll),
+			not = new Set(this.colorNot);
+		if (not.has(color)) {
+			not.delete(color);
+			if (color !== 'C' && this.colorCycleLocked) any.add(color);
+		} else if (all.has(color)) {
+			all.delete(color);
+			not.add(color);
+		} else if (any.has(color)) {
 			any.delete(color);
 			all.add(color);
 		} else any.add(color);
-		this.colorAny = any;
-		this.colorAll = all;
+		const completed = completeColorMatch({
+			field: this.colorField,
+			any: [...any],
+			all: [...all],
+			not: [...not]
+		});
+		this.colorAny = new Set(completed.any);
+		this.colorAll = new Set(completed.all);
+		this.colorNot = new Set(completed.not);
 		this.changed();
 	}
 
 	removeColor(color: ManaColor): void {
+		const locked = this.colorCycleLocked;
 		this.colorAny = new Set([...this.colorAny].filter((value) => value !== color));
 		this.colorAll = new Set([...this.colorAll].filter((value) => value !== color));
+		this.colorNot = new Set([...this.colorNot].filter((value) => value !== color));
+		if (color !== 'C' && locked) this.colorNot = new Set([...this.colorNot, color]);
 		this.changed();
 	}
 
@@ -95,6 +123,7 @@ export class SearchFilterState {
 	clear(): void {
 		this.colorAny = new Set();
 		this.colorAll = new Set();
+		this.colorNot = new Set();
 		this.selectedRarities = new Set();
 		this.selectedTypes = new Set();
 		this.selectedLegalities = new Set();

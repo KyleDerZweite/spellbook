@@ -7,9 +7,9 @@ export type * from './valuation.ts';
 export type * from './decks.ts';
 export type * from './saved-state.ts';
 
-export type * from './categories.ts';
-export type * from './category-library.ts';
 export type * from './scan.ts';
 export type * from './inventory-value.ts';
 export type * from './deck-library.ts';
 export type * from './web.ts';
+
+export type * from './deck-tokens.ts';

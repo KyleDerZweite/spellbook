@@ -27,11 +27,11 @@ export function parseColorMatch(value: unknown): ColorMatch {
 		throw new ValidationError('colorMatch must be an object');
 	const match = value as Record<string, unknown>;
 	if (
-		Object.keys(match).some((key) => !['field', 'any', 'all'].includes(key)) ||
+		Object.keys(match).some((key) => !['field', 'any', 'all', 'not'].includes(key)) ||
 		(match.field !== 'color' && match.field !== 'identity')
 	)
 		throw new ValidationError('Invalid colorMatch field');
-	const colors = (key: 'any' | 'all'): ManaColor[] => {
+	const colors = (key: 'any' | 'all' | 'not'): ManaColor[] => {
 		const values = match[key];
 		if (
 			!Array.isArray(values) ||
@@ -43,9 +43,17 @@ export function parseColorMatch(value: unknown): ColorMatch {
 	};
 	const any = colors('any'),
 		all = colors('all');
+	const not = match.not === undefined ? [] : colors('not');
 	if (any.some((color) => all.includes(color)))
 		throw new ValidationError('A color cannot be both OR and AND');
-	return { field: match.field, any, all };
+	if (not.some((color) => any.includes(color) || all.includes(color)))
+		throw new ValidationError('A color cannot be both included and excluded');
+	return {
+		field: match.field,
+		any,
+		all,
+		...(match.not === undefined ? {} : { not })
+	};
 }
 
 export function parseCatalogSearchRequest(value: unknown): CatalogSearchInput {

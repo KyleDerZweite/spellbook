@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+from worker.tokens import related_tokens
+
 # Main card types (not supertypes like Legendary/Basic, not subtypes)
 CARD_TYPES = frozenset(
     {
@@ -43,7 +45,7 @@ MULTI_FACE_LAYOUTS = frozenset(
 )
 
 
-def transform_card(raw: dict) -> dict | None:
+def transform_card(raw: dict, token_index: dict[str, dict] | None = None) -> dict | None:
     """Transform a Scryfall card object into a flat catalog document.
 
     Returns None for non-game cards (tokens, art series, etc.)
@@ -69,6 +71,7 @@ def transform_card(raw: dict) -> dict | None:
     is_nonfoil_available = "nonfoil" in finishes
 
     doc = {
+        "related_tokens": related_tokens(raw, token_index),
         "id": card_id,
         "oracle_id": oracle_id,
         "name": raw.get("name", ""),
@@ -86,7 +89,7 @@ def transform_card(raw: dict) -> dict | None:
         "cmc": raw.get("cmc", 0.0),
         "type_line": raw.get("type_line", ""),
         "oracle_text": oracle_text,
-        "colors": raw.get("colors") or [],
+        "colors": _resolve_colors(raw),
         "color_identity": raw.get("color_identity") or [],
         "keywords": raw.get("keywords") or [],
         "power": raw.get("power"),
@@ -175,3 +178,27 @@ def _resolve_oracle_text(raw: dict, layout: str) -> str:
         if text:
             texts.append(text)
     return "\n\n".join(texts)
+
+
+def _resolve_colors(raw: dict) -> list[str]:
+    """Use explicit printed colors or complete face evidence, never color identity."""
+
+    def validate(value: object) -> list[str]:
+        if not isinstance(value, list) or any(
+            not isinstance(color, str) or color not in ("W", "U", "B", "R", "G") for color in value
+        ):
+            raise ValueError("Catalog card has invalid printed colors")
+        return value
+
+    colors = raw.get("colors")
+    if colors is not None:
+        return validate(colors)
+    faces = raw.get("card_faces")
+    if not isinstance(faces, list) or not faces:
+        raise ValueError("Catalog card is missing printed color evidence")
+    combined: set[str] = set()
+    for face in faces:
+        if not isinstance(face, dict):
+            raise ValueError("Catalog card has invalid printed color evidence")
+        combined.update(validate(face.get("colors")))
+    return [color for color in ("W", "U", "B", "R", "G") if color in combined]

@@ -9,7 +9,7 @@
 		},
 		{
 			"id": "credential-unicode",
-			"password": "six\ud83d\udd2eastral\ud83d\udd2esymbols\ud83d\udd2e",
+			"password": "six🔮astral🔮symbols🔮",
 			"salt": "0123456789abcdef0123456789abcdef",
 			"hash": "scrypt$0123456789abcdef0123456789abcdef$ab6d7ba3e62d19af2b8d6cf6ac6cd3e05b0b582a2af720576ef594dfcfc52eb96bf7dc53743a5b751fbb2a04f4a7b61dd5bc0fca8670c36001d02ae2f385f964"
 		}
@@ -45,8 +45,8 @@
 		},
 		{
 			"id": "fingerprint-unicode",
-			"inputJson": "{\"text\":\"\u00e9 e\u0301 \ud83d\udd2e \\n\\t\\\"\\\\\",\"\\ud800\":\"lone\",\"\ue000\":1,\"\ud83d\ude00\":2}",
-			"serialized": "{\"text\":\"\u00e9 e\u0301 \ud83d\udd2e \\n\\t\\\"\\\\\",\"\\ud800\":\"lone\",\"\ud83d\ude00\":2,\"\ue000\":1}",
+			"inputJson": "{\"text\":\"é é 🔮 \\n\\t\\\"\\\\\",\"\\ud800\":\"lone\",\"\":1,\"😀\":2}",
+			"serialized": "{\"text\":\"é é 🔮 \\n\\t\\\"\\\\\",\"\\ud800\":\"lone\",\"😀\":2,\"\":1}",
 			"utf8Hex": "7b2274657874223a22c3a92065cc8120f09f94ae205c6e5c745c225c5c222c225c7564383030223a226c6f6e65222c22f09f9880223a322c22ee8080223a317d",
 			"sha256": "4dfec012f48ada3baeff9e8d7df03ef65601acb14852bb1349d29bf98625183d"
 		},
@@ -80,7 +80,7 @@
 				"kind": "NotesConflict",
 				"message": "Notes changed. Your draft has been retained. Review the latest saved Notes before retrying.",
 				"entryId": "11111111-1111-4111-8111-111111111111",
-				"notes": "\u00e9 \ud83d\udd2e",
+				"notes": "é 🔮",
 				"notesRevision": "9007199254740993",
 				"status": 409
 			}
@@ -122,59 +122,6 @@
 			"body": {
 				"kind": "RequestConflict",
 				"message": "Request ID was already used for a different mutation",
-				"status": 409
-			}
-		},
-		{
-			"id": "conflict-category",
-			"status": 409,
-			"body": {
-				"kind": "CategoryConflict",
-				"message": "Category decision changed. Review the latest saved decision.",
-				"latest": {
-					"deckId": "11111111-1111-4111-8111-111111111111",
-					"initialized": false,
-					"decisionRevision": "9007199254740993",
-					"definitions": [],
-					"decisions": [],
-					"sourceStatus": {
-						"kind": "NeverAttempted",
-						"sourceTime": null
-					}
-				},
-				"status": 409
-			}
-		},
-		{
-			"id": "conflict-merge",
-			"status": 409,
-			"body": {
-				"kind": "CategoryMergeConflict",
-				"message": "Review the destination category and resulting quantity before merging.",
-				"preview": {
-					"required": true,
-					"token": "sanitized-consequence",
-					"source": null,
-					"destination": null,
-					"destinationEntryId": null,
-					"resultingQuantity": 2,
-					"compositionRevision": "7",
-					"decisionRevision": "8",
-					"sourceTokens": {
-						"catalogGenerationId": null,
-						"oraclePublicationId": null,
-						"policy": "baseline"
-					}
-				},
-				"status": 409
-			}
-		},
-		{
-			"id": "conflict-library",
-			"status": 409,
-			"body": {
-				"kind": "RequestConflict",
-				"message": "Category Library changed. Read the latest Library and retry.",
 				"status": 409
 			}
 		},
@@ -282,8 +229,8 @@
 			"contentType": "application/x-www-form-urlencoded; charset=UTF-8",
 			"body": "username=%F0%9F%94%AE&password=%ZZ%FF",
 			"entries": [
-				["username", "\ud83d\udd2e"],
-				["password", "%ZZ\ufffd"]
+				["username", "🔮"],
+				["password", "%ZZ�"]
 			]
 		},
 		{
@@ -443,17 +390,17 @@
 	"text": [
 		{
 			"id": "text-password-utf16-min",
-			"value": "\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e",
+			"value": "🔮🔮🔮🔮🔮🔮",
 			"valid": true
 		},
 		{
 			"id": "text-password-utf16-max",
-			"value": "\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e",
+			"value": "🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮",
 			"valid": true
 		},
 		{
 			"id": "text-password-utf16-over",
-			"value": "\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e",
+			"value": "🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮🔮",
 			"valid": false
 		},
 		{

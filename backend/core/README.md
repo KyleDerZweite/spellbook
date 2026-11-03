@@ -1,12 +1,14 @@
 # Python application and SQL package
 
-`spellbook_core.mtg` owns MTG Catalog/Inventory/Deck/Category/Valuation/Dashboard/Scan behavior and their DTOs.
+`create_power_search(pool, auth)` owns the dedicated global reader and independently bounded Catalog, Inventory and Deck matches.
+It borrows the caller-owned pool and revalidates issued SessionAuth Actors for private scope.
+
+`spellbook_core.mtg` owns MTG Catalog/Inventory/Deck/Valuation/Dashboard/Scan behavior and their DTOs.
 Shared `spellbook_core` owns typed session authority, database and migration infrastructure, local credentials/sessions, passwords, QR authorization, SavedState and account preferences.
 MTG application modules retain the original receipt, transaction, read and valuation behavior.
 `create_local_auth(pool, passwords, demo_mode=False)` extends `SessionAuth` without changing its trusted Actor methods.
-`create_decks(pool, catalog, auth, valuation=None)` owns Deck CRUD, bounded Library/category/locate/choices reads, selected snapshots, ownership/search, legality, Arena import/export and entry mutations.
+`create_decks(pool, catalog, auth, valuation=None)` owns Deck CRUD, bounded Library/locate/choices reads, selected snapshots, ownership/search, legality, Arena import/export and entry mutations.
 `Decks` exposes the corresponding snake-case application methods, including `add_catalog_card_to_deck`, `change_deck_printing`, `import_into_deck`, `import_deck`, `update_deck_card` and `remove_deck_card` for the web command adapter.
-Its Category transaction uses the integrated initialization, merge-preview and whole-Deck job helpers, with Profile locking and live-session rechecks before receipt replay or writes.
 Original acknowledgements replay after subsequent edits and Deck deletion.
 Unsupported or malformed stored receipts raise a request conflict.
 The API's `create_deck_routes(auth, decks, origin)` supplies all nineteen adapters; shared host registration remains with the assembler.
@@ -14,7 +16,9 @@ The API's `create_deck_routes(auth, decks, origin)` supplies all nineteen adapte
 Root owns execution of those real PostgreSQL journeys.
 `create_profile(pool, auth, demo_mode=False)` owns Profile reads and atomic partial updates.
 `create_dashboard(pool, auth, values)` owns account aggregates and Deck availability in one repeatable-read snapshot, passing its transaction and PostgreSQL clock to `InventoryValues.current_in_transaction` and `history_in_transaction`.
-Scan and price failures use savepoint recovery while summary overflow remains a typed failure.
+The same read supplies quantity-weighted active-Catalog color, identity, rarity and exclusive primary-type distributions, with unmatched Printings in Unknown and real Set names.
+At most eight missing and eight alternate Canonical Card requirements reuse the Deck reader's exact-first allocation function and retain actual stored object identities.
+Catalog, Scan and price failures use savepoint recovery while summary overflow remains a typed failure.
 Password hashing and verification share the lifetime-owned executor and use the existing Node-compatible scrypt encoding.
 Core's `hash_password(password)` is synchronous for operator consumers; async callers use `PasswordVerifier.hash`.
 QR uses existing migration 0024 and preserves requester-channel separation, terminal retries, live-session fencing and one-use redemption.
@@ -32,7 +36,7 @@ Pytest verifies compatibility, receipts, authority, native derivation reservatio
 Native tests borrow the API dev environment for its Psycopg Pool dependency; Core does not acquire a pool dependency.
 Run the independent Core unit suite with `uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest`.
 SQL history, schema/data and Drizzle ownership remain unchanged.
-Inventory retains Profile FOR UPDATE followed by ordinary require_actor, without introducing Deck/Category's separate session FOR SHARE fence.
+Inventory retains Profile FOR UPDATE followed by ordinary require_actor, without introducing Deck's separate session FOR SHARE fence.
 
 API owns pool/executor/LISTEN/supervisor/barrier settlement.
 Core owns account subscriptions, generations/epochs, coalesced queues, authority reads and tracked fanout work.

@@ -28,6 +28,13 @@ export interface InventoryValueHistoryRequest {
 	finish?: PriceFinish;
 	condition?: HistoricalHoldingIdentity['condition'];
 }
+export interface InventoryHistoryTotals {
+	total: number;
+	names: number;
+	sets: number;
+	/** Null for observations captured before Deck totals were recorded. */
+	decks: number | null;
+}
 export type InventoryValueHistoryPoint =
 	| { kind: 'Gap'; day: string }
 	| {
@@ -38,6 +45,8 @@ export type InventoryValueHistoryPoint =
 			dayEnd: string;
 			observedAt: string;
 			estimate: ValueEstimate;
+			/** Account aggregate only; null for a Printing-filtered history. */
+			totals: InventoryHistoryTotals | null;
 	  };
 export interface InventoryValueHistory {
 	asOf: string;

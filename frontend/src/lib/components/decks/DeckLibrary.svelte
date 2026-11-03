@@ -4,7 +4,6 @@
 	import { page as route } from '$app/state';
 	import type {
 		DeckLibraryPage,
-		DeckLibraryCategories,
 		DeckLibraryItem,
 		DeckLibraryLocation
 	} from '@spellbook/contracts/deck-library.ts';
@@ -14,7 +13,6 @@
 		deckLibraryGeometry,
 		deckLibraryMountedRows,
 		readDeckLibraryJSON,
-		mergeDeckLibraryCategories,
 		deckLibraryTiles,
 		deckLibraryMeasurement,
 		DeckLibraryLocateAttempts,
@@ -30,14 +28,21 @@
 	import { nextLoadedRange } from '#lib/browsing/loadedSpan.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
+	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
+	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 
-	let {
-		page,
-		categories,
-		accountId
-	}: { page: DeckLibraryPage; categories: DeckLibraryCategories; accountId: string } = $props();
+	let { page, accountId }: { page: DeckLibraryPage; accountId: string } = $props();
+	const directoryFormId = $props.id();
+	let filterOpen = $state(false);
+	let selectedFormat = $state(untrack(() => page.query.format));
+	let selectedSort = $state(untrack(() => page.query.sort));
+	async function sortBy(sort: DeckLibraryPage['query']['sort']) {
+		selectedSort = sort;
+		await tick();
+		(document.getElementById(directoryFormId) as HTMLFormElement | null)?.requestSubmit();
+	}
 	let version = $state(0),
 		enhanced = $state(false),
 		terminal = $state(false);
@@ -46,10 +51,6 @@
 		visibleTop = $state(0),
 		viewportHeight = $state(0),
 		focused = $state<{ index: number; item: DeckLibraryItem; revision: string } | null>(null);
-	let categoryPage = $state(untrack(() => categories));
-	let categoryError = $state('');
-	let categorySelection = $state(untrack(() => [...page.query.categoryVersionIds]));
-	let retainedOptions = $state<DeckLibraryCategories['items']>([]);
 	let subscription: ResourceSubscription | undefined = $state();
 	const heights = new Map<string, number>();
 	let anchor: {
@@ -99,17 +100,14 @@
 		return library.span;
 	});
 	const columns = $derived(
-		width > 0 ? (width <= 420 ? 2 : Math.max(1, Math.floor((width + 24) / 204))) : 1
+		width >= 330 && width < 464 ? 2 : Math.max(1, Math.floor((width + 24) / 244))
 	);
-	const tileWidth = $derived(width <= 420 ? (width - 24) / 2 : 180);
+	const tileWidth = $derived(width > 0 ? (width - (columns - 1) * 24) / columns : 220);
+	const estimatedHeight = $derived(((tileWidth - 26) * 680) / 488 + 160);
 	const geometry = $derived.by(() => {
 		version;
-		return deckLibraryGeometry(
-			span,
-			columns,
-			Math.max(140, (tileWidth * 680) / 488 + 94),
-			heights,
-			(index) => library.at(index)
+		return deckLibraryGeometry(span, columns, estimatedHeight, heights, (index) =>
+			library.at(index)
 		);
 	});
 	const rows = $derived(
@@ -214,9 +212,6 @@
 			library.retain(fresh.item);
 		}
 	}
-	const options = $derived(
-		mergeDeckLibraryCategories(categoryPage, retainedOptions, categorySelection)
-	);
 	$effect(() => {
 		const seed = page,
 			account = accountId;
@@ -229,9 +224,8 @@
 			focusError = '';
 			heights.clear();
 			library.seed(account, seed);
-			categoryPage = categories;
-			categorySelection = [...seed.query.categoryVersionIds];
-			retainedOptions = [];
+			selectedFormat = seed.query.format;
+			selectedSort = seed.query.sort;
 			positioned = false;
 			if (enhanced) schedule();
 		});
@@ -498,11 +492,6 @@
 		url.searchParams.delete('flow');
 		return url.pathname + url.search;
 	}
-	function categoryHref(offset: number) {
-		const url = new URL(route.url.href);
-		url.searchParams.set('dirCategoryOffset', String(offset));
-		return url.pathname + url.search;
-	}
 	function pageHref(offset: number) {
 		const url = new URL(route.url.href);
 		url.searchParams.set('dirPage', String(Math.floor(offset / 200) + 1));
@@ -514,51 +503,12 @@
 		const form = event.currentTarget as HTMLFormElement;
 		const values = new FormData(form),
 			url = new URL(route.url.href);
-		for (const key of [
-			'dirQ',
-			'dirFormat',
-			'dirSort',
-			'dirCategory',
-			'dirPage',
-			'dirCategoryOffset'
-		])
-			url.searchParams.delete(key);
+		for (const key of ['dirQ', 'dirFormat', 'dirSort', 'dirPage']) url.searchParams.delete(key);
 		for (const [key, value] of values)
 			if (key !== 'q' && typeof value === 'string' && value) url.searchParams.append(key, value);
 		url.searchParams.set('dirPage', '1');
+		filterOpen = false;
 		await goto(url);
-	}
-	async function readCategories(offset: number, signal: AbortSignal, currentLease: () => boolean) {
-		const page = library.current;
-		if (!page) return;
-		const value = await library.read(
-			async (signal, owned) =>
-				readDeckLibraryJSON<DeckLibraryCategories | { kind: 'RevisionChanged'; revision: string }>(
-					`/api/v1/mtg/deck-library/categories?${deckLibraryParams(page.query, offset, 200, page.revision)}`,
-					signal,
-					() => owned() && alive && !terminal,
-					() => workspaceSavedState.expire()
-				),
-			signal,
-			currentLease
-		);
-		if (value && 'kind' in value)
-			throw new Error('Deck Library changed while loading category options. Try again.');
-		if (value && currentLease()) {
-			retainedOptions = options.filter((item) => categorySelection.includes(item.versionId));
-			categoryPage = value;
-			categoryError = '';
-		}
-	}
-	async function categoryNext(offset: number) {
-		const controller = new AbortController(),
-			identity = library.identity;
-		const owned = () => alive && !terminal && identity === library.identity;
-		try {
-			await readCategories(offset, controller.signal, owned);
-		} catch {
-			if (owned()) categoryError = 'Category options could not be loaded. Try again.';
-		}
 	}
 	onMount(() => {
 		alive = true;
@@ -574,10 +524,6 @@
 			clear: () => {
 				terminal = true;
 				library.clear();
-				categoryPage = { ...categoryPage, items: [], selected: [] };
-				retainedOptions = [];
-				categorySelection = [];
-				categoryError = '';
 				positionError = '';
 				focusError = '';
 				locateAttempts.clear();
@@ -591,7 +537,6 @@
 					lease.current() && alive && !terminal && accountId === account && page.queryKey === query;
 				await library.refresh(current);
 				if (current() && library.error) throw new Error(library.error);
-				if (current()) await readCategories(categoryPage.offset, lease.signal, current);
 			}
 		});
 		schedule();
@@ -608,72 +553,96 @@
 
 <SavedStateStatus resource={subscription} />
 {#if !terminal}
-	<form class="directory-controls" method="GET" onsubmit={filter}>
+	<form id={directoryFormId} class="directory-controls" method="GET" onsubmit={filter}>
 		{#if route.url.searchParams.get('q')}<input
 				type="hidden"
 				name="q"
 				value={route.url.searchParams.get('q') ?? ''}
 			/>{/if}
-		<label>Deck name <input name="dirQ" value={page.query.query} maxlength="200" /></label>
-		<label
-			>Format <select name="dirFormat" value={page.query.format}
+		<div class="directory-search">
+			<svg
+				aria-hidden="true"
+				width="17"
+				height="17"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.5"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></svg
+			>
+			<input
+				class="input"
+				type="search"
+				aria-label="Search decks"
+				placeholder="Search decks"
+				name="dirQ"
+				value={page.query.query}
+				maxlength="200"
+			/>
+		</div>
+		{#if enhanced}<input type="hidden" name="dirFormat" value={selectedFormat} />{/if}
+		{#if enhanced}
+			<input type="hidden" name="dirSort" value={selectedSort} />
+			<FilterPopover bind:open={filterOpen} active={!!selectedFormat} label="Filter decks">
+				{@render filterChoices()}
+				<Button type="submit" form={directoryFormId} variant="secondary">Apply filters</Button>
+			</FilterPopover>
+			<ActionMenu
+				label="Sort decks"
+				variant="toolbar"
+				items={[
+					{ label: 'Recently edited', onSelect: () => void sortBy('updated:desc') },
+					{ label: 'Name A to Z', onSelect: () => void sortBy('name:asc') },
+					{ label: 'Name Z to A', onSelect: () => void sortBy('name:desc') }
+				]}
+			>
+				{#snippet trigger()}<svg
+						aria-hidden="true"
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.6"
+						stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
+					>Sort{/snippet}
+			</ActionMenu>
+		{:else}
+			<details class="directory-filters">
+				<summary>Filter</summary>{@render filterChoices()}
+			</details>
+			<label
+				>Sort <select name="dirSort" value={page.query.sort}
+					><option value="updated:desc">Recently edited</option><option value="name:asc"
+						>Name A to Z</option
+					><option value="name:desc">Name Z to A</option></select
+				></label
+			>
+			<Button variant="secondary" type="submit">Search</Button>
+		{/if}
+		<p class="directory-total">
+			{current.matchingTotal.toLocaleString()}{#if current.matchingTotal !== current.globalTotal}
+				of {current.globalTotal.toLocaleString()}{/if} decks
+		</p>
+	</form>
+	{#snippet filterChoices()}
+		<label class="format-filter"
+			>Format <select
+				class="input"
+				aria-label="Format"
+				name={enhanced ? undefined : 'dirFormat'}
+				bind:value={selectedFormat}
 				><option value="">All formats</option
 				>{#each ['Commander', 'Standard', 'Modern', 'Pioneer', 'Legacy', 'Vintage', 'Pauper', 'Brawl', 'Casual'] as format}<option
 						value={format}>{format}</option
 					>{/each}</select
 			></label
 		>
-		<label
-			>Sort <select name="dirSort" value={page.query.sort}
-				><option value="updated:desc">Recently edited</option><option value="name:asc"
-					>Name A to Z</option
-				><option value="name:desc">Name Z to A</option></select
-			></label
-		>
-		<label
-			>Categories <select
-				name="dirCategory"
-				multiple
-				bind:value={categorySelection}
-				aria-describedby="category-filter-help"
-				>{#each options as option}<option value={option.versionId}
-						>{option.name} · v{option.version}{option.historical ? ' · historical' : ''} ({option.count})</option
-					>{/each}</select
-			></label
-		>
-		<Button class="directory-action" type="submit">Apply filters</Button>
-	</form>
-	<p id="category-filter-help" class="muted">
-		Selected categories match any version. Historical versions keep their saved meaning.
-	</p>
-	{#if categorySelection.length}<details class="category-meanings">
-			<summary>Selected category meanings</summary
-			>{#each options.filter((item) => categorySelection.includes(item.versionId)) as option}<p>
-					<strong>{option.name}</strong> · v{option.version}{option.historical
-						? ' · historical'
-						: ''}. {option.meaning}
-				</p>{/each}
-		</details>{/if}
-	{#if categoryPage.total > 200}<div class="category-options">
-			{#if enhanced}{#if categoryPage.offset > 0}<Button
-						class="directory-action"
-						onclick={() => categoryNext(Math.max(0, categoryPage.offset - 200))}
-						>Earlier categories</Button
-					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<Button
-						class="directory-action"
-						onclick={() => categoryNext(categoryPage.offset + 200)}>More categories</Button
-					>{/if}{:else}{#if categoryPage.offset > 0}<a
-						href={categoryHref(Math.max(0, categoryPage.offset - 200))}>Earlier categories</a
-					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<a
-						href={categoryHref(categoryPage.offset + 200)}>More categories</a
-					>{/if}{/if}
-		</div>{/if}
-	{#if categoryError}<p role="alert">{categoryError}</p>{/if}
+	{/snippet}
+
 	{#if positionError || focusError}<p role="alert">
 			{focusError || positionError}
 			<Button class="directory-action" onclick={retryPosition}>Retry position</Button>
 		</p>{/if}
-	<p class="directory-total">{current.matchingTotal} of {current.globalTotal} decks</p>
 	{#if enhanced && library.error}<p role="alert">
 			{library.error}
 			<Button class="directory-action" onclick={() => library.retry()}>Retry</Button>
@@ -714,32 +683,41 @@
 				});
 			}}
 		>
-			{#if item.imageUri}<img src={item.imageUri} alt="" loading="lazy" />{:else}<div
-					class="library-placeholder"
+			<div class="library-cover">
+				{#if item.imageUri}<img
+						src={item.imageUri}
+						alt=""
+						loading="lazy"
+						width="488"
+						height="680"
+					/>{:else}<div class="library-placeholder" aria-hidden="true">
+						<svg
+							aria-hidden="true"
+							width="40"
+							height="40"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.4"
+							><rect x="7" y="3" width="13" height="18" rx="2" /><path
+								d="m4 6-2 1 3 15 11-2"
+							/></svg
+						>
+					</div>{/if}
+			</div>
+			<div class="deck-name">
+				<strong>{item.name}</strong>
+			</div>
+			<span class="deck-format"
+				><i
+					class={`ms ms-${item.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
 					aria-hidden="true"
-				>
-					<svg
-						aria-hidden="true"
-						width="40"
-						height="40"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.4"
-						><rect x="7" y="3" width="13" height="18" rx="2" /><path d="m4 6-2 1 3 15 11-2" /></svg
-					>
-				</div>{/if}
-			<strong>{item.name}</strong><span>{item.format} · {item.quantity} cards</span><small
+				></i>{item.format}</span
+			>
+			<span class="deck-quantity">{item.quantity.toLocaleString()}<span>{' '}cards</span></span>
+			<small class="deck-edited"
 				>Edited {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
 			>
-			{#if item.categories.length}<span class="category-badges"
-					>{#each item.categories as category}<small
-							title={category.historical ? 'Historical saved version' : ''}
-							>{category.name}{category.historical ? ' · historical' : ''}</small
-						>{/each}{#if item.remainingCategoryCount}<small
-							>+{item.remainingCategoryCount} categories</small
-						>{/if}</span
-				>{/if}
 		</a>
 	{/snippet}
 	<div
@@ -755,7 +733,7 @@
 						style:top={`${geometry.offsets[Math.floor(entry.index / columns) - geometry.base] ?? 0}px`}
 						style:left={`${(entry.index % columns) * (tileWidth + 24)}px`}
 						style:width={`${tileWidth}px`}
-						style:min-height={`${Math.max(140, (tileWidth * 680) / 488 + 94)}px`}
+						style:min-height={`${estimatedHeight}px`}
 						aria-label="Loading Deck"
 					></div>{/if}
 			{/each}{:else}{#each page.items as item, index (item.id)}{@render tile(
@@ -777,85 +755,126 @@
 <style>
 	.deck-library {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(0, 180px));
-		gap: 1.5rem;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+		gap: 24px;
+		margin-top: 1rem;
 	}
 	.library-card {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+		min-width: 0;
+		box-sizing: border-box;
+		padding: 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.75rem;
+		background: var(--color-surface);
 		color: var(--color-text-primary);
 		text-decoration: none;
 	}
-	.library-card img,
+	.library-card:hover,
+	.library-card:focus-visible {
+		border-color: var(--color-accent);
+	}
+	.library-card:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 2px;
+	}
+	.library-card:hover strong {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.library-cover img,
 	.library-placeholder {
+		display: block;
 		width: 100%;
+		height: auto;
 		aspect-ratio: 488 / 680;
 		object-fit: contain;
-		border-radius: 0.6rem;
-		background: var(--color-stone);
+		border-radius: 0.5rem;
 	}
 	.library-placeholder {
 		display: grid;
 		place-items: center;
-		font-size: 3rem;
+		background: var(--color-stone);
 		color: var(--color-text-muted);
 	}
-	.library-card span,
-	.library-card small {
+	.deck-name {
+		min-width: 0;
+	}
+	.library-card strong {
+		font: 400 1.125rem/1.4 var(--font-display);
+		overflow-wrap: anywhere;
+	}
+	.deck-format,
+	.deck-quantity,
+	.deck-edited {
 		color: var(--color-text-secondary);
-		font-size: 0.8rem;
+		font-size: 0.75rem;
+		font-variant-numeric: tabular-nums;
 	}
-	.library-card:hover strong {
-		text-decoration: underline;
+	.deck-format {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		overflow-wrap: anywhere;
 	}
-
+	.deck-format .ms {
+		color: var(--color-role-commander);
+	}
+	.deck-edited {
+		color: var(--color-text-muted);
+		margin-top: auto;
+	}
+	.directory-controls {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.625rem;
+		margin-bottom: 0.25rem;
+		font-size: 0.75rem;
+	}
+	.directory-search {
+		position: relative;
+		flex: 1 1 16rem;
+		min-width: 0;
+	}
+	.directory-search svg {
+		position: absolute;
+		left: 0.8rem;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--color-text-muted);
+		pointer-events: none;
+	}
+	.directory-search input {
+		width: 100%;
+		padding-left: 2.4rem;
+	}
+	.directory-total {
+		color: var(--color-text-muted);
+		font-size: 0.75rem;
+		font-variant-numeric: tabular-nums;
+		margin: 0 0 0 0.5rem;
+	}
+	.format-filter {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 0.75rem;
+		font-size: 0.75rem;
+	}
+	.directory-filters > summary {
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		padding: 0.5rem;
+		cursor: pointer;
+	}
 	.empty-state {
 		padding: 3rem 1rem;
 		text-align: center;
 		color: var(--color-text-secondary);
-	}
-	@media (max-width: 420px) {
-		.deck-library {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-
-	.directory-controls {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1rem;
-		align-items: end;
-	}
-	.directory-controls label {
-		min-width: 0;
-		flex: 1 1 10rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		max-width: 100%;
-	}
-	.directory-controls input,
-	.directory-controls select {
-		max-width: 100%;
-		min-height: 44px;
-		padding: 0.65rem 0.75rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.5rem;
-		background: var(--color-surface);
-		color: var(--color-text-primary);
-		font: inherit;
-	}
-	.directory-controls input:focus-visible,
-	.directory-controls select:focus-visible {
-		outline: 2px solid var(--color-primary);
-		outline-offset: 2px;
-	}
-	.directory-controls select[multiple] {
-		width: 100%;
-		max-width: 100%;
-		min-width: 0;
-		min-height: 5rem;
 	}
 	.virtual {
 		display: block;
@@ -871,26 +890,17 @@
 		overflow: hidden;
 		clip-path: inset(100%);
 	}
-	.library-card strong,
-	.category-badges small {
-		overflow-wrap: anywhere;
-	}
-	.category-badges {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.3rem;
-	}
-	.category-badges small {
-		background: var(--color-stone);
-		border-radius: 0.25rem;
-		padding: 0.2rem 0.35rem;
-	}
 	.loading-tile {
-		border-radius: 0.6rem;
 		background: var(--color-stone);
+		border-radius: 0.375rem;
 	}
 	:global(.directory-action) {
 		min-height: 44px;
+	}
+	nav {
+		display: flex;
+		gap: 1rem;
+		margin-top: 1rem;
 	}
 	nav a {
 		min-height: 44px;
@@ -898,9 +908,17 @@
 		align-items: center;
 		padding: 0.5rem;
 	}
-	nav {
-		display: flex;
-		gap: 1rem;
-		margin-top: 1rem;
+	@media (max-width: 900px) {
+		.directory-search {
+			flex-basis: 100%;
+		}
+		.directory-total {
+			margin-left: auto;
+		}
+	}
+	@media (min-width: 362px) and (max-width: 495px) {
+		.deck-library {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 </style>

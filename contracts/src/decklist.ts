@@ -41,6 +41,7 @@ export function parseArenaDecklist(text: string): ParsedDecklist {
 	const merged = new Map<string, ParsedDecklistLine>();
 	const malformed: MalformedDecklistLine[] = [];
 	let role: ParsedDecklistRole = 'main';
+	let about = false;
 
 	for (const rawLine of text.split(/\r?\n/)) {
 		const raw = rawLine.trim();
@@ -48,8 +49,14 @@ export function parseArenaDecklist(text: string): ParsedDecklist {
 			continue;
 		}
 
+		if (raw === 'About') {
+			about = true;
+			continue;
+		}
+		if (about && raw.startsWith('Name ')) continue;
 		const headerRole = SECTION_ROLES[raw.toLowerCase()];
 		if (headerRole) {
+			about = false;
 			role = headerRole;
 			continue;
 		}

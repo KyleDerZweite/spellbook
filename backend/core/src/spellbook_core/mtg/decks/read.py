@@ -2,12 +2,14 @@
 
 import asyncio
 from datetime import datetime
+from typing import Literal, cast
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool, Transaction, iso_timestamp, transaction
 from spellbook_core.errors import ValidationError
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.catalog_tokens import read_transaction_token_facts
 from spellbook_core.mtg.decks.common import (
     aggregate_quantity,
     deck_dto,
@@ -17,6 +19,7 @@ from spellbook_core.mtg.decks.common import (
     require_deck,
     rows,
 )
+from spellbook_core.mtg.decks.exchange import export_deck
 from spellbook_core.mtg.decks.models import (
     DeckCard,
     DeckLegality,
@@ -27,9 +30,9 @@ from spellbook_core.mtg.decks.models import (
 from spellbook_core.mtg.decks.rules import (
     allocate_deck_availability,
     canonical_quantities,
-    format_arena_decklist,
     legality_warnings,
 )
+from spellbook_core.mtg.decks.tokens import related_tokens
 from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.mtg.inventory_value import estimate_holdings, pair_key
 from spellbook_core.mtg.models import CardDocument
@@ -51,7 +54,7 @@ async def owned(tx: Transaction, account: str, canonical_ids: list[str]) -> list
             """SELECT catalog_card_id,canonical_card_id,sum(quantity)::text AS quantity
         FROM inventory_cards WHERE account_id=%s AND game='mtg' AND
             canonical_card_id=ANY(%s::text[])
-        GROUP BY catalog_card_id,canonical_card_id""",
+        GROUP BY catalog_card_id,canonical_card_id ORDER BY catalog_card_id,canonical_card_id""",
             (account, canonical_ids),
         )
     ]
@@ -153,6 +156,12 @@ class DeckReads:
                     failure = dict(kind=error.kind, message=str(error))
                 await tx.execute("RELEASE SAVEPOINT deck_value_summary")
             return DeckSnapshot(
+                relatedTokens=related_tokens(
+                    cards,
+                    await read_transaction_token_facts(
+                        tx, [card["catalogCardId"] for card in cards]
+                    ),
+                ),
                 decks=[deck_dto(d) for d in user_decks],
                 deckTotals={s["deck_id"]: aggregate_quantity(s["quantity"]) for s in summaries},
                 deckCovers={s["deck_id"]: dict(imageUri=s["image_uri"]) for s in summaries},
@@ -239,10 +248,14 @@ class DeckReads:
             deckDocuments=documents,
         )
 
-    async def export_decklist(self, actor: Actor, deck_id: str) -> str:
-        cards = await self.get_deck_cards_for_deck(actor, deck_id)
-        try:
-            documents = await self._resolve(cards)
-        except Exception:
-            documents = {}
-        return format_arena_decklist(cards, documents)
+    async def export_decklist(self, actor: Actor, deck_id: str, format: str = "arena") -> str:
+        if format not in ("arena", "simple", "csv", "json"):
+            raise ValidationError("Unsupported Deck export format")
+        account = (await self.auth.require_actor(actor)).account_id
+        async with transaction(self.pool, read_only=True, repeatable_read=True) as tx:
+            deck = await require_deck(tx, account, deck_id)
+            cards = await read_cards(tx, account, deck_id)
+        documents = await self._resolve(cards) if format == "arena" else {}
+        return export_deck(
+            deck, cards, documents, cast(Literal["arena", "simple", "csv", "json"], format)
+        )

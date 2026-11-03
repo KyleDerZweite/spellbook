@@ -10,7 +10,6 @@ from http_helpers import application
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
-from spellbook_core.mtg.categories import CategoryMergeConflict, CategoryUnavailable
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.mtg.inventory import Inventory
@@ -104,9 +103,7 @@ def test_each_command_preserves_original_input_and_receipt(
     assert response.json() == receipt
     assert response.headers["cache-control"] == "no-store"
     if operation == "decks.updateCard":
-        handler.assert_awaited_once_with(
-            ACTOR, "entryId", None, None, "requestId", None, "web", None
-        )
+        handler.assert_awaited_once_with(ACTOR, "entryId", None, None, "requestId", None, "web")
     elif operation == "decks.removeCard":
         handler.assert_awaited_once_with(ACTOR, "entryId", "requestId", "web")
     else:
@@ -239,11 +236,10 @@ OPTIONAL_INPUTS: list[tuple[str, str, dict[str, object]]] = [
         "patch_entry",
         dict(quantity=0, delta=-2.5, notes="", notesRevision="8"),
     ),
-    ("decks.changePrinting", "change_deck_printing", dict(categoryPreview="preview")),
     (
         "decks.updateCard",
         "update_deck_card",
-        dict(quantity=0, delta=-2.5, role="", categoryPreview=""),
+        dict(quantity=0, delta=-2.5, role=""),
     ),
 ]
 
@@ -262,7 +258,7 @@ def test_optional_values_reach_core_without_normalization(
     response = client.post(PATH, json={"operation": operation, "input": value})
     assert response.status_code == 200
     if operation == "decks.updateCard":
-        handler.assert_awaited_once_with(ACTOR, "entryId", 0, "", "requestId", -2.5, "web", "")
+        handler.assert_awaited_once_with(ACTOR, "entryId", 0, "", "requestId", -2.5, "web")
     else:
         expected = {**value, "source": "web"} if operation.startswith("inventory.") else value
         handler.assert_awaited_once_with(ACTOR, expected)
@@ -301,12 +297,6 @@ def test_nonfinite_command_numbers_are_rejected(
     "cause,status,body",
     [
         (DeckNotFoundError(), 404, {"kind": "NotFound"}),
-        (
-            CategoryMergeConflict({"required": True}),
-            409,
-            {"kind": "CategoryMergeConflict", "preview": {"required": True}},
-        ),
-        (CategoryUnavailable(), 503, {"kind": "CategoryUnavailable"}),
         (RuntimeError("private database details"), 500, {}),
     ],
 )

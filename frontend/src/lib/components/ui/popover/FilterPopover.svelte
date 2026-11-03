@@ -8,6 +8,7 @@
 		active = false,
 		children,
 		label = 'Filters',
+		triggerLabel = 'Filter',
 		onOpenAutoFocus,
 		onCloseAutoFocus
 	}: {
@@ -15,6 +16,7 @@
 		active?: boolean;
 		children: Snippet;
 		label?: string;
+		triggerLabel?: string;
 		onOpenAutoFocus?: (event: Event) => void;
 		onCloseAutoFocus?: (event: Event) => void;
 	} = $props();
@@ -33,7 +35,7 @@
 			stroke-linecap="round"
 			stroke-linejoin="round"><path d="M4 4h16l-6 7v7l-4 2v-9z" /></svg
 		>
-		Filter
+		{triggerLabel}
 	</Popover.Trigger>
 	<Popover.Portal>
 		<Popover.Content

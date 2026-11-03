@@ -59,9 +59,8 @@ def publish_demo_catalog(client: Client, bundle: DemoBundle) -> None:
     ).fetchone()
     if existing:
         counts = client.execute(
-            """SELECT (SELECT count(*) FROM catalog_printings WHERE generation_id=%s) printings,
-               (SELECT count(*) FROM catalog_oracle_facts WHERE generation_id=%s) facts""",
-            (generation, generation),
+            """SELECT count(*) AS printings FROM catalog_printings WHERE generation_id=%s""",
+            (generation,),
         ).fetchone()
         if (
             existing["source_type"] != "demo-bundle"
@@ -70,7 +69,6 @@ def publish_demo_catalog(client: Client, bundle: DemoBundle) -> None:
             or existing["schema_version"] != manifest.transform_version
             or counts is None
             or counts["printings"] != manifest.documents
-            or counts["facts"] != manifest.documents
         ):
             raise OperatorError("Existing Demo Catalog generation is inconsistent.")
         for _batch in bundle.batches():
@@ -97,14 +95,6 @@ def publish_demo_catalog(client: Client, bundle: DemoBundle) -> None:
                    collector_number text,rarity text,cmc double precision,colors text[],
                    card_types text[],legalities jsonb)""",
                 (generation, Jsonb(batch)),
-            )
-            client.execute(
-                """INSERT INTO catalog_oracle_facts
-                   (generation_id,printing_id,raw_oracle_id,types,transform_version)
-                   SELECT %s,(r.document->>'id')::uuid,r.raw_oracle_id,r.types,%s
-                   FROM jsonb_to_recordset(%s::jsonb)
-                   r(document jsonb,raw_oracle_id uuid,types text[])""",
-                (generation, manifest.transform_version, Jsonb(batch)),
             )
         client.execute(
             "UPDATE catalog_generations SET published_at=now() WHERE id=%s", (generation,)
@@ -176,17 +166,23 @@ def seed_demo(
     precon: Precon,
     *,
     reset: bool = False,
+    dashboard_scenario: bool = False,
     timezone: str = "Europe/Berlin",
 ) -> Record:
+    from .demo_dashboard import seed_dashboard
     from .demo_history import seed_demo_history
 
     with _client(url) as client:
         try:
             with client.transaction():
                 client.execute("SELECT pg_advisory_xact_lock(hashtext('spellbook-demo-seed'))")
-                users = client.execute("SELECT account_id,username FROM user_profiles").fetchall()
+                users = client.execute(
+                    "SELECT account_id,username FROM user_profiles LIMIT 2"
+                ).fetchall()
                 if not reset and (len(users) > 1 or any(u["username"] != "demo" for u in users)):
                     raise OperatorError("Database contains other users.")
+                if dashboard_scenario and users and not reset:
+                    return seed_dashboard(client)
                 publish_demo_catalog(client, bundle)
                 if reset:
                     client.execute("DELETE FROM user_profiles")
@@ -218,6 +214,8 @@ def seed_demo(
                 client.execute("SELECT id FROM inventories WHERE id=%s FOR UPDATE", (inventory,))
                 insert_precon(client, account, inventory, precon)
                 seed_demo_history(client, account, precon, timezone)
+                if dashboard_scenario:
+                    return seed_dashboard(client)
         except OperatorError, psycopg.Error, ValueError, OSError:
             raise OperatorError("Demo seed failed; transaction rolled back.") from None
     return {"status": "seeded", "message": "Demo ready. Username: demo. Password: demo."}

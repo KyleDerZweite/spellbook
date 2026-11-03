@@ -10,12 +10,14 @@
 		header,
 		triggerRef = $bindable(null),
 		iconOnly = false,
+		variant = 'default',
 		class: className = '',
 		onCloseAutoFocus
 	}: {
 		label: string;
 		items: Array<{
 			label: string;
+			icon?: Snippet;
 			onSelect?: () => void;
 			href?: string;
 			download?: boolean;
@@ -26,6 +28,7 @@
 		header?: Snippet;
 		triggerRef?: HTMLButtonElement | null;
 		iconOnly?: boolean;
+		variant?: 'default' | 'toolbar';
 		class?: string;
 		onCloseAutoFocus?: (event: Event) => void;
 	} = $props();
@@ -34,7 +37,15 @@
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger
 		bind:ref={triggerRef}
-		class={['btn', iconOnly ? 'btn-ghost btn-icon' : 'btn-secondary', className]}
+		class={[
+			'btn',
+			iconOnly
+				? 'btn-ghost btn-icon'
+				: variant === 'toolbar'
+					? 'btn-ghost menu-trigger-toolbar'
+					: 'btn-secondary',
+			className
+		]}
 		aria-label={label}
 	>
 		{#if trigger}{@render trigger()}{:else if iconOnly}<svg
@@ -88,10 +99,13 @@
 								<a
 									{...props}
 									href={item.disabled ? undefined : item.href}
-									download={item.download || undefined}>{item.label}</a
+									download={item.download || undefined}
+									>{#if item.icon}{@render item.icon()}{/if}{item.label}</a
 								>
 							{:else}
-								<div {...props}>{item.label}</div>
+								<div {...props}>
+									{#if item.icon}{@render item.icon()}{/if}{item.label}
+								</div>
 							{/if}
 						{/snippet}
 					</DropdownMenu.Item>
@@ -102,6 +116,12 @@
 </DropdownMenu.Root>
 
 <style>
+	:global(.menu-trigger-toolbar) {
+		padding-inline: 0.625rem;
+		font-size: 0.75rem;
+		border: 0;
+		background: transparent;
+	}
 	:global(.menu-scroll-viewport) {
 		max-height: calc(var(--bits-dropdown-menu-content-available-height) - 2px);
 	}

@@ -1,6 +1,6 @@
 """Deck DTOs and JSON operation boundaries shared by application and HTTP callers."""
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from spellbook_core.mtg.models import CardDocument
 
@@ -28,6 +28,13 @@ class CardIdentity(TypedDict):
     imageUri: str
 
 
+class AvailabilityRequirement(TypedDict):
+    id: str
+    catalogCardId: str
+    canonicalCardId: str
+    quantity: int
+
+
 class DeckCard(CardIdentity):
     id: str
     deckId: str
@@ -52,6 +59,7 @@ class Allocation(TypedDict):
 
 
 class DeckSnapshot(TypedDict):
+    relatedTokens: Document
     decks: list[Deck]
     deckTotals: dict[str, int]
     deckCovers: dict[str, dict[str, str]]
@@ -77,8 +85,6 @@ class DeckAcknowledgement(TypedDict):
     revision: str
     changes: list[Change]
     removedEntryIds: list[str]
-    categoryDecisionRevision: NotRequired[str]
-    categoryEntryIds: NotRequired[list[str]]
 
 
 class DeckChoice(TypedDict):

@@ -1,10 +1,10 @@
 # Catalog
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-11-02
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
-- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
+- Update Triggers: managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
 The Python API provides public read-only search and printing lookup through `/api/v1/mtg/catalog/search`, `/api/v1/mtg/catalog/cards/{oracleId}/printings` and `/api/v1/mtg/catalog/printings/{printingId}`.
@@ -32,8 +32,12 @@ It includes a versioned English Demo bundle; the Worker downloads its configured
 By default, that source is `all_cards`.
 Each catalog document stores card metadata and Scryfall image URLs.
 Spellbook does not copy these images into PostgreSQL or proxy them through the application.
+Printed colors preserve Scryfall's explicit top-level array, including a known colorless empty array.
+When that array is absent, the native transform combines complete face-defined color arrays in WUBRG order, independently of color identity.
+Missing or invalid color evidence fails publication instead of silently classifying the printing as colorless.
+This transform correction requires rebuilding and publishing a generation; restarting readers does not repair flattened documents already stored in an older generation.
 
-The versioned Demo Catalog bundle `catalog-default-en-20261007.jsonl.gz` contains 109,393 searchable English Printings and 34,948 Oracle IDs, including all 70 starter Printing IDs.
+The versioned Demo Catalog bundle `catalog-default-en-20261102.jsonl.gz` contains 109,393 searchable English Printings and 34,948 Oracle IDs, including all 70 starter Printing IDs.
 Its native builder uses the existing Worker transform and exclusions against the local default bulk export.
 The Demo publisher streams 500-record batches and writes native printing and Oracle-fact projections under the existing Catalog publisher advisory transaction lock.
 It activates only a completely validated generation, retains existing generations and leaves all Price state unchanged.
@@ -108,24 +112,34 @@ The optional `colorIdentity` filter accepts every color-identity subset of its s
 `C` alone accepts only empty identities; adding `C` to a colored palette does not change the matches.
 An omitted filter or empty array applies no restriction.
 Both color filters combine with AND when supplied together.
-Browser Search uses a separate structured `colorMatch` filter with `field: color | identity`, `any` and `all` color arrays.
-A color cycles Off, OR, AND, then Off.
-The OR colors form one optional disjunction; every AND color must also match.
-An empty OR group adds no restriction, and empty OR/AND arrays leave colors unfiltered.
+Browser Search uses a separate structured `colorMatch` filter with `field: color | identity`, `any`, `all` and optional `not` color arrays.
+Browser colors initially cycle Off, OR, AND, NOT, then Off.
+A second distinct filter completes unassigned WUBRG colors as NOT; the fully assigned chromatic palette cycles OR, AND, NOT without Off until cleared.
+Colorless stays unchanged, is never automatically excluded and retains its manual Off, OR, AND and NOT cycle.
+The OR colors form one optional disjunction; every AND color must also match, and every NOT color must be absent.
+An empty OR group adds no restriction; colors are unfiltered only when all three groups are empty.
+An omitted `not` group is empty, preserving existing API requests; NOT-only filters are valid.
 For example, OR White/Blue and AND Black means `(White OR Blue) AND Black`.
-Matching requires the selected colors to be present and permits additional colors.
+Positive OR/AND requirements match the presence of their colors and permit additional colors unless explicitly excluded.
 `color` examines printed colors, while `identity` examines the stored color identity.
 Colorless means an empty color set; colorless AND a colored requirement correctly has no matches.
-Each array accepts at most six known colors, and a color cannot occur in both groups.
+NOT Colorless requires a nonempty color set.
+Each array accepts at most six known colors, and a color cannot occur in more than one group.
 Identity matching enumerates the at most 32 valid masks for the existing indexed projection.
 This new filter combines with the other supplied Catalog filters using AND.
 Existing `colors` and `colorIdentity` API palette contracts remain available to their other consumers.
 
-Browser URLs store OR selections in repeated `color` parameters, AND selections in `colorAnd`, and the selected field in `colorMode`.
+Browser URLs store OR selections in repeated `color` parameters, AND selections in `colorAnd`, NOT selections in `colorNot`, and the selected field in `colorMode`.
 The default field is Color.
+The browser completes WUBRG in the explicit `colorMatch` groups when two distinct colors are filtered, including two exclusions, while preserving the chosen Colorless state.
+It does not add hidden `colors` or `colorIdentity` palette restrictions.
+The compact pill beside the result count represents the OR group, every AND requirement and each NOT exclusion with precedence-preserving parentheses.
+Colorless in that formula tests an empty selected field; NOT Colorless tests a nonempty field.
+This presentation policy does not change the independent Catalog API contracts above.
 Mode and selections survive browser history, reload, Search overlay navigation and the bounded result-cache context.
 Switching fields preserves the selected colors and resets the result range like other filter changes.
-Native Search exposes equivalent labelled OR/AND controls.
+Native Search exposes equivalent labelled OR/AND/NOT controls.
+Contradictory browser parameters use NOT before AND before OR; the API rejects overlapping groups.
 The deck editor's separate catalog search does not apply this browser palette.
 
 Migration `0019_catalog_color_identity.sql` derives a stored nullable five-bit `color_identity_mask` from the already-ingested document and indexes generation plus mask.
@@ -153,6 +167,29 @@ Public `GET /api/v1/mtg/catalog/search` supports the existing query and paginati
 `POST` on that route accepts structured filters and optional facets and name sorting.
 [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact field names, accepted values, defaults, and limits.
 Raw search-engine expressions are not accepted.
+
+## Global power-user search
+
+`GET /api/v1/mtg/power-search?query=TEXT` is a separate no-store read owned by `spellbook_core.mtg.power_search`.
+It accepts at most 300 UTF-16 query units and rejects NUL.
+Empty queries return empty sources with current account and generation context.
+The HTTP adapter selects the optional session; invalid explicit Bearer credentials return 401.
+Core revalidates issued Actor authority before account-owned queries in its read-only repeatable-read transaction.
+Client-supplied account identifiers never select private scope.
+
+The reader matches the complete active Catalog and independently matches all of the account's MTG Inventory and Deck records before limiting each source.
+It returns five canonical Catalog hits, five canonical Inventory aggregates, five Deck-name hits and five Deck-content aggregates by Deck and canonical identity.
+Inventory variants and Deck roles contribute to their respective quantities.
+Owned stored names remain searchable without a current Catalog record.
+Active Catalog aliases and rules can also match owned canonical identities without depending on the public top five.
+Deck joins constrain both account and game.
+The public query admits candidates through existing GIN full-text/trigram indexes before evaluating name relevance.
+Ranking uses case-insensitive name, word-prefix, joined-name, literal substring, trigram and rules matches, with similarity/proximity quality followed by deterministic name and identity ties.
+An exact card name focuses public results on that name; typo recovery does not fill existing literal/name-completion matches with unrelated cards.
+Only extracted alphanumeric tokens enter generated tsquery expressions; numeric tokens remain complete and disable fuzzy recovery.
+This is literal matching, not numeric or MTG rules reasoning.
+No ingestion, publication, schema or ordinary Catalog search behavior changes.
+Web owns destinations and local navigation aliases under the [selected implementation contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract).
 
 ## Browser result window
 
@@ -214,15 +251,6 @@ Scan candidate enrichment resolves authoritative metadata by printing ID through
 The [domain glossary](../../GLOSSARY.md) owns the distinction between canonical cards, printings, inventory entries, and deck entries.
 [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns catalog migration and recovery.
 
-## Internal category facts
-
-Catalog publication stores original validated `oracle_id`, printing UUID, available combined-face types and the Catalog transform version in `catalog_oracle_facts` within the same generation transaction.
-These rows prove internal source provenance for category evaluation.
-They add no authority flag to public CardDocument.
-Compatibility printing-ID fallback and old generations without proven extraction cannot establish a false Oracle Tag predicate.
-[Category rules](./category-rules.md#implemented-starter-entry-decisions) owns the batched fact reader and missing-fact policy.
-Oracle Tags has an independent current/previous publication lifecycle and no disposable Catalog foreign key.
-
 ## Baseline price correspondence
 
 Scryfall refresh now publishes Catalog metadata and its reference-price view atomically.
@@ -230,9 +258,3 @@ The recorded pair supports coherent operator recovery.
 Independent immutable price publications do not cascade with disposable Catalog generations.
 Catalog DTOs stay explicit; callers obtain prices/product links from the bounded [Valuation contract](./valuation.md#implemented-market-references).
 Demo Catalog publication alone establishes no price view.
-
-Catalog transform version 3 adds nullable raw keyword facts to the same generation publication as raw Oracle identity and types.
-Missing keyword arrays remain Unknown; an explicit empty array is known empty.
-Existing version 2 generations cannot establish keyword predicates.
-The paired price publication and price extractor version remain independent.
-[Category rules](./category-rules.md) owns rule evaluation.

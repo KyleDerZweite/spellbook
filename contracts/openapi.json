@@ -11,6 +11,57 @@
 		}
 	],
 	"paths": {
+		"/api/v1/mtg/power-search": {
+			"get": {
+				"summary": "Search public Catalog and optionally session-owned Inventory and Decks",
+				"description": "Independent source matching before limits. Query limit is 300 UTF-16 units. Responses use Cache-Control: no-store. Invalid explicit bearer credentials return 401. Account identifiers cannot select private scope.",
+				"security": [
+					{},
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "query",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"maxLength": 300
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Bounded context-specific matches",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PowerSearchResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid query"
+					},
+					"401": {
+						"description": "Invalid explicit bearer or revoked actor"
+					}
+				}
+			}
+		},
 		"/api/v1/mtg/prices": {
 			"get": {
 				"summary": "Read a public exact-finish EUR reference and supplied product links",
@@ -5099,20 +5150,6 @@
 						}
 					},
 					{
-						"name": "dirCategory",
-						"in": "query",
-						"schema": {
-							"type": "array",
-							"maxItems": 100,
-							"items": {
-								"type": "string",
-								"format": "uuid"
-							}
-						},
-						"style": "form",
-						"explode": true
-					},
-					{
 						"name": "dirSort",
 						"in": "query",
 						"schema": {
@@ -5145,152 +5182,6 @@
 							"type": "string",
 							"pattern": "^(0|[1-9][0-9]*)$"
 						}
-					}
-				]
-			}
-		},
-		"/api/v1/mtg/deck-library/categories": {
-			"get": {
-				"summary": "Read bounded immutable category versions and unique matching Deck counts",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/DeckLibraryCategories"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				},
-				"parameters": [
-					{
-						"name": "dirQ",
-						"in": "query",
-						"schema": {
-							"type": "string",
-							"maxLength": 200
-						}
-					},
-					{
-						"name": "dirFormat",
-						"in": "query",
-						"schema": {
-							"type": "string",
-							"maxLength": 100
-						}
-					},
-					{
-						"name": "dirCategory",
-						"in": "query",
-						"schema": {
-							"type": "array",
-							"maxItems": 100,
-							"items": {
-								"type": "string",
-								"format": "uuid"
-							}
-						},
-						"style": "form",
-						"explode": true
-					},
-					{
-						"name": "dirSort",
-						"in": "query",
-						"schema": {
-							"enum": ["updated:desc", "name:asc", "name:desc"],
-							"default": "updated:desc"
-						}
-					},
-					{
-						"name": "offset",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"minimum": 0
-						}
-					},
-					{
-						"name": "limit",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"minimum": 1,
-							"maximum": 200,
-							"default": 40
-						}
-					},
-					{
-						"name": "expectedRevision",
-						"in": "query",
-						"schema": {
-							"type": "string",
-							"pattern": "^(0|[1-9][0-9]*)$"
-						}
-					},
-					{
-						"name": "selectedVersionId",
-						"in": "query",
-						"schema": {
-							"type": "array",
-							"maxItems": 100,
-							"items": {
-								"type": "string",
-								"format": "uuid"
-							}
-						},
-						"style": "form",
-						"explode": true
 					}
 				]
 			}
@@ -5377,20 +5268,6 @@
 						}
 					},
 					{
-						"name": "dirCategory",
-						"in": "query",
-						"schema": {
-							"type": "array",
-							"maxItems": 100,
-							"items": {
-								"type": "string",
-								"format": "uuid"
-							}
-						},
-						"style": "form",
-						"explode": true
-					},
-					{
 						"name": "dirSort",
 						"in": "query",
 						"schema": {
@@ -5434,2438 +5311,6 @@
 						}
 					}
 				]
-			}
-		},
-		"/api/v1/mtg/decks/{deckId}/whole-categories": {
-			"parameters": [
-				{
-					"name": "deckId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"get": {
-				"summary": "Read version-bound whole-deck outcomes without initialization",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/DeckWholeCategories"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/decks/{deckId}/whole-categories/{versionId}": {
-			"parameters": [
-				{
-					"name": "deckId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				},
-				{
-					"name": "versionId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"patch": {
-				"summary": "Save Manual Include/Exclude or rename an adopted whole-deck local label",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"oneOf": [
-									{
-										"type": "object",
-										"properties": {
-											"requestId": {
-												"type": "string",
-												"format": "uuid"
-											},
-											"expectedDecisionRevision": {
-												"type": "string",
-												"pattern": "^(0|[1-9][0-9]*)$"
-											},
-											"manual": {
-												"enum": ["Include", "Exclude"]
-											}
-										},
-										"required": ["requestId", "expectedDecisionRevision", "manual"],
-										"additionalProperties": false
-									},
-									{
-										"type": "object",
-										"properties": {
-											"requestId": {
-												"type": "string",
-												"format": "uuid"
-											},
-											"expectedDecisionRevision": {
-												"type": "string",
-												"pattern": "^(0|[1-9][0-9]*)$"
-											},
-											"name": {
-												"type": "string",
-												"minLength": 1,
-												"maxLength": 128
-											}
-										},
-										"required": ["requestId", "expectedDecisionRevision", "name"],
-										"additionalProperties": false
-									}
-								]
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/WholeCategoryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"delete": {
-				"summary": "Suppress an origin including its historical adopted versions",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"format": "uuid"
-									},
-									"expectedDecisionRevision": {
-										"type": "string",
-										"pattern": "^(0|[1-9][0-9]*)$"
-									}
-								},
-								"required": ["requestId", "expectedDecisionRevision"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/WholeCategoryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/category-rule-choices": {
-			"get": {
-				"summary": "Search bounded source choices and look up selected identities",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryRuleChoices"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				},
-				"parameters": [
-					{
-						"name": "tagQuery",
-						"in": "query",
-						"schema": {
-							"type": "string",
-							"maxLength": 200
-						}
-					},
-					{
-						"name": "cardQuery",
-						"in": "query",
-						"schema": {
-							"type": "string",
-							"maxLength": 200
-						}
-					},
-					{
-						"name": "outcomeQuery",
-						"in": "query",
-						"schema": {
-							"type": "string",
-							"maxLength": 200
-						}
-					},
-					{
-						"name": "tagId",
-						"in": "query",
-						"style": "form",
-						"explode": true,
-						"schema": {
-							"type": "array",
-							"maxItems": 100,
-							"items": {
-								"type": "string",
-								"format": "uuid"
-							}
-						}
-					},
-					{
-						"name": "oracleId",
-						"in": "query",
-						"style": "form",
-						"explode": true,
-						"schema": {
-							"type": "array",
-							"maxItems": 100,
-							"items": {
-								"type": "string",
-								"format": "uuid"
-							}
-						}
-					},
-					{
-						"name": "outcomeId",
-						"in": "query",
-						"style": "form",
-						"explode": true,
-						"schema": {
-							"type": "array",
-							"maxItems": 100,
-							"items": {
-								"type": "string",
-								"pattern": "^[1-9][0-9]{0,19}$"
-							}
-						}
-					}
-				]
-			}
-		},
-		"/api/v1/mtg/category-definitions": {
-			"get": {
-				"summary": "Read bounded current scoped immutable definitions",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryLibraryPage"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				},
-				"parameters": [
-					{
-						"name": "scope",
-						"in": "query",
-						"schema": {
-							"enum": ["entry", "deck"]
-						}
-					},
-					{
-						"name": "offset",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"minimum": 0,
-							"default": 0
-						}
-					},
-					{
-						"name": "limit",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"minimum": 1,
-							"maximum": 100,
-							"default": 50
-						}
-					}
-				]
-			},
-			"post": {
-				"summary": "Publish an immutable reusable definition without changing older decks",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"oneOf": [
-									{
-										"type": "object",
-										"properties": {
-											"name": {
-												"type": "string",
-												"minLength": 1,
-												"maxLength": 128
-											},
-											"meaning": {
-												"type": "string",
-												"maxLength": 4000
-											},
-											"priority": {
-												"type": "integer",
-												"minimum": -2147483648,
-												"maximum": 2147483647
-											},
-											"displayOrder": {
-												"type": "integer",
-												"minimum": -2147483648,
-												"maximum": 2147483647
-											},
-											"roles": {
-												"type": "array",
-												"minItems": 1,
-												"maxItems": 4,
-												"uniqueItems": true,
-												"items": {
-													"enum": ["main", "sideboard", "commander", "companion"]
-												}
-											},
-											"rule": {
-												"$ref": "#/components/schemas/EntryRule"
-											},
-											"requestId": {
-												"type": "string",
-												"format": "uuid"
-											},
-											"originId": {
-												"anyOf": [
-													{
-														"type": "string",
-														"format": "uuid"
-													},
-													{
-														"type": "null"
-													}
-												]
-											},
-											"expectedLibraryRevision": {
-												"type": "string",
-												"pattern": "^(0|[1-9][0-9]*)$"
-											},
-											"scope": {
-												"const": "entry"
-											},
-											"confirmRetainedRule": {
-												"type": "boolean"
-											}
-										},
-										"required": [
-											"name",
-											"meaning",
-											"priority",
-											"displayOrder",
-											"roles",
-											"rule",
-											"requestId",
-											"originId",
-											"expectedLibraryRevision",
-											"scope",
-											"confirmRetainedRule"
-										],
-										"additionalProperties": false
-									},
-									{
-										"type": "object",
-										"properties": {
-											"name": {
-												"type": "string",
-												"minLength": 1,
-												"maxLength": 128
-											},
-											"meaning": {
-												"type": "string",
-												"maxLength": 4000
-											},
-											"priority": {
-												"type": "integer",
-												"minimum": -2147483648,
-												"maximum": 2147483647
-											},
-											"displayOrder": {
-												"type": "integer",
-												"minimum": -2147483648,
-												"maximum": 2147483647
-											},
-											"roles": {
-												"type": "array",
-												"minItems": 1,
-												"maxItems": 4,
-												"uniqueItems": true,
-												"items": {
-													"enum": ["main", "sideboard", "commander", "companion"]
-												}
-											},
-											"rule": {
-												"$ref": "#/components/schemas/DeckRule"
-											},
-											"requestId": {
-												"type": "string",
-												"format": "uuid"
-											},
-											"originId": {
-												"anyOf": [
-													{
-														"type": "string",
-														"format": "uuid"
-													},
-													{
-														"type": "null"
-													}
-												]
-											},
-											"expectedLibraryRevision": {
-												"type": "string",
-												"pattern": "^(0|[1-9][0-9]*)$"
-											},
-											"scope": {
-												"const": "deck"
-											},
-											"confirmRetainedRule": {
-												"type": "boolean"
-											}
-										},
-										"required": [
-											"name",
-											"meaning",
-											"priority",
-											"displayOrder",
-											"roles",
-											"rule",
-											"requestId",
-											"originId",
-											"expectedLibraryRevision",
-											"scope",
-											"confirmRetainedRule"
-										],
-										"additionalProperties": false
-									}
-								]
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/LibraryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/category-definitions/{originId}/archive": {
-			"parameters": [
-				{
-					"name": "originId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"post": {
-				"summary": "Archive or restore future adoption while retaining immutable older versions",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"format": "uuid"
-									},
-									"expectedLibraryRevision": {
-										"type": "string",
-										"pattern": "^(0|[1-9][0-9]*)$"
-									},
-									"archived": {
-										"type": "boolean"
-									}
-								},
-								"required": ["requestId", "expectedLibraryRevision", "archived"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/LibraryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/decks/{deckId}/categories/{categoryId}": {
-			"parameters": [
-				{
-					"name": "deckId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				},
-				{
-					"name": "categoryId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"patch": {
-				"summary": "Rename only the local label without moving assignments",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"format": "uuid"
-									},
-									"expectedDecisionRevision": {
-										"type": "string",
-										"pattern": "^(0|[1-9][0-9]*)$"
-									},
-									"name": {
-										"type": "string",
-										"minLength": 1,
-										"maxLength": 128
-									}
-								},
-								"required": ["requestId", "expectedDecisionRevision", "name"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"delete": {
-				"summary": "Atomically replace all-role decisions as Manual and suppress the removed origin",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"format": "uuid"
-									},
-									"expectedDecisionRevision": {
-										"type": "string",
-										"pattern": "^(0|[1-9][0-9]*)$"
-									},
-									"replacementCategoryId": {
-										"anyOf": [
-											{
-												"type": "string",
-												"format": "uuid"
-											},
-											{
-												"type": "null"
-											}
-										]
-									}
-								},
-								"required": ["requestId", "expectedDecisionRevision", "replacementCategoryId"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/decks/{deckId}/category-previews": {
-			"parameters": [
-				{
-					"name": "deckId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"post": {
-				"summary": "Persist the complete reviewed selected-scope plan with original fifteen-minute lease",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"format": "uuid"
-									},
-									"scope": {
-										"enum": ["entry", "deck"]
-									},
-									"mode": {
-										"enum": ["Review", "Reset"]
-									},
-									"restoreOriginIds": {
-										"type": "array",
-										"maxItems": 1000,
-										"uniqueItems": true,
-										"items": {
-											"type": "string",
-											"format": "uuid"
-										}
-									}
-								},
-								"required": ["requestId", "scope", "mode", "restoreOriginIds"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryPreview"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/category-previews/{previewId}": {
-			"parameters": [
-				{
-					"name": "previewId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"get": {
-				"summary": "Read stable relational consequence pages without decoding the full plan",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryPreview"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				},
-				"parameters": [
-					{
-						"name": "offset",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"minimum": 0,
-							"default": 0
-						}
-					},
-					{
-						"name": "limit",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"minimum": 1,
-							"maximum": 100,
-							"default": 50
-						}
-					}
-				]
-			}
-		},
-		"/api/v1/mtg/category-previews/{previewId}/commit": {
-			"parameters": [
-				{
-					"name": "previewId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"post": {
-				"summary": "Commit every server-owned consequence atomically after fresh session, expiry and source/revision checks; original replay survives cleanup and deletion",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"format": "uuid"
-									}
-								},
-								"required": ["requestId"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"oneOf": [
-										{
-											"$ref": "#/components/schemas/CategoryAcknowledgement"
-										},
-										{
-											"$ref": "#/components/schemas/WholeCategoryAcknowledgement"
-										}
-									]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Body exceeds 64 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/decks/{deckId}/categories": {
-			"parameters": [
-				{
-					"name": "deckId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"get": {
-				"summary": "Read immutable adopted entry categories without initializing",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/DeckEntryCategories"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned Deck, entry or category not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Stale decision or merge preview, or changed request intent",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryConflictResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/decks/{deckId}/categories/initialize": {
-			"parameters": [
-				{
-					"name": "deckId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"post": {
-				"summary": "Initialize existing Main entries once and replay the original acknowledgement",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"format": "uuid"
-									}
-								},
-								"required": ["requestId"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "A JSON object, at most 16 KiB. Unsupported fields return400."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned Deck, entry or category not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Stale decision or merge preview, or changed request intent",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryConflictResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "JSON body exceeds16 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/decks/{deckId}/categories/merge-preview": {
-			"parameters": [
-				{
-					"name": "deckId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"post": {
-				"summary": "Review complete destination decision before a conflicting merge",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"entryId": {
-										"type": "string"
-									},
-									"catalogCardId": {
-										"type": "string"
-									},
-									"role": {
-										"enum": ["main", "sideboard", "commander", "companion"]
-									},
-									"quantity": {
-										"type": "integer",
-										"minimum": 1,
-										"maximum": 2147483647
-									}
-								},
-								"required": ["entryId", "catalogCardId", "role", "quantity"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "A JSON object, at most 16 KiB. Unsupported fields return400."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryMergePreview"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned Deck, entry or category not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Stale decision or merge preview, or changed request intent",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryConflictResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "JSON body exceeds16 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/mtg/deck-cards/{entryId}/category": {
-			"parameters": [
-				{
-					"name": "entryId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"patch": {
-				"summary": "Save a Manual primary category, including deliberate Uncategorized",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"deckId": {
-										"type": "string"
-									},
-									"categoryId": {
-										"anyOf": [
-											{
-												"type": "string"
-											},
-											{
-												"type": "null"
-											}
-										]
-									},
-									"expectedDecisionRevision": {
-										"type": "string",
-										"pattern": "^(0|[1-9][0-9]*)$"
-									},
-									"requestId": {
-										"type": "string"
-									}
-								},
-								"required": ["deckId", "categoryId", "expectedDecisionRevision", "requestId"],
-								"additionalProperties": false
-							}
-						}
-					},
-					"description": "A JSON object, at most 16 KiB. Unsupported fields return400."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryAcknowledgement"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned Deck, entry or category not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Stale decision or merge preview, or changed request intent",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CategoryConflictResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "JSON body exceeds16 KiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
 			}
 		},
 		"/api/v1/mtg/decks/{deckId}/cards": {
@@ -8308,7 +5753,7 @@
 		},
 		"/api/v1/mtg/decks/import/preview": {
 			"post": {
-				"summary": "Preview an Arena deck import",
+				"summary": "Preview Arena text, simple text, Spellbook CSV or JSON v1",
 				"tags": ["mtg"],
 				"security": [
 					{
@@ -8335,7 +5780,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/InventoryImportPreviewResponse"
+									"$ref": "#/components/schemas/DeckImportPreviewResponse"
 								}
 							}
 						}
@@ -8405,7 +5850,7 @@
 		},
 		"/api/v1/mtg/decks/import/commit": {
 			"post": {
-				"summary": "Create a deck from resolved import lines",
+				"summary": "Create a complete Deck atomically; reject every malformed, unsupported, ambiguous or unavailable record",
 				"tags": ["mtg"],
 				"security": [
 					{
@@ -8523,7 +5968,7 @@
 				}
 			],
 			"get": {
-				"summary": "Export a deck as Arena text",
+				"summary": "Download Arena text, lossy simple text, Spellbook CSV or JSON v1",
 				"tags": ["mtg"],
 				"security": [
 					{
@@ -8535,11 +5980,22 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Arena decklist",
+						"description": "Portable Deck download. CSV and JSON preserve exact printing IDs and all roles; simple text loses roles and printing choices.",
 						"content": {
 							"text/plain": {
 								"schema": {
 									"type": "string"
+								}
+							},
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PortableDeckV1"
+								}
+							},
+							"text/csv": {
+								"schema": {
+									"type": "string",
+									"description": "UTF-8 RFC-style quoted CSV. Exact header name,format,description,catalogCardId,quantity,role. The first data row supplies Deck metadata; subsequent rows leave all three metadata fields empty or repeat identical values. One row with the three card fields empty represents an empty Deck."
 								}
 							}
 						}
@@ -8590,7 +6046,8 @@
 						"name": "format",
 						"in": "query",
 						"schema": {
-							"const": "arena",
+							"type": "string",
+							"enum": ["arena", "simple", "csv", "json"],
 							"default": "arena"
 						}
 					}
@@ -9475,127 +6932,6 @@
 				}
 			}
 		},
-		"/api/v1/mtg/category-definitions/{originId}": {
-			"parameters": [
-				{
-					"name": "originId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"get": {
-				"summary": "Read the owned current immutable definition",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"allOf": [
-										{
-											"$ref": "#/components/schemas/LibraryDefinition"
-										},
-										{
-											"type": "object",
-											"properties": {
-												"libraryRevision": {
-													"type": "string",
-													"pattern": "^(0|[1-9][0-9]*)$"
-												}
-											},
-											"required": ["libraryRevision"]
-										}
-									]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Owned definition, Deck or preview not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Changed intent, revisions, source publication or expired preview. Re-preview explicitly.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
 		"/api/v1/web/auth/login": {
 			"post": {
 				"summary": "Authenticate the original web login form",
@@ -10245,10 +7581,6 @@
 													"requestId": {
 														"type": "string",
 														"minLength": 1
-													},
-													"categoryPreview": {
-														"type": "string",
-														"maxLength": 12000
 													}
 												},
 												"required": ["entryId", "catalogCardId", "quantity", "role", "requestId"],
@@ -10283,10 +7615,6 @@
 													},
 													"delta": {
 														"type": "integer"
-													},
-													"categoryPreview": {
-														"type": "string",
-														"maxLength": 12000
 													}
 												},
 												"required": ["entryId", "requestId"],
@@ -10548,6 +7876,134 @@
 			}
 		},
 		"schemas": {
+			"PowerSearchCatalogHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "canonicalCardId", "catalogCardId", "name"],
+				"properties": {
+					"kind": {
+						"const": "catalog"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"catalogCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					}
+				}
+			},
+			"PowerSearchInventoryHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "canonicalCardId", "name", "quantity"],
+				"properties": {
+					"kind": {
+						"const": "inventory"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"minimum": 0
+					}
+				}
+			},
+			"PowerSearchDeckHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "deckId", "name", "format"],
+				"properties": {
+					"kind": {
+						"const": "deck"
+					},
+					"deckId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"format": {
+						"type": "string"
+					}
+				}
+			},
+			"PowerSearchDeckCardHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "deckId", "deckName", "canonicalCardId", "name", "quantity"],
+				"properties": {
+					"kind": {
+						"const": "deck-card"
+					},
+					"deckId": {
+						"type": "string"
+					},
+					"deckName": {
+						"type": "string"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"minimum": 0
+					}
+				}
+			},
+			"PowerSearchResponse": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["query", "accountId", "generationId", "cards", "inventory", "decks"],
+				"properties": {
+					"query": {
+						"type": "string"
+					},
+					"accountId": {
+						"type": ["string", "null"]
+					},
+					"generationId": {
+						"type": ["string", "null"]
+					},
+					"cards": {
+						"type": "array",
+						"maxItems": 5,
+						"items": {
+							"$ref": "#/components/schemas/PowerSearchCatalogHit"
+						}
+					},
+					"inventory": {
+						"type": "array",
+						"maxItems": 5,
+						"items": {
+							"$ref": "#/components/schemas/PowerSearchInventoryHit"
+						}
+					},
+					"decks": {
+						"type": "array",
+						"maxItems": 10,
+						"items": {
+							"oneOf": [
+								{
+									"$ref": "#/components/schemas/PowerSearchDeckHit"
+								},
+								{
+									"$ref": "#/components/schemas/PowerSearchDeckCardHit"
+								}
+							]
+						}
+					}
+				}
+			},
 			"QrCreateRequest": {
 				"type": "object",
 				"properties": {
@@ -11100,9 +8556,37 @@
 					},
 					"missing": {
 						"type": "integer"
+					},
+					"commanders": {
+						"type": "array",
+						"maxItems": 2,
+						"items": {
+							"type": "object",
+							"properties": {
+								"catalogCardId": {
+									"type": "string"
+								},
+								"name": {
+									"type": "string"
+								},
+								"imageUri": {
+									"type": "string"
+								}
+							},
+							"required": ["catalogCardId", "name", "imageUri"]
+						}
 					}
 				},
-				"required": ["id", "name", "format", "required", "exact", "alternate", "missing"]
+				"required": [
+					"id",
+					"name",
+					"format",
+					"required",
+					"exact",
+					"alternate",
+					"missing",
+					"commanders"
+				]
 			},
 			"ValueEstimate": {
 				"type": "object",
@@ -11298,6 +8782,16 @@
 										},
 										"estimate": {
 											"$ref": "#/components/schemas/ValueEstimate"
+										},
+										"totals": {
+											"anyOf": [
+												{
+													"$ref": "#/components/schemas/InventoryHistoryTotals"
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
@@ -11307,7 +8801,8 @@
 										"dayStart",
 										"dayEnd",
 										"observedAt",
-										"estimate"
+										"estimate",
+										"totals"
 									]
 								}
 							]
@@ -11323,6 +8818,32 @@
 					"identity",
 					"points"
 				]
+			},
+			"InventoryHistoryTotals": {
+				"type": "object",
+				"properties": {
+					"total": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"names": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"sets": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"decks": {
+						"type": ["integer", "null"],
+						"minimum": 0,
+						"maximum": 9007199254740991
+					}
+				},
+				"required": ["total", "names", "sets", "decks"]
 			},
 			"DashboardSummary": {
 				"type": "object",
@@ -11393,6 +8914,19 @@
 								"type": "null"
 							}
 						]
+					},
+					"catalogBreakdown": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/DashboardCatalogBreakdown"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"requirements": {
+						"$ref": "#/components/schemas/DashboardRequirementPreviews"
 					}
 				},
 				"required": [
@@ -11405,7 +8939,9 @@
 					"pendingScanReviews",
 					"inventoryValue",
 					"inventoryValueHistory",
-					"valuationError"
+					"valuationError",
+					"catalogBreakdown",
+					"requirements"
 				]
 			},
 			"LoginRequest": {
@@ -12087,10 +9623,6 @@
 					},
 					"role": {
 						"enum": ["main", "sideboard", "commander", "companion"]
-					},
-					"categoryPreview": {
-						"type": "string",
-						"maxLength": 12000
 					}
 				},
 				"required": ["requestId"]
@@ -14385,39 +11917,11 @@
 					"format": {
 						"type": "string"
 					},
-					"categoryVersionIds": {
-						"type": "array",
-						"maxItems": 100,
-						"items": {
-							"type": "string",
-							"format": "uuid"
-						}
-					},
 					"sort": {
 						"enum": ["updated:desc", "name:asc", "name:desc"]
 					}
 				},
-				"required": ["query", "format", "categoryVersionIds", "sort"]
-			},
-			"DeckLibraryBadge": {
-				"type": "object",
-				"properties": {
-					"versionId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"originId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"name": {
-						"type": "string"
-					},
-					"historical": {
-						"type": "boolean"
-					}
-				},
-				"required": ["versionId", "originId", "name", "historical"]
+				"required": ["query", "format", "sort"]
 			},
 			"DeckLibraryItem": {
 				"type": "object",
@@ -14445,30 +11949,9 @@
 					},
 					"imageUri": {
 						"type": "string"
-					},
-					"categories": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/DeckLibraryBadge"
-						},
-						"maxItems": 3
-					},
-					"remainingCategoryCount": {
-						"type": "integer",
-						"minimum": 0
 					}
 				},
-				"required": [
-					"id",
-					"name",
-					"format",
-					"createdAt",
-					"updatedAt",
-					"quantity",
-					"imageUri",
-					"categories",
-					"remainingCategoryCount"
-				]
+				"required": ["id", "name", "format", "createdAt", "updatedAt", "quantity", "imageUri"]
 			},
 			"DeckLibraryPage": {
 				"type": "object",
@@ -14516,78 +11999,6 @@
 					"items"
 				]
 			},
-			"DeckLibraryCategory": {
-				"allOf": [
-					{
-						"$ref": "#/components/schemas/DeckLibraryBadge"
-					},
-					{
-						"type": "object",
-						"properties": {
-							"meaning": {
-								"type": "string"
-							},
-							"version": {
-								"type": "integer"
-							},
-							"count": {
-								"type": "integer"
-							}
-						},
-						"required": ["meaning", "version", "count"]
-					}
-				]
-			},
-			"DeckLibraryCategories": {
-				"type": "object",
-				"properties": {
-					"query": {
-						"$ref": "#/components/schemas/DeckLibraryQuery"
-					},
-					"queryKey": {
-						"type": "string"
-					},
-					"revision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"offset": {
-						"type": "integer"
-					},
-					"limit": {
-						"type": "integer",
-						"minimum": 1,
-						"maximum": 200
-					},
-					"total": {
-						"type": "integer"
-					},
-					"items": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/DeckLibraryCategory"
-						},
-						"maxItems": 200
-					},
-					"selected": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/DeckLibraryCategory"
-						},
-						"maxItems": 100
-					}
-				},
-				"required": [
-					"query",
-					"queryKey",
-					"revision",
-					"offset",
-					"limit",
-					"total",
-					"items",
-					"selected"
-				]
-			},
 			"DeckLibraryLocation": {
 				"type": "object",
 				"properties": {
@@ -14620,326 +12031,6 @@
 					}
 				},
 				"required": ["query", "queryKey", "revision", "deckId", "offset", "matchingTotal"]
-			},
-			"WholeRuleEvidence": {
-				"type": "object",
-				"properties": {
-					"op": {
-						"type": "string"
-					},
-					"truth": {
-						"enum": ["True", "False", "Unknown"]
-					},
-					"children": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/WholeRuleEvidence"
-						}
-					},
-					"lower": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"upper": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"denominatorLower": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"denominatorUpper": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"nonemptyContributionLower": {
-						"anyOf": [
-							{
-								"type": "string",
-								"pattern": "^-?[0-9]+$"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"nonemptyContributionUpper": {
-						"anyOf": [
-							{
-								"type": "string",
-								"pattern": "^-?[0-9]+$"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"emptyDenominatorPossible": {
-						"type": "boolean"
-					}
-				},
-				"required": ["op", "truth"]
-			},
-			"WholeCategoryEvidence": {
-				"type": "object",
-				"properties": {
-					"combo": {
-						"$ref": "#/components/schemas/ComboEvidence"
-					},
-					"definitionVersionId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"rule": {
-						"$ref": "#/components/schemas/DeckRule"
-					},
-					"roles": {
-						"type": "array",
-						"items": {
-							"enum": ["main", "sideboard", "commander", "companion"]
-						}
-					},
-					"compositionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"attemptedTruth": {
-						"enum": ["True", "False", "Unknown"]
-					},
-					"bounds": {
-						"$ref": "#/components/schemas/WholeRuleEvidence"
-					},
-					"catalogGenerationId": {
-						"anyOf": [
-							{
-								"type": "string",
-								"format": "uuid"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"oraclePublicationId": {
-						"anyOf": [
-							{
-								"type": "string",
-								"format": "uuid"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"sourceTime": {
-						"anyOf": [
-							{
-								"type": "string",
-								"format": "date-time"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"payloadDigest": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"parserVersion": {
-						"anyOf": [
-							{
-								"type": "integer"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"transformVersions": {
-						"type": "array",
-						"items": {
-							"type": "integer"
-						}
-					}
-				},
-				"required": [
-					"definitionVersionId",
-					"rule",
-					"roles",
-					"compositionRevision",
-					"attemptedTruth",
-					"bounds",
-					"catalogGenerationId",
-					"oraclePublicationId",
-					"sourceTime",
-					"payloadDigest",
-					"parserVersion",
-					"transformVersions"
-				]
-			},
-			"WholeCategoryDecision": {
-				"type": "object",
-				"properties": {
-					"versionId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"state": {
-						"enum": ["Automatic", "Pending", "Manual"]
-					},
-					"manual": {
-						"enum": ["Include", "Exclude", null]
-					},
-					"truth": {
-						"enum": ["True", "False", null]
-					},
-					"attemptedTruth": {
-						"enum": ["True", "False", "Unknown", null]
-					},
-					"revision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"evidence": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/WholeCategoryEvidence"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"previousEvaluation": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/WholeCategoryEvidence"
-							},
-							{
-								"type": "null"
-							}
-						]
-					}
-				},
-				"required": [
-					"versionId",
-					"state",
-					"manual",
-					"truth",
-					"attemptedTruth",
-					"revision",
-					"evidence",
-					"previousEvaluation"
-				]
-			},
-			"WholeCategory": {
-				"type": "object",
-				"properties": {
-					"versionId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"originId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"definition": {
-						"$ref": "#/components/schemas/DefinitionVersion"
-					},
-					"name": {
-						"type": "string"
-					},
-					"displayOrder": {
-						"type": "integer"
-					},
-					"suppressed": {
-						"type": "boolean"
-					},
-					"automaticActive": {
-						"type": "boolean"
-					},
-					"decision": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/WholeCategoryDecision"
-							},
-							{
-								"type": "null"
-							}
-						]
-					}
-				},
-				"required": [
-					"versionId",
-					"originId",
-					"definition",
-					"name",
-					"displayOrder",
-					"suppressed",
-					"automaticActive",
-					"decision"
-				]
-			},
-			"DeckWholeCategories": {
-				"type": "object",
-				"properties": {
-					"deckId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"initialized": {
-						"type": "boolean"
-					},
-					"decisionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"categories": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/WholeCategory"
-						}
-					}
-				},
-				"required": ["deckId", "initialized", "decisionRevision", "categories"]
-			},
-			"WholeCategoryAcknowledgement": {
-				"type": "object",
-				"properties": {
-					"requestId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"deckId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"scope": {
-						"const": "deck"
-					},
-					"decisionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"versionIds": {
-						"type": "array",
-						"items": {
-							"type": "string",
-							"format": "uuid"
-						}
-					},
-					"changed": {
-						"type": "boolean"
-					}
-				},
-				"required": ["requestId", "deckId", "scope", "decisionRevision", "versionIds", "changed"]
 			},
 			"DeckChoicePage": {
 				"type": "object",
@@ -15191,6 +12282,9 @@
 								"type": "null"
 							}
 						]
+					},
+					"relatedTokens": {
+						"$ref": "#/components/schemas/DeckRelatedTokens"
 					}
 				},
 				"required": [
@@ -15202,7 +12296,8 @@
 					"ownedByCanonical",
 					"ownedPrintings",
 					"valueEstimates",
-					"valuationError"
+					"valuationError",
+					"relatedTokens"
 				]
 			},
 			"DeckDetail": {
@@ -15296,1464 +12391,6 @@
 				},
 				"required": ["status", "kind", "message", "description", "descriptionRevision"]
 			},
-			"EntryDefinition": {
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"origin": {
-						"enum": [
-							"custom",
-							"lands",
-							"board-wipes",
-							"counterspells",
-							"removal",
-							"ramp",
-							"draw",
-							"protection",
-							"recursion"
-						]
-					},
-					"name": {
-						"type": "string"
-					},
-					"version": {
-						"type": "integer"
-					},
-					"policyVersion": {
-						"type": "integer"
-					},
-					"mappingVersion": {
-						"type": "integer"
-					},
-					"priority": {
-						"type": "integer"
-					},
-					"displayOrder": {
-						"type": "integer"
-					},
-					"rootId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"descendants": {
-						"type": "boolean"
-					},
-					"excludeLand": {
-						"type": "boolean"
-					},
-					"originId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"definitionVersionId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"definitionSnapshot": {
-						"$ref": "#/components/schemas/DefinitionVersion"
-					},
-					"meaning": {
-						"type": "string"
-					},
-					"rule": {
-						"$ref": "#/components/schemas/EntryRule"
-					},
-					"automaticEligible": {
-						"type": "boolean"
-					}
-				},
-				"required": [
-					"id",
-					"origin",
-					"name",
-					"version",
-					"policyVersion",
-					"mappingVersion",
-					"priority",
-					"displayOrder",
-					"rootId",
-					"descendants",
-					"excludeLand"
-				]
-			},
-			"EntryRule": {
-				"oneOf": [
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"enum": ["all", "any"]
-							},
-							"children": {
-								"type": "array",
-								"minItems": 1,
-								"maxItems": 128,
-								"items": {
-									"$ref": "#/components/schemas/EntryRule"
-								}
-							}
-						},
-						"required": ["op", "children"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "not"
-							},
-							"child": {
-								"$ref": "#/components/schemas/EntryRule"
-							}
-						},
-						"required": ["op", "child"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"enum": ["type", "keyword"]
-							},
-							"value": {
-								"type": "string",
-								"minLength": 1,
-								"maxLength": 128
-							}
-						},
-						"required": ["op", "value"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "oracleTag"
-							},
-							"tagId": {
-								"type": "string",
-								"format": "uuid"
-							},
-							"includeDescendants": {
-								"type": "boolean"
-							}
-						},
-						"required": ["op", "tagId", "includeDescendants"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "mappedTrait"
-							},
-							"traitId": {
-								"enum": [
-									"lands",
-									"board-wipes",
-									"counterspells",
-									"removal",
-									"ramp",
-									"draw",
-									"protection",
-									"recursion"
-								]
-							},
-							"mappingVersion": {
-								"type": "integer",
-								"minimum": 1,
-								"maximum": 2147483647
-							}
-						},
-						"required": ["op", "traitId", "mappingVersion"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "canonicalCards"
-							},
-							"oracleIds": {
-								"type": "array",
-								"minItems": 1,
-								"maxItems": 100,
-								"uniqueItems": true,
-								"items": {
-									"type": "string",
-									"format": "uuid"
-								}
-							}
-						},
-						"required": ["op", "oracleIds"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "comboParticipant"
-							},
-							"outcomeId": {
-								"type": "string",
-								"pattern": "^[1-9][0-9]{0,19}$"
-							},
-							"policyVersion": {
-								"const": "ingredients-v1"
-							}
-						},
-						"required": ["op", "outcomeId", "policyVersion"],
-						"additionalProperties": false
-					}
-				]
-			},
-			"DeckRule": {
-				"oneOf": [
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"enum": ["all", "any"]
-							},
-							"children": {
-								"type": "array",
-								"minItems": 1,
-								"maxItems": 128,
-								"items": {
-									"$ref": "#/components/schemas/DeckRule"
-								}
-							}
-						},
-						"required": ["op", "children"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "not"
-							},
-							"child": {
-								"$ref": "#/components/schemas/DeckRule"
-							}
-						},
-						"required": ["op", "child"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"enum": ["minimumCopies", "minimumDistinct"]
-							},
-							"predicate": {
-								"$ref": "#/components/schemas/EntryRule"
-							},
-							"minimum": {
-								"type": "integer",
-								"minimum": 1,
-								"maximum": 2147483647
-							}
-						},
-						"required": ["op", "predicate", "minimum"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "percentage"
-							},
-							"predicate": {
-								"$ref": "#/components/schemas/EntryRule"
-							},
-							"basisPoints": {
-								"type": "integer",
-								"minimum": 0,
-								"maximum": 10000
-							},
-							"denominator": {
-								"enum": ["all-cards", "nonland"]
-							}
-						},
-						"required": ["op", "predicate", "basisPoints", "denominator"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"op": {
-								"const": "comboOutcome"
-							},
-							"outcomeId": {
-								"type": "string",
-								"pattern": "^[1-9][0-9]{0,19}$"
-							},
-							"policyVersion": {
-								"const": "ingredients-v1"
-							}
-						},
-						"required": ["op", "outcomeId", "policyVersion"],
-						"additionalProperties": false
-					}
-				]
-			},
-			"DefinitionVersion": {
-				"type": "object",
-				"properties": {
-					"name": {
-						"type": "string",
-						"minLength": 1,
-						"maxLength": 128
-					},
-					"meaning": {
-						"type": "string",
-						"maxLength": 4000
-					},
-					"priority": {
-						"type": "integer",
-						"minimum": -2147483648,
-						"maximum": 2147483647
-					},
-					"displayOrder": {
-						"type": "integer",
-						"minimum": -2147483648,
-						"maximum": 2147483647
-					},
-					"roles": {
-						"type": "array",
-						"minItems": 1,
-						"maxItems": 4,
-						"uniqueItems": true,
-						"items": {
-							"enum": ["main", "sideboard", "commander", "companion"]
-						}
-					},
-					"rule": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/EntryRule"
-							},
-							{
-								"$ref": "#/components/schemas/DeckRule"
-							}
-						]
-					},
-					"id": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"originId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"scope": {
-						"enum": ["entry", "deck"]
-					},
-					"version": {
-						"type": "integer",
-						"minimum": 1
-					},
-					"createdAt": {
-						"type": "string",
-						"format": "date-time"
-					}
-				},
-				"required": [
-					"name",
-					"meaning",
-					"priority",
-					"displayOrder",
-					"roles",
-					"rule",
-					"id",
-					"originId",
-					"scope",
-					"version",
-					"createdAt"
-				]
-			},
-			"LibraryDefinition": {
-				"type": "object",
-				"properties": {
-					"originId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"archived": {
-						"type": "boolean"
-					},
-					"current": {
-						"$ref": "#/components/schemas/DefinitionVersion"
-					}
-				},
-				"required": ["originId", "archived", "current"]
-			},
-			"ComboSource": {
-				"type": "object",
-				"properties": {
-					"enabled": {
-						"type": "boolean"
-					},
-					"publicationId": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/ComboPublicationId"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"policyVersion": {
-						"const": "ingredients-v1"
-					},
-					"availability": {
-						"enum": ["Disabled", "Unavailable", "Available"]
-					},
-					"refreshStatus": {
-						"type": "object",
-						"properties": {
-							"kind": {
-								"enum": ["NeverAttempted", "Succeeded", "Failed"]
-							},
-							"attemptedAt": {
-								"type": "string"
-							},
-							"error": {
-								"type": "string"
-							}
-						},
-						"required": ["kind"]
-					},
-					"sourceTime": {
-						"type": ["string", "null"],
-						"format": "date-time"
-					},
-					"sourceVersion": {
-						"type": ["string", "null"]
-					},
-					"payloadDigest": {
-						"type": ["string", "null"]
-					},
-					"decodedDigest": {
-						"type": ["string", "null"]
-					},
-					"parserVersion": {
-						"type": ["integer", "null"]
-					}
-				},
-				"required": [
-					"enabled",
-					"publicationId",
-					"policyVersion",
-					"availability",
-					"refreshStatus",
-					"sourceTime",
-					"sourceVersion",
-					"payloadDigest",
-					"decodedDigest",
-					"parserVersion"
-				]
-			},
-			"ComboIngredient": {
-				"type": "object",
-				"properties": {
-					"oracleId": {
-						"anyOf": [
-							{
-								"type": "string",
-								"format": "uuid"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"name": {
-						"type": "string"
-					},
-					"quantity": {
-						"type": "string"
-					},
-					"mustBeCommander": {
-						"type": "boolean"
-					},
-					"zones": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
-					},
-					"usedFace": {
-						"type": ["integer", "null"]
-					},
-					"states": {
-						"type": "object",
-						"additionalProperties": {
-							"type": "string"
-						}
-					}
-				},
-				"required": [
-					"oracleId",
-					"name",
-					"quantity",
-					"mustBeCommander",
-					"zones",
-					"usedFace",
-					"states"
-				]
-			},
-			"ComboTemplate": {
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"name": {
-						"type": "string"
-					},
-					"query": {
-						"type": ["string", "null"]
-					},
-					"quantity": {
-						"type": "string"
-					},
-					"zones": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
-					},
-					"states": {
-						"type": "object",
-						"additionalProperties": {
-							"type": "string"
-						}
-					},
-					"mustBeCommander": {
-						"type": "boolean"
-					},
-					"usedFace": {
-						"type": ["integer", "null"]
-					}
-				},
-				"required": [
-					"id",
-					"name",
-					"query",
-					"quantity",
-					"zones",
-					"states",
-					"mustBeCommander",
-					"usedFace"
-				]
-			},
-			"ComboProducedOutcome": {
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"name": {
-						"type": "string"
-					},
-					"status": {
-						"type": "string"
-					},
-					"uncountable": {
-						"type": "boolean"
-					},
-					"quantity": {
-						"type": "string"
-					}
-				},
-				"required": ["id", "name", "status", "uncountable", "quantity"]
-			},
-			"ComboVariant": {
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"status": {
-						"type": "string"
-					},
-					"ingredients": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/ComboIngredient"
-						}
-					},
-					"outcomeIds": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
-					},
-					"unsupportedReasons": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
-					},
-					"mana": {
-						"type": "string"
-					},
-					"prerequisites": {
-						"type": "string"
-					},
-					"steps": {
-						"type": "string"
-					},
-					"notes": {
-						"type": "string"
-					},
-					"templates": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/ComboTemplate"
-						}
-					},
-					"producedOutcomes": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/ComboProducedOutcome"
-						}
-					}
-				},
-				"required": [
-					"id",
-					"status",
-					"ingredients",
-					"outcomeIds",
-					"unsupportedReasons",
-					"mana",
-					"prerequisites",
-					"steps",
-					"notes",
-					"templates",
-					"producedOutcomes"
-				]
-			},
-			"ComboProof": {
-				"type": "object",
-				"properties": {
-					"variant": {
-						"$ref": "#/components/schemas/ComboVariant"
-					},
-					"publicationId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"outcomeId": {
-						"type": "string"
-					},
-					"roles": {
-						"type": "array",
-						"items": {
-							"enum": ["main", "sideboard", "commander", "companion"]
-						}
-					},
-					"policyVersion": {
-						"const": "ingredients-v1"
-					},
-					"parserVersion": {
-						"type": "integer"
-					}
-				},
-				"required": [
-					"variant",
-					"publicationId",
-					"outcomeId",
-					"roles",
-					"policyVersion",
-					"parserVersion"
-				]
-			},
-			"ComboParticipantWitness": {
-				"type": "object",
-				"properties": {
-					"proof": {
-						"$ref": "#/components/schemas/ComboProof"
-					},
-					"entryIds": {
-						"type": "array",
-						"items": {
-							"type": "string",
-							"format": "uuid"
-						}
-					}
-				},
-				"required": ["proof", "entryIds"]
-			},
-			"ComboEvaluationEvidence": {
-				"type": "object",
-				"properties": {
-					"outcomeId": {
-						"type": "string"
-					},
-					"roles": {
-						"type": "array",
-						"items": {
-							"enum": ["main", "sideboard", "commander", "companion"]
-						}
-					},
-					"truth": {
-						"enum": ["True", "False", "Unknown"]
-					},
-					"proof": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/ComboProof"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"participantTruth": {
-						"enum": ["True", "False", "Unknown"]
-					},
-					"participantWitnesses": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/ComboParticipantWitness"
-						}
-					}
-				},
-				"required": ["outcomeId", "roles", "truth", "proof"]
-			},
-			"ComboEvidence": {
-				"type": "object",
-				"properties": {
-					"source": {
-						"$ref": "#/components/schemas/ComboSource"
-					},
-					"evaluations": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/ComboEvaluationEvidence"
-						}
-					}
-				},
-				"required": ["source", "evaluations"]
-			},
-			"ComboPublicationId": {
-				"type": "string",
-				"format": "uuid"
-			},
-			"CategoryRuleChoices": {
-				"type": "object",
-				"properties": {
-					"tags": {
-						"type": "array",
-						"maxItems": 100,
-						"items": {
-							"type": "object",
-							"properties": {
-								"id": {
-									"type": "string",
-									"format": "uuid"
-								},
-								"name": {
-									"type": "string"
-								}
-							},
-							"required": ["id", "name"]
-						}
-					},
-					"cards": {
-						"type": "array",
-						"maxItems": 100,
-						"items": {
-							"type": "object",
-							"properties": {
-								"oracleId": {
-									"type": "string",
-									"format": "uuid"
-								},
-								"name": {
-									"type": "string"
-								}
-							},
-							"required": ["oracleId", "name"]
-						}
-					},
-					"combo": {
-						"type": "object",
-						"properties": {
-							"source": {
-								"$ref": "#/components/schemas/ComboSource"
-							},
-							"outcomes": {
-								"type": "array",
-								"maxItems": 50,
-								"items": {
-									"type": "object",
-									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"name": {
-											"type": "string"
-										}
-									},
-									"required": ["id", "name"]
-								}
-							},
-							"selectedOutcomes": {
-								"type": "array",
-								"maxItems": 100,
-								"items": {
-									"type": "object",
-									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"name": {
-											"type": "string"
-										}
-									},
-									"required": ["id", "name"]
-								}
-							}
-						},
-						"required": ["source", "outcomes", "selectedOutcomes"]
-					}
-				},
-				"required": ["tags", "cards"]
-			},
-			"CategoryLibraryPage": {
-				"type": "object",
-				"properties": {
-					"revision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"total": {
-						"type": "integer",
-						"minimum": 0
-					},
-					"offset": {
-						"type": "integer",
-						"minimum": 0
-					},
-					"limit": {
-						"type": "integer",
-						"minimum": 1,
-						"maximum": 100
-					},
-					"definitions": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/LibraryDefinition"
-						}
-					}
-				},
-				"required": ["revision", "total", "offset", "limit", "definitions"]
-			},
-			"LibraryAcknowledgement": {
-				"type": "object",
-				"properties": {
-					"requestId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"libraryRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"originId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"versionId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"changed": {
-						"type": "boolean"
-					}
-				},
-				"required": ["requestId", "libraryRevision", "originId", "versionId", "changed"]
-			},
-			"CategoryDifference": {
-				"type": "object",
-				"properties": {
-					"kind": {
-						"enum": [
-							"DefinitionAdded",
-							"DefinitionChanged",
-							"DefinitionRemoved",
-							"RetainedManual",
-							"EntryChanged",
-							"EntryPreserved",
-							"DeckChanged",
-							"DeckPreserved",
-							"OriginRestored",
-							"NameConflict"
-						]
-					},
-					"entityId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"message": {
-						"type": "string"
-					},
-					"before": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/EntryDefinition"
-							},
-							{
-								"$ref": "#/components/schemas/EntryCategoryDecision"
-							},
-							{
-								"$ref": "#/components/schemas/WholeCategory"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"after": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/EntryDefinition"
-							},
-							{
-								"$ref": "#/components/schemas/EntryCategoryDecision"
-							},
-							{
-								"$ref": "#/components/schemas/WholeCategory"
-							},
-							{
-								"type": "null"
-							}
-						]
-					}
-				},
-				"required": ["kind", "entityId", "message"]
-			},
-			"CategoryPreview": {
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"deckId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"scope": {
-						"enum": ["entry", "deck"]
-					},
-					"mode": {
-						"enum": ["Review", "Reset"]
-					},
-					"status": {
-						"enum": ["Ready", "BlockedByNameConflict", "Expired", "Committed", "Unsupported"]
-					},
-					"expiresAt": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"total": {
-						"type": "integer",
-						"minimum": 0
-					},
-					"offset": {
-						"type": "integer",
-						"minimum": 0
-					},
-					"limit": {
-						"type": "integer",
-						"minimum": 1,
-						"maximum": 100
-					},
-					"differences": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/CategoryDifference"
-						}
-					},
-					"acknowledgement": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/CategoryAcknowledgement"
-							},
-							{
-								"$ref": "#/components/schemas/WholeCategoryAcknowledgement"
-							},
-							{
-								"type": "null"
-							}
-						]
-					}
-				},
-				"required": [
-					"id",
-					"deckId",
-					"scope",
-					"mode",
-					"status",
-					"expiresAt",
-					"total",
-					"offset",
-					"limit",
-					"differences",
-					"acknowledgement"
-				]
-			},
-			"CategoryPredicateEvidence": {
-				"type": "object",
-				"properties": {
-					"origin": {
-						"type": "string"
-					},
-					"result": {
-						"enum": ["True", "False", "Unknown"]
-					},
-					"matchedTagIds": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
-					}
-				},
-				"required": ["origin", "result", "matchedTagIds"]
-			},
-			"CategoryEvidence": {
-				"type": "object",
-				"properties": {
-					"combo": {
-						"$ref": "#/components/schemas/ComboEvidence"
-					},
-					"predicates": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/CategoryPredicateEvidence"
-						}
-					},
-					"catalogGenerationId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"oraclePublicationId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"sourceTime": {
-						"anyOf": [
-							{
-								"type": "string",
-								"format": "date-time"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"payloadDigest": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"parserVersion": {
-						"anyOf": [
-							{
-								"type": "integer"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"printingId": {
-						"type": "string"
-					},
-					"rawOracleId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"types": {
-						"anyOf": [
-							{
-								"type": "array",
-								"items": {
-									"type": "string"
-								}
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"transformVersion": {
-						"anyOf": [
-							{
-								"type": "integer"
-							},
-							{
-								"type": "null"
-							}
-						]
-					}
-				},
-				"required": [
-					"predicates",
-					"catalogGenerationId",
-					"oraclePublicationId",
-					"sourceTime",
-					"payloadDigest",
-					"parserVersion",
-					"printingId",
-					"rawOracleId",
-					"types",
-					"transformVersion"
-				]
-			},
-			"EntryCategoryDecision": {
-				"type": "object",
-				"properties": {
-					"entryId": {
-						"type": "string"
-					},
-					"categoryId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"state": {
-						"enum": ["Automatic", "Manual", "Pending"]
-					},
-					"revision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"evidence": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/CategoryEvidence"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"definitionSnapshot": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/EntryDefinition"
-							},
-							{
-								"$ref": "#/components/schemas/DefinitionVersion"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"previousEvaluation": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/CategoryEvidence"
-							},
-							{
-								"type": "null"
-							}
-						]
-					}
-				},
-				"required": [
-					"entryId",
-					"categoryId",
-					"state",
-					"revision",
-					"evidence",
-					"definitionSnapshot",
-					"previousEvaluation"
-				]
-			},
-			"DeckEntryCategories": {
-				"type": "object",
-				"properties": {
-					"deckId": {
-						"type": "string"
-					},
-					"initialized": {
-						"type": "boolean"
-					},
-					"decisionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"definitions": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/EntryDefinition"
-						}
-					},
-					"libraryRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"wholeDeckDefinitions": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/DefinitionVersion"
-						}
-					},
-					"suppressedOrigins": {
-						"type": "array",
-						"items": {
-							"type": "object",
-							"properties": {
-								"originId": {
-									"type": "string",
-									"format": "uuid"
-								},
-								"name": {
-									"type": "string"
-								}
-							},
-							"required": ["originId", "name"]
-						}
-					},
-					"decisions": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/EntryCategoryDecision"
-						}
-					},
-					"sourceStatus": {
-						"type": "object",
-						"properties": {
-							"kind": {
-								"enum": ["NeverAttempted", "Succeeded", "Failed"]
-							},
-							"sourceTime": {
-								"anyOf": [
-									{
-										"type": "string",
-										"format": "date-time"
-									},
-									{
-										"type": "null"
-									}
-								]
-							}
-						},
-						"required": ["kind", "sourceTime"]
-					}
-				},
-				"required": [
-					"deckId",
-					"initialized",
-					"decisionRevision",
-					"definitions",
-					"libraryRevision",
-					"wholeDeckDefinitions",
-					"suppressedOrigins",
-					"decisions",
-					"sourceStatus"
-				]
-			},
-			"CategoryAcknowledgement": {
-				"type": "object",
-				"properties": {
-					"requestId": {
-						"type": "string"
-					},
-					"deckId": {
-						"type": "string"
-					},
-					"decisionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"entryIds": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
-					}
-				},
-				"required": ["requestId", "deckId", "decisionRevision", "entryIds"]
-			},
-			"CategorySourceTokens": {
-				"type": "object",
-				"properties": {
-					"catalogGenerationId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"oraclePublicationId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"policy": {
-						"type": "string"
-					}
-				},
-				"required": ["catalogGenerationId", "oraclePublicationId", "policy"]
-			},
-			"CategoryMergePreview": {
-				"type": "object",
-				"properties": {
-					"required": {
-						"type": "boolean"
-					},
-					"token": {
-						"type": "string"
-					},
-					"source": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/EntryCategoryDecision"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"destination": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/EntryCategoryDecision"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"destinationEntryId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"resultingQuantity": {
-						"type": "integer",
-						"minimum": 1
-					},
-					"compositionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"decisionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"sourceTokens": {
-						"$ref": "#/components/schemas/CategorySourceTokens"
-					}
-				},
-				"required": [
-					"required",
-					"token",
-					"source",
-					"destination",
-					"destinationEntryId",
-					"resultingQuantity",
-					"compositionRevision",
-					"decisionRevision",
-					"sourceTokens"
-				]
-			},
-			"CategoryConflictResponse": {
-				"oneOf": [
-					{
-						"type": "object",
-						"properties": {
-							"kind": {
-								"const": "CategoryConflict"
-							},
-							"message": {
-								"type": "string"
-							},
-							"latest": {
-								"$ref": "#/components/schemas/DeckEntryCategories"
-							}
-						},
-						"required": ["kind", "message", "latest"]
-					},
-					{
-						"type": "object",
-						"properties": {
-							"kind": {
-								"const": "CategoryMergeConflict"
-							},
-							"message": {
-								"type": "string"
-							},
-							"preview": {
-								"$ref": "#/components/schemas/CategoryMergePreview"
-							}
-						},
-						"required": ["kind", "message", "preview"]
-					},
-					{
-						"$ref": "#/components/schemas/ErrorResponse"
-					}
-				]
-			},
 			"DeckAcknowledgement": {
 				"type": "object",
 				"properties": {
@@ -16792,16 +12429,6 @@
 						}
 					},
 					"removedEntryIds": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
-					},
-					"categoryDecisionRevision": {
-						"type": "string",
-						"pattern": "^(0|[1-9][0-9]*)$"
-					},
-					"categoryEntryIds": {
 						"type": "array",
 						"items": {
 							"type": "string"
@@ -17046,9 +12673,6 @@
 							},
 							"role": {
 								"enum": ["main", "sideboard", "commander", "companion"]
-							},
-							"categoryPreview": {
-								"type": "string"
 							}
 						},
 						"required": ["op", "target", "catalogCardId", "quantity", "role"]
@@ -17064,9 +12688,6 @@
 							},
 							"role": {
 								"enum": ["main", "sideboard", "commander", "companion"]
-							},
-							"categoryPreview": {
-								"type": "string"
 							}
 						},
 						"required": ["op", "target", "role"]
@@ -17267,7 +12888,10 @@
 				"required": ["text"],
 				"properties": {
 					"text": {
-						"type": "string"
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100000,
+						"description": "Content-detected Arena/simple text, CSV with name,format,description,catalogCardId,quantity,role header, or PortableDeckV1 JSON. At most 1000 card records."
 					},
 					"format": {
 						"type": "string"
@@ -17276,7 +12900,7 @@
 			},
 			"DeckImportCommitRequest": {
 				"type": "object",
-				"required": ["requestId", "name", "text"],
+				"required": ["requestId", "text"],
 				"properties": {
 					"requestId": {
 						"type": "string"
@@ -17294,15 +12918,19 @@
 						"type": "string"
 					},
 					"text": {
-						"type": "string"
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100000,
+						"description": "Content-detected Arena/simple text, CSV with name,format,description,catalogCardId,quantity,role header, or PortableDeckV1 JSON. At most 1000 card records."
 					}
-				}
+				},
+				"description": "Portable CSV/JSON metadata takes precedence over caller details. Arena About/Name supplies the name. Empty portable Decks are supported. No partial import."
 			},
 			"ColorMatch": {
 				"type": "object",
 				"additionalProperties": false,
 				"required": ["field", "any", "all"],
-				"description": "(OR any selected color) AND every required color. Empty any adds no restriction. Arrays must be disjoint. Additional card colors are permitted; C means an empty color set.",
+				"description": "(OR any selected color) AND every required color, excluding every not color. Empty any adds no restriction; omitted not is empty. Arrays must be pairwise disjoint. Additional card colors are permitted unless excluded; C means an empty color set.",
 				"properties": {
 					"field": {
 						"enum": ["color", "identity"]
@@ -17320,6 +12948,405 @@
 						"items": {
 							"enum": ["W", "U", "B", "R", "G", "C"]
 						}
+					},
+					"not": {
+						"type": "array",
+						"maxItems": 6,
+						"items": {
+							"enum": ["W", "U", "B", "R", "G", "C"]
+						}
+					}
+				}
+			},
+			"DashboardCatalogBreakdown": {
+				"type": "object",
+				"properties": {
+					"colors": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"colorIdentity": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"rarities": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"primaryTypes": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"matchedQuantity": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"unknownQuantity": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"setNames": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "string"
+						}
+					}
+				},
+				"required": [
+					"colors",
+					"colorIdentity",
+					"rarities",
+					"primaryTypes",
+					"matchedQuantity",
+					"unknownQuantity",
+					"setNames"
+				]
+			},
+			"DashboardRequirement": {
+				"type": "object",
+				"properties": {
+					"deckId": {
+						"type": "string"
+					},
+					"deckName": {
+						"type": "string"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"catalogCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"imageUri": {
+						"type": "string"
+					},
+					"required": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"exact": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"alternate": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"missing": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					}
+				},
+				"required": [
+					"deckId",
+					"deckName",
+					"canonicalCardId",
+					"catalogCardId",
+					"name",
+					"imageUri",
+					"required",
+					"exact",
+					"alternate",
+					"missing"
+				]
+			},
+			"DashboardRequirementPreviews": {
+				"type": "object",
+				"properties": {
+					"missing": {
+						"type": "array",
+						"maxItems": 8,
+						"items": {
+							"$ref": "#/components/schemas/DashboardRequirement"
+						}
+					},
+					"alternate": {
+						"type": "array",
+						"maxItems": 8,
+						"items": {
+							"$ref": "#/components/schemas/DashboardRequirement"
+						}
+					}
+				},
+				"required": ["missing", "alternate"]
+			},
+			"RelatedTokenFace": {
+				"type": "object",
+				"required": [
+					"name",
+					"typeLine",
+					"oracleText",
+					"colors",
+					"power",
+					"toughness",
+					"imageUri",
+					"imageUriSmall"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"typeLine": {
+						"type": "string"
+					},
+					"oracleText": {
+						"type": "string"
+					},
+					"colors": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"power": {
+						"type": ["string", "null"]
+					},
+					"toughness": {
+						"type": ["string", "null"]
+					},
+					"imageUri": {
+						"type": ["string", "null"]
+					},
+					"imageUriSmall": {
+						"type": ["string", "null"]
+					}
+				}
+			},
+			"RelatedToken": {
+				"type": "object",
+				"required": [
+					"catalogCardId",
+					"name",
+					"layout",
+					"setCode",
+					"collectorNumber",
+					"canonicalCardId",
+					"faces",
+					"sourceEntryIds"
+				],
+				"properties": {
+					"catalogCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"layout": {
+						"type": "string"
+					},
+					"setCode": {
+						"type": "string"
+					},
+					"collectorNumber": {
+						"type": "string"
+					},
+					"canonicalCardId": {
+						"type": ["string", "null"]
+					},
+					"faces": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/RelatedTokenFace"
+						}
+					},
+					"sourceEntryIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"UnresolvedTokenReference": {
+				"type": "object",
+				"required": ["catalogCardId", "name", "sourceEntryIds"],
+				"properties": {
+					"catalogCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"sourceEntryIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"DeckRelatedTokens": {
+				"type": "object",
+				"required": ["status", "items", "unresolved", "unavailableEntryIds"],
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": ["available", "partial", "unavailable"]
+					},
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/RelatedToken"
+						}
+					},
+					"unresolved": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/UnresolvedTokenReference"
+						}
+					},
+					"unavailableEntryIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"PortableDeckMetadata": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["name", "format", "description"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"maxLength": 200,
+						"minLength": 1
+					},
+					"format": {
+						"type": "string",
+						"maxLength": 100,
+						"minLength": 1
+					},
+					"description": {
+						"type": "string",
+						"maxLength": 4000
+					}
+				}
+			},
+			"PortableDeckV1": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["schema", "version", "name", "format", "description", "cards"],
+				"properties": {
+					"schema": {
+						"const": "spellbook.deck"
+					},
+					"version": {
+						"const": 1,
+						"type": "integer"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 200,
+						"minLength": 1
+					},
+					"format": {
+						"type": "string",
+						"maxLength": 100,
+						"minLength": 1
+					},
+					"description": {
+						"type": "string",
+						"maxLength": 4000
+					},
+					"cards": {
+						"type": "array",
+						"maxItems": 1000,
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["catalogCardId", "quantity", "role"],
+							"properties": {
+								"catalogCardId": {
+									"type": "string",
+									"format": "uuid"
+								},
+								"quantity": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 10000
+								},
+								"role": {
+									"enum": ["main", "sideboard", "commander", "companion"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"DeckImportPreviewResponse": {
+				"type": "object",
+				"required": ["resolved", "unresolved", "ambiguous", "warnings", "parsed", "metadata"],
+				"properties": {
+					"resolved": {
+						"type": "array",
+						"items": {
+							"type": "object"
+						}
+					},
+					"unresolved": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/UnresolvedImportLine"
+						}
+					},
+					"ambiguous": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/AmbiguousImportLine"
+						}
+					},
+					"warnings": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ImportPreviewWarning"
+						}
+					},
+					"parsed": {
+						"type": "array",
+						"items": {
+							"type": "object"
+						}
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"required": ["name", "format", "description"],
+								"properties": {
+									"name": {
+										"type": "string"
+									},
+									"format": {
+										"type": "string"
+									},
+									"description": {
+										"type": "string"
+									}
+								}
+							},
+							{
+								"type": "null"
+							}
+						]
 					}
 				}
 			}
@@ -17336,7 +13363,7 @@
 		},
 		{
 			"name": "mtg",
-			"description": "MTG Catalog and account-owned Inventory, Deck, Category, Valuation, Dashboard and Scan operations. Private routes accept bearer or browser sessions."
+			"description": "MTG Catalog and account-owned Inventory, Deck, Valuation, Dashboard and Scan operations. Private routes accept bearer or browser sessions."
 		}
 	]
 }

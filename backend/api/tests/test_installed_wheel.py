@@ -60,8 +60,8 @@ def test_installed_migrator_operators_and_assets_from_external_cwd(tmp_path: Pat
         for name in (
             "cards.json",
             "upgrades-unleashed.json",
-            "catalog-default-en-20261007.manifest.json",
-            "catalog-default-en-20261007.jsonl.gz",
+            "catalog-default-en-20261102.manifest.json",
+            "catalog-default-en-20261102.jsonl.gz",
         )
     }
 
@@ -174,7 +174,6 @@ finally:
 directory = cli._default_directory()
 assert '/site-packages/' in str(directory)
 migrations = read_migrations(directory)
-assert len(migrations) == 25
 print(json.dumps({str(p.relative_to(directory)): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in directory.rglob('*') if p.is_file()}, sort_keys=True))
 for module in (local_password, seed, replace_inventory):

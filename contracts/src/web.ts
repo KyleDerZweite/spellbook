@@ -30,7 +30,6 @@ export interface WebCommandInputs {
 		quantity: number;
 		role: string;
 		requestId: string;
-		categoryPreview?: string;
 	};
 	'decks.updateCard': {
 		entryId: string;
@@ -38,7 +37,6 @@ export interface WebCommandInputs {
 		role?: string;
 		requestId: string;
 		delta?: number;
-		categoryPreview?: string;
 	};
 	'decks.removeCard': { entryId: string; requestId: string };
 	'decks.importInto': { deckId: string; text: string; requestId: string };

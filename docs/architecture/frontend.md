@@ -1,10 +1,10 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-11-03
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
-- Update Triggers: tri-state color expression URL/session/cache ownership, explicit static Demo valuation and simplified History presentation, compact Dashboard composition and valuation summary slot, shared D3 chart rendering and accessible inspection, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
-- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [Independent applications](./independent-applications.md)
+- Update Triggers: portable Deck imports/downloads and native print view, managed Category removal, completed color formulas and Deck-first Dashboard grid, explicit NOT Search colors, exact Search AND-only colors, Dashboard Quick Actions and activity/decks split, reordered Dashboard panels and removed composition disclosure, restored Deck grid and card-local Dashboard materials, selected Dashboard reference and pure summary panels, preview-only personal History and direct compact metric links, shared daily metric cards and leased History preview, Deck overview and intrinsic-height artwork Stacks, inline valuation disclosure, selected A+ Dashboard layout and native Demo evaluation, Mebius chart mark and selection refinement, enhanced Printing deep links, opt-in shortcut-only search evaluation lab, tri-state color expression URL/session/cache ownership, explicit static Demo valuation and simplified History presentation, compact Dashboard composition and valuation summary slot, shared D3 chart rendering and accessible inspection, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
+- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [Independent applications](./independent-applications.md)
 
 The SvelteKit application renders pages and owns native form presentation and browser cookies.
 Its [server composition](../../frontend/src/lib/server/composition.ts) exposes a request-bound [remote application](../../frontend/src/lib/server/remote/application.ts) over HTTP.
@@ -53,7 +53,8 @@ The root [Shell](../../frontend/src/lib/components/layout/Shell.svelte) renders 
 There is no separate authentication header.
 The full-width header places the brand left, navigation in the center, and game, theme and account controls right.
 Shared `nav-link` styles cover navigation and the direct Sign in entry; the current entry uses the same underline state.
-Search, Inventory, Decks, Scan, Dashboard and Settings share `.workspace-container`, with width `min(calc(100% - 2rem), var(--layout-wide-width))`.
+Search, Inventory, Decks, Scan and Settings share `.workspace-container`, with width `min(calc(100% - 2rem), var(--layout-wide-width))`.
+The regular Dashboard retains the container base but uses a route-owned wider four-column composition, capped at 100rem, with narrow-screen gutters.
 The shared outer limit is `clamp(72rem, 84vw, 150rem)`.
 The landing uses this limit with responsive padding.
 Public home and hero use column flex layouts to fill the space remaining after the header and actual footer content.
@@ -102,7 +103,8 @@ PublicLanding retains a native GET fallback and a SvelteKit snapshot that restor
 Empty submission opens the unfiltered catalog.
 The accepted PWA delivery replaces App coming soon with an App link to `/app` in the existing account/mobile menus.
 
-[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns navigation and the single Ctrl+K or Cmd+K listener.
+[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns ordinary Card Search navigation.
+The global [PowerSearch](../../frontend/src/lib/components/search/PowerSearch.svelte) owns the single Ctrl+K or Cmd+K listener in the shared Shell.
 A normal primary Search navigation click opens its large desktop dialog or full-height mobile dialog, keeping the underlying page mounted.
 Modified clicks retain the real `/mtg/search` link.
 Query, the four filter categories and the logical range serialize into the visible URL through SvelteKit shallow routing.
@@ -158,6 +160,10 @@ Missing pages offer Search and Home links; server errors also offer a retry of t
 
 [CardInspector](../../frontend/src/lib/components/cards/CardInspector.svelte) owns shared printing selection and inspector content.
 Search hosts selection in CardDetail and retains the grid and logical focus anchor behind the dialog.
+A valid ordinary `printing` deep link, including a Card Search result from the global palette, opens this same dialog after hydration.
+Closing removes the Printing target from the current history entry and returns focus to its result or the results heading.
+Without JavaScript, the selected Printing remains in the native panel.
+Retained native addition drafts, choice navigation, receipts and read errors keep their existing native action surface.
 [CardDetail](../../frontend/src/lib/components/cards/CardDetail.svelte) owns that dialog lifecycle for Search, Inventory and Decks.
 Callers supply action content and an explicit focus return target.
 Its optional `callerPending` combines with the inspector's internal quick-add state to block dismissal, Printing selection and tab changes during a caller save.
@@ -258,10 +264,18 @@ The shared UI is implemented; current-head keyboard, focus, responsive and no-Ja
 Enhanced browsing uses the bounded [Library window](../../frontend/src/lib/decks/library-window.ts), measured variable-height tiles and the shared signed anchor helpers with one native Window scrollbar.
 It admits at most three physical fetch and body-decode requests, four contexts, twenty pages, 1000 resident metadata records including seeds and retained focus, and 200 mounted tiles.
 Only successful contiguous ranges become visible.
-`dirQ`, `dirFormat`, `dirCategory`, `dirSort` and `dirPage` restore directory state independently of the selected Deck Catalog `q`; the selected composition remains mounted outside directory filters.
+`dirQ`, `dirFormat`, `dirSort` and `dirPage` restore directory state independently of the selected Deck Catalog `q`; the selected composition remains mounted outside directory filters.
 Native Previous/Next links render before hydration.
 Web loads and saved-state refreshes use bounded metadata and an independent selected read; public Snapshot callers retain their existing default directory cardinality.
 [DeckEntries](../../frontend/src/lib/components/decks/DeckEntries.svelte) presents grouped entries, documents and availability with explicit native action fields and a caller SubmitFunction.
+[DeckOverview](../../frontend/src/lib/components/decks/DeckOverview.svelte) composes existing Deck entries, Catalog documents, availability and value estimates without additional reads or mutation ownership.
+It uses the shared ProportionChart and the inline ValueSummary variant; the latter retains native coverage details while existing panel and compact callers keep their layout.
+DeckEntries uses intrinsic card aspect ratios and explicit title-strip rows rather than fixed negative overlaps.
+Its Stacks and List presentations share the same QuantityControl forms, inspection callback and availability records.
+DeckStatistics consumes the pure selected-composition aggregation in decks/statistics.ts and the existing resolved Catalog documents.
+It lives below Add cards in the wide Deck sidebar and below the Deck cards on narrow screens, independently of the Search dialog's availability.
+D3 owns curve scaling; the shared ProportionChart owns color shares and inspection.
+No additional Catalog, Inventory or ownership requests are introduced for statistics.
 [DeckDiscovery](../../frontend/src/lib/components/decks/DeckDiscovery.svelte) presents contextual Catalog results with explicit search/add inputs and callbacks.
 The route owns filtering, grouping, search and ownership requests, pending/error state, mutation retry IDs, Description baselines, import previews, Inspector drafts and focus targets.
 These components do not import Backend persistence or InventoryWindow.
@@ -287,7 +301,21 @@ Description recovery retains its original baselines.
 Enhanced saves preserve newer Description, Inspector quantity/role/printing and import drafts; an unchanged unconfirmed retry retains its request ID.
 A changed enhanced import intent receives a fresh ID.
 Genuine redirects retain normal navigation.
-No mobile API or Backend mutation contract changes accompany these presentation adapters.
+The [portable exchange contract](./mobile-and-scan.md#portable-deck-exchange) owns complete Deck imports and download schemas.
+
+The Library's Import deck link opens `/mtg/decks/import` for a complete new Deck.
+The native form accepts pasted content or a bounded UTF-8 upload, shows every failed record and requires a separate Create complete Deck submission.
+An unconfirmed new-Deck commit offers a retry with the original content and request ID.
+The selected Deck's Import decklist dialog also accepts uploads and states its additive semantics.
+Unresolved or unsupported records disable its commit, and Core independently rejects partial imports.
+Deck actions exposes Arena, simple text, CSV and Spellbook JSON downloads plus `/mtg/decks/[deckId]/print`.
+Native task links retain these entrypoints without JavaScript.
+
+The authenticated print page uses the owned selected Deck read model and renders Commander, Main Deck, Sideboard and Companion with actual quantities and stored printing IDs.
+Related Tokens form a separate supplemental reference appendix without requirement counts.
+A user-initiated `window.print()` button invokes browser printing; the browser print command also works without JavaScript.
+Print CSS removes application navigation/actions, uses paper colors, wraps long names and printing IDs, repeats table headers and avoids splitting ordinary card rows.
+Rendered acceptance must check page breaks, responsive layout and the native print dialog.
 
 The feature-specific [DeckSaveLifecycle](../../frontend/src/lib/decks/save-lifecycle.ts) guards completion by action, active account/Deck scope and exact editor or Inspector opening.
 Row saves cannot dismiss an unrelated editor.
@@ -299,12 +327,16 @@ A later refetched Deck never substitutes for this acknowledgement, so an interve
 
 ## Catalog presentation
 
-Search color state owns disjoint OR and AND sets plus the Color/Identity field.
-Each click cycles Off, OR, AND, then Off; explicit removal clears the color directly.
-The structured Catalog request combines the OR set with every AND requirement.
-Search URLs, session hydration, native forms and result-context keys retain all three parts.
+Search color state owns disjoint OR, AND and NOT sets plus the Color/Identity field.
+The initial click cycle includes Off; setting a second distinct color filter assigns NOT to every unassigned color.
+The fully assigned palette cycles OR, AND, NOT; Clear filters resets it and individual removal assigns NOT.
+`completeColorMatch` owns this completion for reactive state, URL parsing, serialization and hydration.
+`formatColorExpression` renders the actual structured Catalog predicate as visual operators and a spoken equivalent, without hidden palette restrictions.
+Context keys retain all explicit groups, including automatic exclusions.
+Search URLs, session hydration, native forms and result-context keys retain the field and all three color groups.
 Changing a color state or field uses the existing filter navigation and resets the result anchor.
 The same SearchFilters component serves the full route and overlay; native forms expose equivalent labelled selections.
+Native Clear filters links preserve the query, selected field and browsing mode while resetting the groups and page; filtered empty native results use the same working link.
 
 Server loads and actions reach the same backend use cases as `/api/v1/mtg/...` through HTTP.
 Backend derives account authority from validated sessions and scopes mutations and reads accordingly.
@@ -423,13 +455,13 @@ The route keeps drafts, confirmed bases, original receipts and retry intents.
 A route-owned `lib/decks/selected-refresh.ts` coordinates reads through the existing SavedState lease and HTTP adapter.
 It does not own persistence or duplicate editor state.
 
-| Read cause                                                          | Selected snapshot | Legality/documents and both Category reads | Active Inspector ownership | Active Search |
-| ------------------------------------------------------------------- | ----------------- | ------------------------------------------ | -------------------------- | ------------- |
-| Initial, explicit retry, context change, reset, reconnect or resume | Read              | Read                                       | Read                       | Read          |
-| `decks`                                                             | Read              | Read                                       | Retain                     | Retain        |
-| `inventory`                                                         | Read              | Retain                                     | Read                       | Read          |
-| `values`                                                            | Read              | Read                                       | Retain                     | Read          |
-| Mixed topics                                                        | Read              | Union of required reads                    | Union                      | Union         |
+| Read cause                                                          | Selected snapshot | Legality/documents      | Active Inspector ownership | Active Search |
+| ------------------------------------------------------------------- | ----------------- | ----------------------- | -------------------------- | ------------- |
+| Initial, explicit retry, context change, reset, reconnect or resume | Read              | Read                    | Read                       | Read          |
+| `decks`                                                             | Read              | Read                    | Retain                     | Retain        |
+| `inventory`                                                         | Read              | Retain                  | Read                       | Read          |
+| `values`                                                            | Read              | Read                    | Retain                     | Read          |
+| Mixed topics                                                        | Read              | Union of required reads | Union                      | Union         |
 
 For confirmed optional results, the matrix above applies directly.
 A direct Inspector/Search request that loses its resource publication lease still needs a result.
@@ -442,7 +474,7 @@ Final optional publication clears its matching demand, loading and error state a
 
 The selected snapshot retains the Backend repeatable-read transaction for Composition, owned printings, Availability and Values.
 A normal public `values` event can accompany a new Catalog generation.
-It therefore retains Legality/documents, Category source evidence and Search refresh.
+It therefore retains Legality/documents and Search refresh.
 No new transport topic or source-stamp mechanism is selected.
 
 GET `/api/v1/mtg/decks/{deckId}` adds `includeLegality=false` only with the literal `selectedOnly=true`.
@@ -469,10 +501,10 @@ Query edits alone remain manual and cannot reactivate a different confirmed quer
 Scope replacement and disposal clear this marker.
 Every awaited read and decode checks those identities.
 
-After all awaits, the final synchronous merge rechecks confirmed Category revisions, Composition/Text bases and current dirty fields.
+After all awaits, the final synchronous merge rechecks Composition/Text bases and current dirty fields.
 It suppresses any core that would regress confirmed state.
 It updates only fields still clean at that merge and retains newer drafts and their bases.
-There is no intermediate Category or draft publication before an optional await.
+There is no intermediate draft publication before an optional await.
 A rejected or superseded core returns `false` to SavedState.
 Production-interface tests must cover the read matrix, held replies, errors, A/B/A replacement, monotone revisions, late confirmed saves, dirty drafts and original uncertain retries.
 Built HTTP and rendered evidence remain required by [repository verification](../operations/github-automation.md).
@@ -518,7 +550,7 @@ Existing `void` consumers acknowledge success.
 `false` retains causes and stale state without scheduling a retry or clearing an already queued invalidation.
 Resource `invalidate` and `beginWrite` accept optional known topics; omitted topics preserve the safe default.
 Workspace writes pass known completion causes through their counted handles.
-Deck/Category commands identify `decks`; completion still invalidates without an SSE event.
+Deck commands identify `decks`; completion still invalidates without an SSE event.
 Topics reduce reads only.
 Account, registration, recovery, version and resource-wide counted-write publication fences remain authoritative.
 The Deck route establishes its Resource subscription before synchronous Search activity can start an optional request.
@@ -731,109 +763,102 @@ The application serves its machine-readable API contract at `/openapi.json`.
 It describes local authentication, account Profile/Dashboard/password/session operations and MTG API operations, including typed requests, responses, and cookie or bearer authentication.
 The route implementation remains the source of truth for error conditions and transaction behavior.
 
-## Primary Deck entry categories
-
-Deck page reads category DTOs without initializing.
-Enhanced owned opening submits the explicit initialization form once; no-JavaScript users submit that visible native form.
-Category view groups Main only, with section rendering for Commander, Sideboard and Companion.
-Native Main-entry forms and the inspector reuse [EntryCategoryEditor](../../frontend/src/lib/components/decks/EntryCategoryEditor.svelte) for Manual selection, Uncategorized, provenance and retained drafts.
-Pending facts remain visible inside Uncategorized.
-A confirmed Manual acknowledgement advances the local base; failed subsequent reads retain the choice until a current matching read arrives.
-Enhanced Manual saves apply the confirmed acknowledgement without invalidating the entire page, then request the existing owned category endpoint.
-Read failures keep the mounted editor, selected choice and confirmation, and show an operational read error.
-An explicit refresh button retries only that bounded read.
-Newer local drafts remain retained, and late results cannot update another account, Deck, flow or disposed editor.
-Conflicting moves/printing merges show a native/enhanced consequence form before confirmation and preserve the complete destination decision.
-[Category rules](./category-rules.md#implemented-starter-entry-decisions) owns the implemented semantics and later-slice boundary.
-Shared Deck save lifecycle remains the owner for pending guards, retries and focus.
-
 Profile uses SSR only for the first active-account snapshot.
 Later same-account server data requests a leased current read instead of replacing synchronized values.
 Profile Card adopts only clean saved fields and preserves local drafts and their saved bases through enhanced validation failures or delayed server data.
 Account changes clear the editor lifetime.
-Category editors retain entry-owned dirty input when a saved role moves outside Main or the entry disappears, display the moved or missing state, and disable writes until that target is usable.
 Explicit editor close or account expiry clears the draft.
 Main grouping remains based on current saved Main entries.
+
+The Deck Library uses an artwork-led responsive grid with complete card frames and compact Deck metadata.
+It retains the Inventory-style search, Filter and Sort toolbar.
+The shared ActionMenu toolbar variant owns the compact border-free Sort trigger in Inventory and Deck Library.
+Its existing Library state, measured row geometry, native directory query and SavedState responsibilities remain unchanged.
+Dashboard metrics and panel headings omit decorative foreground icons; the cards own subtle neutral material backgrounds and non-interactive object silhouettes, without changing the page background.
 
 ## Private value presentation
 
 Dashboard renders current Inventory value and bounded personal history.
-`/mtg/history` owns the authenticated date/identity-filtered history view; the Inventory inspector links using printing, finish and condition rather than a live entry ID.
+`InventoryHistoryDialog` owns the date/identity-filtered History preview for Dashboard and Inventory Inspector.
+The Inspector supplies printing, finish and condition rather than a live entry ID.
+The standalone History route is removed without an alias or redirect; the authenticated History API and saved captures remain unchanged.
 Shared [ValueSummary](../../frontend/src/lib/components/valuation/ValueSummary.svelte) and [InventoryValueHistory](../../frontend/src/lib/components/valuation/InventoryValueHistory.svelte) distinguish covered subtotal, unknown and stale quantities, captured known zero and gaps.
-Selected Deck shows required and missing nonfoil estimates without changing availability or drafts.
+Selected Deck shows whole-Deck and missing-card estimates, priced-copy coverage and the selected-printing nonfoil EUR basis without changing availability or drafts.
 
 Shared chart components under `frontend/src/lib/components/charts/` own responsive SVG and native chart inspection.
-D3 owns scale/tick and line calculations; Svelte owns rendering and application state.
-Dashboard composes zero-based Set, Finish and Condition distributions and Deck availability without changing backend aggregates.
+D3 owns scale and path construction; the exact-value helper chooses monetary bounds and ticks before normalized positioning.
+Svelte owns rendering and application state.
+The regular Dashboard composes four shared daily metric cards above `DashboardInsights`: exclusive primary types, mana color identity, ranked Sets and `DashboardQuickActions` in one analysis row.
+The lower row gives two thirds of its width to the `DashboardDecks` tile grid and one third to the Recent activity list; below 1150px it stacks with Decks first.
+Recent activity presents the bounded recently updated Inventory holdings and their real timestamps, without claiming a complete event log.
+`DashboardQuickActions` links to existing Add cards, New deck, Scan and Box management routes.
+`DashboardDecks` owns read-only Deck availability, larger Commander previews and a bounded native scrolling list; narrow screens use its natural height.
+These presentation components consume the existing account summary without new backend reads.
+`WorkspaceHeader` supplies an overview heading variant while preserving ordinary workspace headings.
+`MetricCards` serves the ordinary Dashboard; `metric-trends.ts` selects 30 closed daily reporting dates with exact BigInt changes and explicit gaps/partial coverage.
+Shared navigation color tokens also color the four compact metric charts; visible price-coverage explanations belong in the expanded History details.
+The shared `mtg/type-symbol.ts` mapping supplies truthful Mana Font card-type symbols to Dashboard, Search and Deck groups.
+`InventoryValueHistoryPreview` owns its mounted SavedState lease, period query and reporting-boundary refresh; it reuses shared History controls and chart in the wider `history` FormDialog variant.
 The existing exact-value normalizer retains gap, unknown and known-zero semantics before value-history positioning.
-Full observation tables remain available without JavaScript; keyboard and touch users can inspect captured values through a native range control.
+An accessible exact-data table remains available without JavaScript; keyboard and touch users can inspect captured values through a native range control.
 The [selected component reference](../reference/ui-libraries.md#analytics-charts) owns dependency rationale.
-Dashboard composes the current value through `InventoryValueHistory`'s optional summary snippet and `ValueSummary`'s compact presentation; other callers retain the full presentation.
-Coverage disclosures and exact daily tables remain native details controls, and an unknown-only history renders an explicit empty state without a synthetic line.
-`CompositionRing` renders Finish counts with D3 arcs and equivalent native legend buttons; Condition zeroes remain available in a collapsed breakdown.
-The recent-entry gallery uses existing account-scoped detail links and full card frames; Dashboard requests no additional Catalog or Inventory objects.
+Inventory value lives in the top metric row and opens History on demand; it is not duplicated in a permanent History panel.
+Cards and Sets are native Inventory links; Decks is a native Deck Library link.
+Only the Inventory value button opens History, and it remains disabled until JavaScript mounts.
+The compact `MetricMiniChart` uses actual daily bars for counts and a short line for value, without stretching a sparkline across the whole card.
+`HistoryFilters` preserves printing identity and applies period/date choices through the leased preview callback, with custom dates always visible.
+Coverage retains a native disclosure, the Daily observations disclosure is removed, and an unknown-only history renders an explicit empty state without a synthetic line.
+`ProportionChart` owns D3 Pie/ring/bar geometry and per-segment pointer, focus and tap inspection.
+Its quantity unit defaults to physical copies; Deck-status callers provide deck/decks for accessible labels, tooltips and native totals.
+Zero quantities remain available as native data; unknown and empty states create no colored segment.
+The recent-entry panel uses existing account-scoped detail links, full card thumbnails and stored edit timestamps.
+The Dashboard response supplies account-scoped, quantity-weighted color, color-identity, rarity and exclusive primary-type distributions from the active Catalog, plus bounded missing and alternate requirement previews.
+Unmatched Printings remain Unknown, optional Catalog failures return an unavailable breakdown, and previews retain stored Deck/Printing identities.
+The Dashboard and Deck reader share the same exact-first allocator and stored-canonical ownership scope; only bounded requirement previews leave Core.
+Browser consumers request no complete Inventory or additional Catalog objects for these summaries.
+The [Mebius adaptation contract](../product/ui-design-direction.md#mebius-chart-adaptation) maps the selected reference treatments to these four existing chart families.
+`--color-chart-track` owns the neutral light/dark track fill.
+The regular Dashboard ranks five Sets with copy-count bars and exposes full quantities through a native disclosure.
+Set symbols use the public Scryfall SVG assets by validated Set code, with a code fallback if an asset fails.
+The existing prototype Set Pie remains separate from this selected presentation.
+Finish, Condition and Extra copies share one panel with separate proportional bars.
+Extra copies are total copies minus distinct Canonical Cards.
+DeckAvailabilityRing composes ProportionChart with an owned/required readout; exact, alternate and missing shares remain independently inspectable.
+Inspection stays within the chart, dismisses with Escape or an outside click and pins on tap.
+Native data remains available without JavaScript.
+Dashboard Deck rows include at most two account-scoped stored Commander-role Printing previews from the same read-only Core snapshot.
+History adds a bounded exact-value callout and selected-point halo to its existing cursor and native observation control.
+Adaptive lower/upper bounds and 1/2/5 ticks use exact cents, so cent-sized changes remain visible without a forced zero baseline.
+Missing and unknown values remain disconnected, and a constant or single known value gets a valid padded range.
+The [Dashboard metric contract](../product/ui-design-direction.md#dashboard-metrics-and-inventory-value-preview) uses real captured daily totals and compact adjacent charts; unknown legacy Deck counts remain explicit.
 
 These consumers subscribe to `values` through existing SavedState read leases and account/selection guards.
 History schedules one refresh at the server-provided `nextRefreshAt`; it does not poll.
 Later same-account server data requests a leased history read instead of overwriting the synchronized snapshot.
 Failed optional valuation leaves other Dashboard/Deck data usable.
-The History route reuses the shared value-history module with URL-backed range links and a native custom-date form.
-The module shows exact latest priced value, covered-value change, coverage and missing days, with detailed observations collapsed by default.
+The shared History dialog applies preset and custom-date choices through its leased read callback, without a separate page or footer navigation.
+The module shows exact latest priced value, covered-value change, coverage and missing days, with accessible exact chart data and no visible Daily observations section.
 Demo price notices describe the API's static fixture scenario; the browser does not create prices or history.
 [Valuation](./valuation.md#reviewed-personal-history-contract) owns exact arithmetic and calendar boundaries.
 Rendered verification, owner acceptance and deployment remain separate evidence.
 
-The private `/mtg/categories` page owns scoped current-definition pages and a retained criteria draft.
-Native POST updates criteria without saving a version; a separate save publishes the reusable definition.
-Typed name/meaning/order/rule/role controls survive controlled failures, and a changed Library revision requires explicit recovery.
-[RuleEditor](../../frontend/src/lib/components/categories/RuleEditor.svelte) renders supported criteria instead of editable implementation JSON.
-The page uses the shared Header, Button and native Select controls.
-Whole-deck definition editing feeds the independent overlapping classification engine.
-Combo criteria use the optional local source and remain Unknown when required facts are unavailable.
+## Development search evaluation
 
-### Library Editor state ownership
+The opt-in `/__search-evaluation` lab compares real retrieval providers through a separate loopback Python service.
+Web owns the existing Shell/Dialog/Command presentation and bounded HTTP forwarding; it imports no database code.
+The route requires development mode and `SEARCH_EVALUATION_URL`, sends no-store/noindex headers, and returns 404 in a production build even with that variable set.
+The lab owns Ctrl/Cmd+K only on its route; elsewhere the global palette owns the shortcut.
+The Account menu has no search launcher.
+The [evaluation owner](../integrations/search-evaluation.md) records the disposable fixtures, provider boundaries, results and production proposals.
 
-The per-mounted [Library Editor state owner](../../frontend/src/lib/categories/library-editor.svelte.ts) implements the `.svelte.ts` design Kyle selected on 2026-10-18.
-Its interface supplies the reactive draft, choices, pending/dirty feedback, confirmed acknowledgement and immutable original retry, together with edit, reopen, clear, dispose and submission-completion operations.
-It receives typed server seeds and active-account evidence.
-Its implementation owns adoption, completion authority and retry identity.
-Tests exercise that same implementation through its interface; no framework-independent editor core or new state-management dependency is introduced.
+## Global power-user search
 
-The page retains rendering, actual FormData capture, SvelteKit form adaptation, existing SavedState leases and independently addressed Library reads.
-Editor identity remains account/scope/origin/opening; list identity remains account/scope/offset/limit.
-The editor supplies opaque authority for refreshes started on its behalf.
-Actual DOM fields, repeated roles and named submitters remain authoritative.
-Payload identity includes action and `ruleAction` but excludes `requestId`; draft identity excludes both `ruleAction` and `requestId`.
-
-A confirmed Save A advances only its acknowledged origin and revision when newer draft B exists.
-An older original receipt cannot replace a newer confirmed draft origin or revision.
-Receipt A, draft B and uncertain original retries remain separate.
-Held criteria replies and failures cannot replace newer controls.
-Account, scope, origin, reopen and disposal invalidate earlier completions synchronously, including before scheduled effects run.
-Terminal clearing removes private state; only matching active-account evidence permits server reseeding.
-Bounded list ownership, native form behavior and the shared SavedState transport retain their existing contracts.
-
-The [Editor tests](../../frontend/tests/unit/category-library-editor.test.ts) replace source-sliced effects and manually reconstructed adoption with the complete production module and Svelte client scheduler.
-[Library read tests](../../frontend/tests/unit/category-library-read.test.ts) retain independently addressed page ownership.
-Acceptance covers held A/B completions, changed-then-restored fields, original retries, acknowledgement followed by failed refresh, context/opening replacement, terminal clearing, authenticated reactivation, stable hydration and independent pagination.
-Existing real PostgreSQL/native and enhanced HTTP checks remain applicable; rendered desktop and narrow forms verify integration with actual controls.
-Current-head check results and rendered observations belong in the PR evidence, separately from owner acceptance and deployment.
-Compatibility uses current stable Svelte and supported tooling peers, retaining older compiler dependencies only while upstream tools require them.
-
-The Library subscribes through the shared account SavedState resource and retains editable drafts independently of synchronized current-definition pages.
-Its write handle suspends conflicting reads and terminal/account replacement clears private drafts and receipts.
-After confirmed enhanced Library saves, the existing bounded scoped API refreshes only current Library evidence; read failures keep the mounted controls and receipt, with an explicit refresh action.
-Native forms retain their redirect behavior.
-An uncertain original form and request ID remain available through an explicit retry form, independently of newer Name, Meaning or Rules edits.
-
-[DeckCategoryManager](../../frontend/src/lib/components/decks/DeckCategoryManager.svelte) uses the shared DeckDialog for enhanced management and retained native controls without JavaScript.
-Its pending and return-focus behavior follows shared forms.
-It distinguishes local labels/removal from reusable editing.
-Removal uses the existing ConfirmationDialog for enhanced users and an explicit native replacement confirmation.
-A remotely removed local category retains its disabled label draft.
-Explicit Review/Reset shows server-owned paged consequences, preserved Manual choices, name conflicts, Pending evidence, criteria/meaning changes and expiry.
-Commit saves the complete plan.
-The shared Deck save lifecycle owns pending requests and retained native/enhanced failures.
-Native local-label failures return the exact submitted label, original decision base and request identity.
-Reviewed commit returns its confirmed receipt independently of optional current reads; failed native follow-up reads retain earlier controls with an explicit unavailable state.
-[Category rules](./category-rules.md#entry-reviewreset-transactions) owns authority, fences and retention.
+[The selected contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract) owns the T3 Code visual reference, shortcut-only entry and independent Catalog/Inventory/Deck contexts.
+PowerSearch composes existing Bits Dialog/Command parts with filtering and Vim bindings disabled.
+Its compact dark/light colors and interface font are scoped semantic tokens; other application geometry and typography remain unchanged.
+Settings shows the binding as read-only text, and the ordinary Search bar has no shortcut hint.
+The small frontend [read owner](../../frontend/src/lib/search/power-search.ts) supplies local bilingual navigation, context-specific destinations, debounce, cancellation and account/publication fencing.
+SavedState clears terminal/private results and invalidates open reads for Inventory/Deck changes.
+The API/Core provides bounded account-scoped candidates through the shared [DTO](../../contracts/src/power-search.ts); Web performs no SQL.
+The normal Catalog overlay retains URL/history ownership and pending-write guards.
+Other active modal dialogs retain their shortcuts and focus; opening the power-user palette over ordinary Search does not discard its session.

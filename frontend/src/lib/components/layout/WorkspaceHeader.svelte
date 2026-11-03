@@ -1,10 +1,19 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	let { title, metadata, actions }: { title: string; metadata?: Snippet; actions?: Snippet } =
-		$props();
+	let {
+		title,
+		metadata,
+		actions,
+		variant = 'default'
+	}: {
+		title: string;
+		metadata?: Snippet;
+		actions?: Snippet;
+		variant?: 'default' | 'overview';
+	} = $props();
 </script>
 
-<header class="workspace-header">
+<header class="workspace-header" class:overview={variant === 'overview'}>
 	<div class="workspace-heading">
 		<div class="page-title"><h1>{title}</h1></div>
 		{#if metadata}{@render metadata()}{/if}
@@ -13,6 +22,12 @@
 </header>
 
 <style>
+	.overview .page-title h1 {
+		font-size: clamp(2rem, 2.4vw, 2.5rem);
+		font-weight: 400;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+	}
 	.workspace-header {
 		display: flex;
 		align-items: center;

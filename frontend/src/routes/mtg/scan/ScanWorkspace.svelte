@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { goto } from '$app/navigation';
 	import { untrack, onMount, onDestroy } from 'svelte';
@@ -371,7 +372,9 @@
 		<div class="page-title">
 			<h1>Scan</h1>
 		</div>
-		<button class="btn btn-primary" disabled={busy} onclick={createSession}>New scan</button>
+		<button class="btn btn-primary" disabled={busy} onclick={createSession}
+			><PlusIcon />New scan</button
+		>
 	</div>
 
 	{#if failure}<p role="alert" class="rounded border border-error p-3 text-text-primary">
@@ -603,7 +606,7 @@
 								<button
 									class="btn btn-primary"
 									disabled={busy || searching || !confirmed || !validQuantity}
-									>{busy ? 'Adding...' : 'Confirm and add to inventory'}</button
+									><PlusIcon />{busy ? 'Adding...' : 'Confirm and add to inventory'}</button
 								>
 							{/if}
 						</form>

@@ -1,9 +1,9 @@
 # Valuation
 
 - Status: Scryfall and optional provider references/public source history implemented; personal Inventory history and Dashboard/selected-Deck estimates implemented
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-31
 - Source of Truth: reference contracts, backend Valuation, Worker publication and accepted value-only scope
-- Update Triggers: explicit static Demo valuation and simplified History presentation, versioned MTG routes and module ownership, Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
+- Update Triggers: daily Dashboard aggregate totals and nullable captured Deck count, explicit static Demo valuation and simplified History presentation, versioned MTG routes and module ownership, Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
 
 [Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates.
@@ -63,6 +63,12 @@ Once eligible in-flight observations finish, the checkpoint is immutable.
 A timezone change never rewrites a saved date, timezone, boundary or observation.
 If that reporting date already exists in another calendar, it is retained rather than overwritten; subsequent dates use the new calendar.
 Empty holdings save a known-zero header.
+Additive migration 0025 records nullable `deck_count` on daily headers.
+Genuine captures count only the account's MTG Decks in the same repeatable-read transaction and update the count on eligible replacement.
+Legacy and illustrative Demo headers retain null Deck counts; no backfill runs.
+Unfiltered History aggregates copies, distinct Canonical Cards and represented Sets from saved holdings in one bounded query for the selected owned day IDs, including zero counts for empty captures.
+Required `totals` carries those safe integer counts and the captured nullable Deck count, independently of price coverage.
+Printing-filtered History returns `totals: null`.
 Personal retention has no automatic expiry.
 
 Authenticated `GET /api/v1/mtg/inventory/value` returns a current estimate and coverage.

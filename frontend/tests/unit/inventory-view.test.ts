@@ -221,14 +221,28 @@ describe('inventory filters', () => {
 
 describe('new inventory entry badges', () => {
 	const now = new Date('2026-10-06T12:00:00Z');
-	it('marks entries new for exactly seven elapsed days from creation', () => {
+	it('marks entries new only on their displayed UTC creation date', () => {
 		expect(isNewInventoryEntry(now, now)).toBe(true);
-		expect(isNewInventoryEntry(new Date('2026-09-29T12:00:00.001Z'), now)).toBe(true);
+		expect(isNewInventoryEntry(new Date('2026-10-06T00:00:00Z'), now)).toBe(true);
+		expect(isNewInventoryEntry(new Date('2026-10-05T23:59:59.999Z'), now)).toBe(false);
 		expect(isNewInventoryEntry(new Date('2026-09-29T12:00:00Z'), now)).toBe(false);
-		expect(isNewInventoryEntry(new Date('2026-09-28T12:00:00Z'), now)).toBe(false);
+	});
+	it('expires at the following UTC midnight, even for an entry created a millisecond earlier', () => {
+		const created = new Date('2026-10-06T23:59:59.999Z');
+		expect(isNewInventoryEntry(created, created)).toBe(true);
+		expect(isNewInventoryEntry(created, new Date('2026-10-07T00:00:00Z'))).toBe(false);
+	});
+	it('compares UTC dates regardless of the timestamp offset', () => {
+		expect(
+			isNewInventoryEntry(new Date('2026-10-07T01:00:00+02:00'), new Date('2026-10-06T23:30:00Z'))
+		).toBe(true);
+		expect(
+			isNewInventoryEntry(new Date('2026-10-06T23:00:00-02:00'), new Date('2026-10-07T01:30:00Z'))
+		).toBe(true);
 	});
 	it('does not mark future or invalid creation dates new', () => {
 		expect(isNewInventoryEntry(new Date('2026-10-06T12:00:01Z'), now)).toBe(false);
 		expect(isNewInventoryEntry(new Date('invalid'), now)).toBe(false);
+		expect(isNewInventoryEntry(now, new Date('invalid'))).toBe(false);
 	});
 });

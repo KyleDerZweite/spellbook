@@ -11,7 +11,6 @@ from test_auth_account import ACTOR, ORIGIN, TOKEN
 
 from spellbook_api.application import ApplicationResources, create_application
 from spellbook_api.http.mtg.routes_catalog import create_catalog_routes
-from spellbook_api.http.mtg.routes_categories import create_category_routes
 from spellbook_api.http.mtg.routes_decks import create_deck_routes
 from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
 from spellbook_api.http.mtg.routes_scan import create_scan_routes
@@ -43,11 +42,10 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     installed = operations(lifetime.http)
     for routes, expected in (
         (create_inventory_routes(resources.auth, resources.inventory, ORIGIN), 16),
-        (create_deck_routes(resources.auth, resources.decks, ORIGIN), 19),
+        (create_deck_routes(resources.auth, resources.decks, ORIGIN), 18),
         (create_catalog_routes(resources.catalog), 4),
         (create_valuation_routes(resources.auth, resources.valuation, ORIGIN), 5),
         (create_scan_routes(resources.auth, resources.scan, ORIGIN), 7),
-        (create_category_routes(resources.auth, resources.categories, ORIGIN), 17),
     ):
         assert len(operations(routes)) == expected
         assert operations(routes) <= installed
@@ -72,13 +70,11 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     prices = AsyncMock(return_value={"prices": True})
     dashboard = AsyncMock(return_value={"summary": True})
     scans = AsyncMock(return_value=[])
-    library = AsyncMock(return_value={"definitions": []})
     monkeypatch.setattr(resources.catalog, "search_catalog_request", catalog)
     monkeypatch.setattr(resources.inventory, "page", groups)
     monkeypatch.setattr(resources.valuation, "printing_references", prices)
     monkeypatch.setattr(resources.dashboard, "get", dashboard)
     monkeypatch.setattr(resources.scan, "list_sessions", scans)
-    monkeypatch.setattr(resources.categories, "get_library", library)
     client = TestClient(lifetime.http)
     try:
         assert client.get("/api/v1/mtg/catalog/search?q=Test").json() == {"catalog": True}
@@ -101,15 +97,12 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         assert response.status_code == 200 and response.json() == {"sessions": []}
         assert response.headers["cache-control"] == "no-store"
         scans.assert_awaited_once_with(ACTOR)
-        assert client.get("/api/v1/mtg/category-definitions", headers=headers).json() == {
-            "definitions": []
-        }
-        library.assert_awaited_once_with(ACTOR, {"offset": 0, "limit": 50})
-        from spellbook_core.mtg.categories import CategoryConflict
-
-        library.side_effect = CategoryConflict({"decisionRevision": "2"})
-        failure = client.get("/api/v1/mtg/category-definitions", headers=headers)
-        assert failure.status_code == 409 and failure.json()["latest"] == {"decisionRevision": "2"}
+        for path in (
+            "/api/v1/mtg/category-definitions",
+            "/api/v1/mtg/deck-library/categories",
+            "/api/v1/mtg/decks/11111111-1111-4111-8111-111111111111/categories",
+        ):
+            assert client.get(path, headers=headers).status_code == 404
 
         assert client.head("/api/v1/mtg/dashboard", headers=headers).content == b""
         options = client.options("/api/v1/mtg/dashboard")
@@ -178,27 +171,6 @@ def test_scan_environment_is_typed_and_discovery_constructs_no_scan_adapters(
         assert client.get("/openapi.json").status_code == 200
         assert client.get("/api/v1/mtg/scan/sessions").status_code == 404
     asyncio.run(lifetime.close())
-
-
-@pytest.mark.parametrize("enabled", ["true", "false"])
-def test_combo_configuration_binds_the_owned_pool(enabled: str) -> None:
-    from spellbook_core.mtg.categories.common import combo_enabled
-
-    configuration = Configuration.from_environment(
-        {
-            "APP_ORIGIN": ORIGIN,
-            "DATABASE_URL": "postgresql://localhost/unused",
-            "COMMANDER_SPELLBOOK_ENABLED": enabled,
-        }
-    )
-    lifetime = create_application(configuration)
-    resources: ApplicationResources = lifetime.http.state.resources
-    assert combo_enabled(resources.pool) is (enabled == "true")
-    asyncio.run(lifetime.close())
-    with pytest.raises(ValueError, match="COMMANDER_SPELLBOOK_ENABLED"):
-        Configuration.from_environment(
-            {"APP_ORIGIN": ORIGIN, "COMMANDER_SPELLBOOK_ENABLED": "yes"}
-        )
 
 
 def test_complete_registry_matches_only_openapi_and_discovery() -> None:

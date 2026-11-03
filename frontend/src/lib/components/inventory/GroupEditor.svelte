@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { page } from '$app/state';
 	import { inventoryAction, effectiveInventoryUrl } from '#lib/mtg/inventory-action.ts';
 	import { enhance } from '$app/forms';
@@ -65,7 +66,11 @@
 			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
 				>Cancel</button
 			><button type="submit" class="btn btn-primary" disabled={mutation.pending}
-				>{mutation.pending ? 'Saving...' : group ? 'Save' : 'Create box'}</button
+				>{#if !group}<PlusIcon />{/if}{mutation.pending
+					? 'Saving...'
+					: group
+						? 'Save'
+						: 'Create box'}</button
 			>
 		</div>
 	</form>

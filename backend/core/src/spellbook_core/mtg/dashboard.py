@@ -15,6 +15,9 @@ from spellbook_core.db import (
 )
 from spellbook_core.errors import DatabaseIntegerRangeError
 from spellbook_core.models import Actor
+from spellbook_core.mtg.decks.models import AvailabilityRequirement, OwnedPrinting
+from spellbook_core.mtg.decks.read import owned
+from spellbook_core.mtg.decks.rules import allocate_deck_availability
 from spellbook_core.mtg.inventory_value import InventoryValues
 from spellbook_core.mtg.profile import SummaryRangeError
 from spellbook_core.mtg.valuation import PriceReadUnavailable
@@ -27,8 +30,20 @@ class Distribution(TypedDict):
     share: float
 
 
+class CatalogBreakdown(TypedDict):
+    colors: list[Distribution]
+    colorIdentity: list[Distribution]
+    rarities: list[Distribution]
+    primaryTypes: list[Distribution]
+    matchedQuantity: int
+    unknownQuantity: int
+    setNames: dict[str, str]
+
+
 class DashboardSummary(TypedDict):
     totals: dict[str, int]
+    catalogBreakdown: CatalogBreakdown | None
+    requirements: dict[str, list[dict[str, object]]]
     sets: list[Distribution]
     finishes: list[Distribution]
     conditions: list[Distribution]
@@ -76,6 +91,193 @@ async def _distribution(
     ]
 
 
+_COLORS = ("White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Unknown")
+_RARITIES = ("common", "uncommon", "rare", "mythic", "special", "unknown")
+_TYPES = (
+    "Land",
+    "Creature",
+    "Instant",
+    "Sorcery",
+    "Enchantment",
+    "Artifact",
+    "Planeswalker",
+    "Battle",
+    "Other",
+    "Unknown",
+)
+
+
+async def _catalog_breakdown(tx: Transaction, account_id: str, total: int) -> CatalogBreakdown:
+    colors = """CASE WHEN p.id IS NULL THEN 'Unknown'
+     WHEN cardinality(p.colors)=0 THEN 'Colorless'
+     WHEN cardinality(p.colors)>1 THEN 'Multicolor'
+     ELSE CASE p.colors[1] WHEN 'W' THEN 'White' WHEN 'U' THEN 'Blue'
+     WHEN 'B' THEN 'Black' WHEN 'R' THEN 'Red' WHEN 'G' THEN 'Green' ELSE 'Unknown' END END"""
+    identity = """CASE WHEN p.id IS NULL OR p.color_identity_mask IS NULL THEN 'Unknown'
+     WHEN p.color_identity_mask=0 THEN 'Colorless' WHEN p.color_identity_mask=1 THEN 'White'
+     WHEN p.color_identity_mask=2 THEN 'Blue' WHEN p.color_identity_mask=4 THEN 'Black'
+     WHEN p.color_identity_mask=8 THEN 'Red' WHEN p.color_identity_mask=16 THEN 'Green'
+     ELSE 'Multicolor' END"""
+    types = (
+        "CASE WHEN p.id IS NULL THEN 'Unknown' "
+        + " ".join(f"WHEN '{label}'=ANY(p.card_types) THEN '{label}'" for label in _TYPES[:-2])
+        + " ELSE 'Other' END"
+    )
+    rows = await (
+        await tx.execute(
+            f"""WITH inventory_catalog AS (
+         SELECT owned.*,p.document->>'set_name' AS set_name,{colors} AS color,
+         {identity} AS identity,
+         CASE WHEN p.id IS NULL THEN 'unknown'
+         WHEN p.rarity IN ('common','uncommon','rare','mythic') THEN p.rarity
+         ELSE 'special' END AS rarity,{types} AS primary_type
+         FROM (SELECT catalog_card_id,set_code,sum(quantity::numeric) AS quantity
+         FROM inventory_cards WHERE account_id=%s AND game='mtg'
+         GROUP BY catalog_card_id,set_code) owned
+         LEFT JOIN catalog_state s ON s.id=1 LEFT JOIN catalog_printings p
+         ON p.generation_id=s.active_generation AND p.id=CASE WHEN owned.catalog_card_id
+         ~* '^[0-9a-f]{{8}}(-[0-9a-f]{{4}}){{3}}-[0-9a-f]{{12}}$'
+         THEN owned.catalog_card_id::uuid END
+        ) SELECT dimension,label,sum(quantity)::text FROM inventory_catalog
+        CROSS JOIN LATERAL (VALUES ('colors',color),('colorIdentity',identity),
+        ('rarities',rarity),('primaryTypes',primary_type)) buckets(dimension,label)
+        GROUP BY dimension,label
+        UNION ALL SELECT 'setNames',set_code,min(set_name) FROM inventory_catalog
+        WHERE set_name IS NOT NULL GROUP BY set_code""",
+            (account_id,),
+        )
+    ).fetchall()
+    quantities: dict[str, dict[str, int]] = {}
+    names: dict[str, str] = {}
+    for dimension, label, value in rows:
+        if dimension == "setNames":
+            names[str(label)] = str(value)
+        else:
+            quantities.setdefault(str(dimension), {})[str(label)] = summary_number(value)
+
+    def distribution(dimension: str, labels: tuple[str, ...]) -> list[Distribution]:
+        values = quantities.get(dimension, {})
+        if sum(values.values()) != total:
+            raise SummaryRangeError()
+        return [
+            {
+                "label": label,
+                "quantity": values.get(label, 0),
+                "share": values.get(label, 0) / total if total else 0,
+            }
+            for label in labels
+        ]
+
+    unknown = quantities.get("colors", {}).get("Unknown", 0)
+    return {
+        "colors": distribution("colors", _COLORS),
+        "colorIdentity": distribution("colorIdentity", _COLORS),
+        "rarities": distribution("rarities", _RARITIES),
+        "primaryTypes": distribution("primaryTypes", _TYPES),
+        "matchedQuantity": total - unknown,
+        "unknownQuantity": unknown,
+        "setNames": names,
+    }
+
+
+class _Requirement(AvailabilityRequirement):
+    deckId: str
+    deckName: str
+    name: str
+    imageUri: str
+
+
+async def _deck_availability(
+    tx: Transaction, account_id: str
+) -> tuple[dict[str, dict[str, int]], dict[str, list[dict[str, object]]]]:
+    # Project only the fields needed by the authoritative exact-first allocator.
+    # Compositions remain inside Core; only bounded requirement previews leave it.
+    rows = await (
+        await tx.execute(
+            "SELECT dc.id,dc.deck_id,d.name,dc.catalog_card_id,dc.canonical_card_id,"
+            "dc.name,dc.image_uri,dc.quantity FROM deck_cards dc JOIN decks d "
+            "ON d.id=dc.deck_id AND d.account_id=dc.account_id AND d.game=dc.game "
+            "WHERE d.account_id=%s AND d.game='mtg' ORDER BY dc.id",
+            (account_id,),
+        )
+    ).fetchall()
+    by_deck: dict[str, list[_Requirement]] = {}
+    for row in rows:
+        card = _Requirement(
+            id=str(row[0]),
+            deckId=str(row[1]),
+            deckName=str(row[2]),
+            catalogCardId=str(row[3]),
+            canonicalCardId=str(row[4]),
+            name=str(row[5]),
+            imageUri=str(row[6]),
+            quantity=summary_number(row[7]),
+        )
+        by_deck.setdefault(card["deckId"], []).append(card)
+    canonical_ids = list(
+        dict.fromkeys(c["canonicalCardId"] for cards in by_deck.values() for c in cards)
+    )
+    try:
+        inventory = await owned(tx, account_id, canonical_ids)
+    except DatabaseIntegerRangeError:
+        raise SummaryRangeError() from None
+    by_canonical: dict[str, list[OwnedPrinting]] = {}
+    for printing in inventory:
+        by_canonical.setdefault(printing["canonicalCardId"], []).append(printing)
+    totals: dict[str, dict[str, int]] = {}
+    previews: list[dict[str, object]] = []
+    for deck_id, cards in by_deck.items():
+        # The Deck reader limits ownership to this Deck's stored canonical IDs.
+        relevant = {c["canonicalCardId"] for c in cards}
+        printings = sorted(
+            (p for identity in relevant for p in by_canonical.get(identity, [])),
+            key=lambda p: (p["catalogCardId"], p["canonicalCardId"]),
+        )
+        allocations = allocate_deck_availability(cards, printings)
+        counts = dict(required=0, exact=0, alternate=0, missing=0)
+        canonical: dict[str, dict[str, object]] = {}
+        for card in cards:
+            allocated = allocations[card["id"]]
+            values = {
+                "required": card["quantity"],
+                "exact": allocated["exact"],
+                "alternate": allocated["alternate"],
+                "missing": allocated["missing"],
+            }
+            preview = canonical.setdefault(
+                card["canonicalCardId"],
+                dict(
+                    deckId=deck_id,
+                    deckName=card["deckName"],
+                    canonicalCardId=card["canonicalCardId"],
+                    catalogCardId=card["catalogCardId"],
+                    name=card["name"],
+                    imageUri=card["imageUri"],
+                    required=0,
+                    exact=0,
+                    alternate=0,
+                    missing=0,
+                ),
+            )
+            for key, value in values.items():
+                counts[key] = summary_number(counts[key] + value)
+                preview[key] = summary_number(summary_number(preview[key]) + value)
+        totals[deck_id] = counts
+        previews.extend(canonical.values())
+
+    def bounded(key: str) -> list[dict[str, object]]:
+        return sorted(
+            (row for row in previews if summary_number(row[key]) > 0),
+            key=lambda row: (
+                -summary_number(row[key]),
+                str(row["deckId"]),
+                str(row["canonicalCardId"]),
+            ),
+        )[:8]
+
+    return totals, dict(missing=bounded("missing"), alternate=bounded("alternate"))
+
+
 class Dashboard:
     def __init__(self, pool: ConnectionPool, auth: SessionAuth, values: InventoryValues):
         self._pool, self._auth, self._values = pool, auth, values
@@ -105,6 +307,15 @@ class Dashboard:
                     ("total", "names", "printings", "sets", "foils", "decks"), row, strict=True
                 )
             }
+            await tx.execute("SAVEPOINT catalog_summary")
+            try:
+                catalog_breakdown = await _catalog_breakdown(tx, user.account_id, totals["total"])
+            except SummaryRangeError:
+                raise
+            except Exception:
+                await tx.execute("ROLLBACK TO SAVEPOINT catalog_summary")
+                catalog_breakdown = None
+            await tx.execute("RELEASE SAVEPOINT catalog_summary")
             sets = await _distribution(tx, user.account_id, totals["total"], "set_code")
             finishes = await _distribution(
                 tx, user.account_id, totals["total"], "finish", ("nonfoil", "foil")
@@ -148,51 +359,30 @@ class Dashboard:
             deck_rows = await (
                 await tx.execute(
                     """
-                    WITH owned_printings AS (
-                        SELECT canonical_card_id,catalog_card_id,sum(quantity::numeric) AS quantity
-                        FROM inventory_cards WHERE account_id=%s AND game='mtg'
-                        GROUP BY canonical_card_id,catalog_card_id
-                    ), owned_names AS (
-                        SELECT canonical_card_id,sum(quantity) AS quantity FROM owned_printings
-                        GROUP BY canonical_card_id
-                    ), required_printings AS (
-                        SELECT dc.deck_id,dc.canonical_card_id,dc.catalog_card_id,
-                        sum(dc.quantity::numeric) AS quantity FROM deck_cards dc
-                        JOIN decks d ON d.id=dc.deck_id WHERE d.account_id=%s AND d.game='mtg'
-                        GROUP BY dc.deck_id,dc.canonical_card_id,dc.catalog_card_id
-                    ), allocation AS (
-                        SELECT r.deck_id,r.canonical_card_id,sum(r.quantity) AS required,
-                        sum(least(r.quantity,coalesce(o.quantity,0))) AS exact
-                        FROM required_printings r LEFT JOIN owned_printings o
-                        USING(canonical_card_id,catalog_card_id)
-                        GROUP BY r.deck_id,r.canonical_card_id
-                    ), totals AS (
-                        SELECT a.deck_id,sum(a.required) AS required,sum(a.exact) AS exact,
-                        sum(least(a.required-a.exact,
-                        greatest(coalesce(o.quantity,0)-a.exact,0))) AS alternate
-                        FROM allocation a LEFT JOIN owned_names o USING(canonical_card_id)
-                        GROUP BY a.deck_id
-                    ) SELECT d.id,d.name,d.format,coalesce(t.required,0)::text,
-                    coalesce(t.exact,0)::text,coalesce(t.alternate,0)::text,
-                    coalesce(t.required-t.exact-t.alternate,0)::text
-                    FROM decks d LEFT JOIN totals t ON t.deck_id=d.id
+                    SELECT d.id,d.name,d.format,
+                    (SELECT coalesce(jsonb_agg(preview), '[]'::jsonb) FROM (
+                        SELECT dc.catalog_card_id AS "catalogCardId", dc.name,
+                        dc.image_uri AS "imageUri" FROM deck_cards dc
+                        WHERE dc.deck_id=d.id AND dc.account_id=d.account_id
+                        AND dc.game=d.game AND dc.role='commander'
+                        ORDER BY dc.created_at,dc.id LIMIT 2
+                    ) preview) AS commanders
+                    FROM decks d
                     WHERE d.account_id=%s AND d.game='mtg' ORDER BY d.updated_at DESC,d.id
                     """,
-                    (user.account_id,) * 3,
+                    (user.account_id,),
                 )
             ).fetchall()
+            availability, requirements = await _deck_availability(tx, user.account_id)
             decks: list[dict[str, object]] = [
                 {
                     "id": str(deck[0]),
                     "name": deck[1],
                     "format": deck[2],
-                    **dict(
-                        zip(
-                            ("required", "exact", "alternate", "missing"),
-                            (summary_number(value) for value in deck[3:]),
-                            strict=True,
-                        )
+                    **availability.get(
+                        str(deck[0]), dict(required=0, exact=0, alternate=0, missing=0)
                     ),
+                    "commanders": deck[3],
                 }
                 for deck in deck_rows
             ]
@@ -231,6 +421,8 @@ class Dashboard:
             await tx.execute("RELEASE SAVEPOINT inventory_value_summary")
             return {
                 "totals": totals,
+                "catalogBreakdown": catalog_breakdown,
+                "requirements": requirements,
                 "sets": sets,
                 "finishes": finishes,
                 "conditions": conditions,

@@ -3,25 +3,30 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-	--color-background: #101010;
-	--color-foreground: #eeeeee;
-	--color-card: #1b1b1b;
-	--color-card-foreground: #eeeeee;
-	--color-surface: #161616;
-	--color-muted: #272727;
-	--color-muted-foreground: #a3a3a3;
-	--color-primary: #e5e5e5;
-	--color-primary-foreground: #171717;
-	--color-secondary: #272727;
-	--color-secondary-foreground: #eeeeee;
+	--color-background: #191b1e;
+	--color-foreground: #d7dce2;
+	--color-card: #24282d;
+	--color-card-foreground: #d7dce2;
+	--color-surface: #202328;
+	--color-muted: #30363d;
+	--color-muted-foreground: #a0a9b4;
+	--color-primary: #b6c6d5;
+	--color-primary-foreground: #1d252e;
+	--color-secondary: #30363d;
+	--color-secondary-foreground: #d7dce2;
 	--color-accent: #8cbbdd;
 	--color-accent-foreground: #ffffff;
 	--color-violet: #b5a2ff;
 	--color-accentblue: var(--color-accent);
 	--color-accentviolet: var(--color-violet);
-	--color-border: #363636;
+	--color-border: #3b424a;
+	--color-command: #030303;
+	--color-command-selected: #111111;
+	--color-command-border: #242424;
+	--color-command-key: #252525;
+	--color-command-overlay: #0009;
 	--color-input: #737373;
-	--color-ring: #e5e5e5;
+	--color-ring: #b6c6d5;
 	--color-destructive: #fb8c9b;
 
 	/* Existing domain components share the new semantic palette. */
@@ -29,11 +34,11 @@
 	--color-crypt: var(--color-surface);
 	--color-stone: var(--color-card);
 	--color-slate: var(--color-muted);
-	--color-mist: #363636;
+	--color-mist: #3b424a;
 	--color-smoke: #737373;
 	--color-gold-dim: #737373;
 	--color-gold: var(--color-primary);
-	--color-gold-bright: #ffffff;
+	--color-gold-bright: #c6d2de;
 	--color-amber: var(--color-primary);
 	--color-ochre: var(--color-accent);
 
@@ -51,7 +56,7 @@
 	--color-scrollbar: #686868;
 
 	--color-text-primary: var(--color-foreground);
-	--color-text-secondary: #c4c4c4;
+	--color-text-secondary: #b6bec8;
 	--color-text-muted: var(--color-muted-foreground);
 	--color-text-on-gold: var(--color-primary-foreground);
 	--color-success: #71d5a4;
@@ -59,40 +64,81 @@
 	--color-warning: #f0c47b;
 	--color-info: #8ebaff;
 	--color-chart-primary: #8cbbdd;
+	--color-chart-dashboard-accent: #a68aff;
+	--color-chart-track: #343b44;
+	--color-chart-teal: #7bd2d2;
+	--color-chart-rose: #e6a4c0;
+	--color-chart-indigo: #91a6f7;
+	--color-chart-mana-white: #c8b88b;
+	--color-chart-mana-blue: #7fa9ca;
+	--color-chart-mana-black: #343238;
+	--color-chart-mana-red: #cf8e79;
+	--color-chart-mana-green: #80ae91;
+	--color-chart-mana-gold: #c2ac76;
+	--color-chart-mana-colorless: #99a6b5;
 	--font-editorial: var(--font-body);
 	--font-display: 'Marcellus', Georgia, serif;
 	--font-body: 'IBM Plex Mono', monospace;
 	--font-mono: var(--font-body);
+	--font-interface: ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+	--color-nav-dashboard: #b7a7e5;
+	--color-nav-search: #8cbbdd;
+	--color-nav-inventory: #d4ac86;
+	--color-nav-decks: #93bea6;
 }
 
 html.light {
 	color-scheme: light;
-	--color-background: #fafafa;
-	--color-foreground: #202020;
-	--color-card: #ffffff;
-	--color-card-foreground: #202020;
-	--color-surface: #f2f2f2;
+	--color-background: #f4f5f6;
+	--color-foreground: #29313a;
+	--color-card: #fafbfc;
+	--color-card-foreground: #29313a;
+	--color-surface: #eceff2;
 	--color-muted: #e9e9e9;
 	--color-muted-foreground: #606060;
-	--color-primary: #242424;
-	--color-primary-foreground: #ffffff;
+	--color-primary: #3c5b73;
+	--color-primary-foreground: #f6f8fa;
 	--color-secondary: #ededed;
 	--color-secondary-foreground: #202020;
 	--color-accent: #326184;
 	--color-violet: #70539d;
+	--color-nav-dashboard: #7156a0;
+	--color-nav-search: #326184;
+	--color-nav-inventory: #845830;
+	--color-nav-decks: #35694d;
+	--color-chart-dashboard-accent: #7750c5;
 	--color-border: #d5d5d5;
+	--color-command: #ffffff;
+	--color-command-selected: #f0f0f0;
+	--color-command-border: #dedede;
+	--color-command-key: #eeeeee;
+	--color-command-overlay: #0004;
 	--color-input: #858585;
 	--color-ring: #242424;
 	--color-destructive: #b3233b;
 	--color-mist: #d5d5d5;
 	--color-smoke: #858585;
 	--color-gold-dim: #757575;
-	--color-gold-bright: #202020;
+	--color-gold-bright: #304c62;
 	--color-text-secondary: #505050;
 	--color-success: #21754b;
 	--color-warning: #855600;
 	--color-info: #326184;
 	--color-chart-primary: #326184;
+	--color-chart-track: #eceeef;
+	--color-chart-teal: #147a7a;
+	--color-chart-rose: #a53e74;
+	--color-chart-indigo: #5261bd;
+	--color-chart-mana-white: #8d7643;
+	--color-chart-mana-blue: #477ba2;
+	--color-chart-mana-black: #3c3942;
+	--color-chart-mana-red: #a65f4b;
+	--color-chart-mana-green: #467953;
+	--color-chart-mana-gold: #957b3d;
+	--color-chart-mana-colorless: #697a8c;
 	--color-role-commander: #725098;
 	--color-rarity-common: #62676d;
 	--color-rarity-uncommon: #50727b;
@@ -601,4 +647,36 @@ button:disabled {
 	min-width: 0;
 	margin-inline: auto;
 	padding-block: 1.5rem 2.5rem;
+}
+
+/* Local material for Dashboard boxes, separate from the page background. */
+.dashboard-surface {
+	border: 1px solid transparent;
+	--color-chart-mana-white: #e5d39a;
+	--color-chart-mana-blue: #639fe8;
+	--color-chart-mana-black: #343238;
+	--color-chart-mana-red: #ed795f;
+	--color-chart-mana-green: #49bb8f;
+	--color-chart-mana-gold: #d2b258;
+	background-color: var(--color-card);
+	background-image: linear-gradient(
+		145deg,
+		color-mix(in srgb, var(--color-card), white 3%),
+		var(--color-card) 48%,
+		color-mix(in srgb, var(--color-card), black 17%)
+	);
+}
+html:not(.dark) .dashboard-surface {
+	--color-chart-mana-white: #a68b3c;
+	--color-chart-mana-blue: #3679bd;
+	--color-chart-mana-black: #3c3942;
+	--color-chart-mana-red: #bf5944;
+	--color-chart-mana-green: #278761;
+	--color-chart-mana-gold: #a37c26;
+	background-image: linear-gradient(
+		145deg,
+		color-mix(in srgb, var(--color-card), white 2%),
+		var(--color-card) 48%,
+		color-mix(in srgb, var(--color-card), black 4%)
+	);
 }

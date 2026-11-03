@@ -1,6 +1,9 @@
 # Python API
 
-The candidate assembles Auth/QR, Account/Profile/Dashboard, four canonical Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters, seventeen Category adapters and SavedState.
+`create_power_search_routes` exposes the optional-session `GET /api/v1/mtg/power-search?query=TEXT` read with `Cache-Control: no-store`.
+The runtime constructs its Core owner from the existing pool and SessionAuth; invalid explicit Bearer credentials return 401.
+
+The candidate assembles Auth/QR, Account/Profile/Dashboard, four canonical Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters and SavedState.
 It is the normal API in the unmerged candidate, including nineteen Deck routes and all nine closed web commands.
 Root scripts, Compose and the explicit Python migrator use installed packages.
 The [migration contract](../../docs/architecture/python-backend-migration.md) owns functional acceptance and remaining integration work.
@@ -64,7 +67,10 @@ These PostgreSQL cases require the assigned disposable target and do not run dur
 `VALUE_HISTORY_TIMEZONE` defaults to `Europe/Berlin`, is validated before resources are constructed and configures private history reads.
 `GET /api/v1/mtg/dashboard` authenticates and computes account-scoped totals, distributions, recent entries, Deck availability and optional Scan counts in one read-only repeatable-read transaction.
 Current value and thirty-day history reuse that transaction and its PostgreSQL clock.
-Savepoints isolate optional Scan/valuation failures; aggregate overflow retains the existing 503 summary error.
+The response also includes actual active-Catalog distributions and bounded missing/alternate requirement previews from the same account snapshot.
+Unknown Catalog identities keep their owned quantities; unavailable Catalog reads return a null breakdown.
+Savepoints isolate optional Catalog/Scan/valuation failures; aggregate overflow retains the existing 503 summary error.
+The opt-in `backend/core/tests/test_dashboard_catalog_postgres.py` cases cover active-generation partitions, weighted counts, unmatched identities, requirement bounds and account isolation on an exclusively assigned disposable target.
 The opt-in `backend/core/tests/test_dashboard_postgres.py` case covers real aggregates, exact-first Deck allocation, current/history reads and account isolation; Root owns its assigned database execution.
 
 Native APIRouter factories register the 85 canonical operations and Discovery directly.
@@ -73,7 +79,7 @@ Slashless paths are canonical; unknown paths and trailing slashes return 404 wit
 HEAD and OPTIONS are unregistered and return 405 on known paths, with native Allow headers.
 Pydantic validates transport values; request failures return safe 400 JSON without raw validation inputs.
 Body dependencies authenticate before decoding; Auth forms count attempts first and Scan checks upload authority first.
-The 1 MiB default JSON limit, smaller QR/Category limits and 12 MiB host/form/Multipart cap remain.
+The 1 MiB default JSON limit, smaller QR limits and 12 MiB host/form/Multipart cap remain.
 Starlette/python-multipart parses forms with finite part counts; a small completion guard rejects incomplete uploads and closes files.
 Cookie cleanup precedes replacement cookies, and cache/Robots policy applies to errors.
 Uvicorn uses its standard h11 protocol with no Node method, path, number or Fetch MIME emulation.
@@ -162,9 +168,6 @@ Request settlement precedes adapter close, and both adapters close before the re
 Tests exercise local storage, Boto3 against a task-owned HTTP protocol fixture, the actual scaffold source over TCP, timeout and shutdown.
 Real Scan PostgreSQL, proxy, independently installed worker and S3 target acceptance remain with Root.
 
-`COMMANDER_SPELLBOOK_ENABLED` retains the existing strict `true`/`false` switch and defaults to `false`.
-The host configures the optional local Combo adapter on its owned pool before constructing Categories.
-API and state images install system ICU for the existing Node-compatible Unicode witness ordering; no Python ICU binding or new service is introduced.
-The separate [state worker](../workers/state/README.md) owns ValueHistory and WholeDeckCategory scheduling.
-API startup does not create either scheduler.
+The separate [state worker](../workers/state/README.md) owns ValueHistory scheduling.
+API startup does not create the scheduler.
 Default Compose and launchers select API and independent State ownership together after the Python migrator.

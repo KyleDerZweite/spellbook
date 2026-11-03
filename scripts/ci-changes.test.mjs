@@ -555,7 +555,7 @@ test('state worker and Core/SQL changes select the packaged state consumer', () 
 		'backend/workers/state/pyproject.toml',
 		'backend/workers/state/uv.lock',
 		'backend/workers/state/src/spellbook_state/main.py',
-		'backend/core/src/spellbook_core/categories/jobs.py'
+		'backend/core/src/spellbook_core/mtg/decks/mutation.py'
 	]) {
 		assert.deepEqual(classifyPaths([path]), {
 			...none,

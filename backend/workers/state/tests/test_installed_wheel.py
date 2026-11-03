@@ -77,7 +77,7 @@ def test_installed_state_entrypoint_and_core_from_sdist(tmp_path: Path) -> None:
         *(str(path) for path in sorted(wheels.glob("*.whl"))),
     )
     command = str(installed / "bin/spellbook-state-worker")
-    assert "WholeDeckCategory" in run(command, "--help").stdout
+    assert "ValueHistory" in run(command, "--help").stdout
     missing = run(command, check=False)
     assert missing.returncode == 2 and "DATABASE_URL" in missing.stderr
     script = tmp_path / "check_installed.py"
@@ -87,20 +87,17 @@ from importlib.metadata import distribution
 from importlib.util import find_spec
 import spellbook_state, spellbook_core
 from spellbook_state.main import Configuration, StateResources
-from spellbook_core.mtg.categories.collation import locale_sort_key
-from spellbook_core.mtg.categories.common import combo_enabled
 for package in (spellbook_state, spellbook_core):
     assert '/site-packages/' in package.__file__
 assert find_spec('spellbook_api') is None and find_spec('fastapi') is None
 entry = next(e for e in distribution('spellbook-state-worker').entry_points
              if e.name == 'spellbook-state-worker')
 assert entry.value == 'spellbook_state.main:main'
-assert sorted(['z', 'A', 'a'], key=locale_sort_key) == ['a', 'A', 'z']
 async def check():
-    resources = StateResources(Configuration('postgresql://fixture/unused', False, 'UTC', True))
-    assert resources.pool.closed and combo_enabled(resources.pool)
+    resources = StateResources(Configuration('postgresql://fixture/unused', False, 'UTC'))
+    assert resources.pool.closed
     assert resources.values.timezone == 'UTC'
-    assert resources.categories._task is None and resources.history._timer is None
+    assert resources.history._timer is None
     await resources.close()
     assert resources.pool.closed
 asyncio.run(check())

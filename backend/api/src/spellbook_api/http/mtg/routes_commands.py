@@ -55,7 +55,6 @@ def create_command_routes(
                     value["requestId"],
                     value.get("delta"),
                     "web",
-                    value.get("categoryPreview"),
                 )
             case "decks.removeCard":
                 result = await decks.remove_deck_card(

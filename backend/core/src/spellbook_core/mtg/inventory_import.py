@@ -7,7 +7,7 @@ receipts stay with Catalog and Inventory respectively.
 import asyncio
 import re
 import unicodedata
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.models import CardDocument
@@ -17,6 +17,7 @@ type ImportRole = Literal["main", "sideboard", "commander", "companion", "maybeb
 
 
 class ImportLine(TypedDict):
+    catalogCardId: NotRequired[str]
     quantity: int
     name: str
     normalizedName: str

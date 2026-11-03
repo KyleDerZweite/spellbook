@@ -8,6 +8,8 @@
 	},
 	"name": "spellbook",
 	"scripts": {
+		"search:evaluate": "uvx --from uv==0.12.23 uv run --project backend/core --no-sync python scripts/search-evaluation/runner.py",
+		"test:search-evaluation": "uvx --from uv==0.12.23 uv run --project backend/core --no-sync python -m unittest discover -s scripts/search-evaluation -p test_*.py",
 		"check:boundaries": "node scripts/check-boundaries.mjs",
 		"test:boundaries": "node --test scripts/check-boundaries.test.mjs",
 		"lint": "pnpm --dir frontend lint",

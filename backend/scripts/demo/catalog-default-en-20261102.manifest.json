@@ -1,0 +1,26 @@
+{
+	"formatVersion": 2,
+	"bundleVersion": "2026-11-02T22:49:57Z",
+	"file": "catalog-default-en-20261102.jsonl.gz",
+	"generationId": "b8b14998-7e0e-5e9b-8781-f12112aa5bcb",
+	"sourceType": "demo-bundle",
+	"providerUpdatedAt": null,
+	"sourceFile": "default-cards-20261006090542.jsonl",
+	"sourceBytes": 633881493,
+	"sourceSHA256": "5ff6ed106fefd2a8c060868739988535d9f14ce141b03640958da468e1c3ea99",
+	"sourceTimeCaveat": "Export filename time is not a verified upstream source_updated_at.",
+	"selection": "lang=en, then native worker.transform.transform_card exclusions",
+	"catalogTransformVersion": 5,
+	"transformSHA256": "9585d44c687b234cf1c4f30a700ceae133188e6cdef054cc45239246f972e45e",
+	"counts": {
+		"raw": 118597,
+		"english": 115952,
+		"documents": 109393
+	},
+	"canonicalCount": 34948,
+	"starterPrintingCount": 70,
+	"jsonlBytes": 201419192,
+	"jsonlSHA256": "3bede2fab88a8dd65ca5f448f70db1563c19da3a3a9c45729de907e9f4c03c9a",
+	"gzipBytes": 26516484,
+	"gzipSHA256": "63ebb51fce3ec63669280104d683aa370ea349ca4cf1c1cea119fb82c459e259"
+}

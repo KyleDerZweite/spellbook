@@ -3,6 +3,7 @@
 import json
 import re
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 
 from spellbook_core.errors import ValidationError
 from spellbook_core.validation import js_trim, utf16_length
@@ -40,16 +41,20 @@ class ColorMatch:
     field: str
     any_colors: list[str]
     all_colors: list[str]
+    not_colors: list[str] = dataclass_field(default_factory=list)
 
 
 def parse_color_match(value: object) -> ColorMatch:
     if not isinstance(value, dict):
         raise ValidationError("colorMatch must be an object")
-    if set(value) - {"field", "any", "all"} or value.get("field") not in ("color", "identity"):
+    if set(value) - {"field", "any", "all", "not"} or value.get("field") not in (
+        "color",
+        "identity",
+    ):
         raise ValidationError("Invalid colorMatch field")
     groups: list[list[str]] = []
-    for key in ("any", "all"):
-        items = value.get(key)
+    for key in ("any", "all", "not"):
+        items = value.get(key, []) if key == "not" else value.get(key)
         if (
             not isinstance(items, list)
             or len(items) > 6
@@ -59,9 +64,9 @@ def parse_color_match(value: object) -> ColorMatch:
         ):
             raise ValidationError(f"colorMatch.{key} must contain at most 6 known colors")
         groups.append(list(dict.fromkeys(items)))
-    if set(groups[0]) & set(groups[1]):
-        raise ValidationError("A color cannot be both OR and AND")
-    return ColorMatch(value["field"], groups[0], groups[1])
+    if any(set(groups[i]) & set(groups[j]) for i, j in ((0, 1), (0, 2), (1, 2))):
+        raise ValidationError("A color cannot occur in multiple OR, AND or NOT groups")
+    return ColorMatch(value["field"], groups[0], groups[1], groups[2])
 
 
 @dataclass(frozen=True)
@@ -160,7 +165,7 @@ def search_sql(input: CatalogSearch) -> tuple[str, list[object]]:
             f"WHEN p.search_name LIKE {contains} THEN 2 ELSE 1 END"
         )
     filters = input.filters
-    if (match := input.color_match) and (match.any_colors or match.all_colors):
+    if (match := input.color_match) and (match.any_colors or match.all_colors or match.not_colors):
         if match.field == "identity":
             bits = {"W": 1, "U": 2, "B": 4, "R": 8, "G": 16, "C": 0}
 
@@ -172,6 +177,7 @@ def search_sql(input: CatalogSearch) -> tuple[str, list[object]]:
                 for mask in range(32)
                 if (not match.any_colors or any(accepts(mask, c) for c in match.any_colors))
                 and all(accepts(mask, c) for c in match.all_colors)
+                and not any(accepts(mask, c) for c in match.not_colors)
             ]
             where.append(f"p.color_identity_mask = ANY({bind(masks)}::smallint[])")
         else:
@@ -187,6 +193,12 @@ def search_sql(input: CatalogSearch) -> tuple[str, list[object]]:
                     where.append(f"p.colors @> {bind(colored)}::text[]")
                 if "C" in match.all_colors:
                     where.append("cardinality(p.colors) = 0")
+            if match.not_colors:
+                colored = [color for color in match.not_colors if color != "C"]
+                if colored:
+                    where.append(f"NOT (p.colors && {bind(colored)}::text[])")
+                if "C" in match.not_colors:
+                    where.append("cardinality(p.colors) > 0")
     if colors := filters.get("colors"):
         colored = [color for color in colors if color != "C"]
         matches = (
