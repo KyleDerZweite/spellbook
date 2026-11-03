@@ -6,6 +6,7 @@ export type DeckLibraryQuery = {
 	query: string;
 	format: string;
 	sort: DeckLibrarySort;
+	ownership?: 'all' | 'complete' | 'in-progress';
 };
 export type DeckLibraryInput = Partial<DeckLibraryQuery> & {
 	offset?: number;
@@ -15,6 +16,12 @@ export type DeckLibraryInput = Partial<DeckLibraryQuery> & {
 export type DeckLibraryItem = Pick<Deck, 'id' | 'name' | 'format' | 'createdAt' | 'updatedAt'> & {
 	quantity: number;
 	imageUri: string;
+	availability?: {
+		required: number;
+		exact: number;
+		alternate: number;
+		missing: number;
+	};
 };
 export type DeckLibraryPage = {
 	query: DeckLibraryQuery;
@@ -49,7 +56,11 @@ export function normalizeDeckLibraryQuery(input: unknown = {}): DeckLibraryQuery
 	const sort = value.sort ?? 'updated:desc';
 	if (sort !== 'updated:desc' && sort !== 'name:asc' && sort !== 'name:desc')
 		throw new Error('Invalid Deck Library sort');
+	const ownership = value.ownership ?? 'all';
+	if (!['all', 'complete', 'in-progress'].includes(String(ownership)))
+		throw new Error('Invalid ownership');
 	return {
+		...(ownership === 'all' ? {} : { ownership: ownership as 'complete' | 'in-progress' }),
 		query: text('query', 200),
 		format: text('format', 100),
 		sort
@@ -63,6 +74,7 @@ export function deckLibraryQueryFromParams(params: URLSearchParams): DeckLibrary
 	return normalizeDeckLibraryQuery({
 		query: params.get('dirQ') ?? '',
 		format: params.get('dirFormat') ?? '',
-		sort: params.get('dirSort') ?? 'updated:desc'
+		sort: params.get('dirSort') ?? 'updated:desc',
+		ownership: params.get('dirOwnership') ?? 'all'
 	});
 }

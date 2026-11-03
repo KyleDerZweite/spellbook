@@ -1,4 +1,5 @@
 <script lang="ts">
+	import OwnershipProgress from './OwnershipProgress.svelte';
 	import { onMount, untrack, tick } from 'svelte';
 	import { goto, replaceState } from '$app/navigation';
 	import { page as route } from '$app/state';
@@ -35,6 +36,7 @@
 
 	let { page, accountId }: { page: DeckLibraryPage; accountId: string } = $props();
 	const directoryFormId = $props.id();
+	let view = $state<'grid' | 'compact'>('grid');
 	let filterOpen = $state(false);
 	let selectedFormat = $state(untrack(() => page.query.format));
 	let selectedSort = $state(untrack(() => page.query.sort));
@@ -100,10 +102,14 @@
 		return library.span;
 	});
 	const columns = $derived(
-		width >= 330 && width < 464 ? 2 : Math.max(1, Math.floor((width + 24) / 244))
+		view === 'compact'
+			? 1
+			: width >= 330 && width < 464
+				? 2
+				: Math.max(1, Math.floor((width + 24) / 244))
 	);
 	const tileWidth = $derived(width > 0 ? (width - (columns - 1) * 24) / columns : 220);
-	const estimatedHeight = $derived(((tileWidth - 26) * 680) / 488 + 160);
+	const estimatedHeight = $derived(view === 'compact' ? 100 : ((tileWidth - 26) * 680) / 488 + 205);
 	const geometry = $derived.by(() => {
 		version;
 		return deckLibraryGeometry(span, columns, estimatedHeight, heights, (index) =>
@@ -503,7 +509,8 @@
 		const form = event.currentTarget as HTMLFormElement;
 		const values = new FormData(form),
 			url = new URL(route.url.href);
-		for (const key of ['dirQ', 'dirFormat', 'dirSort', 'dirPage']) url.searchParams.delete(key);
+		for (const key of ['dirQ', 'dirFormat', 'dirSort', 'dirPage', 'dirOwnership'])
+			url.searchParams.delete(key);
 		for (const [key, value] of values)
 			if (key !== 'q' && typeof value === 'string' && value) url.searchParams.append(key, value);
 		url.searchParams.set('dirPage', '1');
@@ -520,7 +527,7 @@
 		window.addEventListener('scroll', scroll, { passive: true });
 		window.addEventListener('resize', scroll);
 		subscription = workspaceSavedState.subscribe({
-			topics: ['decks'],
+			topics: ['decks', 'inventory'],
 			clear: () => {
 				terminal = true;
 				library.clear();
@@ -619,6 +626,38 @@
 			>
 			<Button variant="secondary" type="submit">Search</Button>
 		{/if}
+		<label
+			>Ownership <select
+				class="input"
+				name="dirOwnership"
+				value={page.query.ownership ?? 'all'}
+				onchange={(event) => event.currentTarget.form?.requestSubmit()}
+				><option value="all">All</option><option value="complete">Complete</option><option
+					value="in-progress">In Progress</option
+				></select
+			></label
+		>
+		<div aria-label="Deck view">
+			<Button
+				variant={view === 'grid' ? 'default' : 'secondary'}
+				aria-pressed={view === 'grid'}
+				onclick={() => {
+					view = 'grid';
+					heights.clear();
+					version++;
+					schedule();
+				}}>Grid</Button
+			><Button
+				variant={view === 'compact' ? 'default' : 'secondary'}
+				aria-pressed={view === 'compact'}
+				onclick={() => {
+					view = 'compact';
+					heights.clear();
+					version++;
+					schedule();
+				}}>Compact table</Button
+			>
+		</div>
 		<p class="directory-total">
 			{current.matchingTotal.toLocaleString()}{#if current.matchingTotal !== current.globalTotal}
 				of {current.globalTotal.toLocaleString()}{/if} decks
@@ -658,6 +697,7 @@
 		)}
 		<a
 			class="library-card"
+			title={item.name}
 			class:virtual-tile={virtual}
 			class:retained-outside={virtual && position.offscreen}
 			style:top={virtual ? `${position.top}px` : undefined}
@@ -715,6 +755,7 @@
 				></i>{item.format}</span
 			>
 			<span class="deck-quantity">{item.quantity.toLocaleString()}<span>{' '}cards</span></span>
+			{#if item.availability}<OwnershipProgress {...item.availability} />{/if}
 			<small class="deck-edited"
 				>Edited {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
 			>
@@ -724,6 +765,7 @@
 		bind:this={wrapper}
 		class:virtual={enhanced}
 		class="deck-library"
+		class:compact={view === 'compact'}
 		style:height={enhanced ? `${geometry.total}px` : undefined}
 		aria-label="Deck Library"
 	>
@@ -753,6 +795,37 @@
 {/if}
 
 <style>
+	.compact .library-card {
+		display: grid;
+		grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr);
+		align-items: center;
+	}
+	.compact .library-cover,
+	.compact .deck-edited {
+		display: none;
+	}
+	.compact .deck-name {
+		grid-row: span 2;
+	}
+	.compact .library-card :global(.ownership) {
+		grid-column: 3;
+		grid-row: 1 / span 2;
+	}
+
+	@media (max-width: 480px) {
+		.compact .library-card {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		}
+		.compact .deck-name {
+			grid-column: 1 / -1;
+			grid-row: auto;
+		}
+		.compact .library-card :global(.ownership) {
+			grid-column: 1 / -1;
+			grid-row: auto;
+		}
+	}
+
 	.deck-library {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
@@ -803,7 +876,13 @@
 		min-width: 0;
 	}
 	.library-card strong {
-		font: 400 1.125rem/1.4 var(--font-display);
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		min-height: 2.6rem;
+		overflow: hidden;
+		font: 400 1rem/1.3 var(--font-display);
 		overflow-wrap: anywhere;
 	}
 	.deck-format,

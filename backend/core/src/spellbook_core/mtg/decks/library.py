@@ -15,7 +15,14 @@ from spellbook_core.errors import ValidationError
 from spellbook_core.fingerprint import serialize_json
 from spellbook_core.models import Actor
 from spellbook_core.mtg.decks.common import first, game, rows
-from spellbook_core.mtg.decks.models import DeckChoice, DeckChoicePage, Document
+from spellbook_core.mtg.decks.models import (
+    AvailabilityRequirement,
+    DeckChoice,
+    DeckChoicePage,
+    Document,
+)
+from spellbook_core.mtg.decks.read import owned
+from spellbook_core.mtg.decks.rules import allocate_deck_availability
 from spellbook_core.validation import assert_uuid, js_trim, utf16_length
 
 
@@ -45,6 +52,7 @@ def parse_library_input(value: object = None) -> Document:
         "query",
         "format",
         "sort",
+        "ownership",
         "offset",
         "limit",
         "expectedRevision",
@@ -61,6 +69,11 @@ def parse_library_input(value: object = None) -> Document:
     if sort not in ("updated:desc", "name:asc", "name:desc"):
         raise ValidationError("Invalid Deck Library sort")
     query["sort"] = sort
+    ownership = value.get("ownership", "all")
+    if ownership not in ("all", "complete", "in-progress"):
+        raise ValidationError("Invalid ownership")
+    if ownership != "all":
+        query["ownership"] = ownership
     expected = value.get("expectedRevision")
     if "expectedRevision" in value and (
         not isinstance(expected, str)
@@ -95,6 +108,14 @@ def matching(account: str, query: Document) -> tuple[str, tuple[object, ...]]:
     if query["format"]:
         sql += " AND d.format=%s"
         params.append(query["format"])
+    if query.get("ownership", "all") != "all":
+        # Canonical quantities establish completeness; exact-first allocation below owns segments.
+        complete = """NOT EXISTS (SELECT 1 FROM deck_cards e WHERE e.deck_id=d.id
+        AND e.account_id=d.account_id GROUP BY e.canonical_card_id
+        HAVING sum(e.quantity) > COALESCE((SELECT sum(i.quantity) FROM inventory_cards i
+        WHERE i.account_id=d.account_id AND i.game='mtg'
+        AND i.canonical_card_id=e.canonical_card_id),0))"""
+        sql += " AND " + (complete if query["ownership"] == "complete" else f"NOT ({complete})")
     return sql, tuple(params)
 
 
@@ -114,7 +135,10 @@ async def revision(tx: Transaction, account: str, expected: str | None) -> str:
         "SELECT revision::text FROM deck_library_state WHERE account_id=%s",
         (account,),
     )
-    current = str(row.get("revision", "0"))
+    inventory = await first(
+        tx, "SELECT revision::text FROM inventories WHERE account_id=%s AND game='mtg'", (account,)
+    )
+    current = str(int(row.get("revision", "0")) + int(inventory.get("revision", "0")))
     if expected is not None and expected != current:
         raise DeckLibraryRevisionChanged(current)
     return current
@@ -160,6 +184,34 @@ class DeckLibrary:
             ORDER BY {order}""",
                 (*params, limit, offset, account),
             )
+            requirements = await rows(
+                tx,
+                "SELECT id,deck_id,catalog_card_id,canonical_card_id,quantity FROM deck_cards "
+                "WHERE account_id=%s AND deck_id=ANY(%s::uuid[])",
+                (account, [r["id"] for r in items]),
+            )
+            holdings = await owned(
+                tx, account, list({r["canonical_card_id"] for r in requirements})
+            )
+            availability = {}
+            for item in items:
+                cards: list[AvailabilityRequirement] = [
+                    AvailabilityRequirement(
+                        id=str(r["id"]),
+                        catalogCardId=r["catalog_card_id"],
+                        canonicalCardId=r["canonical_card_id"],
+                        quantity=r["quantity"],
+                    )
+                    for r in requirements
+                    if r["deck_id"] == item["id"]
+                ]
+                allocations = allocate_deck_availability(cards, holdings)
+                availability[str(item["id"])] = dict(
+                    required=sum(c["quantity"] for c in cards),
+                    exact=sum(a["exact"] for a in allocations.values()),
+                    alternate=sum(a["alternate"] for a in allocations.values()),
+                    missing=sum(a["missing"] for a in allocations.values()),
+                )
             return dict(
                 query=query,
                 queryKey=serialize_json(query),
@@ -177,6 +229,7 @@ class DeckLibrary:
                         updatedAt=iso_timestamp(r["updated_at"]),
                         quantity=database_integer(r["quantity"]),
                         imageUri=r["image_uri"],
+                        availability=availability[str(r["id"])],
                     )
                     for r in items
                 ],

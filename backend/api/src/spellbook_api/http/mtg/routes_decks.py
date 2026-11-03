@@ -39,6 +39,7 @@ def library_input(request: Request) -> dict[str, object]:
         result: dict[str, object] = dict(
             query=scalar(request, "dirQ", ""),
             format=scalar(request, "dirFormat", ""),
+            ownership=scalar(request, "dirOwnership", "all"),
             sort=scalar(request, "dirSort", "updated:desc"),
             offset=read_query_integer(scalar(request, "offset"), "offset", 0),
             limit=read_query_integer(scalar(request, "limit"), "limit", 40),

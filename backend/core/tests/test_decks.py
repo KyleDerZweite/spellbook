@@ -189,6 +189,7 @@ def test_library_query_normalizes_unicode_and_caps_offsets() -> None:
     assert query == dict(query="é", format="", sort="updated:desc")
     for invalid in [
         dict(sort=""),
+        dict(ownership="invalid"),
         dict(offset=1000001),
         dict(limit=201),
         dict(expectedRevision="01"),
@@ -669,3 +670,8 @@ def test_catalog_add_replay_ignores_caller_presentation_and_skips_catalog_resolu
             resolver.assert_not_awaited()
 
     asyncio.run(scenario())
+
+
+def test_library_ownership_filter_is_part_of_query() -> None:
+    assert parse_library_input(dict(ownership="complete"))["query"]["ownership"] == "complete"
+    assert "ownership" not in parse_library_input(dict(ownership="all"))["query"]

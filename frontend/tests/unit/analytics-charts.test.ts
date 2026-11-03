@@ -1,7 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
-import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
+import OwnershipProgress from '#lib/components/decks/OwnershipProgress.svelte';
 import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
 import MetricMiniChart from '#lib/components/dashboard/MetricMiniChart.svelte';
@@ -121,26 +121,12 @@ describe('shared analytics charts', () => {
 
 describe('compact collection composition', () => {
 	it('does not round an incomplete Deck to complete availability', async () => {
-		const { body } = await render(DeckAvailabilityRing, {
-			props: {
-				deck: {
-					id: 'deck',
-					name: 'Nearly complete',
-					format: 'Commander',
-					required: 1000,
-					exact: 999,
-					alternate: 0,
-					missing: 1,
-					commanders: []
-				}
-			}
+		const { body } = await render(OwnershipProgress, {
+			props: { required: 1000, exact: 999, alternate: 0, missing: 1 }
 		});
 		expect(body).toContain('999');
-		expect(body.replace(/<[^>]*>/g, '').replace(/\s+/g, '')).toContain(
-			`999/${(1000).toLocaleString()}`
-		);
-		expect(body).toContain('Missing: 1 copy');
-		expect(body).toContain('999 exact, 0 alternate, 1 missing');
+		expect(body).toContain('99%');
+		expect(body).toContain('999 exact printing, 0 alternate printing, 1 missing');
 	});
 	it('exposes all finish quantities including zero without inventing a ring segment', async () => {
 		const { body } = await render(ProportionChart, {

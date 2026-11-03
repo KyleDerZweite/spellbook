@@ -533,6 +533,7 @@ export function deckLibraryParams(
 	const params = new URLSearchParams({
 		dirQ: query.query,
 		dirFormat: query.format,
+		dirOwnership: query.ownership ?? 'all',
 		dirSort: query.sort,
 		offset: String(offset),
 		limit: String(limit)

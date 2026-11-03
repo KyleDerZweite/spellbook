@@ -1,9 +1,9 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-03
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: managed Category removal, Inventory New badge UTC creation date, selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: compact Dashboard Deck cards and Deck Library ownership filters/views, managed Category removal, Inventory New badge UTC creation date, selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
@@ -183,6 +183,9 @@ The combined Cards metric distinguishes physical copies from distinct Canonical 
 Missing history remains unavailable, and historical price coverage stays explicit in the expanded details.
 Recent edits do not establish an acquisition history.
 
+Your decks shows the six most recently edited Decks in a responsive grid of horizontal mini cards, with up to three columns and no internal scrolling.
+Commander art crops and mana color identity accompany each summary when available from the active Catalog.
+A 4px segmented bar shows green Exact printing matches, purple Alternate printings and yellow Missing quantities, with an owned count and percentage.
 Each deck reports required, exact, alternate and missing quantities following the existing [availability rules](#deck-availability), independently against the full inventory.
 The summary does not reserve copies across decks.
 The API retains pending scan review counts for owned sessions with `pending_review` status; the paused Scan presentation hides them in Dashboard.
@@ -309,7 +312,10 @@ Inventory export and CSV exchange require separate implementation; deck text exp
 
 The implemented workspace uses `/mtg/decks?deck=ID` to select an owned deck.
 Catalog queries use `q`, and printing selection uses the canonical card identifier in `printing`.
-Deck rows support local name filtering and name or quantity sorting.
+The Deck Library supports name and format filtering, recently edited or name sorting, and live All, Complete and In Progress ownership filters.
+Complete includes empty Decks and Decks with no Missing quantity; In Progress includes Decks with Missing quantities.
+Grid and compact table views share integrated ownership summaries.
+Grid titles reserve 2.6rem for two clamped lines, wrap unbroken names and expose the full name on hover or opening the Deck.
 An owned-results filter narrows catalog results without preventing users from adding an unowned card.
 
 A user must be able to create, select, rename, describe, change the format of, and delete a private deck.
