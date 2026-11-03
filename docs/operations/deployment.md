@@ -1,12 +1,12 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-03
 - Source of Truth: repo config
-- Update Triggers: managed Category removal, static Demo valuation in API and State, shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: Compose Demo and production entrypoints, managed Category removal, static Demo valuation in API and State, shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
-The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml).
+The development and production service definitions are [`compose.dev.yml`](../../compose.dev.yml) and [`compose.prod.yml`](../../compose.prod.yml).
 Keep live domains, account details, and secret references in private operator notes.
 
 The unmerged candidate uses the Python API image and an explicit one-shot `spellbook-migrate` service.
@@ -17,75 +17,24 @@ Source activation does not authorize a production cutover or retire the retained
 
 ## Local development
 
-Use Node 26.10.0, pnpm 12.8.1, Python 3.14.8 and uv 0.12.23.
-The root wrapper selects pinned uv through `uvx`.
-Prepare all installed Python packages and the frontend from the repository root:
+Start the isolated Demo stack from the repository root:
 
 ```sh
-fnm exec --using 26.10.0 pnpm install --frozen-lockfile
-fnm exec --using 26.10.0 pnpm setup:python
+podman-compose -p spellbook-demo -f compose.dev.yml up --build
 ```
 
-Copy [`.env.example`](../../.env.example) to ignored root `.env` and configure an existing local PostgreSQL database through `DATABASE_URL`.
-Use the existing protected configuration for credentials and provider settings.
-The launcher reads this file once and filters database, storage and worker secrets from the web child.
-Caller environment values take precedence.
-Vite reads frontend environment configuration, not the root secret file.
-
-```sh
-./dev.sh
-# From another terminal:
-./dev.sh stop
-```
-
-Startup refreshes the installed Python packages, then runs the migrator once before any API or worker starts.
-A migration or explicit Demo preparation failure stops startup.
-The launcher starts API on loopback port 3001, Vite on 5173, the Scan scaffold on 8087, the State scheduler and the Catalog worker.
-`API_PORT`, `DEV_APP_ORIGIN` and `DEV_SCAN_PORT` select matching task-owned ports.
-Catalog performs its ordinary startup refresh and follows `SYNC_INTERVAL`; optional providers retain their opt-in flags.
-With `SYNC_INTERVAL=manual`, successful Catalog completion leaves the other services running.
-A nonzero Catalog exit or startup error stops the process group.
-Use the existing Catalog configuration and observe publication status before assuming content is ready.
-Both native launchers create Catalog storage at ignored `.local/catalog` by default.
-`WORKER_DATA_DIR` preserves an explicit path; relative paths resolve from the repository root before child processes change directory.
-Compose retains its `/app/data` volume.
-
-`./demo.sh` adds `--demo`, seeds the guarded disposable Demo database and preserves private edits.
-With `--demo` or `DEMO_MODE=true`, the local launcher omits the Catalog worker so live ingestion cannot replace the versioned Demo bundle.
-API, State, Scan and Vite still start.
-`SYNC_INTERVAL=manual` alone does not disable ingestion; ordinary development still attempts its initial Catalog refresh.
-Scan starts unconditionally with the normal development runtime.
-Local scan storage defaults to ignored `.local/scans`; `SCAN_LOCAL_STORAGE_DIR` preserves an existing directory.
-The retained worker still returns no matches and does not establish production recognition.
-The frontend `dev:local` command forwards to this launcher.
-
-`DEV_APP_ORIGIN` defaults to `http://localhost:5173` and controls local form origins.
-The launcher supplies the same public `APP_ORIGIN` to API and web, with `API_INTERNAL_URL` pointing to its private API child.
-A configured production origin does not replace the local development origin.
-A direct Vite start requires separately running backend services and the matching private URL.
-
-`DEV_DATABASE_CONTAINER` optionally names an existing PostgreSQL container.
-The launcher acquires a cross-worktree lease, starts it only if stopped and waits for readiness.
-It stops the container only if this launcher started it.
-Its ignored `.local/dev.pid` record contains the verified launcher PID and Linux process identity.
-`stop` checks that identity and sends SIGTERM to the launcher, which stops only its child process groups.
-It never uses SIGKILL.
-Cleanup failures retain ownership records and return failure.
-After a crash, verify recorded resources before removing stale records.
-No launcher command builds containers or starts a tunnel.
-
-The T3 Dev server remains `./dev.sh`, with preview `http://localhost:5173/`.
-Open `/mtg/dashboard` for the private account summary.
-Compose runs built web on loopback port 3000; `podman-compose.dev.yml` selects shared local Scan storage and does not enable Vite.
+Open `http://localhost:5173` and sign in with the Demo credentials.
+Stop the stack with `podman-compose -p spellbook-demo -f compose.dev.yml down`.
+The `spellbook-demo` project uses its own PostgreSQL and scan volumes, separate from production.
+Startup migrates and seeds the Demo database before starting the API and State worker.
+The Catalog worker does not run, so the bundled Demo Catalog remains selected.
+Vite reloads frontend source; watchfiles restarts API and State after Python source changes, and Uvicorn reloads the Scan worker.
+Rebuild the images after dependency or configuration changes.
+The `watchfiles` development dependency restarts the existing API and State entrypoints without changing their shutdown behavior.
 
 ## Prepare a shared UI development session
 
-Use the guarded [Demo setup](./local-auth.md#demo-mode) for editable UI review with real PostgreSQL and the bundled English Catalog.
-Assign a separate database ending in `_demo` or `_design`, an existing task-owned PostgreSQL 18 container and free loopback ports to each worktree.
-Store the database connection in ignored root `.env`; set `DEV_DATABASE_CONTAINER` to that container and keep `DEMO_MODE=true` when using the T3 `./dev.sh` command.
-Run `./demo.sh` for explicit Demo preparation, or `./dev.sh` after the Demo database is seeded.
-Stop the session with `./dev.sh stop`; existing Demo edits persist on restart.
-These commands do not create a PostgreSQL container or install dependencies; complete the local prerequisites above first.
+Use the Demo stack above for UI review with PostgreSQL and the bundled English Catalog.
 
 Sign in at `/auth/login` with the documented Demo credentials.
 Review Dashboard, Search/Card details, Inventory and Decks, then Settings against the [interface acceptance criteria](../product/specification.md#interface-acceptance).
@@ -255,7 +204,7 @@ Other dependencies require service startup, not readiness.
 The catalog worker also retries database schema readiness with backoff.
 No vector database is required.
 
-On a new deployment, `podman-compose up --build -d` runs migrations and starts the catalog worker.
+On a new deployment, `podman-compose -p spellbook -f compose.prod.yml up --build -d` runs migrations and starts the catalog worker.
 The worker immediately imports the configured Scryfall bulk source into PostgreSQL, then repeats on the configured interval, daily by default.
 Scryfall does not require an application credential.
 Operators do not import the shared catalog for individual accounts.
@@ -263,9 +212,8 @@ The first publication may still be in progress after the frontend starts, so sea
 Check the worker logs and active generation as described in [catalog migration and recovery](#catalog-migration-and-recovery).
 The worker has no HTTP readiness or import-status endpoint.
 
-Compose and the native [development launcher](#local-development) run migrations before starting Catalog.
-The development launcher expects an existing PostgreSQL database and starts the same startup refresh by default.
-It seeds Demo data only with `--demo`.
+Production Compose runs migrations before starting Catalog.
+The development Compose stack seeds Demo data and omits the Catalog worker.
 Explicit [Demo setup](./local-auth.md#demo-mode) publishes the versioned searchable English bundle without a Scryfall download.
 Its private Precon starter remains separate; [Demo setup](./local-auth.md#demo-mode) owns the selected composition and guarded replacement of the previous fixture.
 Neither workflow downloads Catalog card image files.
@@ -282,11 +230,11 @@ The new `postgres18_data` volume is initially empty; the original `postgres_data
 1. Copy `.env.example` to a private `.env` and replace the database credentials.
 2. Set `APP_ORIGIN` to the externally reachable application origin.
 3. Configure scan storage as described below.
-4. Run `podman-compose up --build -d` for the base stack.
+4. Run `podman-compose -p spellbook -f compose.prod.yml up --build -d` for the base stack.
 5. Inspect migration and worker logs, then register a local account.
    Enroll existing accounts using [local authentication operations](./local-auth.md).
 
-Use `podman-compose --profile tunnel up --build -d` to include Newt.
+Use `podman-compose -p spellbook -f compose.prod.yml --profile tunnel up --build -d` to include Newt.
 Set `PANGOLIN_ENDPOINT`, `NEWT_ID`, and `NEWT_SECRET` only for that profile.
 The tunnel transports requests; local authentication owns login.
 
@@ -311,7 +259,7 @@ The tunnel transports requests; local authentication owns login.
 | `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                                                            |
 | `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                                                              |
 | `SCAN_WORKER_URL`                                   | API-only internal scan-worker URL; Compose uses `http://scan-worker:8080`                                                                                 |
-| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in the base stack or `local` with the development override                                                                   |
+| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in production or `local` in development                                                                   |
 | `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                                                           |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | API/Scan-worker S3-compatible endpoint, region and bucket; never web configuration                                                                        |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | API/Scan-worker S3-compatible credentials                                                                                                                 |
@@ -319,10 +267,11 @@ The tunnel transports requests; local authentication owns login.
 
 Native Python commands do not implicitly load `.env`.
 From `backend/workers/catalog/` or `backend/workers/scan/`, use `uv run --env-file ../../../.env` before the existing command when its configuration should come from that file.
-Compose injects its selected service variables and constructs internal database URLs from `POSTGRES_*`; it forwards `DEMO_MODE` to API, State and web, while `DEV_APP_ORIGIN` remains a native-development setting.
+Production Compose constructs internal database URLs from `POSTGRES_*` and sets `DEMO_MODE=false`.
+Development Compose sets `DEMO_MODE=true` and supplies its own local origin.
 
 Set `APP_ORIGIN` before building web and starting the API.
-Changing it requires `podman-compose build frontend` and recreation of frontend and API with the same public Origin.
+Changing it requires `podman-compose -p spellbook -f compose.prod.yml build frontend` and recreation of frontend and API with the same public Origin.
 The backend/migrator build is origin-independent.
 Updating runtime variables alone does not change SvelteKit 3's compiled origin.
 
@@ -393,32 +342,21 @@ Its [release schedule](https://peps.python.org/pep-0745/) provides regular bugfi
 PostgreSQL 18 uses the new named volume at `/var/lib/postgresql`, with database files under `/var/lib/postgresql/18/docker`.
 The [database upgrade procedure](./postgres-upgrade.md) owns migration, verification, and rollback for existing PostgreSQL 17 installations.
 
-For local scan artifacts in Compose, run:
-
-```sh
-podman-compose -f podman-compose.yml -f podman-compose.dev.yml up --build -d
-```
-
-The override shares the `scan_artifacts` volume at `/app/storage/scans` between the API and scan-worker.
-For S3 storage, provision the bucket separately and configure its lifecycle policy.
+Development shares the `demo_scans` volume between API and Scan worker.
+For production S3 storage, provision the bucket and configure its lifecycle policy.
 Scan upload bytes remain outside Postgres; PostgreSQL stores their account and review metadata.
 The backend Scan application owns storage and worker calls; the Python host injects existing configuration.
 Failed uploads remove only confirmed unattached objects.
 If COMMIT outcome cannot be established, retain the object for operator inspection rather than risking deletion of a committed artifact.
 Cleanup logs contain no object keys or credentials.
-Local filesystem and the actual Python scaffold are covered by local acceptance; real S3-compatible bucket evidence must be obtained separately.
+Real S3-compatible bucket evidence must be obtained separately.
 These user-uploaded images are separate from catalog card image URLs and tracked landing-page images.
 Recognition and normalized-image generation are not implemented.
 
 `worker_data` persists `state.json` across container recreation.
 See [worker operations and limits](../architecture/worker.md).
-
 On SELinux hosts, named volumes avoid most bind-mount relabeling.
-If replacing them with host paths, use `:Z` for one container or `:z` for a path shared by multiple containers.
 Host networking configuration belongs in operator notes rather than the shared compose file.
-
-The [verification workflow](./github-automation.md#ci-coverage) owns CI coverage and its limits.
-Operators build and deploy explicitly.
 
 ## Inventory collation and recovery
 
@@ -502,8 +440,8 @@ Reserve `manual` for the one-shot command below; the service restart policy woul
 To rerun synchronization once, stop the scheduled worker and run:
 
 ```sh
-podman-compose stop worker
-podman-compose run --rm -e SYNC_INTERVAL=manual worker
+podman-compose -p spellbook -f compose.prod.yml stop worker
+podman-compose -p spellbook -f compose.prod.yml run --rm -e SYNC_INTERVAL=manual worker
 ```
 
 An unchanged, already-published snapshot is skipped.
@@ -520,12 +458,12 @@ COMMIT;
 
 This invalidates the publication marker without removing the readable generation.
 A failed rebuild leaves that catalog available.
-Confirm the new publication and restart the scheduled worker with `podman-compose up -d worker`.
+Confirm the new publication and restart the scheduled worker with `podman-compose -p spellbook -f compose.prod.yml up -d worker`.
 
 To restore the previous retained Catalog/Price pair, stop the Worker and run:
 
 ```sh
-podman-compose run --rm --entrypoint python worker -c 'import os; from worker.catalog import CatalogPublisher; CatalogPublisher(os.environ["DATABASE_URL"]).restore_previous()'
+podman-compose -p spellbook -f compose.prod.yml run --rm --entrypoint python worker -c 'import os; from worker.catalog import CatalogPublisher; CatalogPublisher(os.environ["DATABASE_URL"]).restore_previous()'
 ```
 
 The command verifies a retained recorded pair and swaps both pointers under the publisher lock in one transaction.

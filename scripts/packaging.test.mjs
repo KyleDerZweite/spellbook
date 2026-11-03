@@ -10,7 +10,7 @@ const temporaryRoot = fileURLToPath(new URL('.local/', repository));
 await mkdir(temporaryRoot, { recursive: true });
 
 test('Compose worker contexts contain independent locked packages and executable image inputs', async () => {
-	const compose = await readFile(new URL('podman-compose.yml', repository), 'utf8');
+	const compose = await readFile(new URL('compose.prod.yml', repository), 'utf8');
 	for (const [service, directory, module] of [
 		['worker', 'catalog', 'worker'],
 		['scan-worker', 'scan', 'scan_worker']

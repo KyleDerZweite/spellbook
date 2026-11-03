@@ -15,8 +15,8 @@ Android implementation and verification are in progress under the [independent a
 No production recognizer is implemented.
 [The recognition decision](docs/decisions/0023-local-recognition-in-scanner-clients.md) distinguishes that direction from the current upload/review workflow.
 
-Start the configured local development environment with `./dev.sh`.
-Use `./demo.sh` for Demo mode and `./demo.sh stop` to stop the launcher.
+Start the Demo development environment with `podman-compose -p spellbook-demo -f compose.dev.yml up --build`.
+Stop it with `podman-compose -p spellbook-demo -f compose.dev.yml down`.
 This starts the API on loopback port 3001 and Vite on port 5173.
 Startup applies the installed Python migrator once, then starts the independent State, Catalog and Scan workers.
 Demo mode uses the bundled Catalog and omits the live Catalog worker.

@@ -1,0 +1,23 @@
+FROM python:3.14.8-slim-bookworm AS api
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /bin/
+WORKDIR /app
+COPY backend/ backend/
+COPY contracts/ contracts/
+RUN uv sync --project backend/api --frozen --extra dev --python 3.14.8
+ENV PATH=/app/backend/api/.venv/bin:$PATH
+
+FROM python:3.14.8-slim-bookworm AS state
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /bin/
+WORKDIR /app
+COPY backend/ backend/
+RUN uv sync --project backend/workers/state --frozen --extra dev --python 3.14.8
+ENV PATH=/app/backend/workers/state/.venv/bin:$PATH
+
+FROM node:26.10.0-bookworm-slim AS web
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY frontend/package.json frontend/package.json
+COPY contracts/package.json contracts/package.json
+RUN npm install --global "$(node --print 'require("./package.json").packageManager')" && pnpm install --frozen-lockfile --filter spellbook-frontend...
+COPY frontend/ frontend/
+COPY contracts/ contracts/

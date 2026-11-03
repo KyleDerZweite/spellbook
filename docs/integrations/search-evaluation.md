@@ -1,9 +1,9 @@
 # Global search evaluation
 
 - Status: Executed local evaluation and implemented global palette
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-03
 - Source of Truth: repository search code and cited official PostgreSQL/extension documentation
-- Update Triggers: managed Category removal, Printing deep-link browser regression, search scope selection, relevance evaluation, extension or embedding-model selection
+- Update Triggers: Compose Demo and production entrypoints, managed Category removal, Printing deep-link browser regression, search scope selection, relevance evaluation, extension or embedding-model selection
 - Related Docs: [Integrations](./README.md), [UI direction](../product/ui-design-direction.md#proposed-global-command-menu), [Catalog](../architecture/catalog.md#search-behavior), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [t3code search](../reference/t3code-search.md)
 
 Kyle requested exploration of Autocomplete, PostgreSQL improvements, an additional search index and possible pgvector retrieval on 2026-10-29.
@@ -139,12 +139,12 @@ Optional evaluation tools are local Ollama with bge-m3, pgvector 0.8.7 on Postgr
 These tools enable real semantic, index and rendered comparisons without adding providers to the production API.
 
 Assign a fresh local database named `spellbook_search_eval_<run>` and configure its protected credentials in the ignored `.env` as both `DATABASE_URL` and `SEARCH_EVALUATION_DATABASE_URL`.
-Set `DEV_DATABASE_CONTAINER` to its pgvector-capable PostgreSQL container, then start `./dev.sh --demo` to migrate and load the bundled Demo Catalog.
+Prepare the evaluation database with the migration and Demo seed commands before starting the evaluation server.
 The prefix/loopback guard is an accident-prevention check, not a substitute for choosing a disposable database.
 `prepare` and `names` are one-time operations per fresh database; never reset an existing database to rerun them.
 Assign a second disposable loopback database through `SEARCH_EVALUATION_BM25_URL` for the BM25 copy.
 Keep all credentials in the existing protected environment store.
-Set `SEARCH_EVALUATION_URL=http://127.0.0.1:5198` before starting the dev launcher.
+Set `SEARCH_EVALUATION_URL=http://127.0.0.1:5198` in a separately configured evaluation web server.
 The CLI reads root `.env`; the built web server always returns 404 for lab routes even if the flag is present.
 
 ```sh
@@ -194,7 +194,7 @@ Relevance uses fixed CASE tiers followed by name ordering, without weighted FTS 
 The [schema](../../backend/drizzle/0006_postgres_catalog.sql) already has GIN indexes for names and the generated text vector.
 The [Worker](../../backend/workers/catalog/src/worker/catalog.py) concatenates names, type, rule text, set names and localized text into an unweighted search document.
 The [Deck choice query](../../backend/core/src/spellbook_core/mtg/decks/library.py) matches Deck names by substring only.
-The [configured image](../../podman-compose.yml) is PostgreSQL 18; migrations declare pg_trgm but no vector extension.
+The [configured image](../../compose.prod.yml) is PostgreSQL 18; migrations declare pg_trgm but no vector extension.
 The experiment inspected its disposable databases, complete Demo corpus and representative query plans.
 Production extensions, load and plans remain unverified.
 

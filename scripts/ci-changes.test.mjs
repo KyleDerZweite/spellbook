@@ -182,7 +182,7 @@ test('lint only formats while tooling owns the Node boundary fixtures', () => {
 		assert.ok(lint.includes(path), path);
 	const tooling = manifest('../package.json').scripts['test:tooling'];
 	assert.doesNotMatch(tooling, /ci-changes\.test\.mjs/);
-	for (const file of ['check-boundaries', 'dev', 'python', 'packaging'])
+	for (const file of ['check-boundaries', 'python', 'packaging'])
 		assert.ok(tooling.includes(`scripts/${file}.test.mjs`), file);
 });
 
@@ -253,7 +253,7 @@ test('shared workflow/toolchain and unknown files select every automatic suite',
 		'scripts/ci-changes.test.mjs',
 		'.dockerignore',
 		'.prettierignore',
-		'podman-compose.yml',
+		'compose.prod.yml',
 		'new-package/source.ts'
 	])
 		assert.deepEqual(classifyPaths([path]), all, path);
@@ -568,7 +568,7 @@ test('state worker and Core/SQL changes select the packaged state consumer', () 
 });
 
 test('default Compose uses Python API, migrator and sole state scheduler ownership', () => {
-	const source = readFileSync(new URL('../podman-compose.yml', import.meta.url), 'utf8');
+	const source = readFileSync(new URL('../compose.prod.yml', import.meta.url), 'utf8');
 	assert.match(source, /api:\n\s+build:\n\s+context: \.\n\s+dockerfile: backend\/api\/Dockerfile/);
 	assert.match(
 		source,

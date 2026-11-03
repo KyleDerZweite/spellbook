@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-11-03
 - Source of Truth: code
-- Update Triggers: explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: Compose Demo and production entrypoints, explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
@@ -53,7 +53,7 @@ For a compose deployment, run the same script in the migration image, which incl
 From the repository root:
 
 ```sh
-podman-compose run --rm -T db-migrate /app/backend/api/.venv/bin/spellbook-operator-password ACCOUNT_ID USERNAME < /secure/path/password-file
+podman-compose -p spellbook -f compose.prod.yml run --rm -T db-migrate /app/backend/api/.venv/bin/spellbook-operator-password ACCOUNT_ID USERNAME < /secure/path/password-file
 ```
 
 The frontend runtime image does not include the recovery script.
@@ -76,18 +76,9 @@ The built-in attempt limit is per process.
 
 ## Demo mode
 
-Use a disposable PostgreSQL database whose name ends in `_demo` or `_design`.
-Set `DATABASE_URL` in the ignored root `.env` and set `DEV_APP_ORIGIN` if the local browser origin differs from `http://localhost:5173`, then run from the root with the pinned Node version:
-
-```sh
-fnm exec --using 26.10.0 pnpm setup:python
-./demo.sh
-```
-
-`./demo.sh` runs the one-shot migrator, seeds Demo and starts API, State, Scan and Vite with `DEMO_MODE=true`.
-The local launcher omits the live Catalog worker in Demo mode to preserve the bundled Catalog; remote card images still require network access.
-Web receives only its safe presentation flag; API owns Demo authentication enforcement.
-Direct Vite startup alone does not start the API.
+Start the isolated [Demo Compose stack](./deployment.md#local-development).
+It migrates and seeds its own PostgreSQL volume, then starts API, State, Scan and Vite with `DEMO_MODE=true`.
+It omits the live Catalog worker to preserve the bundled Catalog; remote card images still require network access.
 Sign in with username `demo` and password `demo`.
 Public Search uses the versioned English Catalog bundle described by [Catalog](../architecture/catalog.md#storage-and-publication).
 The versioned [Upgrades Unleashed fixture](../../backend/scripts/demo/upgrades-unleashed.json) creates the original English Kamigawa: Neon Dynasty Commander Deck and Inventory with 76 entries and 101 copies, plus an empty Next brew Deck.

@@ -25,7 +25,7 @@ Actual startup requires `DATABASE_URL` in the protected caller environment and a
 SIGTERM/SIGINT stop the process-owned scheduler, await transaction cleanup and close the pool last.
 Startup failure also closes the runner and pool; repeated or cancelled close waiters retain cleanup ownership.
 
-Default Compose, `pnpm start` and `./dev.sh` start this independent scheduler after the one-shot Python migrator.
+Production Compose and `pnpm start` start this independent scheduler after the one-shot Python migrator.
 API starts no scheduled runner.
 The previous Python Compose override is folded into the normal topology.
 Actual scheduled daily ValueHistory observation, container acceptance and production cutover remain separate checks.

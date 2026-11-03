@@ -5,8 +5,6 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"dev:local": "node --env-file-if-exists=../.env scripts/dev.mjs",
-		"test:dev": "node --test scripts/dev.test.mjs",
 		"build": "vite build && node ../scripts/check-client.mjs && node --test tests/pwa-worker.test.ts",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && pnpm check:ts && svelte-check --tsconfig ./tsconfig.json",

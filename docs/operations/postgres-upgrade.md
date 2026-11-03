@@ -1,9 +1,9 @@
 # PostgreSQL 17 to 18 upgrade
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-11-03
 - Source of Truth: compose configuration, PostgreSQL tools, disposable migration rehearsal
-- Update Triggers: independent API/web ownership and relocated code references, PostgreSQL major versions, database volume layout, ownership or role changes, migration commands
+- Update Triggers: Compose Demo and production entrypoints, independent API/web ownership and relocated code references, PostgreSQL major versions, database volume layout, ownership or role changes, migration commands
 - Related Docs: [Deployment](./deployment.md), [Postgres architecture](../architecture/postgres.md), [Local authentication](./local-auth.md), [Operations](./README.md)
 
 The stack now uses PostgreSQL 18.6 with `postgres18_data` mounted at `/var/lib/postgresql`.
@@ -22,7 +22,7 @@ Pause public ingress at the reverse proxy or tunnel until verification completes
 Pause all application writers, including external database clients:
 
 ```sh
-podman-compose stop frontend worker scan-worker
+podman-compose -p spellbook -f compose.prod.yml stop frontend worker scan-worker
 podman ps --format '{{.ID}} {{.Names}} {{.Image}}'
 ```
 
@@ -53,7 +53,7 @@ Preserve custom database roles and grants separately if the deployment has them;
 Stop PostgreSQL, then update the application checkout and deployment configuration:
 
 ```sh
-podman-compose stop postgres
+podman-compose -p spellbook -f compose.prod.yml stop postgres
 ```
 
 Do not run `down -v` or remove `postgres_data`.
@@ -64,7 +64,7 @@ Start only PostgreSQL from the updated configuration.
 This creates the separate PostgreSQL 18 volume:
 
 ```sh
-podman-compose up -d postgres
+podman-compose -p spellbook -f compose.prod.yml up -d postgres
 podman ps --format '{{.ID}} {{.Names}} {{.Image}} {{.Status}}'
 ```
 
@@ -83,8 +83,8 @@ Investigate before retrying; do not start API writers or web ingress against a p
 Compare restored table counts and migration history with the source, then run application migrations:
 
 ```sh
-podman-compose run --build --rm db-migrate
-podman-compose up --build -d
+podman-compose -p spellbook -f compose.prod.yml run --build --rm db-migrate
+podman-compose -p spellbook -f compose.prod.yml up --build -d
 ```
 
 Verify local login, preserved inventory and decks, account isolation, and scan history before reopening external writers.
