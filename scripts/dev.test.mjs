@@ -33,6 +33,8 @@ async function fixture(
 	await mkdir(join(root, 'frontend'));
 	await mkdir(join(root, 'bin'));
 	await copyFile(new URL('./dev.mjs', import.meta.url), join(root, 'scripts/dev.mjs'));
+	await copyFile(new URL('./python.mjs', import.meta.url), join(root, 'scripts/python.mjs'));
+	await mkdir(join(root, 'backend/core'), { recursive: true });
 	await mkdir(join(root, 'frontend/scripts'), { recursive: true });
 	await copyFile(
 		new URL('../frontend/scripts/dev.mjs', import.meta.url),
@@ -42,10 +44,11 @@ async function fixture(
 	await writeFile(join(root, 'database'), String(running));
 	const executables = {
 		pnpm: `
-import {appendFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, existsSync, writeFileSync} from 'node:fs';
 const directory = process.cwd().split('/').at(-1);
 const name = directory === 'api' ? 'backend' : directory;
-if (process.argv.includes('spellbook-migrate')) process.exit(0);
+if (process.argv.includes('sync')) { writeFileSync(process.env.FIXTURE_ROOT + '/synced-' + directory, ''); process.exit(0); }
+if (process.argv.includes('spellbook-migrate')) process.exit(existsSync(process.env.FIXTURE_ROOT + '/synced-api') && existsSync(process.env.FIXTURE_ROOT + '/synced-scan') && existsSync(process.env.FIXTURE_ROOT + '/synced-state') && existsSync(process.env.FIXTURE_ROOT + '/synced-catalog') ? 0 : 2);
 if (process.argv.includes('spellbook-demo-seed')) process.exit(${seedFails ? 1 : 0});
 const record = (value) => appendFileSync(process.env.FIXTURE_ROOT + '/events', JSON.stringify(value) + '\\n');
 record({event:'start',name,demo:process.env.DEMO_MODE,bodySizeLimit:process.env.BODY_SIZE_LIMIT,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,workerDataDir:process.env.WORKER_DATA_DIR,args:process.argv.slice(2)});

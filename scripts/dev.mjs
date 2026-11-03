@@ -229,6 +229,16 @@ try {
 		});
 	}
 	await mkdir(env.WORKER_DATA_DIR, { recursive: true });
+	await new Promise((resolve, reject) => {
+		const child = start(process.execPath, [`${root}scripts/python.mjs`, 'sync'], root);
+		child.removeAllListeners('exit');
+		child.on('exit', (code) => {
+			children.delete(child);
+			if (code === 0) resolve();
+			else reject(new Error('Python setup failed.'));
+		});
+		child.on('error', reject);
+	});
 	await prepare('spellbook-migrate');
 	if (demo) await prepare('spellbook-demo-seed');
 	if (!stopping) {

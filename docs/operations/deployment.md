@@ -38,7 +38,7 @@ Vite reads frontend environment configuration, not the root secret file.
 ./dev.sh stop
 ```
 
-Startup runs the installed Python migrator once before any API or worker starts.
+Startup refreshes the installed Python packages, then runs the migrator once before any API or worker starts.
 A migration or explicit Demo preparation failure stops startup.
 The launcher starts API on loopback port 3001, Vite on 5173, the Scan scaffold on 8087, the State scheduler and the Catalog worker.
 `API_PORT`, `DEV_APP_ORIGIN` and `DEV_SCAN_PORT` select matching task-owned ports.
