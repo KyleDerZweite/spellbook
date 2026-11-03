@@ -104,19 +104,23 @@ describe('selected Deck statistics', () => {
 		expect(r.curveQuantity).toBe(2);
 		expect(r.averageManaValue).toBe(3);
 	});
-	it('keeps unprojected double-face colors unknown while preserving resolved color identity', () => {
-		const card = entry('transform', 1);
-		const document = {
-			...doc(card, 5, [], ['Creature', 'Enchantment'], ['R']),
-			layout: 'transform',
-			type_line: 'Creature // Enchantment',
-			mana_cost: ''
-		};
-		const r = deckStatistics([card], { transform: document });
-		expect(r.colors.find((c) => c.label === 'Unknown')?.quantity).toBe(1);
-		expect(r.colors.find((c) => c.label === 'Colorless')?.quantity).toBe(0);
-		expect(r.colorIdentity.find((c) => c.label === 'Red')?.quantity).toBe(1);
-	});
+	it.each(['Treasure Map', "Conqueror's Galleon"])(
+		'counts complete projected colorless evidence for %s despite an empty top-level mana cost',
+		(name) => {
+			const card = entry(name, 1);
+			const document = {
+				...doc(card, 2, [], ['Artifact', 'Land']),
+				layout: 'transform',
+				type_line: 'Artifact // Land',
+				mana_cost: ''
+			};
+			const result = deckStatistics([card], { [card.id]: document });
+			expect(result.colors.find((c) => c.label === 'Unknown')?.quantity).toBe(0);
+			expect(result.colors.find((c) => c.label === 'Colorless')?.quantity).toBe(1);
+			expect(result.colorIdentity.find((c) => c.label === 'Colorless')?.quantity).toBe(1);
+			expect(result.lands).toBe(0);
+		}
+	);
 	it('does not turn missing reversible-face characteristics into a zero-value colorless card', () => {
 		const card = entry('reversible', 1);
 		const document = { ...doc(card, 0, [], []), layout: 'reversible_card' };

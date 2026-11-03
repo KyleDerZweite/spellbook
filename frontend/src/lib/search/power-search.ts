@@ -37,7 +37,7 @@ const targets: (PowerSearchRow & { aliases: string[] })[] = [
 		kind: 'action',
 		name: 'Import deck',
 		description: '',
-		href: '/mtg/decks?flow=import',
+		href: '/mtg/decks/import',
 		aliases: ['deck importieren']
 	},
 	{

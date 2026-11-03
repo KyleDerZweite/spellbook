@@ -43,12 +43,7 @@ export function deckStatistics(
 			add(identity, 'Unknown');
 			continue;
 		}
-		// The current Catalog does not project front-face colors/costs for these layouts.
-		const unprojectedFace =
-			['transform', 'modal_dfc', 'meld'].includes(document.layout) &&
-			!document.colors.length &&
-			!document.mana_cost;
-		add(colors, unprojectedFace ? 'Unknown' : colorLabel(document.colors));
+		add(colors, colorLabel(document.colors));
 		add(identity, colorLabel(document.color_identity));
 		// Catalog card_types combines both faces; deck analysis uses the front type line.
 		const frontTypes = document.type_line

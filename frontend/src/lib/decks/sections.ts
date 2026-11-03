@@ -27,9 +27,11 @@ export function deckSections(
 	return roles.map((role) => {
 		const grouped = new Map<string, DeckCard[]>();
 		for (const card of visible.filter((card) => card.role === role.value)) {
-			const type =
-				primaryTypes.find((type) => documents[card.catalogCardId]?.card_types.includes(type)) ??
-				'Other';
+			const document = documents[card.catalogCardId];
+			const types = document?.type_line
+				? document.type_line.split(' // ')[0].split('\u2014')[0].split(' - ')[0].split(/\s+/)
+				: (document?.card_types ?? []);
+			const type = primaryTypes.find((type) => types.includes(type)) ?? 'Other';
 			const label = role.value === 'main' ? type : role.label;
 			grouped.set(label, [...(grouped.get(label) ?? []), card]);
 		}

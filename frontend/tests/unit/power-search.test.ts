@@ -61,6 +61,7 @@ it('matches reviewed Settings aliases immediately and keeps shortcut discovery r
 	expect(powerSearchNavigation('passwrod')[0].rows[0].href).toBe('/settings/password');
 	expect(powerSearchNavigation('settings passwrod')[0].rows[0].href).toBe('/settings/password');
 	expect(powerSearchNavigation('decks')[0].rows[0].href).toBe('/mtg/decks');
+	expect(powerSearchNavigation('Import deck')[0].rows[0].href).toBe('/mtg/decks/import');
 	expect(powerSearchNavigation('übersicht')[0].rows[0].href).toBe('/mtg/dashboard');
 	expect(powerSearchNavigation('zzqxvnl')).toEqual([]);
 });

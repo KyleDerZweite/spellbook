@@ -660,7 +660,8 @@ Without JavaScript the default analysis and exact chart data remain readable, wh
 The mana-value curve excludes lands and calculates its average from resolved nonland copies only, retaining fractional values and grouping values of eight or more into 8+.
 Unavailable Catalog records and invalid mana values remain explicit unknown quantities and never become zero-mana cards.
 For double-faced cards the curve uses the front type line rather than the Catalog's combined type list, consistent with [front-face characteristics outside the stack and battlefield](https://magic.wizards.com/en/news/feature/spider-man-release-notes).
-Unprojected double-face colors remain Unknown in Colors; their resolved Color identity remains available.
+Colors uses the Catalog's complete projected color evidence, including explicit colorless double-faced cards.
+Main Deck grouping uses the front type line; a land on the back face does not turn the front spell or artifact into a Land group.
 Reversible cards with independent faces remain Unknown while the flat Catalog contract cannot describe their individual characteristics.
 Statistics derive from the existing selected composition and Catalog documents, without further API requests or invented observations.
 List and Stacks share name, quantity, grouping, and missing-copy filters.

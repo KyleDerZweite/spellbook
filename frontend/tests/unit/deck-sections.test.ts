@@ -40,6 +40,20 @@ describe('Deck role sections', () => {
 		expect(sections[1].groups).toEqual([]);
 		expect(sections[2].groups[0][1].map((card) => card.id)).toEqual(['side']);
 	});
+	it.each([
+		['Bala Ged Recovery', 'Sorcery // Land', ['Sorcery', 'Land'], 'Sorcery'],
+		['Treasure Map', 'Artifact // Land', ['Artifact', 'Land'], 'Artifact'],
+		["Conqueror's Galleon", 'Artifact — Vehicle // Land', ['Artifact', 'Land'], 'Artifact']
+	])('groups %s by the front face', (name, typeLine, types, expected) => {
+		const card = entry(String(name));
+		const document = {
+			...storedCardDocument(card),
+			type_line: String(typeLine),
+			card_types: types as string[]
+		};
+		const main = deckSections([card], [card], { [card.id]: document })[1];
+		expect(main.groups.map(([label]) => label)).toEqual([expected]);
+	});
 	it('uses the existing primary type priority for multitype main cards', () => {
 		const cards = [entry('artifact-creature'), entry('land-creature'), entry('unknown')];
 		const document = (card: DeckCard, card_types: string[]) => ({
