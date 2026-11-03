@@ -336,6 +336,18 @@ def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> Non
             assert page["items"][0]["id"] == deck_id
             assert page["matchingTotal"] == page["globalTotal"] == 1
             assert page["items"][0]["quantity"] == 3
+            assert page["items"][0]["availability"] == dict(
+                required=3, exact=1, alternate=1, missing=1
+            )
+            assert (await f.decks.get_deck_library(f.actor, dict(ownership="complete")))[
+                "matchingTotal"
+            ] == 0
+            assert (await f.decks.get_deck_library(f.actor, dict(ownership="in-progress")))[
+                "matchingTotal"
+            ] == 1
+            assert (await f.decks.locate_deck(f.actor, deck_id, dict(ownership="complete")))[
+                "offset"
+            ] is None
             assert (await f.decks.locate_deck(f.actor, deck_id))["offset"] == 0
             choices = await f.decks.get_deck_choices(
                 f.actor, dict(query="missing", selectedDeckId=deck_id)

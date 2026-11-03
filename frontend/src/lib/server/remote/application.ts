@@ -151,7 +151,8 @@ export function createRemoteApplication(client: () => RemoteClient) {
 				queryPath(`${base}/deck-library`, input, {
 					query: 'dirQ',
 					format: 'dirFormat',
-					sort: 'dirSort'
+					sort: 'dirSort',
+					ownership: 'dirOwnership'
 				}),
 				{ domain: 'decks' }
 			),

@@ -661,3 +661,10 @@ describe('Deck Library independent focus metadata', () => {
 		expect(window.metrics().requests).toBe(0);
 	});
 });
+
+it('preserves ownership filters in query identity and range requests', () => {
+	const complete = normalizeDeckLibraryQuery({ ownership: 'complete' });
+	expect(deckLibraryQueryKey(complete)).not.toBe(deckLibraryQueryKey(query));
+	expect(deckLibraryParams(complete, 200).get('dirOwnership')).toBe('complete');
+	expect(() => normalizeDeckLibraryQuery({ ownership: 'invalid' })).toThrow();
+});

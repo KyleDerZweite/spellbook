@@ -5182,6 +5182,15 @@
 							"type": "string",
 							"pattern": "^(0|[1-9][0-9]*)$"
 						}
+					},
+					{
+						"name": "dirOwnership",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"enum": ["all", "complete", "in-progress"],
+							"default": "all"
+						}
 					}
 				]
 			}
@@ -5308,6 +5317,15 @@
 						"schema": {
 							"type": "string",
 							"format": "uuid"
+						}
+					},
+					{
+						"name": "dirOwnership",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"enum": ["all", "complete", "in-progress"],
+							"default": "all"
 						}
 					}
 				]
@@ -8571,6 +8589,15 @@
 								},
 								"imageUri": {
 									"type": "string"
+								},
+								"artCrop": {
+									"type": ["string", "null"]
+								},
+								"colorIdentity": {
+									"type": ["array", "null"],
+									"items": {
+										"type": "string"
+									}
 								}
 							},
 							"required": ["catalogCardId", "name", "imageUri"]
@@ -11919,6 +11946,10 @@
 					},
 					"sort": {
 						"enum": ["updated:desc", "name:asc", "name:desc"]
+					},
+					"ownership": {
+						"type": "string",
+						"enum": ["all", "complete", "in-progress"]
 					}
 				},
 				"required": ["query", "format", "sort"]
@@ -11949,6 +11980,28 @@
 					},
 					"imageUri": {
 						"type": "string"
+					},
+					"availability": {
+						"type": "object",
+						"properties": {
+							"required": {
+								"type": "integer",
+								"minimum": 0
+							},
+							"exact": {
+								"type": "integer",
+								"minimum": 0
+							},
+							"alternate": {
+								"type": "integer",
+								"minimum": 0
+							},
+							"missing": {
+								"type": "integer",
+								"minimum": 0
+							}
+						},
+						"required": ["required", "exact", "alternate", "missing"]
 					}
 				},
 				"required": ["id", "name", "format", "createdAt", "updatedAt", "quantity", "imageUri"]

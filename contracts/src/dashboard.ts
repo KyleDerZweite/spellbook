@@ -27,7 +27,13 @@ export interface DashboardDeck {
 	alternate: number;
 	missing: number;
 	/** At most two stored Commander-role Printing previews, not the full Deck composition. */
-	commanders: { catalogCardId: string; name: string; imageUri: string }[];
+	commanders: {
+		catalogCardId: string;
+		name: string;
+		imageUri: string;
+		artCrop?: string | null;
+		colorIdentity?: string[] | null;
+	}[];
 }
 /** Mutually exclusive, quantity-weighted Inventory buckets from the active Catalog. */
 export interface DashboardCatalogBreakdown {

@@ -362,7 +362,14 @@ class Dashboard:
                     SELECT d.id,d.name,d.format,
                     (SELECT coalesce(jsonb_agg(preview), '[]'::jsonb) FROM (
                         SELECT dc.catalog_card_id AS "catalogCardId", dc.name,
-                        dc.image_uri AS "imageUri" FROM deck_cards dc
+                        dc.image_uri AS "imageUri",
+                        COALESCE(p.document->'image_uris'->>'art_crop',
+                        p.document->'card_faces'->0->'image_uris'->>'art_crop') AS "artCrop",
+                        p.document->'color_identity' AS "colorIdentity"
+                        FROM deck_cards dc
+                        LEFT JOIN catalog_state cs ON cs.id=1
+                        LEFT JOIN catalog_printings p ON p.generation_id=cs.active_generation
+                        AND p.id::text=dc.catalog_card_id
                         WHERE dc.deck_id=d.id AND dc.account_id=d.account_id
                         AND dc.game=d.game AND dc.role='commander'
                         ORDER BY dc.created_at,dc.id LIMIT 2
