@@ -219,8 +219,8 @@ describe('authenticated downloads and print', () => {
 		expect(body).toContain('Long &lt;Deck>');
 		for (const role of ['main', 'commander', 'sideboard', 'companion'])
 			expect(body).toContain(`Long &lt;Card> ${role}`);
-		expect(body).toContain('Supplemental related Tokens');
-		expect(body).toContain('not Deck entries or quantity requirements');
+		expect(body).toContain('Related tokens');
+		expect(body).toContain("not included in the Deck's card totals");
 		expect(body).toContain('unavailable Printing unknown');
 	});
 });
