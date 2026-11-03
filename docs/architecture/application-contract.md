@@ -1,10 +1,10 @@
 # Accepted application contract
 
-- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates and starter entry categories plus optional local Combo matching implemented; later feature slices planned
-- Last Reviewed: 2026-10-25
-- Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/Categories/SavedState/Valuation code and contracts, Worker price/Oracle Tags/Combo publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
-- Update Triggers: current-version Scan/Deck receipt replay and root operator ownership, native FastAPI HTTP contract and pre-release receipt scope, versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
-- Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
+- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates; later feature slices planned
+- Last Reviewed: 2026-11-02
+- Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/SavedState/Valuation code and contracts, Worker price publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
+- Update Triggers: managed Category removal, bounded Dashboard Commander previews, current-version Scan/Deck receipt replay and root operator ownership, native FastAPI HTTP contract and pre-release receipt scope, versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06.
 The value-only scope update below supersedes its cost-dependent contracts and dependency ordering.
@@ -30,11 +30,8 @@ Slice 3 adds backend Inventory page/detail/location reads, query revisions, a bo
 Slice 5 migrates Deck use cases and JSON-safe contracts.
 Slice 4 adds authorized Inventory/Groups mutations, compact original acknowledgements and stale Notes recovery.
 Slice 6 adds shared Deck UI and native task entry.
-Starter primary entry categories are implemented.
 Mounted workspace saved-state consumers are implemented; current-head rendered acceptance remains separate.
-Account definitions and entry Review/Reset are implemented.
-Whole-deck evaluation and bounded directory reads are implemented.
-Optional local Commander Spellbook ingredient matching is implemented.
+Bounded Deck directory reads are implemented.
 
 [`composition.ts`](../../frontend/src/lib/server/composition.ts) exposes the request-bound [remote application](../../frontend/src/lib/server/remote/application.ts).
 The independent [API host](../../backend/api/src/spellbook_api/main.py) constructs the [backend application](../../backend/api/src/spellbook_api/application.py) and owns its database, runners, Scan and SavedState resources.
@@ -59,10 +56,7 @@ Build runs the [client-output checker](../../scripts/check-client.mjs).
 Inventory and Deck now implement compact original mutation acknowledgements and independent Notes/Description conflicts.
 Shared Deck UI and native task entry are implemented; [Frontend](./frontend.md) owns their presentation and compatibility.
 Current source references, optional public providers, bounded public source history and supplied product links are implemented.
-Starter entry categories are implemented.
 Full-account valuation, personal history and selected-Deck estimates are implemented.
-Account category rules and entry Review/Reset are implemented.
-Whole-deck evaluation is implemented; optional local combo matching is implemented.
 Local rendered and representative-scale acceptance for bounded Inventory loading is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176).
 [Slice 4](https://github.com/KyleDerZweite/spellbook/issues/177) records completed mutation and current-head native/enhanced browser acceptance; no hardware-independent latency guarantee is selected.
 
@@ -73,7 +67,6 @@ Rendered browser acceptance, independent review and deployed proxy verification 
 The 2026-10-07 [value-only decision](../decisions/0020-value-only-inventory-history.md) supersedes cost-dependent Q56 contracts.
 The unmerged Costs slice is excluded from main.
 [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) replaces the old personal-history slice's lot/correction dependency with implemented aggregate daily observations.
-Sources/Rules categories and later app delivery retain their accepted contracts.
 
 ## Module ownership
 
@@ -97,7 +90,7 @@ Backend owns trusted actor authentication, account authorization, validated use 
 Frontend owns presentation, navigation, browser cookies, HTML form Origin protection and native form results.
 The API owns HTTP parsing, API Origin policy and credential authentication.
 
-Use small application interfaces for Auth/Profile, Catalog, Inventory/Groups, Decks, Scan, Valuation/History and Categories.
+Use small application interfaces for Auth/Profile, Catalog, Inventory/Groups, Decks, Scan and Valuation/History.
 Backend maps DTOs at that interface so direct API clients and the web remote adapter receive the same serialized semantics.
 The frontend remote adapter forwards request-bound credentials; it neither constructs use cases nor holds database handles.
 Browser modules never import backend.
@@ -118,7 +111,7 @@ Current-head automated, PostgreSQL, HTTP, browser and public-provider acceptance
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and server workers.
 The [accepted Python migration contract](./python-backend-migration.md) owns framework, wire/SQL ownership, worker relocation and delivery gates; the unmerged candidate now activates Python by default.
 
-[Backend application construction](../../backend/api/src/spellbook_api/application.py) receives validated database, Demo, timezone, Scan and Combo configuration.
+[Backend application construction](../../backend/api/src/spellbook_api/application.py) receives validated database, Demo, timezone and Scan configuration.
 It returns `ApplicationLifetime(http, close_streams, close)`.
 The one resolved database URL supplies the request pool and dedicated SavedState listener.
 Construction opens no database connection or scheduled runner.
@@ -127,10 +120,9 @@ The lifespan starts pool/listener resources and always closes them after startup
 The [Python host](../../backend/api/src/spellbook_api/main.py) owns SIGINT/SIGTERM and closes admission and SSE before Uvicorn drains HTTP.
 Cleanup settles requests and listener/Core work, closes Scan adapters, settles password futures and joins the dedicated executor before closing the pool last.
 Concurrent close callers join the same cleanup task.
-The independent State worker owns scheduled ValueHistory and WholeDeckCategory work, with a separate pool and graceful lifetime.
-API shares Core synchronous effects and enqueue operations without starting those schedulers.
+The independent State worker owns scheduled ValueHistory work, with a separate pool and graceful lifetime.
+API shares Core synchronous effects without starting the scheduler.
 Web HMR and shutdown own no backend resources.
-The configured Combo option remains attached to each owned pool.
 
 Web native adapters use [local error types](../../frontend/src/lib/server/remote/errors.ts) reconstructed from safe API failures.
 Migration SQL, journal and snapshots moved unchanged to `backend/drizzle/`; [backend scripts](../../package.json) own migration commands.
@@ -228,8 +220,10 @@ The backend [Deck application](../../backend/core/src/spellbook_core/mtg/decks/a
 Web actions and HTTP routes call the same trusted-actor interface.
 Frontend owns cookies/origins, native form adaptation, errors and drafts.
 Existing Account Dashboard use cases remain the summary owner.
+Each Dashboard Deck summary includes at most two stored Commander-role Printing previews, ordered by entry creation and ID, within the existing account/game-scoped repeatable-read snapshot.
+The previews contain only Printing ID, name and image URI, survive missing Catalog entries, and never substitute a mainboard card when the Commander role is absent.
 
-Bounded `getDeckLibrary` reads return at most 200 Deck metadata rows, SQL totals, covers and at most three category badges.
+Bounded `getDeckLibrary` reads return at most 200 Deck metadata rows, SQL totals and covers.
 Independent `getDeck` reads load the selected editor without reading its account directory.
 Version-filter options/counts and direct location share a separate account directory revision.
 Canonical Snapshot reads remain available to current clients.
@@ -253,9 +247,7 @@ A floor no-op returns delta zero without advancing `compositionRevision` or rewr
 Absolute setters, bulk decrement and explicit Remove retain their deletion semantics.
 Printing replacement requires the same canonical card.
 An unmerged source keeps its ID and creation time; a merge keeps destination identity/provenance and removes the source.
-Category-aware merging and starter primary entry categories are implemented by the [Categories owner](./category-rules.md#implemented-starter-entry-decisions).
 Shared Deck controls/layout are implemented.
-Account customization and entry Review/Reset are implemented; whole-deck categories use independent overlapping version-bound outcomes, and Inventory/Deck/Scan workspace synchronization is implemented; rendered acceptance is separately recorded.
 
 ## Inventory query contract
 
@@ -449,7 +441,6 @@ Start/middle/end quantity/removal measurements must prove no unrelated scans or 
 Revise offset addressing if deep positions fail the declared target; no hardware-independent latency promise is selected.
 
 Run relevant current-head type, lint, unit/integration, build, import/workspace, container and docs checks under the [verification workflow](../operations/github-automation.md).
-Later value/category integration refreshes affected scale/sync evidence.
 Record missing browser/proxy/provider evidence and its consequence.
 Design acceptance, passed checks, owner UI acceptance and deployment remain separate states.
 
@@ -461,9 +452,3 @@ Frontend renders source/measure/date, freshness, Unknown coverage and supplied s
 Bounded public source history is implemented; personal daily history and coherent Dashboard/selected-Deck estimates are implemented.
 [Valuation](./valuation.md#reviewed-personal-history-contract) owns capture consistency, frozen evidence, calendar closure and `values` invalidation.
 Acquisition tracking is removed from scope under [ADR-0020](../decisions/0020-value-only-inventory-history.md).
-
-## Account Category Library
-
-[Category rules](./category-rules.md) owns immutable scoped reusable definitions, complete ordered Deck adoption, local labels/removal/suppression and server-owned entry Review/Reset plans.
-Frontend forms and authenticated HTTP routes delegate to the same trusted backend actor commands.
-Whole-deck rule definitions can be edited and adopted; whole-deck evaluation is implemented; optional local Combo matching is implemented.

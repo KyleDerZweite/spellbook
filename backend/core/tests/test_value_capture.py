@@ -45,6 +45,10 @@ class CaptureFixture:
             ]
         if sql.startswith("SELECT id, timezone"):
             return self.existing
+        if sql.startswith("SELECT count(*) FROM decks"):
+            assert parameters == ["account"]
+            assert "game='mtg'" in sql
+            return [(3,)]
         if sql.startswith("SELECT revision::text"):
             return [("7",)]
         if sql.startswith("SELECT catalog_card_id AS printing_id"):
@@ -83,6 +87,7 @@ def test_empty_capture_is_known_zero_header_and_no_reference_rows() -> None:
     assert result == CaptureObservation(0, 0, True)
     writes = [(sql, p) for sql, p in fixture.calls if sql.startswith("INSERT")]
     assert len(writes) == 1
+    assert writes[0][1][9] == 3
     estimate = writes[0][1][7]
     assert isinstance(estimate, Jsonb)
     assert estimate.obj["coveredValue"] == "0.00" and estimate.obj["complete"] is True

@@ -1,5 +1,6 @@
 import { MANA_COLORS, RARITIES, CARD_TYPES, LEGALITY_FORMATS } from './filter-options.ts';
 import type { CatalogFilters } from './types.ts';
+import { browserColorFilters, completeColorMatch } from './color-filters.ts';
 import { parseLazyBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
 
 export const SEARCH_DEFAULT_PAGE_SIZE = 'lazy';
@@ -24,9 +25,12 @@ function values<T extends string>(
 export function parseSearchUrl(url: {
 	searchParams: Pick<URLSearchParams, 'get' | 'getAll'>;
 }): SearchInput {
-	const all = values(url.searchParams, 'colorAnd', MANA_COLORS);
+	const not = values(url.searchParams, 'colorNot', MANA_COLORS);
+	const all = values(url.searchParams, 'colorAnd', MANA_COLORS).filter(
+		(color) => !not.includes(color)
+	);
 	const any = values(url.searchParams, 'color', MANA_COLORS).filter(
-		(color) => !all.includes(color)
+		(color) => !all.includes(color) && !not.includes(color)
 	);
 	return {
 		query: url.searchParams.get('q') ?? '',
@@ -39,11 +43,12 @@ export function parseSearchUrl(url: {
 			SEARCH_MAX_OFFSET
 		),
 		filters: {
-			colorMatch: {
+			...browserColorFilters({
 				field: url.searchParams.get('colorMode') === 'identity' ? 'identity' : 'color',
 				any,
-				all
-			},
+				all,
+				...(not.length ? { not } : {})
+			}),
 			rarities: values(url.searchParams, 'rarity', RARITIES),
 			types: values(url.searchParams, 'type', CARD_TYPES),
 			legalities: values(url.searchParams, 'legal', LEGALITY_FORMATS)
@@ -53,17 +58,19 @@ export function parseSearchUrl(url: {
 
 export function searchHref({ query, filters, pagination }: SearchInput): string {
 	const params = new URLSearchParams();
+	const match = filters.colorMatch ? completeColorMatch(filters.colorMatch) : undefined;
 	if (query) params.set('q', query);
 	for (const [key, selected] of [
-		['color', filters.colorMatch?.any],
-		['colorAnd', filters.colorMatch?.all],
+		['color', match?.any],
+		['colorAnd', match?.all],
+		['colorNot', match?.not],
 		['rarity', filters.rarities],
 		['type', filters.types],
 		['legal', filters.legalities]
 	] as const) {
 		for (const value of [...new Set(selected ?? [])].sort()) params.append(key, value);
 	}
-	if (filters.colorMatch?.field === 'identity') params.set('colorMode', 'identity');
+	if (match?.field === 'identity') params.set('colorMode', 'identity');
 	if (pagination) {
 		params.set('pageSize', String(pagination.pageSize));
 		params.set('page', String(pagination.page));

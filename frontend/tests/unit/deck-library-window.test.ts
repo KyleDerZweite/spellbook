@@ -5,7 +5,6 @@ import {
 	deckLibraryMountedRows,
 	deckLibraryParams,
 	readDeckLibraryJSON,
-	mergeDeckLibraryCategories,
 	deckLibraryTiles,
 	deckLibraryMeasurement,
 	DeckLibraryLocateAttempts,
@@ -14,8 +13,7 @@ import {
 import {
 	normalizeDeckLibraryQuery,
 	deckLibraryQueryKey,
-	type DeckLibraryPage,
-	type DeckLibraryCategories
+	type DeckLibraryPage
 } from '../../../contracts/src/deck-library.ts';
 import { hasDeepBrowseAnchor } from '../../src/lib/browsing/pagination.ts';
 import { captureBrowseAnchor, browseAnchorScrollTop } from '../../src/lib/browsing/viewport.ts';
@@ -44,9 +42,7 @@ function page(
 			quantity: 100,
 			imageUri: '',
 			createdAt: '2026-10-08',
-			updatedAt: '2026-10-08',
-			categories: [],
-			remainingCategoryCount: 0
+			updatedAt: '2026-10-08'
 		}))
 	};
 }
@@ -101,39 +97,6 @@ describe('Deck Library physical window', () => {
 		calls[2].body.resolve(page(600));
 		await settle();
 		expect(window.span).toEqual({ start: 1000, end: 1400 });
-		expect(window.metrics().requests).toBe(0);
-	});
-	it('admits category/location reads through the same physical slots', async () => {
-		const bodies = Array.from({ length: 3 }, () => deferred<DeckLibraryPage>());
-		let calls = 0;
-		const window = new DeckLibraryWindow(
-			(_query, offset) => bodies[calls++].promise,
-			() => {}
-		);
-		window.seed('account', page());
-		void window.request(200);
-		void window.request(400);
-		void window.request(600);
-		let externalStarted = false;
-		const controller = new AbortController(),
-			body = deferred<number>();
-		const external = window.read(async () => {
-			externalStarted = true;
-			return body.promise;
-		}, controller.signal);
-		expect(externalStarted).toBe(false);
-		bodies[0].resolve(page(200));
-		await settle();
-		expect(externalStarted).toBe(true);
-		expect(window.metrics().requests).toBe(3);
-		controller.abort();
-		await settle();
-		expect(window.metrics().requests).toBe(3);
-		body.resolve(7);
-		expect(await external).toBeNull();
-		bodies[1].resolve(page(400));
-		bodies[2].resolve(page(600));
-		await settle();
 		expect(window.metrics().requests).toBe(0);
 	});
 	it('grows only successful explicit contiguous ranges and retries failed ranges', async () => {
@@ -427,84 +390,6 @@ describe('Deck Library owned responses and stable identity', () => {
 		);
 		expect(attempts).toBe(2);
 		expect(location).toMatchObject({ index: 0, revision: '2' });
-	});
-	it('decodes fresh SSE category counts before replacing retained selected options', async () => {
-		const window = new DeckLibraryWindow(
-			async () => page(0, 1601, '2'),
-			() => {}
-		);
-		window.seed('account', page());
-		await window.refresh();
-		const option = {
-			versionId: 'version',
-			originId: 'origin',
-			name: 'Draw',
-			historical: false,
-			meaning: 'Saved meaning',
-			version: 1,
-			count: 1
-		};
-		const body = deferred<DeckLibraryCategories>();
-		const request = window.read(
-			(signal, current) =>
-				readDeckLibraryJSON<DeckLibraryCategories>(
-					'/options',
-					signal,
-					current,
-					() => {},
-					async () => {
-						const response = new Response(null, { status: 200 });
-						vi.spyOn(response, 'json').mockImplementation(() => body.promise);
-						return response;
-					}
-				),
-			new AbortController().signal
-		);
-		await settle();
-		expect(window.metrics().requests).toBe(1);
-		body.resolve({
-			query,
-			queryKey: deckLibraryQueryKey(query),
-			revision: '2',
-			offset: 0,
-			limit: 200,
-			total: 1,
-			items: [],
-			selected: [{ ...option, count: 7 }]
-		});
-		const fresh = await request;
-		expect(fresh?.revision).toBe('2');
-		expect(mergeDeckLibraryCategories(fresh!, [option], ['version'])[0].count).toBe(7);
-		expect(window.metrics().requests).toBe(0);
-	});
-	it('uses fresh SSE option counts over retained same-version labels and keeps only absent selected choices', () => {
-		const option = {
-			versionId: 'version',
-			originId: 'origin',
-			name: 'Draw',
-			historical: false,
-			meaning: 'Saved meaning',
-			version: 1,
-			count: 1
-		};
-		const fresh = {
-			query,
-			queryKey: deckLibraryQueryKey(query),
-			revision: '2',
-			offset: 0,
-			limit: 200,
-			total: 2,
-			items: [{ ...option, count: 7 }],
-			selected: [{ ...option, count: 7 }]
-		};
-		const absent = { ...option, versionId: 'historical', count: 3 };
-		expect(
-			mergeDeckLibraryCategories(
-				fresh,
-				[option, absent, { ...option, versionId: 'unselected' }],
-				['version', 'historical']
-			)
-		).toEqual([{ ...option, count: 7 }, absent]);
 	});
 });
 

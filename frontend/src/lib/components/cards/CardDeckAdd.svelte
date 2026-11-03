@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { page } from '$app/state';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { onDestroy, untrack } from 'svelte';
@@ -292,7 +293,7 @@
 			class="btn btn-primary"
 			type="submit"
 			disabled={blocked || loading || !!readError || !selected}
-			>{pending ? 'Adding...' : 'Add to Deck'}</button
+			><PlusIcon />{pending ? 'Adding...' : 'Add to Deck'}</button
 		>
 		{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
 				Original unconfirmed addition: {original.quantity} of {original.printingName ??

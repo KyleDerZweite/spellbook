@@ -11,11 +11,11 @@ from psycopg import AsyncConnection
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.auth import create_local_auth
 from spellbook_core.mtg.catalog import create_catalog
-from spellbook_core.mtg.categories import configure_combo_adapter, create_categories
 from spellbook_core.mtg.dashboard import create_dashboard
 from spellbook_core.mtg.decks import create_decks
 from spellbook_core.mtg.inventory import create_inventory
 from spellbook_core.mtg.inventory_value import create_inventory_values
+from spellbook_core.mtg.power_search import create_power_search
 from spellbook_core.mtg.scan import create_scan
 from spellbook_core.mtg.valuation import create_valuation
 from spellbook_core.passwords import create_password_verifier
@@ -50,7 +50,6 @@ class ApplicationResources:
                 "application_name": f"spellbook-python-api:{os.getpid()}",
             },
         )
-        configure_combo_adapter(self.pool, configuration.commander_spellbook_enabled)
         self.admission = RequestAdmission()
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="spellbook-scrypt")
         self.passwords = create_password_verifier(self.executor)
@@ -58,7 +57,7 @@ class ApplicationResources:
         self.auth = create_local_auth(self.pool, self.passwords, configuration.demo_mode)
         self.profile = create_profile(self.pool, self.auth, configuration.demo_mode)
         self.catalog = create_catalog(self.pool)
-        self.categories = create_categories(self.pool, self.auth)
+        self.power_search = create_power_search(self.pool, self.auth)
         self.valuation = create_valuation(
             self.pool,
             self.auth,
@@ -167,11 +166,11 @@ def create_application(configuration: Configuration) -> ApplicationLifetime:
             auth=resources.auth,
             profile=resources.profile,
             catalog=resources.catalog,
+            power_search=resources.power_search,
             inventory=resources.inventory,
             valuation=resources.valuation,
             dashboard=resources.dashboard,
             scan=resources.scan,
-            categories=resources.categories,
             decks=resources.decks,
             saved_routes=resources.saved_routes,
             admission=resources.admission,

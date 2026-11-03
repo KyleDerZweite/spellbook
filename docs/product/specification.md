@@ -1,10 +1,10 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-02
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+- Update Triggers: managed Category removal, Inventory New badge UTC creation date, selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
 Visitors can search the local catalog and inspect printings without an account.
@@ -33,10 +33,9 @@ Value-only reporting is described below.
 The accepted PWA/QR delivery extends this same web application; independent Kotlin/Compose Android delivery is in progress under the [implementation contract](../architecture/independent-applications.md).
 A separate future play application may consume catalog and deck data.
 
-The accepted pass covers clearer frontend/backend modules, shared app-ready contracts, online-first saved-state sync, UI consolidation, bounded Inventory loading, external marketplace links, Deck entry categories and whole-deck categories.
+The accepted pass covers clearer frontend/backend modules, shared app-ready contracts, online-first saved-state sync, UI consolidation, bounded Inventory loading and external marketplace links.
 Workspace/application foundations, Account/Profile/Dashboard, bounded Inventory reads and retry-safe mutations, Deck backend/shared UI, Scan contracts, SavedState transport and mounted consumers are implemented.
 Current Scryfall and optional Cardmarket/MTGJSON references, supplied product links and bounded public source history are implemented.
-Starter primary entry categories and reviewed destination merges are implemented.
 Rendered acceptance and deployment remain separate evidence.
 
 Kyle changed value tracking to market reference values and personal Inventory history only on 2026-10-07.
@@ -45,16 +44,12 @@ The former Costs slice remains excluded; [ADR-0022](../decisions/0022-daily-valu
 The earlier nineteen-slice Q56 approval does not establish readiness for superseded costs or history dependencies.
 [Valuation](../architecture/valuation.md) owns implemented reference mechanics and the implemented private history boundary.
 
-Account category rules and entry Review/Reset are implemented.
-Whole-deck evaluation and bounded Deck Library reads are implemented.
-The optional local Commander Spellbook adapter evaluates documented ingredients and outcomes from an imported public source.
-Gameplay prerequisites remain unchecked.
-[Card grouping](./card-grouping.md#deck-categories) owns Sources/Rules categories, reusable definitions, manual overrides and Review/Reset.
-Free-text semantic classification and production Jev integration remain outside this pass.
+Bounded Deck Library reads are implemented.
 Physical locations and sorter integration, automatic scan recognition and gameplay remain later work.
 Native Android implementation and acceptance are tracked separately in the [design handoff](./mobile-app-exploration.md#native-implementation-handoff).
 Preserve existing workflows and ownership.
-The [application contract](../architecture/application-contract.md) and [category rules](../architecture/category-rules.md) own their reviewed mechanisms and acceptance evidence.
+The [application contract](../architecture/application-contract.md) owns the reviewed mechanisms and acceptance evidence.
+[Card grouping](./card-grouping.md#deck-presentation) owns the accepted Deck type groups and read-only related Token appendix.
 
 Scan UI development is paused for this pass.
 Navigation, Inventory and Dashboard omit Scan entrypoints; the existing route, sessions and API remain available.
@@ -174,7 +169,18 @@ Signed-in users open their private account summary at `/mtg/dashboard`; Inventor
 
 Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks.
 Set, finish and condition distributions use owned quantities.
-The page shows the eight largest sets, an Other sets remainder, and up to eight recently edited inventory entries ordered by their stored update time.
+The regular Dashboard follows the selected card reference: four metric cards above Card Types, Mana Color Identity, Collection by Set and Quick Actions.
+The Set panel ranks the five largest owned-copy quantities with full Set names, symbols and complete quantities in a disclosure.
+Card Types uses an exclusive primary-type donut; Mana Color Identity retains actual WUBRG, Multicolor, Colorless and unknown quantities.
+The recent panel displays four genuine recently edited holdings, not invented activity events.
+Below that analysis row, a Deck grid occupies two thirds of the width and Recent activity occupies one third, stacking in that order on narrow screens.
+Four actionable metric cards show Inventory value, Total / unique cards, Sets and Decks.
+They combine current values with compact charts across 30 closed daily reporting dates and distinguish positive/negative changes.
+Cards and Sets link directly to Inventory; Decks links directly to the Deck Library.
+Only Inventory value opens the wide History preview, with visible period/custom-date filters and a top-corner Close control.
+There is no separate personal History page or footer navigation from the preview.
+The combined Cards metric distinguishes physical copies from distinct Canonical Cards.
+Missing history remains unavailable, and historical price coverage stays explicit in the expanded details.
 Recent edits do not establish an acquisition history.
 
 Each deck reports required, exact, alternate and missing quantities following the existing [availability rules](#deck-availability), independently against the full inventory.
@@ -252,11 +258,11 @@ Finish starts with Nonfoil before Foil, Condition with `NM, LP, MP, HP, DMG`, an
 The toolbar Sort menu exposes the same ordering choices, including Newest first by the entry's `createdAt` descending without a time filter.
 A variant click from that mode returns to name ascending with the chosen variant ordering.
 
-An entry displays New for seven elapsed days from `createdAt`.
-The badge explains its creation date and duration.
-Quantity or note edits, added copies merged into an existing entry and internal reordering do not restart this period.
+An entry displays New only on its displayed UTC creation calendar date from `createdAt`, provided the timestamp is valid and not in the future.
+The badge explains its creation date and expires at the end of that UTC date.
+Quantity or note edits, added copies merged into an existing entry and internal reordering do not change this date.
 This is an entry-age indicator, not per-copy acquisition history.
-The page uses its server load time and refreshes badge age every minute while open.
+The page uses its server load time as its clock anchor and refreshes badges every minute and at UTC midnight while open.
 
 Selecting exactly one set reveals owned-name progress.
 Selecting zero or multiple sets hides it.
@@ -321,7 +327,6 @@ Ordinary row decrement stops at one atomically; explicit Remove remains separate
 Description saves detect stale text independently of quantities and retain the draft for explicit rebase.
 Printing replacement keeps the same canonical identity, retaining source identity unless it merges into an existing destination.
 Shared Deck UI and native task entry are implemented; [Frontend](../architecture/frontend.md#shared-deck-ui) owns their component and form adapters.
-Primary categories and category-aware destination merging are implemented; [Card grouping](./card-grouping.md#deck-categories) owns current account rules and entry categories, and independent whole-deck scope.
 
 The deck workspace must keep the selected deck, card search, role sections, and availability visible or readily accessible.
 Show card counts and explicit save or mutation feedback.

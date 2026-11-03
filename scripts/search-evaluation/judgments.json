@@ -1,0 +1,988 @@
+{
+	"judgments": [
+		{
+			"case": "q27",
+			"id": "a3d287ec-1a39-4f91-acf1-7c1d2c00ed89",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "275d0b90-a8d6-4388-b7db-34615287f532",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "0f623e23-81ae-4c35-b68b-e0a2f431cbad",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "273b339c-964b-4a18-8eb5-ceb8abcdfd9e",
+			"grade": 0,
+			"reason": "Draws two cards, contradicting the requested three."
+		},
+		{
+			"case": "q27",
+			"id": "34b90d3e-f48c-41ff-b3e4-5cab7a9cd597",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "4cd82c7a-86df-4d29-b578-c009208c0d4b",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "6b4d34bc-fa64-4c42-90e0-190671a5b988",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "397964db-465a-407d-9dc7-d0a4944473ac",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "d83e1a42-11d1-412a-b66c-850c7a528777",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "55fe5ec3-1c81-4e9d-9e4c-f68ce6d7c2de",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "0f3c3e5f-6af3-4af2-8703-4ccc8ed8f675",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "c43425c1-ad01-4088-a061-f691fa2f6c20",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "826c5feb-9e82-49e0-bc6f-6c29004f8151",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "7eff84f1-f772-497a-b350-bbc93d0230f7",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "6ac3abba-cf55-4d97-a253-bce45972b050",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "6e060984-2015-4dc4-b53d-ab6bf2abdacc",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "f1bcc02f-c57e-4472-b3fa-9869a0a3e9f1",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "ce588fd3-642e-4df9-8061-6fcfc6e81270",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "521a63cf-5e83-4649-9800-c62b2fc474d6",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "3c970f43-17da-4187-a084-efd53b579067",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "84de4fec-2f38-4293-93d3-b3882c5aac14",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q27",
+			"id": "75070eaf-c931-46e5-9aa1-b849e33580c6",
+			"grade": 2,
+			"reason": "Draws exactly three cards; additional effects or costs do not negate the requested draw effect."
+		},
+		{
+			"case": "q28",
+			"id": "a2404d88-0621-49ae-9908-052c23a96ac6",
+			"grade": 0,
+			"reason": "Destroys only creatures blocking or blocked by this creature, not all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "09cc8709-fe10-472a-b05c-e89f3523018d",
+			"grade": 2,
+			"reason": "Choosing both creature modes destroys creatures of every mana value."
+		},
+		{
+			"case": "q28",
+			"id": "335a6c6a-030f-45d4-806c-467a22962eed",
+			"grade": 2,
+			"reason": "A selectable mode explicitly destroys all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "1fbb2a7c-8093-4729-b8fe-cf032d99470f",
+			"grade": 0,
+			"reason": "Leaves creatures at or below the chosen power threshold alive."
+		},
+		{
+			"case": "q28",
+			"id": "52a0dae4-2a95-487e-acd4-eabdb2d031e2",
+			"grade": 0,
+			"reason": "Each mode leaves either Dragons or non-Dragons alive; cannot choose both."
+		},
+		{
+			"case": "q28",
+			"id": "f3f01fe8-0a2c-4afa-94d2-268d27c0d252",
+			"grade": 0,
+			"reason": "Destroys only one chosen creature type, not all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "aff34f28-f707-4458-8af3-1bd5b13a6b10",
+			"grade": 2,
+			"reason": "A selectable mode explicitly destroys all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "052838cb-dcf0-46f5-82b1-c3ed863b42b7",
+			"grade": 2,
+			"reason": "Destroys all creatures, with additional land destruction."
+		},
+		{
+			"case": "q28",
+			"id": "570ab1ea-6fb4-49d9-a33d-f20cafbfc086",
+			"grade": 2,
+			"reason": "Can choose all size modes to destroy all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "85eefda9-4aab-467d-a08c-be026cb8ff42",
+			"grade": 1,
+			"reason": "Conditionally destroys all other creatures, but expressly excludes itself."
+		},
+		{
+			"case": "q28",
+			"id": "d057289d-5e28-43d5-8ff3-4a1bc723477d",
+			"grade": 2,
+			"reason": "Explicitly destroys all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "2737a78c-77ed-4bd0-ac0d-39ca2d816e83",
+			"grade": 0,
+			"reason": "Destroys only one opponent's creatures, not all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "7f885ffc-7245-4f00-a903-6e088007c635",
+			"grade": 0,
+			"reason": "Destroys only blocking and blocked creatures."
+		},
+		{
+			"case": "q28",
+			"id": "a610c77c-fe31-4465-a1c1-392db4ce4ed1",
+			"grade": 0,
+			"reason": "Destroys only black creatures."
+		},
+		{
+			"case": "q28",
+			"id": "2e82520a-9da3-49ae-b5c8-37e7ac8853fe",
+			"grade": 0,
+			"reason": "Can destroy tapped or untapped creatures, but cannot choose both modes."
+		},
+		{
+			"case": "q28",
+			"id": "45f386ba-ad62-4c0e-b6ad-ae02ca8f2bec",
+			"grade": 2,
+			"reason": "A selectable mode explicitly destroys all creatures."
+		},
+		{
+			"case": "q28",
+			"id": "d3946df7-cb24-47c0-a8b0-1bdf95d99926",
+			"grade": 0,
+			"reason": "Destroys only creatures with flying."
+		},
+		{
+			"case": "q28",
+			"id": "ae19dce5-c9fc-4fbe-99b5-dc6a12124a68",
+			"grade": 2,
+			"reason": "Destroys all creatures along with artifacts and enchantments."
+		},
+		{
+			"case": "q29",
+			"id": "dd97e457-07eb-4918-b780-ae7ff42a37e7",
+			"grade": 2,
+			"reason": "Explicitly counters target spell; sacrifice is an additional cost."
+		},
+		{
+			"case": "q29",
+			"id": "3407fe41-fdd3-4119-8f70-4bc4590a379f",
+			"grade": 0,
+			"reason": "Targets only noncreature spells, a narrower target type."
+		},
+		{
+			"case": "q29",
+			"id": "fc09cbc0-2d28-44c6-b9a9-b95e9e58bb1b",
+			"grade": 2,
+			"reason": "Explicitly counters target spell conditionally on its controller not paying."
+		},
+		{
+			"case": "q29",
+			"id": "7d00fb28-ea6c-49a9-b4af-ffb38860a9a7",
+			"grade": 2,
+			"reason": "Explicitly counters target spell."
+		},
+		{
+			"case": "q29",
+			"id": "56148ae7-a9df-4771-8d53-d9ffb815c884",
+			"grade": 2,
+			"reason": "A selectable mode explicitly counters target spell."
+		},
+		{
+			"case": "q29",
+			"id": "2d4aedc5-31c5-4281-98e1-b0c2233c3c8a",
+			"grade": 0,
+			"reason": "Targets only artifact spells, a narrower target type."
+		},
+		{
+			"case": "q29",
+			"id": "250f8642-9754-48fd-8f09-70ed13d7a42c",
+			"grade": 0,
+			"reason": "Targets only creature spells, a narrower target type."
+		},
+		{
+			"case": "q29",
+			"id": "30062dd0-c049-4872-8011-8b4810a3fa26",
+			"grade": 0,
+			"reason": "Targets only sorcery spells, a narrower target type."
+		},
+		{
+			"case": "q29",
+			"id": "e8ebf5cb-3a26-4bbd-812b-414c129e4bb7",
+			"grade": 2,
+			"reason": "Explicitly counters target spell conditionally on its controller not paying."
+		},
+		{
+			"case": "q29",
+			"id": "d95f1797-56f9-41be-a5fe-8398961f4b8b",
+			"grade": 1,
+			"reason": "Counters spells only within mana value limits; cannot answer arbitrary spell sizes."
+		},
+		{
+			"case": "q29",
+			"id": "cc187110-1148-4090-bbb8-e205694a39f5",
+			"grade": 2,
+			"reason": "Explicitly counters target spell."
+		},
+		{
+			"case": "q29",
+			"id": "3010f11c-8ee1-4854-96d2-ae33ea3fe4e8",
+			"grade": 2,
+			"reason": "Explicitly counters target spell with an additional discount effect."
+		},
+		{
+			"case": "q29",
+			"id": "0466f23c-d07c-4015-82d5-eab4b226f1ff",
+			"grade": 2,
+			"reason": "A selectable mode explicitly counters target spell."
+		},
+		{
+			"case": "q29",
+			"id": "cbf09050-39d0-463b-96db-9e22011ae0d8",
+			"grade": 0,
+			"reason": "Exiles a spell for possible recasting rather than countering it."
+		},
+		{
+			"case": "q29",
+			"id": "38c43f30-0e01-4dcd-88fc-f1de318a5e29",
+			"grade": 2,
+			"reason": "Kicked version explicitly counters target spell without a mana value limit."
+		},
+		{
+			"case": "q29",
+			"id": "132ca99a-a3c7-4ed6-b4d0-0edcd7140ca2",
+			"grade": 2,
+			"reason": "Explicitly counters target spell with additional life gain."
+		},
+		{
+			"case": "q29",
+			"id": "8089c3eb-99a8-40ca-882a-c1d4e30075ee",
+			"grade": 2,
+			"reason": "Explicitly counters target spell; commander condition adds benefits."
+		},
+		{
+			"case": "q29",
+			"id": "fcea912b-58b1-4068-ac4d-1bc89aa7f33c",
+			"grade": 2,
+			"reason": "Explicitly counters target spell; creature targeting only changes its cost."
+		},
+		{
+			"case": "q29",
+			"id": "eac02e36-15c8-4b6d-b9b4-da549a722336",
+			"grade": 1,
+			"reason": "Counters only spells targeting a player; cannot answer arbitrary spells."
+		},
+		{
+			"case": "q29",
+			"id": "38877c68-b69b-4ee1-8e8f-5137a184a8f7",
+			"grade": 1,
+			"reason": "Counters only spells with mana value exactly two."
+		},
+		{
+			"case": "q29",
+			"id": "33d6a17a-0112-4d4f-a24a-0769360408a8",
+			"grade": 2,
+			"reason": "Explicitly counters target spell."
+		},
+		{
+			"case": "q29",
+			"id": "cf1a4b18-62fa-46f3-baeb-c0f699c9cdde",
+			"grade": 2,
+			"reason": "Activated and channel abilities explicitly counter target spell unless its controller pays."
+		},
+		{
+			"case": "q29",
+			"id": "8c983da8-1436-4c06-af9c-91b72cab48c1",
+			"grade": 2,
+			"reason": "Counters target opposing spell; ordinary defensive use satisfies the requested effect."
+		},
+		{
+			"case": "q30",
+			"id": "367faa8c-617a-41a0-901c-f65106e86d56",
+			"grade": 2,
+			"reason": "Explicitly prevents unchosen opposing creatures from attacking next turn."
+		},
+		{
+			"case": "q30",
+			"id": "c5f50a78-9dc4-4f3c-aa11-b41c8278bc16",
+			"grade": 2,
+			"reason": "Explicitly prevents a subset of your creatures from attacking; query does not specify opponent."
+		},
+		{
+			"case": "q30",
+			"id": "2f959c67-2b0b-4ba8-a8aa-90c25a3806ec",
+			"grade": 0,
+			"reason": "Grants attacking creatures indestructible rather than preventing attacks."
+		},
+		{
+			"case": "q30",
+			"id": "42208fea-8c24-451f-861d-6d70c0a7a502",
+			"grade": 2,
+			"reason": "Explicitly prevents creatures without flying from attacking."
+		},
+		{
+			"case": "q30",
+			"id": "53cc4b93-538d-4193-8bbb-5b73d3ce9d79",
+			"grade": 2,
+			"reason": "Forbids black creatures attacking you and taxes other attackers."
+		},
+		{
+			"case": "q30",
+			"id": "3354c3d3-5713-4139-beb2-4fa17f6b47d9",
+			"grade": 0,
+			"reason": "Attack prohibition occurs only in a text-changing example; does not itself impose it."
+		},
+		{
+			"case": "q30",
+			"id": "7f9d5219-0306-4c39-8640-dcb4314042de",
+			"grade": 0,
+			"reason": "Grants combat bonuses and haste; does not prevent attacks."
+		},
+		{
+			"case": "q30",
+			"id": "ff5caed4-0276-476d-8fae-edae2536df7f",
+			"grade": 2,
+			"reason": "Conditionally prevents attacks unless the attacker pays a tax."
+		},
+		{
+			"case": "q30",
+			"id": "1e3e1916-bb82-481e-9b10-225504ef06b3",
+			"grade": 1,
+			"reason": "Defender prevents only this creature attacking, not a group of creatures."
+		},
+		{
+			"case": "q30",
+			"id": "cd854e00-c9da-4593-8402-4bae637f5185",
+			"grade": 2,
+			"reason": "Explicitly prevents black creatures attacking."
+		},
+		{
+			"case": "q30",
+			"id": "82a70e4c-01ed-4280-80e4-86cb2bf6e63d",
+			"grade": 2,
+			"reason": "Explicitly prevents creatures attacking you."
+		},
+		{
+			"case": "q30",
+			"id": "fb1369aa-25a2-4e2a-9cbe-6cfe7e238b1b",
+			"grade": 0,
+			"reason": "Prevents spell targeting, not attacking."
+		},
+		{
+			"case": "q30",
+			"id": "34dd789c-4d80-4ccc-a4f7-2e5388a9689d",
+			"grade": 2,
+			"reason": "Conditionally prevents opponents who cast spells attacking with creatures."
+		},
+		{
+			"case": "q30",
+			"id": "60963292-2dee-4b1c-9c1c-c35cf8ea3496",
+			"grade": 2,
+			"reason": "Explicitly prevents low-power creatures attacking you."
+		},
+		{
+			"case": "q30",
+			"id": "a035f865-b4db-4b9f-bccc-8572acd2033c",
+			"grade": 2,
+			"reason": "Explicitly prevents creatures without flying attacking."
+		},
+		{
+			"case": "q30",
+			"id": "5b79b68a-db71-4638-824e-ab89b1716c86",
+			"grade": 2,
+			"reason": "Conditionally prevents attacks unless the attacker pays a tax."
+		},
+		{
+			"case": "q30",
+			"id": "4c543799-1b72-4f32-a5be-475c0134ac0f",
+			"grade": 2,
+			"reason": "Explicitly prevents enchanted creatures attacking."
+		},
+		{
+			"case": "q30",
+			"id": "d99e1d08-32ca-49c5-97cc-e064d661202f",
+			"grade": 1,
+			"reason": "Restricts only its own attacks unless accompanied; does not restrict a group."
+		},
+		{
+			"case": "q30",
+			"id": "acb3e93c-a1d3-458f-b8c3-c426cd359fa4",
+			"grade": 2,
+			"reason": "Conditionally prevents creatures attacking players based on their previous turn."
+		},
+		{
+			"case": "q31",
+			"id": "22c044ad-77d7-4c93-953d-e2daa9686ff7",
+			"grade": 2,
+			"reason": "Explicitly untaps another target permanent."
+		},
+		{
+			"case": "q31",
+			"id": "7cf1fa2e-1572-4d9d-8e93-e49016b34458",
+			"grade": 1,
+			"reason": "Untaps enchanted permanents you control without targeting; other-target text belongs to a different ability."
+		},
+		{
+			"case": "q31",
+			"id": "5337b747-dc69-4fe4-9899-c1374e22aa79",
+			"grade": 1,
+			"reason": "Untaps another permanent only if its name starts with a previously chosen letter."
+		},
+		{
+			"case": "q31",
+			"id": "1141a12a-2ebd-4e7b-8c8c-c7a1f160244c",
+			"grade": 1,
+			"reason": "Untaps another permanent only if it is snow."
+		},
+		{
+			"case": "q31",
+			"id": "a50be01d-821f-4fdc-b12a-4a1a76432a21",
+			"grade": 2,
+			"reason": "Explicitly allows untapping another target permanent."
+		},
+		{
+			"case": "q31",
+			"id": "b795ecfd-31ac-4a2a-9679-97b088932d93",
+			"grade": 2,
+			"reason": "Untaps any target permanent, including another permanent."
+		},
+		{
+			"case": "q31",
+			"id": "699fc7cf-1ad3-4c32-b3e4-49f9a2da4b26",
+			"grade": 2,
+			"reason": "Explicitly untaps another target permanent."
+		},
+		{
+			"case": "q31",
+			"id": "cdc0a1a5-d9e4-4923-b472-2fa78212167f",
+			"grade": 2,
+			"reason": "Explicitly untaps another target permanent."
+		},
+		{
+			"case": "q31",
+			"id": "a7b6cd8b-1bed-4742-8c97-8be4edbfc8ee",
+			"grade": 2,
+			"reason": "Can untap any target permanent, including another permanent."
+		},
+		{
+			"case": "q31",
+			"id": "a50737d7-dd2d-40da-817c-f913f76b5011",
+			"grade": 2,
+			"reason": "Explicitly allows untapping another target permanent."
+		},
+		{
+			"case": "q31",
+			"id": "60a69ddc-3289-4786-944d-27a82c5f0dc8",
+			"grade": 2,
+			"reason": "An ability sticker explicitly grants untapping another target permanent; special-format applicability is unassessed."
+		},
+		{
+			"case": "q31",
+			"id": "55765934-07be-4f03-a2e8-8292c0b601ae",
+			"grade": 2,
+			"reason": "Explicitly allows untapping another target permanent."
+		},
+		{
+			"case": "q31",
+			"id": "af6e4c3e-0276-4f72-9a70-25868fe8bba5",
+			"grade": 2,
+			"reason": "Explicitly untaps another target permanent."
+		},
+		{
+			"case": "q31",
+			"id": "8b239262-c392-4ec6-9ae1-8b4a076e4bf0",
+			"grade": 2,
+			"reason": "A mode untaps any target permanent, including another permanent."
+		},
+		{
+			"case": "q31",
+			"id": "75ed6946-e7b1-4bf8-a05c-62a2ba5a6c79",
+			"grade": 2,
+			"reason": "Loyalty ability explicitly untaps another target permanent."
+		},
+		{
+			"case": "q32",
+			"id": "3686fd97-49ff-4a92-9cb2-7d8e9438d945",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "32e9aa23-fc0a-4b82-82f9-1659c304428c",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "19a2f0a0-9e68-4982-a5f5-b77d805befd7",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "4137a22c-f793-4e27-a9b2-72740a6e2121",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "6365aba1-78d3-416c-89cd-9449578eedbf",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "273b339c-964b-4a18-8eb5-ceb8abcdfd9e",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "ff568a29-e31a-4bc3-b8a3-8fa56f91d52d",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "7bff8d4a-1c7d-48b8-b3e3-737dd6f01823",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "05878e49-93ad-4144-9c50-a0bb86126c2e",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "ff321c13-03ae-4cb9-b371-1242290f8433",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "82333385-631f-4abf-b159-bb367f1c6fd9",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "b734cfd9-afef-41f1-8377-68c885fb3a69",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "955a7f4d-7100-4d8b-818c-be8651d0ebe6",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "8f3a2b00-9f63-4178-ade4-8eb0c808bec3",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "d8956775-fda8-475d-9e8a-b61196a958ea",
+			"grade": 0,
+			"reason": "Draw ability draws one card; two refers to opponents milling."
+		},
+		{
+			"case": "q32",
+			"id": "e8d5f31c-7abf-4fbb-977e-8353a97daf7a",
+			"grade": 0,
+			"reason": "Mills two cards and draws only one card."
+		},
+		{
+			"case": "q32",
+			"id": "6ac3abba-cf55-4d97-a253-bce45972b050",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "60e358ec-eb11-4a16-a0ae-b7c064a8ea6c",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "df54b79d-f31d-4582-86c0-1d34ec77be0f",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q32",
+			"id": "a352cc67-eae8-4fa5-abba-507821c4cf47",
+			"grade": 2,
+			"reason": "Explicitly draws two cards, including conditional or modal uses and additional effects."
+		},
+		{
+			"case": "q33",
+			"id": "a3d287ec-1a39-4f91-acf1-7c1d2c00ed89",
+			"grade": 2,
+			"reason": "Draws exactly three cards, matching the German request; additional discard does not negate drawing."
+		},
+		{
+			"case": "q33",
+			"id": "6e060984-2015-4dc4-b53d-ab6bf2abdacc",
+			"grade": 2,
+			"reason": "Draws exactly three cards, matching the German request; additional discard does not negate drawing."
+		},
+		{
+			"case": "q33",
+			"id": "d83e1a42-11d1-412a-b66c-850c7a528777",
+			"grade": 2,
+			"reason": "Draws exactly three cards, matching the German request; additional discard does not negate drawing."
+		},
+		{
+			"case": "q33",
+			"id": "7eff84f1-f772-497a-b350-bbc93d0230f7",
+			"grade": 2,
+			"reason": "Draws exactly three cards, matching the German request; additional discard does not negate drawing."
+		},
+		{
+			"case": "q33",
+			"id": "ce588fd3-642e-4df9-8061-6fcfc6e81270",
+			"grade": 2,
+			"reason": "Draws exactly three cards, matching the German request; additional discard does not negate drawing."
+		},
+		{
+			"case": "q34",
+			"id": "d057289d-5e28-43d5-8ff3-4a1bc723477d",
+			"grade": 2,
+			"reason": "Destroys all creatures as requested."
+		},
+		{
+			"case": "q34",
+			"id": "052838cb-dcf0-46f5-82b1-c3ed863b42b7",
+			"grade": 2,
+			"reason": "Destroys all creatures and additionally lands."
+		},
+		{
+			"case": "q34",
+			"id": "d3946df7-cb24-47c0-a8b0-1bdf95d99926",
+			"grade": 0,
+			"reason": "Destroys only flying creatures, not all creatures."
+		},
+		{
+			"case": "q34",
+			"id": "a610c77c-fe31-4465-a1c1-392db4ce4ed1",
+			"grade": 0,
+			"reason": "Destroys only black creatures, not all creatures."
+		},
+		{
+			"case": "q34",
+			"id": "d119ca9a-ee82-42c2-81e6-684205ca5183",
+			"grade": 0,
+			"reason": "Destroys only green creatures, not all creatures."
+		},
+		{
+			"case": "q35",
+			"id": "6697fe5b-90ac-4321-aa2f-cdc6ec283cb4",
+			"grade": 0,
+			"reason": "A sorcery creating green creatures, not a cheap creature producing green mana."
+		},
+		{
+			"case": "q35",
+			"id": "0b9a4e06-b21d-4cbe-906f-9dbd08dbe5d3",
+			"grade": 0,
+			"reason": "Cheap creature produces only colorless mana, not green mana."
+		},
+		{
+			"case": "q35",
+			"id": "f0548af1-d1cc-44d1-b5a0-f013563f29de",
+			"grade": 0,
+			"reason": "Expensive creature creates green tokens and has no mana-producing ability."
+		},
+		{
+			"case": "q35",
+			"id": "33a11c01-89a6-446b-84da-e48fd1f27446",
+			"grade": 0,
+			"reason": "Artifact creates creature tokens; it is not a creature and produces no mana."
+		},
+		{
+			"case": "q35",
+			"id": "a9df60bf-f327-4d50-ab4d-99324fc2dcfe",
+			"grade": 2,
+			"reason": "Two-mana creature produces mana of any color, including green."
+		},
+		{
+			"case": "q35",
+			"id": "73a9122c-60d2-4fdc-bc7b-3576bcbca241",
+			"grade": 2,
+			"reason": "Two-mana creature produces mana of any color, including green."
+		},
+		{
+			"case": "q36",
+			"id": "11c8e218-0cd5-4356-89fd-f39f989e487b",
+			"grade": 0,
+			"reason": "Protection and blocking Dragons do not prevent opposing creatures attacking."
+		},
+		{
+			"case": "q36",
+			"id": "06c47664-2b4b-468e-a38d-04b62e6edd67",
+			"grade": 1,
+			"reason": "Conditionally prevents combat damage to you, but opponents can still attack."
+		},
+		{
+			"case": "q36",
+			"id": "7d08d128-863c-4cca-837f-847ff44acef5",
+			"grade": 0,
+			"reason": "Its defender and blocking damage prevention do not stop opposing attacks."
+		},
+		{
+			"case": "q36",
+			"id": "0caae56e-5995-4f1b-b735-80580a372707",
+			"grade": 0,
+			"reason": "Prevents damage to itself when blocked; does not prevent opposing attacks."
+		},
+		{
+			"case": "q36",
+			"id": "50261dca-bfeb-40b3-95b6-9057491ef3ad",
+			"grade": 0,
+			"reason": "Prevents damage to creatures, not attacks or damage to you."
+		},
+		{
+			"case": "q36",
+			"id": "3469463e-ed4d-44bb-81f3-42bbe09d34ad",
+			"grade": 0,
+			"reason": "Gives the opponent creatures; does not prevent their attacks."
+		},
+		{
+			"case": "q37",
+			"id": "a9aedd96-1aee-480d-87fe-3ed94bd64599",
+			"grade": 2,
+			"reason": "Exiles a creature if it is tapped; request does not require unrestricted removal."
+		},
+		{
+			"case": "q37",
+			"id": "0127c13f-7b0f-44c3-8b35-97f306c5f239",
+			"grade": 2,
+			"reason": "Forces an opponent to exile a creature they control; choice remains with opponent."
+		},
+		{
+			"case": "q37",
+			"id": "c551ba63-2a74-439d-8996-d566e2efbd5f",
+			"grade": 2,
+			"reason": "Explicitly exiles target creature."
+		},
+		{
+			"case": "q37",
+			"id": "58776b25-794e-4a87-bc71-a77c025b9b03",
+			"grade": 2,
+			"reason": "Exiles a creature if it is tapped; request does not require unrestricted removal."
+		},
+		{
+			"case": "q37",
+			"id": "b14d3226-adc2-4bdd-9e69-fefdc946ac04",
+			"grade": 2,
+			"reason": "Explicitly exiles target creature."
+		},
+		{
+			"case": "q38",
+			"id": "22fef646-acc1-4dda-81b0-0ef6dc04a83f",
+			"grade": 2,
+			"reason": "Reminder text explicitly copies abilities triggered by you; includes the requested triggered abilities."
+		},
+		{
+			"case": "q38",
+			"id": "03fb26b1-6d9c-455b-9b2f-a052a9222db7",
+			"grade": 0,
+			"reason": "Double strike does not duplicate triggered abilities."
+		},
+		{
+			"case": "q38",
+			"id": "8b72aca0-69b6-4829-b3cd-0f8713b7303f",
+			"grade": 1,
+			"reason": "Doubles effects that already double; needs another doubling effect and does not itself duplicate ordinary triggers."
+		},
+		{
+			"case": "q38",
+			"id": "18616f70-e30c-4ff7-b62a-55939a96ca1b",
+			"grade": 0,
+			"reason": "Doubles creature power, not triggered abilities."
+		},
+		{
+			"case": "q38",
+			"id": "4eaa100c-f1ef-4a2b-9370-5dad7f3a95f2",
+			"grade": 0,
+			"reason": "Doubles creature power, not triggered abilities."
+		},
+		{
+			"case": "q39",
+			"id": "78e3a3c3-3091-46ab-a47a-86b7db68ced4",
+			"grade": 0,
+			"reason": "Instant changes mana types; not a land and does not specify producing two mana."
+		},
+		{
+			"case": "q39",
+			"id": "27b047e3-0d41-45e2-98e9-9391d7923a1e",
+			"grade": 0,
+			"reason": "Land produces one colored mana, not two colorless mana."
+		},
+		{
+			"case": "q39",
+			"id": "f2c408f6-3994-4a90-a9f5-f248eb976017",
+			"grade": 0,
+			"reason": "Aura rather than land; granted ability produces colored mana rather than colorless."
+		},
+		{
+			"case": "q39",
+			"id": "5028dfe8-c505-4643-b493-760b1f19d47f",
+			"grade": 0,
+			"reason": "Land produces only one colorless mana; second ability consumes mana to produce colored mana."
+		},
+		{
+			"case": "q39",
+			"id": "e6b77545-de5c-4f4a-b7ea-83498fb33ba8",
+			"grade": 0,
+			"reason": "Land produces only one mana per activation, not two colorless mana."
+		},
+		{
+			"case": "q40",
+			"id": "a07406b7-faa1-4ed3-ab84-314c40f3f7f1",
+			"grade": 0,
+			"reason": "Protection from creatures neither protects your other creatures nor stops general board wipes."
+		},
+		{
+			"case": "q40",
+			"id": "3f086b72-6e7c-40d4-b995-d5f94c494462",
+			"grade": 0,
+			"reason": "Restricts its own damage to snow creatures; provides no board-wipe protection."
+		},
+		{
+			"case": "q40",
+			"id": "d7c2f27c-8c82-4283-a17d-f979ee636542",
+			"grade": 0,
+			"reason": "Prevents damage to you, not to your creatures."
+		},
+		{
+			"case": "q40",
+			"id": "475412c9-8960-4085-bd8f-5f8a7c7485b9",
+			"grade": 0,
+			"reason": "Protection from artifacts applies only to itself and does not protect your creatures from general wipes."
+		},
+		{
+			"case": "q40",
+			"id": "ce82aa79-bb50-47bc-84f5-eae30249c7a5",
+			"grade": 1,
+			"reason": "Its own protection may stop red or blue damage wipes for itself, but does not protect your other creatures or stop destroy/exile wipes."
+		},
+		{
+			"case": "q40",
+			"id": "bb813ffa-2615-4177-a7fb-6e0dfb819fc2",
+			"grade": 0,
+			"reason": "Grants flying and vigilance to tokens, neither of which protects against general board wipes."
+		}
+	],
+	"limits": [
+		"Agent judgments from supplied Oracle text and metadata, not a human study or owner acceptance; no claim of expert MTG adjudication.",
+		"Pool contains only supplied first-five candidates; these judgments do not establish exhaustive recall or missing relevant cards.",
+		"Rules queries are desired effect fragments. Explicit conditional or modal execution counts as direct relevance. Additional costs, discards, or collateral effects do not negate the requested effect.",
+		"Explicit all-creatures requests require coverage of all creatures. Restricted creature subsets fail that constraint; all-other-creatures destruction receives partial credit.",
+		"Attack-prevention fragment has no explicit opponent or universal constraint; subgroup attack prohibitions qualify. Self-only attack restrictions receive partial credit.",
+		"Narrower spell target types receive zero; mana-value, name, snow, or spell-target restrictions receive partial credit as restricted applications. This distinction is judgment-sensitive.",
+		"Cheap is interpreted as mana value two or less for these supplied candidates; no monetary affordability data was provided.",
+		"Special-format stickers, humorous cards, digital cards, and split/transformed cards are judged on supplied text without legality restrictions. Their practical usability requires separate format context.",
+		"Protection against some damage wipes for the creature itself and conditional combat damage prevention receive partial credit; neither is treated as broad protection or actual attack prevention."
+	],
+	"observations": [
+		"q27 Divination contradicts the requested draw count; q32 Aether Syphon and Mental Note confuse milling two with drawing two. Candidate IDs: 273b339c-964b-4a18-8eb5-ceb8abcdfd9e, d8956775-fda8-475d-9e8a-b61196a958ea, e8d5f31c-7abf-4fbb-977e-8353a97daf7a.",
+		"q28 and q34 contain creature sweepers restricted by color, flying, combat state, or other subsets; these do not satisfy all creatures.",
+		"q29 includes wrong spell target types and Aang exiling rather than countering a spell.",
+		"q30 Balduvian Shaman contains the requested phrase only inside an illustrative text-change example; its own effect does not prohibit attacks. Candidate IDs: 3354c3d3-5713-4139-beb2-4fa17f6b47d9.",
+		"q35 includes cheap colorless mana, green creature tokens, and expensive green creatures; only Xenobotanist and Utopia Tree fit cheap creature plus green mana. Candidate IDs: a9df60bf-f327-4d50-ab4d-99324fc2dcfe, 73a9122c-60d2-4fdc-bc7b-3576bcbca241.",
+		"q36 has no direct attack-prevention answer in its supplied pool; Suppressor Skyguard offers conditional damage prevention instead. Candidate IDs: 06c47664-2b4b-468e-a38d-04b62e6edd67.",
+		"q38 contains double strike and doubled power instead of duplicated triggered abilities; Seventh Stage of Magic Design explicitly copies triggered abilities. Candidate IDs: 22fef646-acc1-4dda-81b0-0ef6dc04a83f.",
+		"q39 has no candidate land that actually produces two colorless mana. Several entries confuse color with colorless or mana production with mana cost.",
+		"q40 lacks direct team protection against board wipes; several candidates protect only themselves, protect the player, or grant unrelated keywords.",
+		"German draw-three query q33 has five direct answers, while German attack-prevention query q36 has none. This describes the pool, not an engine comparison."
+	],
+	"source": "Independent blinded gpt-6.1-sol medium assessment; Root checked decisive examples. No human review."
+}

@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import SearchBar from './SearchBar.svelte';
 	import SearchFilters from './SearchFilters.svelte';
+	import { formatColorExpression } from '#lib/search/color-filters.ts';
 	import SearchResults from './SearchResults.svelte';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import CardBrowsingActions from '#lib/components/cards/CardBrowsingActions.svelte';
@@ -34,7 +35,9 @@
 		serverResult = null,
 		serverError = null,
 		canonicalHref,
-		restorationTarget = null
+		restorationTarget = null,
+		routeSelection = null,
+		onCloseRouteSelection
 	}: {
 		controls?: Snippet;
 		viewport?: BrowseViewport | null;
@@ -43,8 +46,20 @@
 		serverError?: string | null;
 		canonicalHref?: string;
 		restorationTarget?: HTMLElement | null;
+		routeSelection?: { key: string; card: CardDocument } | null;
+		onCloseRouteSelection?: () => void;
 	} = $props();
 	const session = getSearchSession();
+	let dismissedRouteSelection: string | null = $state(null);
+	const selectedCard = $derived(
+		session.selectedCard ??
+			(routeSelection && routeSelection.key !== dismissedRouteSelection
+				? routeSelection.card
+				: null)
+	);
+	$effect(() => {
+		if (!routeSelection) dismissedRouteSelection = null;
+	});
 	const filters = session.filters;
 	const catalog = session.catalog;
 	let deckDraft = $state(createDeckAdditionDraft());
@@ -66,7 +81,7 @@
 	$effect(() => {
 		const account = page.data.user?.accountId ?? null;
 		const expired = workspaceSavedState.getState() === 'expired';
-		const selected = session.selectedCard;
+		const selected = selectedCard;
 		untrack(() => {
 			if (!selected || !account || account !== additionAccount || expired) clearAdditionDrafts();
 			additionAccount = account;
@@ -76,6 +91,15 @@
 	let windowViewport: Window | null = $state(null);
 	const host = $derived(viewport ?? windowViewport);
 	const input = $derived(!mounted && serverInput ? serverInput : session.input);
+	const colorMatch = $derived(input.filters.colorMatch);
+	const colorExpression = $derived(
+		colorMatch && (colorMatch.any.length || colorMatch.all.length || colorMatch.not?.length)
+			? formatColorExpression(colorMatch)
+			: null
+	);
+	const compactColorExpression = $derived(
+		colorMatch ? formatColorExpression(colorMatch, true).visual : ''
+	);
 	const paging = $derived(input.pagination ?? searchPagination());
 	const snapshot = $derived(session.snapshot);
 	const total = $derived(!mounted ? (serverResult?.estimatedTotalHits ?? 0) : snapshot.total);
@@ -84,6 +108,30 @@
 	const error = $derived(mounted ? snapshot.error : serverError);
 	const browseMode = $derived(input.query.trim().length < 2);
 	const activeFilters = $derived(getActiveFilters(filters));
+	const hasFilters = $derived(
+		mounted
+			? filters.hasFilters
+			: Boolean(
+					input.filters.colorMatch?.any.length ||
+					input.filters.colorMatch?.all.length ||
+					input.filters.colorMatch?.not?.length ||
+					input.filters.rarities?.length ||
+					input.filters.types?.length ||
+					input.filters.legalities?.length ||
+					input.filters.sets?.length ||
+					input.filters.colors?.length ||
+					input.filters.colorIdentity?.length
+				)
+	);
+	const nativeClearHref = $derived(
+		searchHref({
+			query: input.query,
+			filters: {
+				colorMatch: { field: input.filters.colorMatch?.field ?? 'color', any: [], all: [] }
+			},
+			pagination: searchPagination(paging.pageSize)
+		})
+	);
 	const pageCards = $derived(
 		!mounted ? (serverResult?.hits ?? []) : (snapshot.pages.get(paging.offset) ?? [])
 	);
@@ -192,7 +240,7 @@
 		session.setRange(nativeFeedbackRange(next, session.pagination.offset, !!restorationTarget));
 	}
 	$effect(() => {
-		if (!mounted || session.selectedCard) return;
+		if (!mounted || selectedCard) return;
 		const current = snapshot;
 		const windowRange = range;
 		const connection = (
@@ -223,9 +271,11 @@
 	}
 	function handleCloseDetail() {
 		if (session.pending) return;
-		const id = session.selectedCard?.id;
+		const id = selectedCard?.id;
+		dismissedRouteSelection = routeSelection?.key ?? null;
 		session.selectedCard = null;
 		clearAdditionDrafts();
+		if (routeSelection) onCloseRouteSelection?.();
 		void tick().then(() => {
 			const target = id
 				? resultsElement?.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(id)}"]`)
@@ -290,10 +340,13 @@
 							/> Identity</label
 						>
 					</fieldset>
-					{#each [{ name: 'color', label: 'Colors · OR', options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: 'Colors · AND', options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'rarity', label: 'Rarity', options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: 'Card type', options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: 'Legality', options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
+					{#each [{ name: 'color', label: 'Colors · OR', options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: 'Colors · AND', options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'colorNot', label: 'Colors · NOT', options: MANA_COLORS, selected: input.filters.colorMatch?.not }, { name: 'rarity', label: 'Rarity', options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: 'Card type', options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: 'Legality', options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
 						<fieldset>
-							<legend>{group.label}</legend>{#each group.options as option}<label
-									class="flex items-center gap-2"
+							<legend
+								title={group.name === 'colorAnd'
+									? 'A second color filter assigns NOT to remaining colors; Clear filters resets the selection'
+									: undefined}>{group.label}</legend
+							>{#each group.options as option}<label class="flex items-center gap-2"
 									><input
 										type="checkbox"
 										name={group.name}
@@ -305,6 +358,7 @@
 					{/each}
 				</div>
 				<button class="btn btn-secondary" type="submit">Apply filters</button>
+				<a class="btn btn-secondary" href={nativeClearHref}>Clear filters</a>
 			</details>
 		{/if}
 		{@render controls?.()}
@@ -325,6 +379,20 @@
 						? 'Finding cards…'
 						: `${total.toLocaleString()} ${total === 1 ? 'card' : 'cards'}`}</span
 				>
+				{#if colorExpression}
+					<span
+						class="color-expression"
+						role="status"
+						aria-label={colorMatch?.field === 'identity'
+							? 'Color identity filter expression'
+							: 'Color filter expression'}
+						title={`${colorMatch?.field === 'identity' ? 'Color identity' : 'Color'}: ${colorExpression.spoken}`}
+					>
+						<code class="full-expression" aria-hidden="true">{colorExpression.visual}</code>
+						<code class="compact-expression" aria-hidden="true">{compactColorExpression}</code>
+						<span class="sr-only">{colorExpression.spoken}</span>
+					</span>
+				{/if}
 				{#if error}<span class="text-error">Search unavailable</span>{#if mounted}<button
 							class="btn btn-ghost"
 							onclick={() => catalog.retry()}>Retry</button
@@ -356,8 +424,9 @@
 				{browseMode}
 				onRetry={() => catalog.retry()}
 				onClearFilters={() => filters.clear()}
-				hasFilters={activeFilters.length > 0}
-				selectedId={session.selectedCard?.id}
+				clearFiltersHref={!mounted ? nativeClearHref : undefined}
+				{hasFilters}
+				selectedId={selectedCard?.id}
 				onSelect={handleSelect}
 			/>
 			<NativeRangeNavigation state={paging} {total} {canonicalURL} native={!mounted} />
@@ -372,9 +441,9 @@
 		</div>
 	</div>
 </div>
-{#if session.selectedCard}
+{#if selectedCard}
 	<CardDetail
-		card={session.selectedCard}
+		card={selectedCard}
 		onClose={handleCloseDetail}
 		returnFocus={resultTrigger ?? resultsHeading}
 		callerPending={session.pending}
@@ -392,13 +461,38 @@
 {/if}
 
 <style>
+	.color-expression {
+		max-width: 100%;
+		padding: 4px 8px;
+		border: 1px solid var(--color-border);
+		border-radius: 12px;
+		background: var(--color-card);
+		color: var(--color-text-secondary);
+		font: 400 11px/1.5 var(--font-mono);
+		overflow-wrap: anywhere;
+	}
+	.color-expression code {
+		font: inherit;
+		white-space: normal;
+	}
+	.compact-expression {
+		display: none;
+	}
+
 	.search-sidebar {
 		width: 260px;
 	}
 	.search-status {
+		min-height: 40px;
 		scroll-margin-top: calc(var(--app-header-height, 72px) + 1rem);
 	}
 	@media (max-width: 767px) {
+		.full-expression {
+			display: none;
+		}
+		.compact-expression {
+			display: inline;
+		}
 		.search-content {
 			flex-direction: column;
 		}

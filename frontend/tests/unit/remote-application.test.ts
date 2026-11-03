@@ -6,8 +6,6 @@ import {
 	NotesConflictError,
 	InventoryQuantityChangedError,
 	DescriptionConflictError,
-	CategoryConflict,
-	CategoryMergeConflict,
 	RequestConflictError,
 	RemoteError,
 	RemoteUnavailableError
@@ -48,7 +46,6 @@ describe('flat remote failures', () => {
 		await app.auth.qr.inspect(actor, 'request/code', '192.0.2.10');
 		await app.auth.qr.decide(actor, 'request/code', 'approve', '192.0.2.10');
 		await app.inventory.getEntry(actor, 'entry/id');
-		await app.categories.getDefinition(actor, 'origin/id');
 		await app.inventoryValues.current(actor);
 		await app.auth.validateSession('selected-session');
 		await app.auth.revokeSession('selected-session');
@@ -61,20 +58,19 @@ describe('flat remote failures', () => {
 			'/api/v1/auth/qr/requests/request%2Fcode',
 			'/api/v1/auth/qr/requests/request%2Fcode/decision',
 			'/api/v1/mtg/inventory/entry%2Fid',
-			'/api/v1/mtg/category-definitions/origin%2Fid',
 			'/api/v1/mtg/inventory/value',
 			'/api/v1/auth/session',
 			'/api/v1/auth/logout'
 		]);
 		expect(sent(send, 1).url.searchParams.toString()).toBe('limit=5&offset=10');
 		expect(sent(send, 6)).toMatchObject({ method: 'POST', body: { decision: 'approve' } });
-		for (let index = 0; index < 10; index++) {
+		for (let index = 0; index < 9; index++) {
 			expect(sent(send, index).headers.get('cookie')).toBe('spellbook_session=cookie-session');
 			expect(sent(send, index).headers.has('authorization')).toBe(false);
 		}
-		expect(sent(send, 10).headers.get('cookie')).toBe('spellbook_session=selected-session');
-		expect(sent(send, 11).headers.get('authorization')).toBe('Bearer selected-session');
-		expect(sent(send, 11).headers.has('cookie')).toBe(false);
+		expect(sent(send, 9).headers.get('cookie')).toBe('spellbook_session=selected-session');
+		expect(sent(send, 10).headers.get('authorization')).toBe('Bearer selected-session');
+		expect(sent(send, 10).headers.has('cookie')).toBe(false);
 	});
 	it('retains missing Printing validation semantics without masking API failures', async () => {
 		const { app, send } = setup();
@@ -116,32 +112,10 @@ describe('flat remote failures', () => {
 		expect(description).toBeInstanceOf(DescriptionConflictError);
 		expect(description).toMatchObject({ latest: { description: '', descriptionRevision: 'd2' } });
 	});
-	it('retains category latest, merge previews, request conflicts and profile fields', () => {
-		const latest = { deckId: 'deck', decisionRevision: '2', definitions: [], decisions: [] };
-		const preview = { token: 'merge', required: true };
-		expect(decodeRemoteError(409, { kind: 'CategoryConflict', latest })).toBeInstanceOf(
-			CategoryConflict
-		);
-		expect(decodeRemoteError(409, { kind: 'CategoryConflict', latest })).toMatchObject({ latest });
-		expect(decodeRemoteError(409, { kind: 'CategoryMergeConflict', preview })).toBeInstanceOf(
-			CategoryMergeConflict
-		);
-		expect(decodeRemoteError(409, { kind: 'CategoryMergeConflict', preview })).toMatchObject({
-			preview
-		});
-		expect(decodeRemoteError(409, { kind: 'RequestConflict', message: 'receipt' })).toBeInstanceOf(
-			RequestConflictError
-		);
-		expect(
-			decodeRemoteError(400, { kind: 'ValidationFailed', fields: { name: 'changed' } })
-		).toMatchObject({ kind: 'ValidationFailed', fields: { name: 'changed' } });
-	});
 	it.each([
 		{ kind: 'NotesConflict', entryId: 'entry', notes: '' },
 		{ kind: 'QuantityChanged' },
-		{ kind: 'DescriptionConflict', description: '' },
-		{ kind: 'CategoryConflict' },
-		{ kind: 'CategoryMergeConflict' }
+		{ kind: 'DescriptionConflict', description: '' }
 	])('never fills absent conflict fields for $kind', (body) => {
 		const error = decodeRemoteError(409, body);
 		expect(error).toBeInstanceOf(RemoteError);
@@ -264,7 +238,6 @@ describe('named remote web use cases', () => {
 		await app.decks.getDeckLibrary(actor, {
 			query: 'test',
 			format: 'Commander',
-			categoryVersionIds: ['one', 'two'],
 			sort: 'name:asc',
 			offset: 200,
 			limit: 200
@@ -276,26 +249,8 @@ describe('named remote web use cases', () => {
 			offset: '200',
 			limit: '200'
 		});
-		expect(sent(send).url.searchParams.getAll('dirCategory')).toEqual(['one', 'two']);
 		await app.decks.getDeckChoices(actor, { query: 'name', selectedDeckId: 'deck' });
 		expect(sent(send, 1).url.searchParams.get('query')).toBe('name');
-		const input = {
-			entryId: 'entry',
-			deckId: 'deck',
-			requestId: 'request',
-			categoryId: null,
-			expectedDecisionRevision: '2'
-		};
-		await app.categories.setEntryCategory(actor, input);
-		expect(sent(send, 2)).toMatchObject({
-			method: 'PATCH',
-			body: {
-				deckId: 'deck',
-				requestId: 'request',
-				categoryId: null,
-				expectedDecisionRevision: '2'
-			}
-		});
 	});
 	it('does not retry a mutation after an ambiguous response or later read failure', async () => {
 		const { app, send } = setup();

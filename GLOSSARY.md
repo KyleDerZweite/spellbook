@@ -1,10 +1,10 @@
 # Spellbook
 
 - Status: Canonical domain glossary
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-11-02
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account repositories
-- Update Triggers: card identity, inventory grouping, deck roles, deck entry categories, whole-deck categories and availability, reference values, coverage and personal Inventory history, scan review, physical-card terminology, sorter destinations and box identity, profile cards and metric placeholders
-- Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Category rules](docs/architecture/category-rules.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
+- Update Triggers: Deck type groups and related Tokens, card identity, inventory grouping, deck roles, reference values, coverage and personal Inventory history, scan review, physical-card terminology, sorter destinations and box identity, profile cards and metric placeholders
+- Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context.
 This glossary owns terminology; the linked documents own behavior and proposed capabilities.
@@ -116,25 +116,14 @@ _Avoid_: Owned card, inventory entry
 A deck entry's section, one of `main`, `sideboard`, `commander`, or `companion`.
 _Avoid_: Physical location, card type
 
-**Deck entry category**:
-A deck-owned primary grouping of entries by purpose.
-Each entry has at most one category, shared by all its copies; Uncategorized means unassigned.
-_Avoid_: Deck category, deck role, inventory group, secondary tag
+**Deck type group**:
+A presentation group of Main entries sharing an actual card type.
+_Avoid_: Deck role, Inventory group
 
-**Deck category**:
-An account-owned grouping of whole decks by strategy, archetype or another user-defined meaning.
-It is separate from the categories of cards within a deck.
-_Avoid_: Deck entry category, deck role, format
-
-**Category definition**:
-An account-owned reusable name, meaning and classification rules for either Deck entries or whole Decks.
-Its scope is explicit; deck-local categories and assignments remain separate from the definition.
-_Avoid_: Deck entry category, Deck category assignment, catalog tag
-
-**Category definition version**:
-An immutable edition of a Category definition.
-A Deck can retain an older meaning while newer Decks adopt the current edition.
-_Avoid_: Current label, source publication, category assignment
+**Related Token**:
+A read-only reference to a Token associated with a Deck card, displayed after the Deck sections.
+It has no quantity, ownership or Deck requirement.
+_Avoid_: Deck entry, Inventory entry
 
 **Deck availability**:
 A comparison of one deck's required quantities with its owner's inventory, allocating exact printing matches before alternate printings.

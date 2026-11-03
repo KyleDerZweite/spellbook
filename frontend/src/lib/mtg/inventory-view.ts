@@ -125,8 +125,10 @@ export function describeInventoryOrder(order: InventoryOrder): string {
 }
 
 export function isNewInventoryEntry(createdAt: Date, asOf: Date): boolean {
-	const age = asOf.getTime() - createdAt.getTime();
-	return age >= 0 && age < 7 * 24 * 60 * 60 * 1000;
+	const created = createdAt.getTime();
+	const current = asOf.getTime();
+	const utcDay = 24 * 60 * 60 * 1000;
+	return created <= current && Math.floor(created / utcDay) === Math.floor(current / utcDay);
 }
 
 export function inventorySetColor(setCode: string): string {

@@ -14,9 +14,10 @@ from worker.bulk import _iter_bulk_cards
 from worker.price_history import record_scryfall_history
 from worker.prices import EXTRACTOR_VERSION, MAPPING_VERSION, project_printing
 from worker.scryfall import BulkDataInfo
+from worker.tokens import build_token_index
 from worker.transform import transform_card
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 # Shared by every catalog publisher. Held until commit or rollback.
 PUBLISH_LOCK = (1936747619, 1)
 
@@ -150,6 +151,7 @@ class CatalogPublisher:
                 "VALUES (%s, %s, %s, 0, %s)",
                 (generation, info.type, datetime.fromisoformat(info.updated_at), SCHEMA_VERSION),
             )
+            token_index = build_token_index(path)
             count = 0
             with (
                 path.open(encoding="utf-8") as source,
@@ -160,39 +162,11 @@ class CatalogPublisher:
                 ) as copy,
             ):
                 for raw in _iter_bulk_cards(source):
-                    doc = transform_card(raw)
+                    doc = transform_card(raw, token_index)
                     if doc is None:
                         continue
                     copy.write_row(_printing_row(generation, raw, doc))
                     count += 1
-            with (
-                path.open(encoding="utf-8") as source,
-                conn.cursor().copy(
-                    "COPY catalog_oracle_facts "
-                    "(generation_id,printing_id,raw_oracle_id,types,keywords,transform_version) "
-                    "FROM "
-                    "STDIN"
-                ) as copy,
-            ):
-                for raw in _iter_bulk_cards(source):
-                    doc = transform_card(raw)
-                    if doc is None:
-                        continue
-                    # Authority comes from validated original input, never a public DTO fallback.
-                    raw_oracle = UUID(raw["oracle_id"]) if raw.get("oracle_id") else None
-                    types = (
-                        doc["card_types"]
-                        if isinstance(raw.get("type_line"), str) and raw["type_line"]
-                        else None
-                    )
-                    keywords = raw.get("keywords")
-                    if not isinstance(keywords, list) or not all(
-                        isinstance(value, str) and value for value in keywords
-                    ):
-                        keywords = None
-                    copy.write_row(
-                        (generation, doc["id"], raw_oracle, types, keywords, SCHEMA_VERSION)
-                    )
             if not count:
                 raise ValueError("Bulk file contains no indexable cards")
             self._publish_prices(conn, path, publication)

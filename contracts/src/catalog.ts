@@ -77,6 +77,7 @@ export interface ColorMatch {
 	field: 'color' | 'identity';
 	any: ManaColor[];
 	all: ManaColor[];
+	not?: ManaColor[];
 }
 
 export interface CatalogFilters {

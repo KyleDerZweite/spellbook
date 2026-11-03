@@ -82,7 +82,7 @@ async def native_fixture() -> AsyncIterator[Fixture]:
             # Validate the existing schema; this test never runs a migrator or DDL.
             assert (
                 await valuation_query(tx, "SELECT count(*) FROM drizzle.__drizzle_migrations", [])
-            )[0][0] == 25
+            )[0][0] == 27
             backup["catalog"] = await valuation_query(
                 tx,
                 "SELECT active_generation,previous_generation FROM catalog_state WHERE id=1",
@@ -350,6 +350,12 @@ def test_native_capture_dst_replacement_rollback_and_closed_history(
                     "UPDATE price_publications SET source_updated_at=%s WHERE id=%s",
                     (observation, f.publication),
                 )
+            async with transaction(f.pool) as tx:
+                for owner in (f.account, f.account, f.other_account):
+                    await tx.execute(
+                        "INSERT INTO decks(id,account_id,game,name) VALUES(%s,%s,'mtg','Metric')",
+                        (str(uuid4()), owner),
+                    )
             result = await capture_value_history(
                 f.pool, f.values, account_ids=[f.account], observation_clock=lambda: observation
             )
@@ -416,11 +422,18 @@ def test_native_capture_dst_replacement_rollback_and_closed_history(
                     observation_clock=lambda: cast(datetime, saved[1]),
                 )
             ).captured_accounts == 0
+            # Later live changes cannot rewrite the captured holdings or Deck count.
+            async with transaction(f.pool) as tx:
+                await tx.execute("DELETE FROM decks WHERE account_id=%s", (f.account,))
+                await tx.execute("DELETE FROM inventory_cards WHERE account_id=%s", (f.account,))
             async with transaction(f.pool, read_only=True, repeatable_read=True) as tx:
                 history = await f.values.history_in_transaction(
                     tx, f.account, {"days": 1}, cast(datetime, saved[1]) + timedelta(seconds=1)
                 )
                 assert history["points"][0]["kind"] == "Captured"
+                totals = history["points"][0]["totals"]
+                assert totals == {"total": 5, "names": 1, "sets": 1, "decks": 2}
+
                 assert history["points"][0]["observedAt"].endswith("40.000Z")
                 zero = await f.values.history_in_transaction(
                     tx,
@@ -428,6 +441,7 @@ def test_native_capture_dst_replacement_rollback_and_closed_history(
                     {"days": 1, "printingId": f.land},
                     cast(datetime, saved[1]) + timedelta(seconds=1),
                 )
+                assert zero["points"][0]["totals"] is None
                 assert zero["points"][0]["estimate"]["coveredValue"] == "0.00"
                 assert zero["points"][0]["estimate"]["complete"] is True
                 private = await f.values.history_in_transaction(
@@ -437,6 +451,16 @@ def test_native_capture_dst_replacement_rollback_and_closed_history(
                     cast(datetime, saved[1]) + timedelta(seconds=1),
                 )
                 assert private["points"][0]["kind"] == "Gap"
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE inventory_value_days SET deck_count=NULL WHERE account_id=%s",
+                    (f.account,),
+                )
+            async with transaction(f.pool, read_only=True) as tx:
+                legacy = await f.values.history_in_transaction(
+                    tx, f.account, {"days": 1}, cast(datetime, saved[1]) + timedelta(seconds=1)
+                )
+                assert legacy["points"][0]["totals"] == {**totals, "decks": None}
 
     asyncio.run(scenario())
 
@@ -465,6 +489,17 @@ def test_native_runner_lease_empty_inventory_and_no_backfill() -> None:
                 observation_clock=lambda: observation,
             )
             assert result.captured_accounts == 1 and result.captured_holdings == 0
+            async with transaction(f.pool, read_only=True) as tx:
+                empty = await f.values.history_in_transaction(
+                    tx, f.other_account, {"days": 1}, observation + timedelta(minutes=1)
+                )
+                assert empty["points"][0]["totals"] == {
+                    "total": 0,
+                    "names": 0,
+                    "sets": 0,
+                    "decks": 0,
+                }
+
             result = await capture_value_history(
                 f.pool,
                 f.values,

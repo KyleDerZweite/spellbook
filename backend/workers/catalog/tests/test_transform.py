@@ -105,6 +105,9 @@ class TestTransformDFC:
     def test_layout(self, doc):
         assert doc["layout"] == "transform"
 
+    def test_colors_from_faces(self, doc):
+        assert doc["colors"] == ["U"]
+
     def test_image_from_front_face(self, doc):
         assert "front" in doc["image_uri"]
         assert "front" in doc["image_uri_small"]
@@ -203,19 +206,20 @@ class TestTransformEdgeCases:
             "oracle_id": "def",
             "layout": "normal",
             "name": "Vanilla Creature",
+            "colors": [],
             "finishes": ["nonfoil"],
         }
         doc = transform_card(card)
         assert doc["oracle_text"] == ""
 
-    def test_null_colors_defaults_empty_list(self):
+    def test_explicit_empty_colors_is_colorless(self):
         card = {
             "object": "card",
             "id": "abc",
             "oracle_id": "def",
             "layout": "normal",
             "name": "Colorless",
-            "colors": None,
+            "colors": [],
             "finishes": ["nonfoil"],
         }
         doc = transform_card(card)
@@ -235,6 +239,7 @@ class TestTransformEdgeCases:
             "oracle_id": "def",
             "layout": "normal",
             "name": "Etched",
+            "colors": [],
             "finishes": ["etched"],
         }
         doc = transform_card(card)
@@ -248,6 +253,7 @@ class TestTransformEdgeCases:
             "oracle_id": "def",
             "layout": "transform",
             "name": "Broken DFC",
+            "colors": [],
             "card_faces": [],
             "finishes": ["nonfoil"],
         }
@@ -302,3 +308,157 @@ class TestPrintedNames:
 
     def test_english_faces_do_not_add_duplicate_search_names(self):
         assert transform_card(load_fixture("dfc_card.json"))["printed_name"] == ""
+
+
+class TestPrintedColors:
+    def test_aang_uses_printed_face_colors(self):
+        raw = load_fixture("aang_crossroads.json")
+        assert "colors" not in raw
+        assert transform_card(raw)["colors"] == ["W", "U", "G"]
+
+    @pytest.mark.parametrize("colors", [[], ["G", "U"]])
+    def test_explicit_top_level_colors_take_precedence(self, colors):
+        raw = load_fixture("aang_crossroads.json")
+        raw["colors"] = colors
+        assert transform_card(raw)["colors"] == colors
+
+    @pytest.mark.parametrize("null_top_level", [False, True])
+    def test_face_union_is_deduplicated_in_wubrg_order(self, null_top_level):
+        raw = load_fixture("aang_crossroads.json")
+        if null_top_level:
+            raw["colors"] = None
+        raw["card_faces"][0]["colors"] = ["G", "W", "U"]
+        raw["card_faces"][1]["colors"] = ["R", "U", "B"]
+        assert transform_card(raw)["colors"] == ["W", "U", "B", "R", "G"]
+
+    def test_complete_empty_faces_are_colorless(self):
+        raw = load_fixture("aang_crossroads.json")
+        for face in raw["card_faces"]:
+            face["colors"] = []
+        assert transform_card(raw)["colors"] == []
+
+    @pytest.mark.parametrize("value", ["G", {}, 0, False, ["C"], ["g"], [None], [[]]])
+    def test_invalid_top_level_colors_are_rejected(self, value):
+        raw = load_fixture("aang_crossroads.json")
+        raw["colors"] = value
+        with pytest.raises(ValueError, match="printed colors"):
+            transform_card(raw)
+
+    @pytest.mark.parametrize("value", [None, "G", {}, ["C"], [None]])
+    def test_invalid_face_colors_are_rejected(self, value):
+        raw = load_fixture("aang_crossroads.json")
+        raw["card_faces"][1]["colors"] = value
+        with pytest.raises(ValueError, match="printed colors"):
+            transform_card(raw)
+
+    def test_missing_face_colors_are_rejected(self):
+        raw = load_fixture("aang_crossroads.json")
+        del raw["card_faces"][1]["colors"]
+        with pytest.raises(ValueError, match="printed colors"):
+            transform_card(raw)
+
+    @pytest.mark.parametrize("faces", [None, [], {}])
+    def test_missing_evidence_does_not_derive_from_mana_or_identity(self, faces):
+        raw = load_fixture("normal_card.json")
+        del raw["colors"]
+        raw["card_faces"] = faces
+        with pytest.raises(ValueError, match="printed color evidence"):
+            transform_card(raw)
+
+    def test_null_top_level_without_face_evidence_is_rejected(self):
+        raw = load_fixture("normal_card.json")
+        raw["colors"] = None
+        with pytest.raises(ValueError, match="printed color evidence"):
+            transform_card(raw)
+
+
+def test_direct_tokens_are_exact_printings_and_unresolved_without_index(tmp_path):
+    from worker.tokens import build_token_index
+
+    raw = load_fixture("normal_card.json")
+    ids = ["c20e427c-efa5-476c-aa33-e3149648d207", "ca20548f-6324-4858-adbe-87303ff1ca52"]
+    raw["all_parts"] = [{"component": "token", "id": i, "name": "Spirit"} for i in ids]
+    raw["all_parts"].append(raw["all_parts"][0])
+    assert len(transform_card(raw)["related_tokens"]["unresolved"]) == 2
+    tokens = [
+        dict(raw, id=i, name="Spirit", layout="token", colors=c, all_parts=[])
+        for i, c in zip(ids, [["R"], []], strict=True)
+    ]
+    path = tmp_path / "cards.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in [raw, *tokens]))
+    index = build_token_index(path)
+    projection = transform_card(raw, index)["related_tokens"]
+    assert [t["catalogCardId"] for t in projection["items"]] == ids
+    assert [t["faces"][0]["colors"] for t in projection["items"]] == [["R"], []]
+    assert projection["unresolved"] == []
+    assert all(transform_card(t) is None for t in tokens)
+
+
+def test_dfc_token_keeps_face_specific_source_fields():
+    from worker.tokens import project_token
+
+    raw = load_fixture("normal_card.json")
+    raw.update(
+        layout="double_faced_token",
+        card_faces=[
+            dict(
+                name="Vampire",
+                type_line="Token Creature",
+                colors=["B"],
+                oracle_text="Lifelink",
+                power="1",
+                toughness="1",
+                image_uris={"normal": "front", "small": "front-small"},
+            ),
+            dict(
+                name="Treasure",
+                type_line="Token Artifact",
+                colors=[],
+                oracle_text="Sacrifice",
+                image_uris={"normal": "back", "small": "back-small"},
+            ),
+        ],
+    )
+    raw.pop("image_uris", None)
+    faces = project_token(raw)["faces"]
+    assert [f["imageUri"] for f in faces] == ["front", "back"]
+    assert [f["oracleText"] for f in faces] == ["Lifelink", "Sacrifice"]
+    assert faces[1]["power"] is None
+
+
+@pytest.mark.parametrize(
+    "parts", [[{"component": "token", "id": "invalid", "name": "X"}], [None], "invalid"]
+)
+def test_malformed_token_relations_fail(parts):
+    raw = load_fixture("normal_card.json")
+    raw["all_parts"] = parts
+    with pytest.raises((ValueError, TypeError)):
+        transform_card(raw)
+
+
+def test_actual_vampire_treasure_source_has_independent_face_art():
+    from worker.tokens import project_token
+
+    raw = load_fixture("related_dfc_token.json")
+    assert "image_uris" not in raw
+    token = project_token(raw)
+    assert token["catalogCardId"] == "05934d59-7e98-4fff-8ccb-70cd1a61c6fd"
+    assert [f["name"] for f in token["faces"]] == ["Vampire", "Treasure"]
+    for face, source in zip(token["faces"], raw["card_faces"], strict=True):
+        assert face["imageUri"] == source["image_uris"]["normal"]
+        assert face["imageUriSmall"] == source["image_uris"]["small"]
+        assert face["colors"] == source["colors"]
+        assert face["oracleText"] == source["oracle_text"]
+
+
+def test_missing_target_stays_unresolved_with_an_index():
+    raw = load_fixture("normal_card.json")
+    raw["all_parts"] = [
+        {"component": "token", "id": "c20e427c-efa5-476c-aa33-e3149648d207", "name": "Spirit"}
+    ]
+    assert transform_card(raw, {})["related_tokens"] == {
+        "items": [],
+        "unresolved": [
+            {"catalogCardId": "c20e427c-efa5-476c-aa33-e3149648d207", "name": "Spirit"}
+        ],
+    }

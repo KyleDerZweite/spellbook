@@ -1,6 +1,4 @@
 import type { Deck, DeckSnapshot, LegalityWarning } from '@spellbook/contracts/decks.ts';
-import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
-import type { DeckWholeCategories } from '@spellbook/contracts/whole-categories.ts';
 import type { CardDocument } from '#lib/search/types.ts';
 import type { ReadLease } from '#lib/saved-state/workspace.ts';
 
@@ -22,7 +20,7 @@ export type SelectedDeckContext = {
 	inspector: { canonicalCardId: string; opening: number; needsRead?: boolean } | null;
 	search: { query: string; opening: number; needsRead?: boolean } | null;
 };
-type Phase = 'snapshot' | 'categories' | 'whole-categories' | 'ownership' | 'search';
+type Phase = 'snapshot' | 'ownership' | 'search';
 export class SelectedDeckReadError extends Error {
 	constructor(
 		readonly phase: Phase,
@@ -62,16 +60,12 @@ export type SelectedInspectorFields = {
 };
 export type SelectedDeckMergeState = {
 	confirmedDecks: readonly Deck[];
-	categories: DeckEntryCategories | null | undefined;
-	wholeCategories: DeckWholeCategories | null | undefined;
 	details: SelectedDeckFields | null;
 	inspector: SelectedInspectorFields | null;
 };
 export type SelectedDeckPublication = {
 	snapshot: SelectedDeckNarrowDTO;
 	optionalLegality?: SelectedDeckLegality;
-	categories?: DeckEntryCategories;
-	wholeCategories?: DeckWholeCategories;
 	ownership?: Ownership;
 	search?: Search;
 	ownershipContext?: NonNullable<SelectedDeckContext['inspector']>;
@@ -124,7 +118,7 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 	const cause = lease.cause;
 	const full = !cause || cause === 'full';
 	const has = (topic: 'decks' | 'inventory' | 'values') => full || cause.includes(topic);
-	const categoriesNeeded = has('decks') || has('values');
+	const legalityNeeded = has('decks') || has('values');
 	const ownershipNeeded = !!context.inspector && (has('inventory') || context.inspector.needsRead);
 	const searchNeeded =
 		!!context.search && (has('inventory') || has('values') || context.search.needsRead);
@@ -143,7 +137,7 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 	const base = `/api/v1/mtg/decks/${encodeURIComponent(context.deckId)}`;
 	let snapshot: SelectedDeckNarrowDTO | null;
 	let optionalLegality: SelectedDeckLegality | undefined;
-	if (categoriesNeeded) {
+	if (legalityNeeded) {
 		const result = await stage<SelectedDeckFullDTO>('snapshot', `${base}?selectedOnly=true`);
 		if (!result || !current()) return false;
 		const { warnings, deckDocuments, ...core } = result;
@@ -158,15 +152,6 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 	if (!snapshot || !current()) return false;
 	const selected = snapshot.decks.find((deck) => deck.id === context.deckId);
 	if (!selected) return false;
-	let categories: DeckEntryCategories | undefined, wholeCategories: DeckWholeCategories | undefined;
-	if (categoriesNeeded) {
-		const entries = await stage<DeckEntryCategories>('categories', `${base}/categories`);
-		if (!entries || !current()) return false;
-		categories = entries;
-		const whole = await stage<DeckWholeCategories>('whole-categories', `${base}/whole-categories`);
-		if (!whole || !current()) return false;
-		wholeCategories = whole;
-	}
 	const inspectorCurrent = () => sameInspector(context.inspector, input.context().inspector);
 	const searchCurrent = () => sameSearch(context.search, input.context().search);
 	let ownership: Ownership | null = null,
@@ -197,19 +182,6 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 				(older(selected.compositionRevision, deck.compositionRevision) ||
 					older(selected.descriptionRevision, deck.descriptionRevision))
 		)
-	)
-		return false;
-	if (
-		categories &&
-		(categories.deckId !== selected.id ||
-			(latest.categories && older(categories.decisionRevision, latest.categories.decisionRevision)))
-	)
-		return false;
-	if (
-		wholeCategories &&
-		(wholeCategories.deckId !== selected.id ||
-			(latest.wholeCategories &&
-				older(wholeCategories.decisionRevision, latest.wholeCategories.decisionRevision)))
 	)
 		return false;
 	const details: Partial<SelectedDeckFields> = {};
@@ -263,8 +235,6 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 	input.publish({
 		snapshot,
 		optionalLegality,
-		categories,
-		wholeCategories,
 		details,
 		inspector,
 		ownership: ownership && inspectorCurrent() ? ownership : undefined,

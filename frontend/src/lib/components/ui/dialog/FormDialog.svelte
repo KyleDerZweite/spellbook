@@ -14,7 +14,7 @@
 		title: string;
 		description: string;
 		pending?: boolean;
-		variant?: 'default' | 'import';
+		variant?: 'default' | 'import' | 'history';
 		onCancel: () => void;
 		onCloseAutoFocus?: (event: Event) => void;
 		children: Snippet;
@@ -32,7 +32,11 @@
 		<Dialog.Overlay class="form-dialog-overlay" />
 		<Dialog.Content
 			bind:ref={content}
-			class={['surface-menu form-dialog', variant === 'import' && 'form-dialog-import']}
+			class={[
+				'surface-menu form-dialog',
+				variant === 'import' && 'form-dialog-import',
+				variant === 'history' && 'form-dialog-history'
+			]}
 			escapeKeydownBehavior={pending ? 'ignore' : 'close'}
 			interactOutsideBehavior={pending ? 'ignore' : 'close'}
 			{onCloseAutoFocus}
@@ -50,6 +54,22 @@
 			<div class="form-dialog-heading">
 				<Dialog.Title class="font-display text-2xl">{title}</Dialog.Title>
 				<Dialog.Description class="text-sm text-text-secondary">{description}</Dialog.Description>
+				{#if variant === 'history'}<button
+						type="button"
+						class="history-close"
+						disabled={pending}
+						onclick={onCancel}
+						aria-label="Close value history"
+						><svg
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+							aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg
+						></button
+					>{/if}
 			</div>
 			<ScrollArea
 				class="form-dialog-body"
@@ -84,6 +104,28 @@
 	}
 	:global(.form-dialog-import) {
 		width: min(42rem, calc(100vw - 2rem));
+	}
+	:global(.form-dialog-history) {
+		width: min(72rem, calc(100vw - 2rem));
+	}
+	:global(.form-dialog-history) .form-dialog-heading {
+		position: relative;
+		padding-right: 4.5rem;
+	}
+	.history-close {
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		color: var(--color-text-secondary);
+		border-radius: 8px;
+	}
+	.history-close:hover {
+		background: var(--color-muted);
+		color: var(--color-text-primary);
 	}
 	.form-dialog-heading {
 		flex-shrink: 0;

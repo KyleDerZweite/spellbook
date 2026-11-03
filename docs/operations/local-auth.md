@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-30
 - Source of Truth: code
-- Update Triggers: explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
@@ -144,6 +144,33 @@ The installed CLI help, asset hashes, fixture discovery and bundle validation ar
 Root executed the installed password command and eight guarded native Operator scenarios at `e120f5bb`; the migration evidence baseline records their scope.
 Those results do not establish later state-worker or deployment acceptance.
 Deployment remains separate.
+
+## Add the Dashboard Demo scenario
+
+Run the installed CLI with the authorized disposable Demo database environment:
+
+```sh
+spellbook-demo-seed --dashboard-scenario
+```
+
+This explicit option adds the `Printing mix · Demo` Deck with 100 requirements and a 68 exact, 24 alternate-printing and 8 missing copy allocation.
+It reads the current Inventory and active English Catalog without downloading card data.
+It adds genuine Catalog identities until Inventory contains at least twelve Sets, with deterministic quantities starting at 20, 12, 8, 6, 5, 4, 3, 2 and 1 for new Sets.
+The Deck demonstrates availability rather than Commander legality.
+It retains the original starter commander role when that identity appears in its requirements.
+Existing Upgrades Unleashed, Inventory rows, private edits, history and bundled assets remain unchanged.
+
+The operator requires a `_demo` or `_design` target, the sole `demo` profile, matching local credential identity and actual `demo` password, and one MTG Inventory.
+It locks the Inventory parent and validates the complete selection before writing additions, revisions and the durable account-scoped `spellbook-demo-dashboard-v1` Inventory mutation receipt in one transaction.
+Normal SavedState triggers remain enabled.
+Reapplying preserves all later edits, including deletion of the scenario Deck or its Inventory additions, because the receipt remains after those deletions.
+A conflicting Deck name without that receipt is refused.
+Existing accounts keep their active Catalog and history when this option runs.
+Ordinary seeding retains its existing behavior.
+Planning refuses more than 10000 Inventory entries or more than 20000 Catalog candidates, insufficient Sets or an unavailable exact allocation.
+
+Pure planning coverage uses the unchanged real bundled Catalog in `backend/core/tests/test_demo_dashboard.py`.
+The guarded native scenarios in `backend/core/tests/test_operators_postgres.py` verify additive preservation, refusal and repeat application after deletion against an exclusively assigned disposable database.
 
 ## Replace the original private Demo starter
 

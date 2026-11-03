@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
@@ -813,10 +814,21 @@
 		const anchor = data.viewedAt.getTime();
 		const started = Date.now();
 		viewedAt = data.viewedAt;
-		const timer = setInterval(() => {
-			viewedAt = new Date(anchor + Date.now() - started);
-		}, 60_000);
-		return () => clearInterval(timer);
+		let timer: ReturnType<typeof setTimeout>;
+		const schedule = () => {
+			const current = anchor + Date.now() - started;
+			const utcDay = 24 * 60 * 60 * 1000;
+			const untilMidnight = utcDay - (current % utcDay);
+			timer = setTimeout(
+				() => {
+					viewedAt = new Date(anchor + Date.now() - started);
+					schedule();
+				},
+				Math.min(60_000, untilMidnight)
+			);
+		};
+		schedule();
+		return () => clearTimeout(timer);
 	});
 	function openSearch(event: MouseEvent) {
 		if (!isPrimaryClick(event)) return;
@@ -1036,6 +1048,8 @@
 	};
 </script>
 
+{#snippet addIcon()}<PlusIcon />{/snippet}
+
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
 {#if privateCleared}<div class="workspace-container">
@@ -1088,7 +1102,7 @@
 						<input type="hidden" name="requestId" value={data.requestId} /><label
 							for="native-group-name">New box name</label
 						><input id="native-group-name" name="name" required maxlength="128" /><button
-							class="btn btn-primary">Create box</button
+							class="btn btn-primary"><PlusIcon />Create box</button
 						>
 					</form>
 					{#each currentWindow.groupPage as group}<form
@@ -1130,10 +1144,11 @@
 					card names <span>·</span> <strong>{currentWindow.totals.setCount}</strong> sets
 				</p>{/snippet}
 			{#snippet actions()}{#if groupDirectory}<Button
-						onclick={(event) => editGroup(null, event.currentTarget)}>New box</Button
+						onclick={(event) => editGroup(null, event.currentTarget)}><PlusIcon />New box</Button
 					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
 						>Assign cards</Button
-					>{:else}<Button href="/mtg/search" onclick={openSearch}>Add cards</Button>{/if}{/snippet}
+					>{:else}<Button href="/mtg/search" onclick={openSearch}><PlusIcon />Add cards</Button
+					>{/if}{/snippet}
 		</WorkspaceHeader>
 		<noscript
 			><form method="GET" class="native-inventory-filters" aria-label="Inventory filters">
@@ -1332,7 +1347,7 @@
 				</FilterPopover>
 				<ActionMenu
 					label="Sort inventory"
-					class="inventory-sort-menu btn-ghost"
+					variant="toolbar"
 					items={[
 						{
 							label: 'Card name: A to Z',
@@ -1520,9 +1535,10 @@
 										>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
 												class="new-entry"
 												id={`inventory-new-${card.id}`}
-												title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
+												title={`Added ${addedDate.format(card.createdAt)} UTC. New until the end of this UTC date.`}
 												>New<span class="sr-only"
-													>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
+													>, entry added {addedDate.format(card.createdAt)} UTC, marked new until the
+													end of this UTC date</span
 												></span
 											>{/if}</span
 									>{#if groupNames}<span class="entry-groups" title={groupNames}>{groupNames}</span
@@ -1571,6 +1587,7 @@
 								},
 								{
 									label: 'Add another printing',
+									icon: addIcon,
 									disabled: pendingId !== null,
 									onSelect: () =>
 										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
@@ -1754,7 +1771,7 @@
 					disabled={pendingId !== null || addingPending}
 					onclick={() => {
 						if (inspection) inspection.mode = 'add';
-					}}>Add another printing</Button
+					}}><PlusIcon />Add another printing</Button
 				>
 			</nav>
 			{#if inspection?.mode === 'add'}
@@ -2071,12 +2088,6 @@
 	.variant-filters .label {
 		display: block;
 		margin-bottom: 0.375rem;
-	}
-	:global(.inventory-sort-menu) {
-		padding-inline: 0.625rem;
-		font-size: 0.75rem;
-		border: 0;
-		background: transparent;
 	}
 	.column-header {
 		display: flex;

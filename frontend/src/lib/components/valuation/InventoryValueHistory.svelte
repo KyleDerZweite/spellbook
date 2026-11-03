@@ -15,6 +15,7 @@
 		error = '',
 		onRetry,
 		compact = false,
+		embedded = false,
 		summary,
 		demo = false
 	}: {
@@ -23,6 +24,7 @@
 		error?: string;
 		onRetry?: () => void;
 		compact?: boolean;
+		embedded?: boolean;
 		summary?: Snippet;
 		demo?: boolean;
 	} = $props();
@@ -43,7 +45,7 @@
 	aria-label={history?.identity ? 'Card value history' : 'Inventory value history'}
 	aria-busy={loading}
 >
-	{#if summary}{@render summary()}{:else}
+	{#if summary}{@render summary()}{:else if !embedded}
 		<div class="history-heading">
 			<h2 class="analytics-title">{history?.identity ? 'Card value' : 'Inventory value'}</h2>
 			{#if history}<span class="period-label"
@@ -94,9 +96,7 @@
 					aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6M12 7v5l3 2" /></svg
 				>
 				<strong
-					>{overview.captured === 0
-						? 'No daily observations yet'
-						: 'No priced observations yet'}</strong
+					>{overview.captured === 0 ? 'No saved history yet' : 'No priced observations yet'}</strong
 				>
 				<p>
 					{overview.captured === 0
@@ -133,64 +133,45 @@
 				</div>
 			</div>
 		{/if}
-		<details class="observations">
-			<summary>Daily observations <span>{overview.captured} recorded</span></summary>
-			<p class="history-notes">
-				Covered values exclude unknown prices. Changes can reflect holdings and coverage as well as
-				prices. Missing dates and wholly unknown observations break the chart line. Capture times
-				use each saved reporting timezone.
-			</p>
-			<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users can scroll the exact-data table.) -->
-			<div
-				class="table-scroll"
-				tabindex="0"
-				role="region"
-				aria-label="Scrollable daily Inventory history"
+		<table class="sr-only">
+			<caption class="sr-only">Exact daily values, coverage and observation times</caption>
+			<thead
+				><tr
+					><th scope="col">Day</th><th scope="col" class="amount">Covered value</th><th scope="col"
+						>Price coverage</th
+					><th scope="col">Capture</th></tr
+				></thead
 			>
-				<table>
-					<caption class="sr-only">Exact daily values, coverage and observation times</caption>
-					<thead
-						><tr
-							><th scope="col">Day</th><th scope="col" class="amount">Covered value</th><th
-								scope="col">Price coverage</th
-							><th scope="col">Capture</th></tr
-						></thead
-					>
-					<tbody>
-						{#each history.points.toReversed() as point}
-							<tr
-								><th scope="row"><time datetime={point.day}>{dayLabel(point.day)}</time></th>
-								{#if point.kind === 'Gap'}<td colspan="3" class="missing"
-										>No captured observation</td
-									>
-								{:else}
-									<td class="amount"
-										>{hasPlottableValue(point.estimate)
-											? formatValueEUR(point.estimate.coveredValue)
-											: 'Unknown'}{#if !point.estimate.complete}<small>Partial coverage</small
-											>{/if}</td
-									>
-									<td
-										><span
-											>{point.estimate.coveredQuantity.toLocaleString()} / {point.estimate.totalQuantity.toLocaleString()}
-											copies</span
-										><small
-											>{point.estimate.unknownQuantity.toLocaleString()} unknown · {point.estimate.staleQuantity.toLocaleString()}
-											stale</small
-										></td
-									>
-									<td class="capture"
-										><time datetime={point.observedAt}
-											>{observationTime(point.observedAt, point.timezone)}</time
-										><small>{point.timezone}</small></td
-									>
-								{/if}
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		</details>
+			<tbody>
+				{#each history.points.toReversed() as point}
+					<tr
+						><th scope="row"><time datetime={point.day}>{dayLabel(point.day)}</time></th>
+						{#if point.kind === 'Gap'}<td colspan="3" class="missing">No captured observation</td>
+						{:else}
+							<td class="amount"
+								>{hasPlottableValue(point.estimate)
+									? formatValueEUR(point.estimate.coveredValue)
+									: 'Unknown'}{#if !point.estimate.complete}<small>Partial coverage</small>{/if}</td
+							>
+							<td
+								><span
+									>{point.estimate.coveredQuantity.toLocaleString()} / {point.estimate.totalQuantity.toLocaleString()}
+									copies</span
+								><small
+									>{point.estimate.unknownQuantity.toLocaleString()} unknown · {point.estimate.staleQuantity.toLocaleString()}
+									stale</small
+								></td
+							>
+							<td class="capture"
+								><time datetime={point.observedAt}
+									>{observationTime(point.observedAt, point.timezone)}</time
+								><small>{point.timezone}</small></td
+							>
+						{/if}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
 	{:else}<p class="mt-3 text-sm text-text-muted">History unavailable.</p>{/if}
 </section>
 
@@ -304,59 +285,6 @@
 		max-width: 42ch;
 		font-size: 0.6875rem;
 		line-height: 1.7;
-	}
-	.observations {
-		border-top: 1px solid var(--color-border);
-		margin-top: 0.75rem;
-		padding-top: 0.25rem;
-	}
-	.observations summary {
-		cursor: pointer;
-		padding-block: 0.85rem;
-		font-size: 0.75rem;
-	}
-	.observations summary span {
-		color: var(--color-text-muted);
-		font-size: 0.625rem;
-		margin-left: 0.5rem;
-	}
-	.history-notes {
-		max-width: 85ch;
-		font-size: 0.6875rem;
-		line-height: 1.7;
-		color: var(--color-text-secondary);
-		margin-bottom: 1rem;
-	}
-	.table-scroll {
-		overflow-x: auto;
-	}
-	table {
-		width: 100%;
-		text-align: left;
-		font-size: 0.6875rem;
-		border-collapse: collapse;
-	}
-	th,
-	td {
-		padding: 0.85rem 0.75rem;
-		border-bottom: 1px solid var(--color-border);
-		white-space: nowrap;
-		font-weight: 400;
-	}
-	thead th {
-		color: var(--color-text-muted);
-		font-size: 0.625rem;
-	}
-	.amount {
-		text-align: right;
-		font-variant-numeric: tabular-nums;
-	}
-	.missing,
-	.capture {
-		color: var(--color-text-muted);
-	}
-	.compact .observations {
-		margin-top: 1rem;
 	}
 	@media (max-width: 540px) {
 		.history-metrics {

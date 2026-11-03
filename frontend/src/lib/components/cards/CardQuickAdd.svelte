@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { page } from '$app/state';
 	import { untrack, onDestroy } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
@@ -239,7 +240,7 @@
 		disabled={blocked || !hasAvailableFinish}
 		class={['btn w-full', actionRole === 'secondary' ? 'btn-secondary text-sm' : 'btn-primary']}
 	>
-		{pending ? 'Adding...' : 'Add to inventory'}
+		<PlusIcon />{pending ? 'Adding...' : 'Add to inventory'}
 	</button>
 	{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
 			Original unconfirmed addition: {original.quantity} of {original.printingName ??

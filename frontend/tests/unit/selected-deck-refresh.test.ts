@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { compileModule } from 'svelte/compiler';
 import type { Deck, DeckCard, DeckSnapshot } from '@spellbook/contracts/decks.ts';
-import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
-import type { DeckWholeCategories } from '@spellbook/contracts/whole-categories.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 import { WorkspaceSavedState, type ReadCause, type ReadLease } from '#lib/saved-state/workspace.ts';
 import { readSavedJSON } from '#lib/saved-state/read.ts';
@@ -13,11 +11,6 @@ import {
 	type SelectedDeckMergeState,
 	type SelectedDeckPublication
 } from '#lib/decks/selected-refresh.ts';
-import {
-	acknowledgeCategoryDraft,
-	initialCategoryDraft,
-	reconcileCategoryDraft
-} from '#lib/decks/category-save.ts';
 import { DeckSaveLifecycle } from '#lib/decks/save-lifecycle.ts';
 import { SelectedDeckOptionalReads } from '#lib/decks/selected-optional-reads.ts';
 
@@ -102,27 +95,13 @@ function snapshot(): DeckSnapshot {
 			required: estimate,
 			missing: { ...estimate, coveredValue: '2.00', totalQuantity: 2, coveredQuantity: 2 }
 		},
+		relatedTokens: { status: 'unavailable', items: [], unresolved: [], unavailableEntryIds: [] },
 		valuationError: null
 	};
-}
-function categories(revision = '4'): DeckEntryCategories {
-	return {
-		deckId: 'deck',
-		initialized: true,
-		decisionRevision: revision,
-		definitions: [],
-		decisions: [{ entryId: 'entry', categoryId: null, state: 'Manual', revision, evidence: null }],
-		sourceStatus: { kind: 'Succeeded', sourceTime: '2026-10-18T00:00:00Z' }
-	};
-}
-function whole(revision = '4'): DeckWholeCategories {
-	return { deckId: 'deck', initialized: true, decisionRevision: revision, categories: [] };
 }
 function initial(): SelectedDeckMergeState {
 	return {
 		confirmedDecks: [{ ...deck, descriptionRevision: '1', compositionRevision: '2' }],
-		categories: categories('3'),
-		wholeCategories: whole('3'),
 		details: {
 			name: 'Old',
 			nameBase: 'Old',
@@ -145,8 +124,6 @@ function initial(): SelectedDeckMergeState {
 const base = '/api/v1/mtg/decks/deck';
 const full = `${base}?selectedOnly=true`,
 	narrow = `${full}&includeLegality=false`;
-const entries = `${base}/categories`,
-	wholes = `${base}/whole-categories`;
 const ownership = '/api/v1/mtg/decks/ownership?canonicalCardId=oracle';
 const search = '/api/v1/mtg/decks/search?q=Opt';
 function held<T>() {
@@ -180,8 +157,6 @@ function harness(cause?: ReadCause) {
 			}
 		],
 		[narrow, core],
-		[entries, categories()],
-		[wholes, whole()],
 		[ownership, core.ownedPrintings],
 		[search, { hits: [document], ownedByCanonical: { oracle: 2 } }]
 	]);
@@ -637,26 +612,26 @@ describe('production selected Deck read and publication interface', () => {
 		expect(h.publications[0][kind === 'inspector' ? 'ownership' : 'search']).toBeDefined();
 	});
 	it.each<[ReadCause | undefined, string[]]>([
-		[undefined, [full, entries, wholes, ownership, search]],
-		['full', [full, entries, wholes, ownership, search]],
-		[['decks'], [full, entries, wholes]],
+		[undefined, [full, ownership, search]],
+		['full', [full, ownership, search]],
+		[['decks'], [full]],
 		[['inventory'], [narrow, ownership, search]],
-		[['values'], [full, entries, wholes, search]],
+		[['values'], [full, search]],
 		[
 			['decks', 'values'],
-			[full, entries, wholes, search]
+			[full, search]
 		],
 		[
 			['decks', 'inventory'],
-			[full, entries, wholes, ownership, search]
+			[full, ownership, search]
 		],
 		[
 			['values', 'inventory'],
-			[full, entries, wholes, ownership, search]
+			[full, ownership, search]
 		],
 		[
 			['values', 'inventory', 'decks'],
-			[full, entries, wholes, ownership, search]
+			[full, ownership, search]
 		]
 	])('reads the exact matrix for %j', async (cause, paths) => {
 		const h = harness(cause);
@@ -667,16 +642,14 @@ describe('production selected Deck read and publication interface', () => {
 		expect(publication.snapshot).toEqual(h.core);
 		expect(publication.snapshot).not.toHaveProperty('warnings');
 		expect(publication.optionalLegality).toEqual(
-			paths.includes(entries)
+			paths.includes(full)
 				? {
 						warnings: [{ code: 'format', message: 'Warning' }],
 						deckDocuments: { printing: document }
 					}
 				: undefined
 		);
-		expect(publication.categories?.sourceStatus).toEqual(
-			paths.includes(entries) ? categories().sourceStatus : undefined
-		);
+
 		for (const [, options] of h.fetcher.mock.calls) expect(options?.cache).toBe('no-store');
 	});
 	it('does no optional work without an active Inspector or query', async () => {
@@ -684,7 +657,7 @@ describe('production selected Deck read and publication interface', () => {
 		h.context.inspector = null;
 		h.context.search = null;
 		await refreshSelectedDeck(h.input);
-		expect(h.fetcher.mock.calls.map(([path]) => path)).toEqual([full, entries, wholes]);
+		expect(h.fetcher.mock.calls.map(([path]) => path)).toEqual([full]);
 	});
 	it('updates only currently clean fields and preserves dirty fields with original bases', async () => {
 		const h = harness(['inventory']);
@@ -707,7 +680,6 @@ describe('production selected Deck read and publication interface', () => {
 			const work = refreshSelectedDeck(h.input);
 			await waitForRead(h, path);
 			expect(h.publications).toEqual([]);
-			expect(h.state.categories!.decisionRevision).toBe('3');
 			h.state.details!.description = 'Late draft';
 			h.state.inspector!.quantity = 19;
 			body.resolve(h.replies.get(path));
@@ -716,15 +688,13 @@ describe('production selected Deck read and publication interface', () => {
 			expect(h.publications[0].inspector).not.toHaveProperty('quantity');
 		}
 	);
-	it.each(['category', 'whole', 'composition', 'text', 'name', 'quantity', 'role'] as const)(
+	it.each(['composition', 'text', 'name', 'quantity', 'role'] as const)(
 		'rejects a core that regresses late confirmed %s during the last optional await',
 		async (kind) => {
 			const h = harness('full');
 			const body = holdDecode(h, search),
 				work = refreshSelectedDeck(h.input);
 			await waitForRead(h, search);
-			if (kind === 'category') h.state.categories = categories('5');
-			if (kind === 'whole') h.state.wholeCategories = whole('5');
 			if (kind === 'composition') h.state.confirmedDecks = [{ ...deck, compositionRevision: '4' }];
 			if (kind === 'text') h.state.details!.descriptionRevision = '3';
 			if (kind === 'name') h.state.details!.nameBase = 'Confirmed new name';
@@ -755,7 +725,7 @@ describe('production selected Deck read and publication interface', () => {
 			}
 		}
 	);
-	it.each([full, entries, wholes])(
+	it.each([full])(
 		'tags core phase %s and allows only snapshot404 to mark the Deck gone',
 		async (path) => {
 			const h = harness('full');
@@ -830,21 +800,6 @@ describe('production selected Deck read and publication interface', () => {
 		expect(await refreshSelectedDeck(h.input)).toBe(false);
 		expect(terminal.expire).toHaveBeenCalledOnce();
 		expect(h.publications).toEqual([]);
-	});
-	it('retains confirmed Manual category intent until a matching production read reconciles it', async () => {
-		const h = harness(['decks']);
-		const draft = acknowledgeCategoryDraft(initialCategoryDraft(undefined, '3'), '', {
-			requestId: 'original',
-			deckId: 'deck',
-			decisionRevision: '4',
-			entryIds: ['entry']
-		});
-		await refreshSelectedDeck(h.input);
-		expect(reconcileCategoryDraft(draft, h.publications[0].categories!, 'entry')).toMatchObject({
-			dirty: false,
-			confirmation: null,
-			revision: '4'
-		});
 	});
 	it('late production save acknowledgement retains newer draft B and rejects the older read', async () => {
 		const h = harness('full'),
@@ -968,14 +923,14 @@ const fixtureCode = compileModule(
  export function owner(initial, initialContext) {
   let state = $state(initial), context = $state.raw(initialContext), publications = $state(0);
   const observations = [];
-  const stop = $effect.root(() => { $effect(() => { observations.push({ publications, name: state.details.name, description: state.details.description, revision: state.categories.decisionRevision }); }); });
+  const stop = $effect.root(() => { $effect(() => { observations.push({ publications, name: state.details.name, description: state.details.description }); }); });
   return {
    context: () => context,
    state: () => ({ ...state, details: { ...state.details }, inspector: { ...state.inspector } }),
    edit: () => { state.details.description = 'B typed before scheduler'; state.inspector.quantity = 27; },
-   confirm: () => { state.categories = { ...state.categories, decisionRevision: '9' }; state.details.descriptionBase = 'Confirmed A'; state.details.descriptionRevision = '8'; state.confirmedDecks = state.confirmedDecks.map(deck => ({ ...deck, compositionRevision: '9' })); },
+   confirm: () => { state.details.descriptionBase = 'Confirmed A'; state.details.descriptionRevision = '8'; state.confirmedDecks = state.confirmedDecks.map(deck => ({ ...deck, compositionRevision: '9' })); },
    replace: () => { context = { ...context, scope: {} }; },
-   publish: value => { if (value.details) Object.assign(state.details, value.details); if (value.inspector) Object.assign(state.inspector, value.inspector); if (value.categories) state.categories = value.categories; publications++; },
+   publish: value => { if (value.details) Object.assign(state.details, value.details); if (value.inspector) Object.assign(state.inspector, value.inspector); publications++; },
    observations, stop
   };
  }`,
@@ -1044,8 +999,7 @@ it.each([false, true])(
 			expect(owner.state().details!.description).toBe('B typed before scheduler');
 			expect(owner.state().inspector!.quantity).toBe(27);
 			expect(owner.observations.at(-1)).toMatchObject({
-				publications: confirmation ? 0 : 1,
-				revision: confirmation ? '9' : '4'
+				publications: confirmation ? 0 : 1
 			});
 			if (confirmation)
 				expect(owner.state().details).toMatchObject({

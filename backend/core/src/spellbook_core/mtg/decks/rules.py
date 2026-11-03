@@ -5,7 +5,12 @@ from collections.abc import Sequence
 
 from spellbook_core.db import database_integer
 from spellbook_core.mtg.decks.common import aggregate_quantity
-from spellbook_core.mtg.decks.models import Allocation, DeckCard, OwnedPrinting
+from spellbook_core.mtg.decks.models import (
+    Allocation,
+    AvailabilityRequirement,
+    DeckCard,
+    OwnedPrinting,
+)
 from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import js_trim
 
@@ -19,7 +24,7 @@ def canonical_quantities(cards: Sequence[OwnedPrinting]) -> dict[str, int]:
 
 
 def allocate_deck_availability(
-    cards: Sequence[DeckCard], inventory: Sequence[OwnedPrinting]
+    cards: Sequence[AvailabilityRequirement], inventory: Sequence[OwnedPrinting]
 ) -> dict[str, Allocation]:
     remaining: dict[str, OwnedPrinting] = {}
     for card in inventory:

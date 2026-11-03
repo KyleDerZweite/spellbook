@@ -14,21 +14,20 @@ from spellbook_core.mtg.decks.common import (
     require_deck,
     text,
 )
+from spellbook_core.mtg.decks.exchange import DeckImportPreview, preview_deck_import
 from spellbook_core.mtg.decks.library import DeckLibrary
 from spellbook_core.mtg.decks.models import DeckAcknowledgement, Document
 from spellbook_core.mtg.decks.mutation import DeckMutations
 from spellbook_core.mtg.decks.read import DeckReads
 from spellbook_core.mtg.decks.rules import legality_warnings
-from spellbook_core.mtg.inventory_import import ImportPreview, preview_inventory_import
+from spellbook_core.mtg.inventory_import import ImportPreview
 from spellbook_core.mtg.valuation import Valuation, create_valuation
 from spellbook_core.validation import (
     DECK_ROLES,
     DECK_SOURCES,
     MISSING,
     assert_request_id,
-    js_trim,
     normalize_source,
-    utf16_length,
 )
 
 
@@ -40,14 +39,12 @@ class Decks(DeckReads, DeckLibrary, DeckMutations):
 
     async def preview_mtg_import(
         self, actor: Actor, value: str, format: str = ""
-    ) -> ImportPreview:
+    ) -> DeckImportPreview:
         await self.auth.require_actor(actor)
-        if not isinstance(value, str) or not js_trim(value) or utf16_length(value) > 100000:
-            raise ValidationError("Paste a decklist of up to 100,000 characters.")
-        result = await preview_inventory_import(self.catalog, value)
+        result = await preview_deck_import(self.catalog, value)
         result["warnings"] = legality_warnings(
             [(r["line"]["quantity"], r["line"]["role"], r["card"]) for r in result["resolved"]],
-            format,
+            format or (result["metadata"]["format"] if result["metadata"] else ""),
         )
         return result
 
@@ -75,6 +72,15 @@ class Decks(DeckReads, DeckLibrary, DeckMutations):
 
     @staticmethod
     def _import_operations(preview: ImportPreview) -> list[Document]:
+        if (
+            preview["unresolved"]
+            or preview["ambiguous"]
+            or any(r["line"]["role"] not in DECK_ROLES for r in preview["resolved"])
+        ):
+            raise ValidationError(
+                "Resolve every malformed, unsupported or unmatched record "
+                "before importing the complete Deck."
+            )
         return [
             dict(
                 op="add",
@@ -83,7 +89,6 @@ class Decks(DeckReads, DeckLibrary, DeckMutations):
                 role=r["line"]["role"],
             )
             for r in preview["resolved"]
-            if r["line"]["role"] in DECK_ROLES
         ]
 
     @staticmethod
@@ -107,10 +112,14 @@ class Decks(DeckReads, DeckLibrary, DeckMutations):
     async def import_text_deck(self, actor: Actor, input: Document) -> DeckAcknowledgement:
         await self.auth.require_actor(actor)
         game(input["game"])
-        create = self._create_input(input)
+        supplied = dict(
+            name=text(input.get("name", ""), "name", 200, ""),
+            description=text(input.get("description", ""), "description", 4000, ""),
+            format=text(input.get("format", ""), "format", 100, "Commander"),
+        )
         normalized = dict(
             kind="deck.text.import",
-            **create,
+            **supplied,
             text=text(input.get("text"), "text", 100000),
             source=normalize_source(input.get("source", MISSING), DECK_SOURCES, "import"),
             game="mtg",
@@ -118,7 +127,15 @@ class Decks(DeckReads, DeckLibrary, DeckMutations):
         previous = await self._replay_intent(actor, input["requestId"], normalized)
         if previous is not None:
             return previous
-        preview = await self.preview_mtg_import(actor, normalized["text"], create["format"])
+        preview = await self.preview_mtg_import(actor, normalized["text"], supplied["format"])
+        imported = preview["metadata"]
+        create = (
+            dict(imported)
+            if imported and imported["format"]
+            else self._create_input(
+                {**supplied, **({"name": imported["name"]} if imported else {})}
+            )
+        )
         return await self._mutation(
             actor,
             dict(

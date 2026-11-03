@@ -150,3 +150,118 @@ def test_colorless_is_empty_set_and_cannot_be_required_with_a_colored_identity()
     assert parameters(["C"], [])[0] == [0]
     assert parameters([], ["W", "C"])[0] == []
     assert parameters([], ["W", "U"])[0] == [3, 7, 11, 15, 19, 23, 27, 31]
+
+
+@pytest.mark.parametrize("excluded", [None, "W", [1], ["w"], ["W"] * 7])
+def test_color_match_rejects_malformed_not(excluded: object) -> None:
+    with pytest.raises(ValidationError, match=r"colorMatch.not"):
+        parse_catalog_search_request(
+            {"filters": {"colorMatch": {"field": "color", "any": [], "all": [], "not": excluded}}}
+        )
+
+
+@pytest.mark.parametrize("group", ["any", "all"])
+@pytest.mark.parametrize("color", ["W", "C"])
+def test_color_match_rejects_not_overlap(group: str, color: str) -> None:
+    expression: dict[str, object] = {"field": "identity", "any": [], "all": [], "not": [color]}
+    expression[group] = [color]
+    with pytest.raises(ValidationError):
+        parse_catalog_search_request({"filters": {"colorMatch": expression}})
+
+
+def test_color_match_defaults_and_deduplicates_each_group() -> None:
+    from spellbook_core.mtg.catalog_query import ColorMatch, parse_color_match
+
+    legacy = ColorMatch("color", [], [])
+    other = ColorMatch("color", [], [])
+    assert legacy.not_colors == []
+    assert legacy.not_colors is not other.not_colors
+    assert parse_color_match({"field": "color", "any": [], "all": []}) == legacy
+    assert parse_color_match(
+        {"field": "color", "any": ["W", "W"], "all": ["U", "U"], "not": ["B", "B"]}
+    ) == ColorMatch("color", ["W"], ["U"], ["B"])
+
+
+@pytest.mark.parametrize(
+    "excluded,predicates,parameters",
+    [
+        (["R", "G"], ["NOT (p.colors && $1::text[])"], [["R", "G"], 20, 0]),
+        (["C"], ["cardinality(p.colors) > 0"], [20, 0]),
+        (
+            ["W", "C"],
+            ["NOT (p.colors && $1::text[])", "cardinality(p.colors) > 0"],
+            [["W"], 20, 0],
+        ),
+    ],
+)
+def test_printed_not_only_activates_exclusion(
+    excluded: list[str], predicates: list[str], parameters: list[object]
+) -> None:
+    sql, actual = search_sql(
+        parse_catalog_search_request(
+            {"filters": {"colorMatch": {"field": "color", "any": [], "all": [], "not": excluded}}}
+        )
+    )
+    assert actual == parameters
+    assert all(predicate in sql for predicate in predicates)
+
+
+def test_printed_any_all_not_preserves_additional_colors_and_palette_filters() -> None:
+    sql, parameters = search_sql(
+        parse_catalog_search_request(
+            {
+                "filters": {
+                    "colorMatch": {
+                        "field": "color",
+                        "any": ["W", "U"],
+                        "all": ["B"],
+                        "not": ["R", "C"],
+                    },
+                    "colors": ["W", "U", "B", "G"],
+                    "colorIdentity": ["W", "U", "B", "G"],
+                }
+            }
+        )
+    )
+    assert (
+        "(p.colors && $1::text[]) AND p.colors @> $2::text[] "
+        "AND NOT (p.colors && $3::text[]) AND cardinality(p.colors) > 0" in sql
+    )
+    assert parameters[:4] == [["W", "U"], ["B"], ["R"], ["W", "U", "B", "G"]]
+    assert "p.colors <@ $4::text[]" in sql
+    assert "p.color_identity_mask = ANY($5::smallint[])" in sql
+
+
+@pytest.mark.parametrize(
+    "any_colors,all_colors,excluded,expected",
+    [
+        ([], [], ["W", "U", "B", "R", "G"], [0]),
+        ([], [], ["C"], list(range(1, 32))),
+        ([], [], ["R"], list(range(8)) + list(range(16, 24))),
+        (["W", "U"], ["B"], ["R"], [5, 6, 7, 21, 22, 23]),
+        (["C", "W"], [], ["U"], [0, 1, 5, 9, 13, 17, 21, 25, 29]),
+        ([], ["C"], ["W"], [0]),
+        (["W"], [], ["C"], list(range(1, 32, 2))),
+        ([], [], ["W", "U", "B", "R", "G", "C"], []),
+    ],
+)
+def test_identity_not_enumerates_only_known_accepted_masks(
+    any_colors: list[str], all_colors: list[str], excluded: list[str], expected: list[int]
+) -> None:
+    sql, parameters = search_sql(
+        parse_catalog_search_request(
+            {
+                "filters": {
+                    "colorMatch": {
+                        "field": "identity",
+                        "any": any_colors,
+                        "all": all_colors,
+                        "not": excluded,
+                    }
+                }
+            }
+        )
+    )
+    assert parameters == [expected, 20, 0]
+    assert "p.color_identity_mask = ANY($1::smallint[])" in sql
+    assert "IS NULL" not in sql

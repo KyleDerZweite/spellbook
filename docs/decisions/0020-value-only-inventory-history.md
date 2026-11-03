@@ -2,10 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-10-07
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-11-02
 - Owners: Kyle
 - Source of Truth: Kyle's explicit 2026-10-07 instruction to drop all buy/acquisition/pack/bulk-cost tracking and consolidate value documentation
-- Update Triggers: value/history scope, capture design readiness, reporting calendar, retention and supersession
+- Update Triggers: managed Category removal, value/history scope, capture design readiness, reporting calendar, retention and supersession
 - Related Docs: [Value tracking](../product/value-tracking.md), [Valuation](../architecture/valuation.md), [Domain glossary](../../GLOSSARY.md), [Application contract](../architecture/application-contract.md), [ADR-0018](./0018-acquisition-portions-and-atomic-history-restatement.md), [Decisions](./README.md)
 
 ## Context
@@ -29,5 +29,6 @@ Its timezone, gaps and indefinite retention remain requirements owned by value t
 The Costs slice remains unmerged.
 The old cost-dependent personal-history contract was replaced by [ADR-0022](./0022-daily-value-observation-checkpoints.md).
 Its value-only checkpoint persistence, runtime and private reporting are implemented; this scope decision alone did not define them.
-Deck estimates and nonreservation, Sources/Rules categories and later app delivery retain their accepted policies.
 This removes the cost-specific persistence and correction mechanisms while preserving historical value evidence independent of current-entry deletion and public pruning.
+
+Deck estimates, nonreservation and later app delivery retain their accepted policies.

@@ -1,0 +1,58 @@
+[
+	{
+		"id": "page:dashboard",
+		"name": "Dashboard",
+		"kind": "page",
+		"href": "/mtg/dashboard",
+		"aliases": ["übersicht", "dashboard", "home"]
+	},
+	{
+		"id": "page:inventory",
+		"name": "Inventory",
+		"kind": "page",
+		"href": "/mtg/inventory",
+		"aliases": ["inventory", "sammlung", "inventar"]
+	},
+	{
+		"id": "page:decks",
+		"name": "Decks",
+		"kind": "page",
+		"href": "/mtg/decks",
+		"aliases": ["decks", "deckbibliothek"]
+	},
+	{
+		"id": "page:profile",
+		"name": "Profile",
+		"kind": "page",
+		"href": "/settings",
+		"aliases": ["profile", "profil", "settings", "einstellungen"]
+	},
+	{
+		"id": "page:profile-card",
+		"name": "Profile Card",
+		"kind": "page",
+		"href": "/settings/profile-card",
+		"aliases": ["profile card", "profilkarte"]
+	},
+	{
+		"id": "page:password",
+		"name": "Password",
+		"kind": "page",
+		"href": "/settings/password",
+		"aliases": ["password", "passwort", "passwort ändern", "change password"]
+	},
+	{
+		"id": "action:new-deck",
+		"name": "New Deck",
+		"kind": "page",
+		"href": "/mtg/decks?flow=create",
+		"aliases": ["new deck", "create deck", "deck erstellen"]
+	},
+	{
+		"id": "action:import-deck",
+		"name": "Import Deck",
+		"kind": "page",
+		"href": "/mtg/decks?flow=import",
+		"aliases": ["import deck", "deck importieren"]
+	}
+]

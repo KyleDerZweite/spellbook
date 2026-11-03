@@ -407,31 +407,19 @@
 		justify-content: center;
 	}
 	.desktop-links :global(a:nth-child(1) .nav-icon) {
-		color: #b7a7e5;
+		color: var(--color-nav-dashboard);
 	}
 	.desktop-links :global(a:nth-child(2) .nav-icon) {
-		color: #8cbbdd;
+		color: var(--color-nav-search);
 	}
 	.desktop-links :global(a:nth-child(3) .nav-icon) {
-		color: #d4ac86;
+		color: var(--color-nav-inventory);
 	}
 	.desktop-links :global(a:nth-child(4) .nav-icon) {
-		color: #93bea6;
+		color: var(--color-nav-decks);
 	}
 	.desktop-links :global(a:nth-child(5) .nav-icon) {
 		color: #c9a3bb;
-	}
-	:global(html.light) .desktop-links :global(a:nth-child(1) .nav-icon) {
-		color: #7156a0;
-	}
-	:global(html.light) .desktop-links :global(a:nth-child(2) .nav-icon) {
-		color: #326184;
-	}
-	:global(html.light) .desktop-links :global(a:nth-child(3) .nav-icon) {
-		color: #845830;
-	}
-	:global(html.light) .desktop-links :global(a:nth-child(4) .nav-icon) {
-		color: #35694d;
 	}
 	:global(html.light) .desktop-links :global(a:nth-child(5) .nav-icon) {
 		color: #82536e;

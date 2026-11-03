@@ -59,7 +59,6 @@ class DeckChangePrintingInput(TypedDict):
     quantity: int | float
     role: str
     requestId: str
-    categoryPreview: NotRequired[str]
 
 
 @with_config(_INPUT_CONFIG)
@@ -69,7 +68,6 @@ class DeckUpdateInput(TypedDict):
     role: NotRequired[str]
     requestId: str
     delta: NotRequired[int | float]
-    categoryPreview: NotRequired[str]
 
 
 @with_config(_INPUT_CONFIG)

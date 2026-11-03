@@ -1,9 +1,9 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-11-02
 - Source of Truth: code
-- Update Triggers: native HTTP validation and safe error responses, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Update Triggers: managed Category removal, native HTTP validation and safe error responses, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
@@ -353,7 +353,7 @@ The current JSON API remains the authentication owner, with full-account session
 Demo mode publishes a disabled-registration guide.
 The [provider evaluation](./auth-provider-evaluation.md#future-authmd-integration) records the separate future auth.md protocol work.
 
-Category commands and Deck writes acquire the owning Profile lock before the internal `requireActorForWrite` session fence.
+Deck writes acquire the owning Profile lock before the internal `requireActorForWrite` session fence.
 Auth locks the trusted session row `FOR SHARE` and checks live expiry after the wait.
 A concurrent logout either revokes before validation, causing rollback, or waits until the authorized transaction finishes.
 Ordinary `requireActor` remains nonlocking for read-only GET transactions.

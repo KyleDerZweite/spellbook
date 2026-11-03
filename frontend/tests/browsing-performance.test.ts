@@ -262,7 +262,6 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 			});
 			report.source = { ...verified.provenance, generation: manifest.generationId };
 			await pool.query('ANALYZE catalog_printings');
-			await pool.query('ANALYZE catalog_oracle_facts');
 
 			async function measured<T>(
 				owner: string,

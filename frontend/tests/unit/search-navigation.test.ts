@@ -5,6 +5,20 @@ import { SearchSession } from '../../src/lib/search/session.svelte.ts';
 
 const origin = 'https://spellbook.test';
 describe('Search navigation', () => {
+	it('restores exact AND combinations from native URLs and browser history', () => {
+		for (const field of ['color', 'identity'] as const) {
+			const parsed = parseSearchUrl(
+				new URL(`/mtg/search?colorAnd=W&colorAnd=U&colorMode=${field}`, origin)
+			);
+			expect(parsed.filters.colorMatch).toEqual({
+				field,
+				any: [],
+				all: ['W', 'U'],
+				not: ['B', 'R', 'G']
+			});
+			expect(parseSearchUrl(new URL(searchHref(parsed), origin))).toEqual(parsed);
+		}
+	});
 	it('round trips query and all supported filter categories for direct visits and full view', () => {
 		const input = {
 			query: 'Lightning Bolt & "elf"',
@@ -35,7 +49,7 @@ describe('Search navigation', () => {
 		);
 		expect(parsed.query).toBe(input.query);
 		expect(parsed.filters).toEqual({
-			colorMatch: { field: 'identity', any: ['U', 'R'], all: ['B'] },
+			colorMatch: { field: 'identity', any: ['U', 'R'], all: ['B'], not: ['W', 'G'] },
 			rarities: ['common'],
 			types: ['Instant'],
 			legalities: ['modern', 'commander']
@@ -226,6 +240,50 @@ describe('Search hybrid URL and history state', () => {
 });
 
 describe('color expression navigation', () => {
+	it('completes sparse direct session inputs before restoring visible states', () => {
+		const session = new SearchSession();
+		const input = {
+			query: '',
+			filters: {
+				colorMatch: { field: 'color' as const, any: ['W', 'U'] as ('W' | 'U')[], all: [] }
+			}
+		};
+		session.hydrate(input);
+		expect(session.filters.colorCycleLocked).toBe(true);
+		expect(session.filters.colorNot).toEqual(new Set(['B', 'R', 'G']));
+		session.filters.toggleColor('R');
+		expect(session.filters.colorAny.has('R')).toBe(true);
+		session.hydrate(input);
+		expect(session.filters.colorNot.has('R')).toBe(true);
+		expect(parseSearchUrl(new URL(searchHref(session.input), origin)).filters).toEqual(
+			session.input.filters
+		);
+	});
+	it('restores NOT selections across mode changes, native precedence and history', () => {
+		const input = parseSearchUrl(
+			new URL('/mtg/search?color=W&colorAnd=U&colorNot=R&colorMode=identity', origin)
+		);
+		const session = new SearchSession();
+		session.hydrate(input);
+		expect(session.filters.colorNot).toEqual(new Set(['B', 'R', 'G']));
+		session.filters.setColorField('color');
+		expect(session.input.filters.colorMatch?.not).toEqual(['B', 'R', 'G']);
+		session.hydrate(input);
+		expect(parseSearchUrl(new URL(searchHref(session.input), origin))).toEqual(input);
+		const conflicting = parseSearchUrl(
+			new URL('/mtg/search?color=R&colorAnd=R&colorNot=R', origin)
+		);
+		expect(conflicting.filters.colorMatch).toEqual({
+			field: 'color',
+			any: [],
+			all: [],
+			not: ['R']
+		});
+		session.filters.removeColor('R');
+		expect(session.filters.colorNot.has('R')).toBe(true);
+		session.filters.clear();
+		expect(session.filters.colorNot.size).toBe(0);
+	});
 	it('restores OR, AND and field through direct visits and browser history', () => {
 		const session = new SearchSession();
 		const first = parseSearchUrl(
@@ -236,7 +294,7 @@ describe('color expression navigation', () => {
 		expect(session.filters.colorAny).toEqual(new Set(['W', 'U']));
 		expect(session.filters.colorAll).toEqual(new Set(['B']));
 		session.filters.toggleColor('W');
-		expect(session.input.filters.colorMatch?.all).toEqual(['B', 'W']);
+		expect(session.input.filters.colorMatch?.all).toEqual(['W', 'B']);
 		session.hydrate(first);
 		expect(parseSearchUrl(new URL(searchHref(session.input), origin))).toEqual(first);
 	});
@@ -244,6 +302,11 @@ describe('color expression navigation', () => {
 		const input = parseSearchUrl(
 			new URL('/mtg/search?color=W&colorAnd=W&colorAnd=B&colorMode=invalid', origin)
 		);
-		expect(input.filters.colorMatch).toEqual({ field: 'color', any: [], all: ['W', 'B'] });
+		expect(input.filters.colorMatch).toEqual({
+			field: 'color',
+			any: [],
+			all: ['W', 'B'],
+			not: ['U', 'R', 'G']
+		});
 	});
 });

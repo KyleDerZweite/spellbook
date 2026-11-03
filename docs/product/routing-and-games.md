@@ -1,9 +1,9 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-03
 - Source of Truth: route handlers and server hooks
-- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: Deck import/download/print routes, managed Category removal, removed standalone personal History page, shortcut-only global power-user search, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused.
@@ -30,15 +30,15 @@ The [backend route registry](../../backend/api/src/spellbook_api/http/applicatio
 | Route                                      | Access and behavior                                                               |
 | ------------------------------------------ | --------------------------------------------------------------------------------- |
 | `/`                                        | Public landing for signed-out and signed-in users                                 |
-| `/mtg/history`                             | Authenticated personal Inventory value history and identity/date filters          |
 | `/mtg/dashboard`                           | Authenticated account summaries and per-deck availability                         |
 | `/mtg/search`                              | Public catalog search and printing details                                        |
 | `/mtg/inventory/[entryId]`                 | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
 | `/mtg/inventory`                           | Authenticated bounded Inventory pages, GET filters and form actions               |
 | `/mtg/scan`                                | Authenticated image upload, candidate review, and explicit inventory commit       |
-| `/mtg/categories`                          | Authenticated scoped reusable Category Library and native criteria editor         |
 | `/mtg/decks`                               | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
-| `/mtg/decks/[deckId]/export`               | Authenticated text export of an owned deck                                        |
+| `/mtg/decks/import`                        | Authenticated preview and explicit creation of a complete new Deck                |
+| `/mtg/decks/[deckId]/print`                | Authenticated native browser print view of an owned Deck                          |
+| `/mtg/decks/[deckId]/export`               | Authenticated Arena/simple text, CSV or Spellbook JSON download of an owned Deck  |
 | `/settings`                                | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
 | `/settings/profile-card`                   | Authenticated private card editor and artwork save; excluded from indexing        |
 | `/settings/password`                       | Authenticated current-password-confirmed change; disabled in demo mode            |
@@ -81,7 +81,9 @@ This guide does not implement the proposed auth.md protocol.
 The font comparison and numbered landing prototype routes are removed.
 The `review=landing` composition override is removed; `/` is the landing review target for any session.
 The brand links to `/`.
-Normal primary Search clicks and Ctrl+K or Cmd+K open the shared catalog overlay above the current page.
+Normal primary Search clicks open the shared catalog overlay above the current page.
+Ctrl+K or Cmd+K opens the separate global power-user palette with Card Search, Inventory, Deck and Settings destinations.
+Its only entry is the shortcut; Settings displays the binding as read-only text.
 The landing form opens it with the submitted query.
 Search links retain `/mtg/search` for modified clicks and no-JavaScript navigation.
 The visible query URL supports direct visits and reloads as a full page; Full view replaces the overlay entry.
@@ -97,9 +99,6 @@ The reusable native selected-printing panel remains a coordinated Card-stage int
 The Deck page supports `flow=create|edit|import|delete|search` for native task entry.
 [Frontend](../architecture/frontend.md#shared-deck-ui) owns the form adapters and shared presentation responsibilities.
 These queries add no API path or method.
-
-Category controls use `localCategory`, `preview` and `previewOffset` for pure native GET selection/paging.
-Their POST actions delegate to the [Category owner](../architecture/category-rules.md#entry-reviewreset-transactions).
 
 Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved.
 Login and registration default to `/mtg/inventory` when no safe destination is supplied.
@@ -133,7 +132,6 @@ Canonical Catalog reads are public; private MTG operations accept bearer or brow
 | Relative path                                              | Purpose                                                        |
 | ---------------------------------------------------------- | -------------------------------------------------------------- |
 | `/catalog/search`                                          | Catalog queries                                                |
-| `/category-definitions/[originId]`                         | Authenticated read of one owned reusable definition            |
 | `/catalog/cards/[oracleId]/printings`                      | Printings for a canonical card                                 |
 | `/inventory/value`                                         | Authenticated current Inventory estimate and coverage          |
 | `/inventory/value-history`                                 | Authenticated closed daily checkpoints and explicit gaps       |
@@ -148,12 +146,6 @@ Canonical Catalog reads are public; private MTG operations accept bearer or brow
 | `/decks/ownership`                                         | Owned-printing aggregates for at most 100 canonical identities |
 | `/decks/[deckId]`                                          | Owned deck retrieval, metadata changes, and deletion           |
 | `/decks/[deckId]/availability`                             | Owned deck availability counts without inventory mutation      |
-| `/category-definitions`                                    | Scoped definition pages and immutable version saves            |
-| `/category-definitions/[originId]/archive`                 | Future-adoption archive or restore                             |
-| `/decks/[deckId]/categories/[categoryId]`                  | Local label PATCH or all-role replacement/suppression DELETE   |
-| `/decks/[deckId]/category-previews`                        | Entry Review/Reset POST with explicit restoration selections   |
-| `/category-previews/[previewId]`                           | Stable paged consequences GET                                  |
-| `/category-previews/[previewId]/commit`                    | Complete atomic reviewed commit POST                           |
 | `/decks/[deckId]/cards`                                    | Deck entries and additions                                     |
 | `/decks/[deckId]/cards/bulk`                               | Idempotent deck entry mutations                                |
 | `/decks/[deckId]/export`                                   | Arena-style text export                                        |

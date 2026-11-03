@@ -11,16 +11,9 @@ declare global {
 			message: string;
 			kind?:
 				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
-				| 'CategoryConflict'
 				| 'RevisionChanged'
-				| 'CategoryPreviewExpired'
-				| 'CategoryPreviewCapacity'
-				| 'CategoryUnavailable'
-				| 'CategoryMergeConflict'
 				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind']
 				| import('@spellbook/contracts/scan.ts').ScanFailure['kind'];
-			latest?: import('@spellbook/contracts/categories.ts').DeckEntryCategories;
-			preview?: import('@spellbook/contracts/categories.ts').CategoryMergePreview;
 			entryId?: Extract<
 				import('@spellbook/contracts/inventory.ts').InventoryFailure,
 				{ kind: 'NotesConflict' }
@@ -45,14 +38,6 @@ declare global {
 			api: import('#lib/server/remote/client.ts').RemoteClient;
 			user: AuthUser | null;
 			mobileBearerUser: AuthUser | null;
-			categoryPageRecovery?: {
-				accountId: string;
-				deckId: string;
-				snapshot: import('@spellbook/contracts/decks.ts').DeckSnapshot;
-				categories: import('@spellbook/contracts/categories.ts').DeckEntryCategories;
-				wholeCategories?: import('@spellbook/contracts/whole-categories.ts').DeckWholeCategories;
-				preview?: import('@spellbook/contracts/category-library.ts').CategoryPreview;
-			};
 		}
 	}
 }

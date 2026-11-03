@@ -1,4 +1,4 @@
-"""Deck mutations, original receipts and Category effects share one transaction."""
+"""Deck mutations and original receipts share one transaction."""
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,13 +10,6 @@ from spellbook_core.errors import RequestConflictError, ValidationError
 from spellbook_core.fingerprint import mutation_fingerprint, serialize_json
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import read_transaction_catalog_printing
-from spellbook_core.mtg.categories import (
-    category_transaction,
-    ensure_entry_category_initialization,
-    queue_whole_deck_evaluation,
-    require_category_merge_preview,
-)
-from spellbook_core.mtg.categories.common import advance_deck_library_revision
 from spellbook_core.mtg.decks.common import (
     authorize_write,
     card_identity,
@@ -26,9 +19,9 @@ from spellbook_core.mtg.decks.common import (
     normalize_operations,
     read_acknowledgement,
     require_deck,
-    rows,
     text,
 )
+from spellbook_core.mtg.decks.library import advance_deck_library_revision
 from spellbook_core.mtg.decks.models import Change, Deck, DeckAcknowledgement, Document
 from spellbook_core.mtg.errors import DeckNotFoundError, DescriptionConflictError
 from spellbook_core.mtg.models import CardDocument
@@ -48,7 +41,6 @@ class Applied:
     change: Change
     changed: bool
     removed: str | None = None
-    initialize: bool = False
 
 
 def change(row: Document, quantity: int, delta: int) -> Change:
@@ -114,7 +106,6 @@ async def apply_operation(
         return Applied(
             change(saved, saved["quantity"], saved["quantity"] - before.get("quantity", 0)),
             True,
-            initialize=not before and role == "main",
         )
     entry = await first(
         tx,
@@ -152,17 +143,6 @@ async def apply_operation(
             (deck_id, identity["catalogCardId"], role),
         )
         if destination and destination["id"] != entry["id"]:
-            await require_category_merge_preview(
-                tx,
-                dict(
-                    deckId=deck_id,
-                    entryId=str(entry["id"]),
-                    catalogCardId=identity["catalogCardId"],
-                    role=role,
-                    quantity=quantity,
-                ),
-                operation.get("categoryPreview"),
-            )
             normalize_quantity(destination["quantity"] + quantity)
             saved = await first(
                 tx,
@@ -173,6 +153,13 @@ async def apply_operation(
             return Applied(
                 change(saved, saved["quantity"], quantity), True, removed=str(entry["id"])
             )
+        changed = (
+            quantity != entry["quantity"]
+            or identity["catalogCardId"] != entry["catalog_card_id"]
+            or role != entry["role"]
+        )
+        if not changed:
+            return Applied(change(entry, quantity, 0), False)
         saved = await first(
             tx,
             (
@@ -192,15 +179,9 @@ async def apply_operation(
                 entry["id"],
             ),
         )
-        changed = (
-            quantity != entry["quantity"]
-            or saved["catalog_card_id"] != entry["catalog_card_id"]
-            or role != entry["role"]
-        )
         return Applied(
             change(saved, quantity, quantity - entry["quantity"]),
             changed,
-            initialize=entry["role"] != "main" and role == "main",
         )
     if op == "remove":
         quantity = 0
@@ -231,7 +212,7 @@ class DeckMutations:
 
     async def create_deck_record(self, actor: Actor, input: Document) -> Deck:
         game(input["game"])
-        async with category_transaction(self.pool) as tx:
+        async with transaction(self.pool) as tx:
             account = await authorize_write(tx, self.auth, actor)
             deck = await first(
                 tx,
@@ -247,7 +228,6 @@ class DeckMutations:
                     text(input.get("format"), "format", 100, "Commander"),
                 ),
             )
-            await ensure_entry_category_initialization(tx, str(deck["id"]))
             await advance_deck_library_revision(tx, account)
             return deck_dto(deck)
 
@@ -321,7 +301,11 @@ class DeckMutations:
         game(input["game"])
         request = assert_request_id(input.get("requestId", MISSING))
         source = normalize_source(input.get("source", MISSING), DECK_SOURCES, "web")
-        normalized = [] if catalog_add else normalize_operations(input.get("operations"))
+        normalized = (
+            []
+            if catalog_add or (create and input.get("operations") == [])
+            else normalize_operations(input.get("operations"))
+        )
         fingerprint = mutation_fingerprint(
             intent
             if intent is not None
@@ -334,7 +318,7 @@ class DeckMutations:
                 **({"decrementFloor": floor} if floor else {}),
             }
         )
-        async with category_transaction(self.pool) as tx:
+        async with transaction(self.pool) as tx:
             account = await authorize_write(tx, self.auth, actor)
             await tx.execute(
                 "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
@@ -400,56 +384,25 @@ class DeckMutations:
             else:
                 deck = await require_deck(tx, account, input["deckId"], lock=True)
             deck_id = str(deck["id"])
-            before = await rows(
-                tx,
-                (
-                    "SELECT entry_id::text FROM deck_entry_category_decisions "
-                    "WHERE deck_id=%s::uuid"
-                ),
-                (deck_id,),
-            )
             now = datetime.now(UTC)
             changes: list[Change] = []
             removed: list[str] = []
             semantic = False
-            initialize = bool(create)
             for operation in normalized:
                 applied = await apply_operation(
                     tx, account, deck_id, operation, now, resolved, floor
                 )
                 changes.append(applied.change)
                 semantic |= applied.changed
-                initialize |= applied.initialize
                 if applied.removed:
                     removed.append(applied.removed)
-            category_ids = (
-                await ensure_entry_category_initialization(tx, deck_id) if initialize else []
-            )
-            removed_categories = [r["entry_id"] for r in before if r["entry_id"] in removed]
-            if removed_categories:
-                await tx.execute(
-                    (
-                        "UPDATE deck_category_bundles SET "
-                        "decision_revision=decision_revision+1 WHERE "
-                        "deck_id=%s::uuid"
-                    ),
-                    (deck_id,),
-                )
-            category_revision = await first(
-                tx,
-                (
-                    "SELECT decision_revision::text FROM deck_category_bundles "
-                    "WHERE deck_id=%s::uuid"
-                ),
-                (deck_id,),
-            )
             revision = int(deck["composition_revision"]) + int(semantic)
             if semantic:
                 await tx.execute(
                     "UPDATE decks SET composition_revision=%s,updated_at=%s WHERE id=%s::uuid",
                     (revision, now, deck_id),
                 )
-                await queue_whole_deck_evaluation(tx, deck_id)
+            if semantic or create:
                 await advance_deck_library_revision(tx, account)
             acknowledgement = DeckAcknowledgement(
                 requestId=request,
@@ -458,11 +411,6 @@ class DeckMutations:
                 changes=changes,
                 removedEntryIds=removed,
             )
-            if category_revision:
-                acknowledgement["categoryDecisionRevision"] = str(
-                    category_revision["decision_revision"]
-                )
-                acknowledgement["categoryEntryIds"] = [*category_ids, *removed_categories]
             await tx.execute(
                 """INSERT INTO deck_mutation_requests(account_id,request_id,request_hash,
             deck_id,source,status,acknowledgement,created_at,updated_at)
@@ -517,7 +465,6 @@ class DeckMutations:
         request_id: str,
         delta: int | float | None = None,
         source: str = "web",
-        category_preview: str | None = None,
     ) -> DeckAcknowledgement:
         deck_id = await self._entry_deck(actor, entry_id, request_id)
         operations: list[Document] = []
@@ -535,11 +482,6 @@ class DeckMutations:
                     op="move",
                     target=dict(entryId=entry_id),
                     role=assert_deck_role(role),
-                    **(
-                        {"categoryPreview": category_preview}
-                        if category_preview is not None
-                        else {}
-                    ),
                 )
             )
         return await self._mutation(
@@ -603,8 +545,6 @@ class DeckMutations:
             quantity=input["quantity"],
             role=assert_deck_role(input["role"]),
         )
-        if "categoryPreview" in input:
-            operation["categoryPreview"] = input["categoryPreview"]
         return await self._mutation(
             actor,
             dict(

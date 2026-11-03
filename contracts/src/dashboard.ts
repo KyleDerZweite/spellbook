@@ -26,9 +26,40 @@ export interface DashboardDeck {
 	exact: number;
 	alternate: number;
 	missing: number;
+	/** At most two stored Commander-role Printing previews, not the full Deck composition. */
+	commanders: { catalogCardId: string; name: string; imageUri: string }[];
+}
+/** Mutually exclusive, quantity-weighted Inventory buckets from the active Catalog. */
+export interface DashboardCatalogBreakdown {
+	colors: DashboardDistribution[];
+	colorIdentity: DashboardDistribution[];
+	rarities: DashboardDistribution[];
+	primaryTypes: DashboardDistribution[];
+	matchedQuantity: number;
+	unknownQuantity: number;
+	setNames: Record<string, string>;
+}
+/** One Canonical Card requirement within one Deck, not distinct owned Inventory. */
+export interface DashboardRequirement {
+	deckId: string;
+	deckName: string;
+	canonicalCardId: string;
+	catalogCardId: string;
+	name: string;
+	imageUri: string;
+	required: number;
+	exact: number;
+	alternate: number;
+	missing: number;
+}
+export interface DashboardRequirementPreviews {
+	missing: DashboardRequirement[];
+	alternate: DashboardRequirement[];
 }
 export interface DashboardSummary {
 	totals: ProfileTotals;
+	catalogBreakdown: DashboardCatalogBreakdown | null;
+	requirements: DashboardRequirementPreviews;
 	sets: DashboardDistribution[];
 	finishes: DashboardDistribution[];
 	conditions: DashboardDistribution[];
