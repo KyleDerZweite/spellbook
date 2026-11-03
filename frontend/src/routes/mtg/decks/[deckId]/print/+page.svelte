@@ -35,14 +35,11 @@
 			<h2>{section.label} · {cards.reduce((sum, card) => sum + card.quantity, 0)}</h2>
 			{#if cards.length}<table>
 					<thead
-						><tr
-							><th scope="col">Quantity</th><th scope="col">Card</th><th scope="col">Printing</th
-							></tr
+						><tr><th scope="col">Quantity</th><th scope="col">Card</th><th scope="col">Set</th></tr
 						></thead
 					><tbody
 						>{#each cards as card}<tr
-								><td>{card.quantity}</td><td>{card.name}</td><td
-									>{card.setCode.toUpperCase()}<br /><small>{card.catalogCardId}</small></td
+								><td>{card.quantity}</td><td>{card.name}</td><td>{card.setCode.toUpperCase()}</td
 								></tr
 							>{/each}</tbody
 					>
@@ -50,8 +47,8 @@
 		</section>
 	{/each}
 	<section class="tokens" aria-labelledby="tokens-title">
-		<h2 id="tokens-title">Supplemental related Tokens</h2>
-		<p>Reference appendix only. These Tokens are not Deck entries or quantity requirements.</p>
+		<h2 id="tokens-title">Related tokens</h2>
+		<p>References only. Tokens are not included in the Deck's card totals.</p>
 		{#if data.relatedTokens.items.length}<ul>
 				{#each data.relatedTokens.items as token}<li>
 						{token.name} · {token.setCode.toUpperCase()}
@@ -109,10 +106,7 @@
 		width: 5rem;
 	}
 	th:last-child {
-		width: 35%;
-	}
-	small {
-		font-size: 0.7rem;
+		width: 16%;
 	}
 	@media print {
 		@page {
