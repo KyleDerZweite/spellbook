@@ -49,6 +49,7 @@ describe('Search navigation', () => {
 		);
 		expect(parsed.query).toBe(input.query);
 		expect(parsed.filters).toEqual({
+			languages: ['de', 'en'],
 			colorMatch: { field: 'identity', any: ['U', 'R'], all: ['B'], not: ['W', 'G'] },
 			rarities: ['common'],
 			types: ['Instant'],
@@ -64,6 +65,7 @@ describe('Search navigation', () => {
 			)
 		);
 		expect(parsed.filters).toEqual({
+			languages: ['de', 'en'],
 			colorMatch: { field: 'color', any: ['G'], all: [] },
 			rarities: ['rare'],
 			types: ['Creature'],
@@ -168,6 +170,7 @@ describe('Search hybrid URL and history state', () => {
 		const seed = {
 			hits: [],
 			query: 'elf',
+			matchedPrintingTotal: 913,
 			estimatedTotalHits: 913,
 			processingTimeMs: 1,
 			generationId: 'first'
@@ -206,6 +209,7 @@ describe('Search hybrid URL and history state', () => {
 		const seed = {
 			hits: [],
 			query: 'native',
+			matchedPrintingTotal: 913,
 			estimatedTotalHits: 913,
 			processingTimeMs: 1,
 			generationId: 'first'
@@ -309,4 +313,28 @@ describe('color expression navigation', () => {
 			not: ['U', 'R', 'G']
 		});
 	});
+});
+
+it('distinguishes browser defaults, explicit all, native empty selection and clear', () => {
+	const parse = (query: string) => parseSearchUrl(new URL('/mtg/search' + query, origin));
+	expect(parse('').filters.languages).toEqual(['de', 'en']);
+	expect(parse('?lang=invalid').filters.languages).toEqual(['de', 'en']);
+	for (const query of ['?lang=all', '?languages=selected', '?languages=selected&lang=all']) {
+		const input = parse(query);
+		expect(input.filters.languages).toEqual([]);
+		expect(searchHref(input)).toContain('lang=all');
+		expect(parseSearchUrl(new URL(searchHref(input), origin))).toEqual(input);
+	}
+	const french = parse('?lang=fr&lang=fr&pageSize=lazy&page=3');
+	expect(french.filters.languages).toEqual(['fr']);
+	expect(parseSearchUrl(new URL(searchHref(french), origin))).toEqual(french);
+	const session = new SearchSession();
+	session.hydrate(parse('?lang=all'));
+	expect(session.filters.selectedLanguages.size).toBe(0);
+	session.filters.toggleLanguage('ja');
+	expect(session.input.filters.languages).toEqual(['ja']);
+	session.filters.toggleLanguage('ja');
+	expect(session.input.filters.languages).toEqual([]);
+	session.filters.clear();
+	expect(session.input.filters.languages).toEqual(['de', 'en']);
 });

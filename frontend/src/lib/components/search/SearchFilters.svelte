@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { LANGUAGE_OPTIONS } from '#lib/search/languages.ts';
 	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { Collapsible } from 'bits-ui';
 	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
@@ -17,6 +18,7 @@
 	}
 	let { filters, facets = null, class: className = '' }: Props = $props();
 	const descriptionId = $props.id();
+	let languagesOpen = $state(false);
 	let colorsOpen = $state(true);
 	let rarityOpen = $state(true);
 	let typesOpen = $state(false);
@@ -51,6 +53,37 @@
 			onclick={() => filters.clear()}>Clear filters</button
 		>
 	</div>
+	<Collapsible.Root bind:open={languagesOpen}>
+		<Collapsible.Trigger class="filter-trigger">
+			{@render groupLabel(
+				filters.selectedLanguages.size ? 'Language' : 'Language · All',
+				languagesOpen,
+				filters.selectedLanguages.size
+			)}
+		</Collapsible.Trigger>
+		<Collapsible.Content>
+			<div class="filter-options" role="group" aria-label="Printing languages">
+				<button
+					type="button"
+					class="filter-option"
+					aria-pressed={filters.selectedLanguages.size === 0}
+					onclick={() => filters.setLanguages([])}>All languages</button
+				>
+				{#each LANGUAGE_OPTIONS as language}
+					<button
+						type="button"
+						class="filter-option"
+						aria-pressed={filters.selectedLanguages.has(language.id)}
+						onclick={() => filters.toggleLanguage(language.id)}
+					>
+						<span class="selection-mark" aria-hidden="true"></span><span class="option-label"
+							>{language.label}</span
+						>
+					</button>
+				{/each}
+			</div>
+		</Collapsible.Content>
+	</Collapsible.Root>
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger class="filter-trigger">
 			{@render groupLabel('Colors', colorsOpen, filters.selectedColors.size)}

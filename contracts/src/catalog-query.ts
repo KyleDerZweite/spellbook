@@ -1,3 +1,4 @@
+import { CATALOG_LANGUAGES } from './catalog.ts';
 import type { CatalogFilters, ColorMatch, ManaColor } from './catalog.ts';
 import { ValidationError } from './validation.ts';
 
@@ -5,6 +6,7 @@ export type { CatalogSearchInput } from './catalog.ts';
 import type { CatalogSearchInput } from './catalog.ts';
 
 const allowedValues = {
+	languages: [...CATALOG_LANGUAGES],
 	colors: ['W', 'U', 'B', 'R', 'G', 'C'],
 	colorIdentity: ['W', 'U', 'B', 'R', 'G', 'C'],
 	rarities: ['common', 'uncommon', 'rare', 'mythic'],

@@ -74,3 +74,17 @@ describe('buildSearchContextKey', () => {
 		);
 	});
 });
+
+it('separates language contexts and normalizes language order for later ranges', () => {
+	const input = {
+		game: 'mtg' as const,
+		query: '',
+		filters: { languages: ['de', 'en'] as ('de' | 'en')[] }
+	};
+	const defaults = buildSearchContextKey(input);
+	expect(defaults).toBe(
+		buildSearchContextKey({ ...input, offset: 600, filters: { languages: ['en', 'de', 'de'] } })
+	);
+	expect(defaults).not.toBe(buildSearchContextKey({ ...input, filters: { languages: [] } }));
+	expect(defaults).not.toBe(buildSearchContextKey({ ...input, filters: { languages: ['fr'] } }));
+});

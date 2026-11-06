@@ -54,3 +54,18 @@ it('keeps the legacy parser compatible while Search normalizes numeric200 to Laz
 		limit: 200
 	});
 });
+
+it('validates every selectable language and leaves omitted API filtering unrestricted', async () => {
+	const { parseCatalogSearchRequest } = await import('@spellbook/contracts/catalog-query.ts');
+	const { LANGUAGE_OPTIONS } = await import('../../src/lib/search/languages.ts');
+	for (const { id } of LANGUAGE_OPTIONS) {
+		expect(
+			parseCatalogSearchRequest({ filters: { languages: [id, id] } }).filters.languages
+		).toEqual([id]);
+	}
+	expect(parseCatalogSearchRequest({}).filters.languages).toBeUndefined();
+	expect(parseCatalogSearchRequest({ filters: { languages: [] } }).filters.languages).toEqual([]);
+	for (const languages of ['de', ['invalid'], ['DE'], [null]]) {
+		expect(() => parseCatalogSearchRequest({ filters: { languages } })).toThrow();
+	}
+});

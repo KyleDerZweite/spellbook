@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { LANGUAGE_OPTIONS, DEFAULT_SEARCH_LANGUAGES } from '#lib/search/languages.ts';
 	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import SearchBar from './SearchBar.svelte';
@@ -103,6 +104,9 @@
 	const paging = $derived(input.pagination ?? searchPagination());
 	const snapshot = $derived(session.snapshot);
 	const total = $derived(!mounted ? (serverResult?.estimatedTotalHits ?? 0) : snapshot.total);
+	const matchedPrintingTotal = $derived(
+		!mounted ? (serverResult?.matchedPrintingTotal ?? 0) : snapshot.matchedPrintingTotal
+	);
 	const facets = $derived(!mounted ? (serverResult?.facets ?? null) : snapshot.facets);
 	const loading = $derived(mounted ? snapshot.loading : false);
 	const error = $derived(mounted ? snapshot.error : serverError);
@@ -112,6 +116,9 @@
 		mounted
 			? filters.hasFilters
 			: Boolean(
+					input.filters.languages?.length !== 2 ||
+					!input.filters.languages?.includes('de') ||
+					!input.filters.languages?.includes('en') ||
 					input.filters.colorMatch?.any.length ||
 					input.filters.colorMatch?.all.length ||
 					input.filters.colorMatch?.not?.length ||
@@ -127,6 +134,7 @@
 		searchHref({
 			query: input.query,
 			filters: {
+				languages: [...DEFAULT_SEARCH_LANGUAGES],
 				colorMatch: { field: input.filters.colorMatch?.field ?? 'color', any: [], all: [] }
 			},
 			pagination: searchPagination(paging.pageSize)
@@ -309,6 +317,7 @@
 		/>
 		<input type="hidden" name="pageSize" value={paging.pageSize} />
 		<input type="hidden" name="page" value="1" />
+		<input type="hidden" name="languages" value="selected" />
 		{#if mounted}
 			<button
 				type="button"
@@ -321,6 +330,20 @@
 			<details class="w-full">
 				<summary>Filters</summary>
 				<div class="grid gap-4 sm:grid-cols-4">
+					<fieldset>
+						<legend>Language</legend>
+						<p>No languages selected means all languages.</p>
+						{#each LANGUAGE_OPTIONS as language}
+							<label class="flex items-center gap-2"
+								><input
+									type="checkbox"
+									name="lang"
+									value={language.id}
+									checked={input.filters.languages?.includes(language.id)}
+								/>{language.label}</label
+							>
+						{/each}
+					</fieldset>
 					<fieldset>
 						<legend>Match colors by</legend>
 						<label class="mr-3"
@@ -374,11 +397,12 @@
 				class="search-status flex flex-wrap items-center gap-3 pb-3 text-sm text-text-muted"
 				aria-live="polite"
 			>
-				<span
+				<span class="font-medium text-foreground"
 					>{loading && !total
 						? 'Finding cards…'
-						: `${total.toLocaleString()} ${total === 1 ? 'card' : 'cards'}`}</span
+						: `${matchedPrintingTotal.toLocaleString()} ${matchedPrintingTotal === 1 ? 'Printing' : 'Printings'}`}</span
 				>
+				<span>{total.toLocaleString()} {total === 1 ? 'unique card' : 'unique cards'}</span>
 				{#if colorExpression}
 					<span
 						class="color-expression"

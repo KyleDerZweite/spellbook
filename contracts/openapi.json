@@ -2136,6 +2136,42 @@
 							"minimum": 0,
 							"maximum": 1000000
 						}
+					},
+					{
+						"name": "lang",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"maxItems": 100,
+							"items": {
+								"type": "string",
+								"enum": [
+									"de",
+									"en",
+									"es",
+									"fr",
+									"it",
+									"pt",
+									"ja",
+									"ko",
+									"ru",
+									"zhs",
+									"zht",
+									"he",
+									"la",
+									"grc",
+									"ar",
+									"sa",
+									"ph",
+									"qya",
+									"dw",
+									"tlh"
+								]
+							}
+						},
+						"style": "form",
+						"explode": true
 					}
 				]
 			},
@@ -9236,6 +9272,36 @@
 					},
 					"colorMatch": {
 						"$ref": "#/components/schemas/ColorMatch"
+					},
+					"languages": {
+						"type": "array",
+						"maxItems": 100,
+						"items": {
+							"type": "string",
+							"enum": [
+								"de",
+								"en",
+								"es",
+								"fr",
+								"it",
+								"pt",
+								"ja",
+								"ko",
+								"ru",
+								"zhs",
+								"zht",
+								"he",
+								"la",
+								"grc",
+								"ar",
+								"sa",
+								"ph",
+								"qya",
+								"dw",
+								"tlh"
+							]
+						},
+						"description": "Matching Printing languages before canonical grouping. Omitted or empty means unrestricted."
 					}
 				},
 				"required": [],
@@ -9328,9 +9394,21 @@
 					},
 					"facets": {
 						"$ref": "#/components/schemas/CatalogFacets"
+					},
+					"matchedPrintingTotal": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Exact matching Printing count in the same publication. estimatedTotalHits remains the canonical pagination total."
 					}
 				},
-				"required": ["query", "hits", "estimatedTotalHits", "processingTimeMs", "generationId"]
+				"required": [
+					"query",
+					"hits",
+					"estimatedTotalHits",
+					"processingTimeMs",
+					"generationId",
+					"matchedPrintingTotal"
+				]
 			},
 			"InventoryAcknowledgement": {
 				"type": "object",

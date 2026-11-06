@@ -21,6 +21,7 @@ export interface CatalogRange {
 export interface CatalogWindowSnapshot {
 	pages: ReadonlyMap<number, CardDocument[]>;
 	total: number;
+	matchedPrintingTotal: number;
 	generation: string | null | undefined;
 	facets: FacetResponse | null;
 	loading: boolean;
@@ -46,6 +47,7 @@ interface CachedContext {
 	input: SearchContextInput;
 	pages: Map<number, CardDocument[]>;
 	total: number;
+	matchedPrintingTotal: number;
 	generation: string | null | undefined;
 	facets: FacetResponse | null;
 }
@@ -144,6 +146,7 @@ export class CatalogWindow {
 				input,
 				pages: new Map(),
 				total: 0,
+				matchedPrintingTotal: 0,
 				generation: undefined,
 				facets: null,
 				span: { start: this.anchor, end: this.anchor }
@@ -199,6 +202,7 @@ export class CatalogWindow {
 			input,
 			pages: new Map(),
 			total: result.estimatedTotalHits,
+			matchedPrintingTotal: result.matchedPrintingTotal,
 			generation: result.generationId,
 			facets: result.facets ?? null
 		};
@@ -259,6 +263,7 @@ export class CatalogWindow {
 		}
 		this.active.generation = result.generationId;
 		this.active.total = result.estimatedTotalHits;
+		this.active.matchedPrintingTotal = result.matchedPrintingTotal;
 		if (changedGeneration || this.active.span.end === this.active.span.start)
 			this.active.span = initialLoadedSpan(
 				this.anchor,
@@ -379,6 +384,7 @@ export class CatalogWindow {
 							: [])
 					].map((context) => ({
 						total: context.total,
+						matchedPrintingTotal: context.matchedPrintingTotal,
 						generation: context.generation,
 						facets: context.facets
 					}))
@@ -492,6 +498,7 @@ export class CatalogWindow {
 				for (const cached of this.contexts.values()) this.dropPages(cached);
 				this.contexts.clear();
 				context.total = 0;
+				context.matchedPrintingTotal = 0;
 				context.span = { start: 0, end: 0 };
 				this.reveals.clear();
 				context.generation = undefined;
@@ -509,6 +516,7 @@ export class CatalogWindow {
 			}
 			context.generation = result.generationId;
 			context.total = result.estimatedTotalHits;
+			context.matchedPrintingTotal = result.matchedPrintingTotal;
 			if (offset === this.anchor) {
 				context.facets = result.facets ?? null;
 				const last =
@@ -543,6 +551,7 @@ export class CatalogWindow {
 		this.changed({
 			pages: new Map(this.active?.pages),
 			total: this.active?.total ?? 0,
+			matchedPrintingTotal: this.active?.matchedPrintingTotal ?? 0,
 			generation: this.active?.generation,
 			facets: this.active?.facets ?? null,
 			loading:
