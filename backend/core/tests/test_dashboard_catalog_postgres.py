@@ -312,7 +312,9 @@ def test_commander_preview_reads_real_worker_document_and_recent_order() -> None
                 )
             result = await create_dashboard(f.pool, auth, f.values).get(actor)
             assert [row["id"] for row in result["decks"]] == ids
-            preview = result["decks"][0]["commanders"][0]
+            commanders = result["decks"][0]["commanders"]
+            assert isinstance(commanders, list)
+            preview = commanders[0]
             assert preview["artCrop"] == transformed["image_uri_art_crop"]
             assert preview["colorIdentity"] == transformed["color_identity"]
             assert "/art_crop/front/" in preview["artCrop"]
