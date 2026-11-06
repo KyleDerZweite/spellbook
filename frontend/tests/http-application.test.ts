@@ -115,6 +115,87 @@ test('built HTTP application preserves public Catalog and local account journeys
 		fixtureStarted = true;
 		const card = await catalogFixture();
 		await verifyIndependentHttp(t, child, pool, card, accounts);
+
+		await t.test(
+			'language-filtered native Search and public API share exact Printing and canonical totals',
+			async () => {
+				const extra = [randomUUID(), randomUUID()];
+				try {
+					for (const [index, language] of ['de', 'fr'].entries()) {
+						const oracle = index === 0 ? card.oracle_id : randomUUID();
+						await pool.query(
+							`INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document)
+                        SELECT generation_id,$2,$3,name,normalized_name,printed_name,$4,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,
+                        document || $5::jsonb FROM catalog_printings WHERE generation_id=$1 AND id=$6`,
+							[
+								generation,
+								extra[index],
+								oracle,
+								language,
+								JSON.stringify({ ...card, id: extra[index], oracle_id: oracle, lang: language }),
+								card.id
+							]
+						);
+					}
+					for (const [language, printings, canonical] of [
+						[undefined, 3, 2],
+						['de', 1, 1],
+						['fr', 1, 1]
+					] as const) {
+						const response = await request('/api/v1/mtg/catalog/search', {
+							query: 'Sol Ring',
+							filters: language ? { languages: [language] } : {}
+						});
+						assert.equal(response.status, 200);
+						const result = await response.json();
+						assert.equal(result.matchedPrintingTotal, printings);
+						assert.equal(result.estimatedTotalHits, canonical);
+						assert.equal(result.generationId, generation);
+					}
+					const get = await (
+						await request('/api/v1/mtg/catalog/search?q=Sol%20Ring&lang=de&lang=en')
+					).json();
+					assert.equal(get.matchedPrintingTotal, 2);
+					assert.equal(get.estimatedTotalHits, 1);
+					for (const invalid of [['invalid'], ['DE'], 'de']) {
+						assert.equal(
+							(await request('/api/v1/mtg/catalog/search', { filters: { languages: invalid } }))
+								.status,
+							400
+						);
+					}
+					assert.equal((await request('/api/v1/mtg/catalog/search?lang=invalid')).status, 400);
+					for (const [suffix, printings, canonical] of [
+						['', 2, 1],
+						['&lang=all', 3, 2],
+						['&languages=selected', 3, 2],
+						['&lang=fr', 1, 1]
+					] as const) {
+						const response = await request('/mtg/search?q=Sol%20Ring' + suffix);
+						assert.equal(response.status, 200);
+						const html = (await response.text()).replace(/<!--.*?-->/gs, '');
+						assert.match(html, new RegExp(`${printings} Printing`));
+						assert.match(html, new RegExp(`${canonical} unique card`));
+						assert.match(html, /name="languages" value="selected"/);
+						assert.match(html, /name="lang" value="dw"/);
+						assert.match(html, /name="lang" value="tlh"/);
+						const selected = [...html.matchAll(/<input[^>]+name="lang"[^>]*>/g)]
+							.map((match) => match[0])
+							.filter((tag) => /checked/.test(tag))
+							.map((tag) => /value="([^"]+)"/.exec(tag)![1]);
+						assert.deepEqual(
+							selected,
+							suffix === '' ? ['de', 'en'] : suffix === '&lang=fr' ? ['fr'] : []
+						);
+					}
+				} finally {
+					await pool.query(
+						'DELETE FROM catalog_printings WHERE generation_id=$1 AND id=ANY($2::uuid[])',
+						[generation, extra]
+					);
+				}
+			}
+		);
 		await t.test('public Search and bounded printing reads use safe DTOs', async () => {
 			const response = await request('/api/v1/mtg/catalog/search', {
 				query: 'Sol Ring',
@@ -215,7 +296,8 @@ test('built HTTP application preserves public Catalog and local account journeys
 					assert.equal(response.status, 200);
 					const html = await response.text();
 					assert.equal((html.match(/<a class="min-w-0" href=/g) ?? []).length, expected);
-					assert.match(html, /600 cards/);
+					assert.match(html, /600 Printings/);
+					assert.match(html, /600 unique cards/);
 					assert.match(html, /aria-label="More results"/);
 					assert.doesNotMatch(html, /Entries per page|<select[^>]*name="pageSize"/);
 					assert.match(html, /name="pageSize"/);
@@ -304,7 +386,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const filtered = await (
 					await request('/mtg/search?q=Sol%20Ring&type=Artifact&type=invalid&rarity=uncommon')
 				).text();
-				assert.match(filtered, /1 card/);
+				assert.match(filtered, /1 unique card/);
 				assert.equal((filtered.match(/<a class="min-w-0" href=/g) ?? []).length, 1);
 				const empty = await (
 					await request('/mtg/search?q=Definitely%20no%20matching%20fixture')
@@ -1774,7 +1856,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				});
 				assert.equal(previewResponse.status, 200);
 				const previewHtml = await previewResponse.text();
-				assert.match(previewHtml, /Add 2 matched cards/);
+				assert.match(previewHtml.replace(/<!--.*?-->/gs, ''), /Add all 2 cards/);
 				assert.ok(previewHtml.includes(`name="requestId" value="${requestId}"`));
 				const commit = await post(`/mtg/decks?/commitImport&deck=${deckId}&flow=import`, {
 					deckId,
@@ -2217,7 +2299,17 @@ test('built HTTP application preserves public Catalog and local account journeys
 					authorization
 				});
 				assert.equal(preview.status, 200);
-				assert.equal((await preview.json()).unresolved.length, 1);
+				const previewBody = await preview.json();
+				assert.equal(previewBody.unresolved.length, 2);
+				assert.deepEqual(
+					previewBody.unresolved.map((item: { reason: string }) => item.reason),
+					['No exact catalog match', 'Unsupported role or quantity']
+				);
+				assert.equal(
+					(await request('/api/v1/mtg/decks/import/commit', body, { authorization })).status,
+					400
+				);
+				body.text = 'Deck\n2 Sol Ring';
 				const commit = await request('/api/v1/mtg/decks/import/commit', body, {
 					authorization
 				});
@@ -2232,12 +2324,12 @@ test('built HTTP application preserves public Catalog and local account journeys
 					authorization
 				});
 				assert.equal(exported.status, 200);
-				assert.match(await exported.text(), /^Deck\n2 Sol Ring/);
+				assert.match(await exported.text(), /^About\nName Imported\n\nDeck\n2 Sol Ring/);
 				const web = await request(`/mtg/decks/${ack.deckId}/export`, undefined, {
 					cookie: `spellbook_session=${session.token}`
 				});
 				assert.equal(web.status, 200);
-				assert.match(await web.text(), /^Deck\n2 Sol Ring/);
+				assert.match(await web.text(), /^About\nName Imported\n\nDeck\n2 Sol Ring/);
 				const invalid = {
 					...body,
 					requestId: randomUUID(),

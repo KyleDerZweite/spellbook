@@ -778,3 +778,86 @@ def test_native_color_expression_or_and_fields_colorless_and_facets() -> None:
                 assert (await find(field, [], ["W", "C"]))["estimatedTotalHits"] == 0
 
     asyncio.run(scenario())
+
+
+def test_language_filter_precedes_grouping_and_counts_same_publication() -> None:
+    async def scenario() -> None:
+        async with native_fixture() as f:
+            french, french_oracle = str(uuid4()), str(uuid4())
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE catalog_printings SET rarity='rare',colors=ARRAY['U'] "
+                    "WHERE generation_id=%s AND id=%s",
+                    (f.generation, f.alternate),
+                )
+                # A French-only identity must disappear from de/en, not survive grouping.
+                await tx.execute(
+                    "INSERT INTO catalog_printings(generation_id,id,oracle_id,name,"
+                    "normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,"
+                    "card_types,legalities,search_name,search_text,document) "
+                    "SELECT generation_id,%s,%s,'French Only','french only',"
+                    "'French Only','fr','fra',"
+                    "'1','mythic',0,ARRAY['R'],card_types,legalities,'french only','',"
+                    "document || %s::jsonb "
+                    "FROM catalog_printings WHERE generation_id=%s AND id=%s",
+                    (
+                        french,
+                        french_oracle,
+                        Jsonb(
+                            {
+                                "id": french,
+                                "oracle_id": french_oracle,
+                                "lang": "fr",
+                                "name": "French Only",
+                                "normalized_name": "french only",
+                                "printed_name": "French Only",
+                                "set_code": "fra",
+                            }
+                        ),
+                        f.generation,
+                        f.land,
+                    ),
+                )
+            all_languages = await f.catalog.search_catalog_request({"facets": True})
+            assert all_languages["matchedPrintingTotal"] == 4
+            assert all_languages["estimatedTotalHits"] == 3
+            for languages, printings, canonical in [
+                (["de"], 1, 1),
+                (["de", "en"], 3, 2),
+                (["fr"], 1, 1),
+                ([], 4, 3),
+            ]:
+                response = await f.catalog.search_catalog_request(
+                    {
+                        "filters": {"languages": languages},
+                        "facets": True,
+                    }
+                )
+                assert response["matchedPrintingTotal"] == printings
+                assert response["estimatedTotalHits"] == canonical
+                assert response["generationId"] == f.generation
+                hits = cast(list[Document], response["hits"])
+                if languages:
+                    assert all(card["lang"] in languages for card in hits)
+                if languages == ["de"]:
+                    assert hits[0]["id"] == f.alternate
+                    assert response["facets"] == {
+                        "colors": {"U": 1},
+                        "rarity": {"rare": 1},
+                        "set_code": {"tst": 1},
+                    }
+            page = await f.catalog.search_catalog_request(
+                {
+                    "filters": {"languages": ["de", "en"]},
+                    "offset": 1,
+                    "limit": 1,
+                }
+            )
+            assert len(cast(list[Document], page["hits"])) == 1
+            assert page["matchedPrintingTotal"] == 3 and page["estimatedTotalHits"] == 2
+            # A prior restricted read cannot contaminate unrestricted facets.
+            again = await f.catalog.search_catalog_request({"facets": True})
+            for key in ("facets", "generationId", "matchedPrintingTotal", "estimatedTotalHits"):
+                assert again[key] == all_languages[key]
+
+    asyncio.run(scenario())

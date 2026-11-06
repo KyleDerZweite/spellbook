@@ -1,4 +1,5 @@
 import { MANA_COLORS, RARITIES, CARD_TYPES, LEGALITY_FORMATS } from './filter-options.ts';
+import { LANGUAGE_OPTIONS, DEFAULT_SEARCH_LANGUAGES } from './languages.ts';
 import type { CatalogFilters } from './types.ts';
 import { browserColorFilters, completeColorMatch } from './color-filters.ts';
 import { parseLazyBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
@@ -22,6 +23,14 @@ function values<T extends string>(
 }
 
 /** Only supported catalog filters enter a browser history entry. */
+export function browserLanguages(params: Pick<URLSearchParams, 'get' | 'getAll'>) {
+	const raw = params.getAll('lang');
+	const selected = LANGUAGE_OPTIONS.filter(({ id }) => raw.includes(id)).map(({ id }) => id);
+	if (selected.length) return selected;
+	if (raw.includes('all') || params.get('languages') === 'selected') return [];
+	return [...DEFAULT_SEARCH_LANGUAGES];
+}
+
 export function parseSearchUrl(url: {
 	searchParams: Pick<URLSearchParams, 'get' | 'getAll'>;
 }): SearchInput {
@@ -43,6 +52,7 @@ export function parseSearchUrl(url: {
 			SEARCH_MAX_OFFSET
 		),
 		filters: {
+			languages: browserLanguages(url.searchParams),
 			...browserColorFilters({
 				field: url.searchParams.get('colorMode') === 'identity' ? 'identity' : 'color',
 				any,
@@ -60,6 +70,10 @@ export function searchHref({ query, filters, pagination }: SearchInput): string 
 	const params = new URLSearchParams();
 	const match = filters.colorMatch ? completeColorMatch(filters.colorMatch) : undefined;
 	if (query) params.set('q', query);
+	const languages = filters.languages ?? DEFAULT_SEARCH_LANGUAGES;
+	if (!languages.length) params.set('lang', 'all');
+	else if (languages.length !== 2 || !languages.includes('de') || !languages.includes('en'))
+		for (const language of [...new Set(languages)].sort()) params.append('lang', language);
 	for (const [key, selected] of [
 		['color', match?.any],
 		['colorAnd', match?.all],

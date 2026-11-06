@@ -1,5 +1,7 @@
+import { DEFAULT_SEARCH_LANGUAGES } from './languages.ts';
 import type {
 	CardType,
+	CatalogLanguage,
 	CatalogFilters,
 	ColorMatch,
 	LegalityFormat,
@@ -28,6 +30,7 @@ export class SearchFilterState {
 		return (['W', 'U', 'B', 'R', 'G'] as const).every((color) => selected.has(color));
 	}
 
+	selectedLanguages: Set<CatalogLanguage> = $state(new Set(DEFAULT_SEARCH_LANGUAGES));
 	selectedRarities: Set<Rarity> = $state(new Set());
 	selectedTypes: Set<CardType> = $state(new Set());
 	selectedLegalities: Set<LegalityFormat> = $state(new Set());
@@ -40,6 +43,7 @@ export class SearchFilterState {
 				all: [...this.colorAll],
 				...(this.colorNot.size ? { not: [...this.colorNot] } : {})
 			}),
+			languages: [...this.selectedLanguages],
 			rarities: [...this.selectedRarities],
 			types: [...this.selectedTypes],
 			legalities: [...this.selectedLegalities]
@@ -87,6 +91,16 @@ export class SearchFilterState {
 		this.changed();
 	}
 
+	setLanguages(languages: CatalogLanguage[]): void {
+		this.selectedLanguages = new Set(languages);
+		this.changed();
+	}
+	toggleLanguage(language: CatalogLanguage): void {
+		const next = new Set(this.selectedLanguages);
+		if (next.has(language)) next.delete(language);
+		else next.add(language);
+		this.setLanguages([...next]);
+	}
 	toggleRarity(rarity: Rarity): void {
 		const next = new Set(this.selectedRarities);
 		if (next.has(rarity)) {
@@ -121,6 +135,7 @@ export class SearchFilterState {
 	}
 
 	clear(): void {
+		this.selectedLanguages = new Set(DEFAULT_SEARCH_LANGUAGES);
 		this.colorAny = new Set();
 		this.colorAll = new Set();
 		this.colorNot = new Set();
@@ -132,6 +147,9 @@ export class SearchFilterState {
 
 	get hasFilters(): boolean {
 		return (
+			this.selectedLanguages.size !== 2 ||
+			!this.selectedLanguages.has('de') ||
+			!this.selectedLanguages.has('en') ||
 			this.selectedColors.size > 0 ||
 			this.selectedRarities.size > 0 ||
 			this.selectedTypes.size > 0 ||

@@ -9,6 +9,28 @@ from spellbook_core.errors import ValidationError
 from spellbook_core.validation import js_trim, utf16_length
 
 _ALLOWED = {
+    "languages": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt",
+        "ja",
+        "ko",
+        "ru",
+        "zhs",
+        "zht",
+        "he",
+        "la",
+        "grc",
+        "ar",
+        "sa",
+        "ph",
+        "qya",
+        "dw",
+        "tlh",
+    ],
     "colors": ["W", "U", "B", "R", "G", "C"],
     "colorIdentity": ["W", "U", "B", "R", "G", "C"],
     "rarities": ["common", "uncommon", "rare", "mythic"],
@@ -216,6 +238,7 @@ def search_sql(input: CatalogSearch) -> tuple[str, list[object]]:
             f"{bind([n for n in range(32) if n & mask == n])}::smallint[])"
         )
     for key, column, op in [
+        ("languages", "lang", "any"),
         ("rarities", "rarity", "any"),
         ("types", "card_types", "overlap"),
         ("sets", "set_code", "any"),
@@ -288,6 +311,7 @@ p ON p.generation_id=m.generation_id AND p.id=m.id)
     SELECT COALESCE((SELECT jsonb_agg(p.document ORDER BY page.position) FROM
 page_candidates page JOIN catalog_printings p ON p.generation_id=page.generation_id
 AND p.id=page.id WHERE page.choice=1),'[]'::jsonb),
-    (SELECT count(*)::int FROM names),(SELECT id FROM active),{facets}
+    (SELECT count(*)::int FROM names),(SELECT id FROM active),{facets},
+    (SELECT count(*)::int FROM matched)
     """
     return sql, values

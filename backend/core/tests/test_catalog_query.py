@@ -265,3 +265,52 @@ def test_identity_not_enumerates_only_known_accepted_masks(
     assert parameters == [expected, 20, 0]
     assert "p.color_identity_mask = ANY($1::smallint[])" in sql
     assert "IS NULL" not in sql
+
+
+@pytest.mark.parametrize("value", ["de", ["DE"], ["unknown"], [None]])
+def test_languages_reject_invalid_values(value: object) -> None:
+    with pytest.raises(ValidationError, match="languages"):
+        parse_catalog_search_request({"filters": {"languages": value}})
+
+
+def test_languages_bind_before_grouping_and_preserve_unrestricted_api() -> None:
+    request = parse_catalog_search_request({"filters": {"languages": ["de", "en", "de"]}})
+    sql, values = search_sql(request)
+    assert request.filters["languages"] == ["de", "en"]
+    assert ["de", "en"] in values
+    assert "p.lang = ANY(" in sql
+    assert sql.index("p.lang = ANY(") < sql.index("preferences AS")
+    assert "(SELECT count(*)::int FROM matched)" in sql
+    unrestricted: list[dict[str, list[str]]] = [{}, {"languages": []}]
+    for filters in unrestricted:
+        unfiltered, _ = search_sql(parse_catalog_search_request({"filters": filters}))
+        assert "p.lang = ANY(" not in unfiltered
+
+
+@pytest.mark.parametrize("language", ["dw", "tlh", "qya"])
+def test_imported_language_codes_remain_individually_selectable(language: str) -> None:
+    assert parse_catalog_search_request({"filters": {"languages": [language]}}).filters == {
+        "languages": [language]
+    }
+
+
+def test_openapi_language_values_match_native_validation() -> None:
+    import json
+    from pathlib import Path
+
+    schema = json.loads(
+        (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
+    )
+    post = schema["components"]["schemas"]["CatalogFilters"]["properties"]["languages"]["items"][
+        "enum"
+    ]
+    get = next(
+        parameter
+        for parameter in schema["paths"]["/api/v1/mtg/catalog/search"]["get"]["parameters"]
+        if parameter["name"] == "lang"
+    )["schema"]["items"]["enum"]
+    assert set(post) == set(get)
+    for language in post:
+        assert parse_catalog_search_request({"filters": {"languages": [language]}}).filters == {
+            "languages": [language]
+        }

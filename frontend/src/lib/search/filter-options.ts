@@ -1,3 +1,4 @@
+import { LANGUAGE_OPTIONS, DEFAULT_SEARCH_LANGUAGES } from './languages.ts';
 import type { CardType, LegalityFormat, ManaColor, Rarity } from './types.ts';
 import type { SearchFilterState } from './filters.svelte.ts';
 
@@ -42,6 +43,25 @@ export const LEGALITY_FORMATS: { id: LegalityFormat; label: string }[] = [
 
 export function getActiveFilters(filters: SearchFilterState) {
 	return [
+		...(filters.selectedLanguages.size !== 2 ||
+		!filters.selectedLanguages.has('de') ||
+		!filters.selectedLanguages.has('en')
+			? filters.selectedLanguages.size
+				? LANGUAGE_OPTIONS.filter((option) => filters.selectedLanguages.has(option.id)).map(
+						(option) => ({
+							key: `language-${option.id}`,
+							label: option.label,
+							remove: () => filters.toggleLanguage(option.id)
+						})
+					)
+				: [
+						{
+							key: 'language-all',
+							label: 'All languages',
+							remove: () => filters.setLanguages([...DEFAULT_SEARCH_LANGUAGES])
+						}
+					]
+			: []),
 		...MANA_COLORS.filter((option) => filters.selectedColors.has(option.id)).map((option) => ({
 			key: `color-${option.id}`,
 			label: `${option.label} ${filters.colorNot.has(option.id) ? 'NOT' : filters.colorAll.has(option.id) ? 'AND' : 'OR'}`,

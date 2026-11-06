@@ -28,6 +28,7 @@ export function buildSearchContextKey({
 		mode,
 		query: mode === 'browse' ? '' : normalizedQuery.toLowerCase(),
 		filters: {
+			languages: [...new Set(filters.languages ?? [])].sort(),
 			colorMatch: {
 				field: filters.colorMatch?.field ?? 'color',
 				any: [...new Set(filters.colorMatch?.any ?? [])].sort(),

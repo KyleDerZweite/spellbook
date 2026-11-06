@@ -93,6 +93,7 @@ class Catalog:
             row = await cursor.fetchone()
         assert row is not None
         result = _result(row, input.query, started)
+        result["matchedPrintingTotal"] = row[4]
         if input.facets:
             result["facets"] = row[3]
         return result
@@ -189,6 +190,7 @@ def _result(row: tuple[object, ...], query: str, started: float) -> dict[str, ob
         "query": query,
         "processingTimeMs": int((time.monotonic() - started) * 1000 + 0.5),
         "estimatedTotalHits": row[1],
+        "matchedPrintingTotal": row[1],
         "generationId": str(row[2]) if row[2] is not None else None,
     }
 

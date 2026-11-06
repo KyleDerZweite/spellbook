@@ -29,9 +29,15 @@ def create_catalog_routes(catalog: Catalog) -> APIRouter:
         q: str = "",
         limit: Annotated[int, Query(ge=0, le=500)] = 20,
         offset: Annotated[int, Query(ge=0, le=1000000)] = 0,
+        lang: Annotated[list[str] | None, Query()] = None,
     ) -> Response:
         result = await catalog.search_catalog_request(
-            {"query": q, "limit": limit, "offset": offset}
+            {
+                "query": q,
+                "limit": limit,
+                "offset": offset,
+                **({"filters": {"languages": lang}} if lang is not None else {}),
+            }
         )
         return json_response(result, headers={"Cache-Control": "no-store"})
 

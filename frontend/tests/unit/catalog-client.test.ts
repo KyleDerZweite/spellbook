@@ -11,6 +11,7 @@ const empty = {
 	hits: [],
 	query: '',
 	processingTimeMs: 0,
+	matchedPrintingTotal: 0,
 	estimatedTotalHits: 0,
 	generationId: 'first'
 };

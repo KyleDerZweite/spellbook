@@ -38,6 +38,8 @@ export interface SearchResult {
 	query: string;
 	processingTimeMs: number;
 	estimatedTotalHits: number;
+	/** Exact matching Printing count; canonical pagination still uses estimatedTotalHits. */
+	matchedPrintingTotal: number;
 	generationId?: string | null;
 	facets?: FacetResponse;
 }
@@ -80,7 +82,32 @@ export interface ColorMatch {
 	not?: ManaColor[];
 }
 
+export const CATALOG_LANGUAGES = [
+	'de',
+	'en',
+	'es',
+	'fr',
+	'it',
+	'pt',
+	'ja',
+	'ko',
+	'ru',
+	'zhs',
+	'zht',
+	'he',
+	'la',
+	'grc',
+	'ar',
+	'sa',
+	'ph',
+	'qya',
+	'dw',
+	'tlh'
+] as const;
+export type CatalogLanguage = (typeof CATALOG_LANGUAGES)[number];
+
 export interface CatalogFilters {
+	languages?: CatalogLanguage[];
 	colorMatch?: ColorMatch;
 	colors?: ManaColor[];
 	colorIdentity?: ManaColor[];

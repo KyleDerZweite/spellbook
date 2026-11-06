@@ -45,7 +45,7 @@ export async function searchCards(
 ): Promise<SearchResult> {
 	ensureSupportedGame(options.game);
 	if (query.trim().length < 2) {
-		return { hits: [], query, processingTimeMs: 0, estimatedTotalHits: 0 };
+		return { hits: [], query, processingTimeMs: 0, estimatedTotalHits: 0, matchedPrintingTotal: 0 };
 	}
 	return search(
 		{
@@ -81,7 +81,13 @@ export async function searchPrintings(
 	options: { game?: Game; limit?: number; signal?: AbortSignal } = {}
 ): Promise<SearchResult> {
 	ensureSupportedGame(options.game);
-	const result: SearchResult = { hits: [], query: '', processingTimeMs: 0, estimatedTotalHits: 0 };
+	const result: SearchResult = {
+		hits: [],
+		query: '',
+		processingTimeMs: 0,
+		estimatedTotalHits: 0,
+		matchedPrintingTotal: 0
+	};
 	if (!oracleId) return result;
 	const limit = Math.min(options.limit ?? 1000, 1000);
 	while (result.hits.length < limit) {
@@ -94,6 +100,7 @@ export async function searchPrintings(
 		}
 		result.hits.push(...page.hits);
 		result.estimatedTotalHits = page.estimatedTotalHits;
+		result.matchedPrintingTotal = page.matchedPrintingTotal;
 		result.processingTimeMs += page.processingTimeMs ?? 0;
 		result.generationId = page.generationId;
 		if (!page.hits.length || result.hits.length >= page.estimatedTotalHits) break;

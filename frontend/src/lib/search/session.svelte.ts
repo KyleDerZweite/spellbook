@@ -1,3 +1,4 @@
+import { DEFAULT_SEARCH_LANGUAGES } from './languages.ts';
 import { browserColorFilters } from './color-filters.ts';
 import { getContext, setContext } from 'svelte';
 import { CatalogWindow, type CatalogWindowSnapshot, type CatalogRange } from './catalogWindow.ts';
@@ -23,6 +24,7 @@ export class SearchSession {
 	snapshot: CatalogWindowSnapshot = $state.raw({
 		pages: new Map(),
 		total: 0,
+		matchedPrintingTotal: 0,
 		generation: undefined,
 		facets: null,
 		loading: true,
@@ -81,6 +83,7 @@ export class SearchSession {
 			...input,
 			filters: {
 				...input.filters,
+				languages: input.filters.languages ?? [...DEFAULT_SEARCH_LANGUAGES],
 				...browserColorFilters(input.filters.colorMatch ?? { field: 'color', any: [], all: [] })
 			},
 			pagination: input.pagination
@@ -99,6 +102,7 @@ export class SearchSession {
 		this.filters.colorAll = new Set(input.filters.colorMatch?.all);
 		this.filters.colorNot = new Set(input.filters.colorMatch?.not);
 		this.filters.colorField = input.filters.colorMatch?.field ?? 'color';
+		this.filters.selectedLanguages = new Set(input.filters.languages);
 		this.filters.selectedRarities = new Set(input.filters.rarities);
 		this.filters.selectedTypes = new Set(input.filters.types);
 		this.filters.selectedLegalities = new Set(input.filters.legalities);

@@ -72,6 +72,7 @@ describe('SearchFilterState', () => {
 	it('starts unfiltered with printed Color selected', () => {
 		const state = new SearchFilterState();
 		expect(state.catalogFilters).toEqual({
+			languages: ['de', 'en'],
 			colorMatch: { field: 'color', any: [], all: [] },
 			rarities: [],
 			types: [],
@@ -124,6 +125,7 @@ describe('SearchFilterState', () => {
 		state.toggleType('Creature');
 		state.toggleLegality('modern');
 		expect(state.catalogFilters).toEqual({
+			languages: ['de', 'en'],
 			colorMatch: { field: 'color', any: ['R'], all: [] },
 			rarities: ['rare'],
 			types: ['Creature'],

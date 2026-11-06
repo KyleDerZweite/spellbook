@@ -204,3 +204,30 @@ def test_private_value_cache_policy_and_actor_forwarding(monkeypatch: pytest.Mon
         values.history.assert_awaited_once_with(ACTOR, {})
 
     asyncio.run(scenario())
+
+
+def test_catalog_language_get_and_post_preserve_totals_and_filter_input() -> None:
+    async def scenario() -> None:
+        _, catalog, _ = dependencies()
+        catalog.search_catalog_request.return_value = {
+            "hits": [],
+            "estimatedTotalHits": 2,
+            "matchedPrintingTotal": 3,
+            "generationId": "fixture",
+        }
+        routes = native_routes(create_catalog_routes(catalog))
+        for method, req in [
+            ("GET", request(query="lang=de&lang=en")),
+            ("POST", request(method="POST", body={"filters": {"languages": ["de", "en"]}})),
+        ]:
+            route = next(
+                r for r in routes if r.path.endswith("/search") and method in (r.methods or ())
+            )
+            response = await invoke(route, req)
+            assert response.status_code == 200
+            body = json.loads(bytes(response.body))
+            assert body["matchedPrintingTotal"] == 3 and body["estimatedTotalHits"] == 2
+            passed = catalog.search_catalog_request.call_args.args[0]
+            assert passed["filters"]["languages"] == ["de", "en"]
+
+    asyncio.run(scenario())

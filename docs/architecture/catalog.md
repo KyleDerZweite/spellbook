@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-06
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: environment isolation and Catalog-preserving private Demo reset, managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: reviewed browser language filtering contract, environment isolation and Catalog-preserving private Demo reset, managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
@@ -153,14 +153,24 @@ Color facets retain printed-color buckets even when a color-identity palette is 
 Optional color, rarity, and set facets count distinct oracle IDs in each bucket over the matching printings.
 The reader deduplicates narrow Oracle/bucket pairs before counting.
 Color expansion first deduplicates Oracle/color-array pairs, while representative candidates retain only their selection fields.
-Each Catalog process retains one private copied facet response for a nonempty immutable generation, only for empty-query reads without active filters.
-A warm read skips facet aggregation but accepts that metadata only when the same statement supplying hits and total returns its exact generation.
-A mismatch discards the fast result and reruns the complete facet statement.
-Null or empty generations are never memoized, and returned DTOs cannot mutate the retained metadata.
-Filtered and query-scoped facets still use the full statement.
+The current native reader computes requested facets in the same SQL statement as both counts and hits.
+The bounded browser cache retains facets and counts only within their query/filter context and generation.
 A canonical card may occur in more than one bucket, so facet counts need not sum to the result total.
 `estimatedTotalHits` contains the exact distinct-card count for the request, despite its compatibility name.
-Search starts unfiltered.
+Browser Search and SearchOverlay start with German and English selected.
+The language multi-selection filters Printings before grouping by `oracle_id`; representatives, exact matched-Printing totals, Canonical totals and facets share that restriction and generation.
+An absent browser language parameter uses German and English; repeated `lang` parameters select known codes.
+An explicit empty selection means all languages, serialized as `lang=all` and retained across reload/history and every Lazy range.
+Native forms submit a `languages=selected` marker so unchecked language boxes mean all rather than the absent-URL default.
+Invalid browser codes are discarded; an invalid-only URL falls back to browser defaults.
+Clear filters restores German and English.
+The API accepts optional `filters.languages` in POST or repeated `lang` in GET; omission and an empty array remain unrestricted for other consumers.
+Card details, Inventory and Deck ownership are unaffected.
+The main visible number is the exact matched-Printing count, exposed as `matchedPrintingTotal`.
+The Canonical count appears secondarily and remains `estimatedTotalHits`, which alone controls grid slots and Lazy pagination.
+Both counts travel with the generation through SSR, later ranges and bounded cache metadata.
+Language changes select a separate bounded browser cache context; counts and facets cannot cross those contexts.
+No ingestion or schema change is required.
 The first page supplies facets for the current query and filters; later pages do not replace them.
 
 Public `GET /api/v1/mtg/catalog/search` supports the existing query and pagination contract.

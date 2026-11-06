@@ -40,6 +40,7 @@ function page(offset = 0, generation = 'first', total = 5000, limit = 200): Sear
 			id: `${generation}-${offset + index}`
 		})),
 		query: '',
+		matchedPrintingTotal: total * 2,
 		estimatedTotalHits: total,
 		processingTimeMs: 1,
 		generationId: generation,
@@ -508,5 +509,59 @@ it('publishes stable immutable span references when geometry or loading state ch
 	expect(h.snapshot.span).toBe(span);
 	h.window.setRange({ start: 160, end: 200, direction: 1, reveal: true });
 	expect(h.snapshot.span).toBe(span);
+	h.window.dispose();
+});
+
+it('keeps Printing totals, canonical slots and facets within language/publication contexts', async () => {
+	const h = harness();
+	const defaults: SearchContextInput = { ...numeric, filters: { languages: ['de', 'en'] } };
+	h.window.activate(defaults);
+	h.window.start();
+	h.requests[0].resolve(page(0, 'first', 500));
+	await flush();
+	expect(h.snapshot).toMatchObject({ total: 500, matchedPrintingTotal: 1000, generation: 'first' });
+	h.window.setAnchor(200);
+	expect(h.requests[1].input.filters.languages).toEqual(['de', 'en']);
+	h.requests[1].resolve(page(200, 'first', 500));
+	await flush();
+	expect(h.snapshot.matchedPrintingTotal).toBe(1000);
+	h.window.activate({ ...numeric, filters: { languages: [] } });
+	expect(h.snapshot).toMatchObject({ total: 0, matchedPrintingTotal: 0, facets: null });
+	h.window.start();
+	h.requests[2].resolve(page(0, 'second', 700));
+	await flush();
+	expect(h.snapshot).toMatchObject({
+		total: 700,
+		matchedPrintingTotal: 1400,
+		generation: 'second',
+		facets: { colors: { U: 700 } }
+	});
+	h.window.activate(defaults);
+	expect(h.snapshot).toMatchObject({
+		total: 500,
+		matchedPrintingTotal: 1000,
+		generation: 'first',
+		facets: { colors: { U: 500 } }
+	});
+	h.window.dispose();
+});
+
+it('carries language restrictions and both totals through later Lazy ranges', async () => {
+	const h = harness();
+	h.window.activate({ ...lazy, filters: { languages: ['de', 'en'] } });
+	h.window.seed(page());
+	h.window.start();
+	h.window.setRange({ start: 160, end: 200, direction: 1, reveal: true });
+	expect(h.requests.some((request) => request.offset === 200)).toBe(true);
+	for (const request of h.requests) {
+		expect(request.input.filters.languages).toEqual(['de', 'en']);
+		request.resolve(page(request.offset));
+	}
+	await flush();
+	expect(h.snapshot).toMatchObject({
+		total: 5000,
+		matchedPrintingTotal: 10000,
+		generation: 'first'
+	});
 	h.window.dispose();
 });
