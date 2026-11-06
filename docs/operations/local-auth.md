@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-06
 - Source of Truth: code
-- Update Triggers: Compose Demo and production entrypoints, explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: hosted built Demo runtime, Compose Demo and production entrypoints, explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
@@ -76,8 +76,8 @@ The built-in attempt limit is per process.
 
 ## Demo mode
 
-Start the isolated [Demo Compose stack](./deployment.md#local-development).
-It migrates and seeds its own PostgreSQL volume, then starts API, State, Scan and Vite with `DEMO_MODE=true`.
+Start the isolated [Demo Compose stack](./deployment.md#demo-deployment).
+It migrates and seeds its own PostgreSQL volume, then starts API, State, Scan and the built web server with `DEMO_MODE=true`.
 It omits the live Catalog worker to preserve the bundled Catalog; remote card images still require network access.
 Sign in with username `demo` and password `demo`.
 Public Search uses the versioned English Catalog bundle described by [Catalog](../architecture/catalog.md#storage-and-publication).

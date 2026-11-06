@@ -15,13 +15,15 @@ Android implementation and verification are in progress under the [independent a
 No production recognizer is implemented.
 [The recognition decision](docs/decisions/0023-local-recognition-in-scanner-clients.md) distinguishes that direction from the current upload/review workflow.
 
-Start the Demo development environment with `podman-compose -p spellbook-demo -f compose.dev.yml up --build`.
-Stop it with `podman-compose -p spellbook-demo -f compose.dev.yml down`.
-This starts the API on loopback port 3001 and Vite on port 5173.
-Startup applies the installed Python migrator once, then starts the independent State, Catalog and Scan workers.
-Demo mode uses the bundled Catalog and omits the live Catalog worker.
-Prepare Python environments with `pnpm setup:python` before first startup.
-See [local development setup](docs/operations/deployment.md#local-development) for prerequisites, independent build/start commands and private configuration.
+Start the built Demo with `podman-compose --env-file .env -p spellbook-demo -f compose.dev.yml up --build -d`.
+The private environment file must supply `APP_ORIGIN` and a strong `POSTGRES_PASSWORD`.
+Web listens on port 3000 inside the container network; no host ports are published.
+The API is private to the frontend network namespace.
+Startup migrates and seeds an isolated Demo database before API and State start.
+The Demo uses the bundled Catalog, local Scan storage and no live Catalog worker.
+The optional `tunnel` profile connects Newt to Pangolin.
+Stop with the same options followed by `down`, without removing volumes.
+See [Demo deployment](docs/operations/deployment.md#demo-deployment) for configuration and [independent build/start](docs/operations/deployment.md#independent-build-and-start) for native development.
 
 - [Product specification](docs/product/specification.md)
 - [Documentation index](docs/README.md)

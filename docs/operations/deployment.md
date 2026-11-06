@@ -1,12 +1,12 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-06
 - Source of Truth: repo config
-- Update Triggers: Compose Demo and production entrypoints, managed Category removal, static Demo valuation in API and State, shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: container-only ingress without published host ports, single private Demo environment, built public Demo Compose, Compose Demo and production entrypoints, managed Category removal, static Demo valuation in API and State, shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
-The development and production service definitions are [`compose.dev.yml`](../../compose.dev.yml) and [`compose.prod.yml`](../../compose.prod.yml).
+The Demo and production service definitions are [`compose.dev.yml`](../../compose.dev.yml) and [`compose.prod.yml`](../../compose.prod.yml).
 Keep live domains, account details, and secret references in private operator notes.
 
 The unmerged candidate uses the Python API image and an explicit one-shot `spellbook-migrate` service.
@@ -15,22 +15,36 @@ State is the sole scheduled ValueHistory owner.
 API performs synchronous effects and enqueues work but starts no schedulers.
 Source activation does not authorize a production cutover or retire the retained Node rollback artifact.
 
-## Local development
+## Demo deployment
 
-Start the isolated Demo stack from the repository root:
+`compose.dev.yml` owns the disposable Demo runtime with production image entrypoints.
+It has no source mounts or reload servers.
+Use a private environment file and the distinct `spellbook-demo` project name:
 
 ```sh
-podman-compose -p spellbook-demo -f compose.dev.yml up --build
+podman-compose --env-file .env -p spellbook-demo -f compose.dev.yml up --build -d
 ```
 
-Open `http://localhost:5173` and sign in with the Demo credentials.
-Stop the stack with `podman-compose -p spellbook-demo -f compose.dev.yml down`.
-The `spellbook-demo` project uses its own PostgreSQL and scan volumes, separate from production.
-Startup migrates and seeds the Demo database before starting the API and State worker.
-The Catalog worker does not run, so the bundled Demo Catalog remains selected.
-Vite reloads frontend source; watchfiles restarts API and State after Python source changes, and Uvicorn reloads the Scan worker.
-Rebuild the images after dependency or configuration changes.
-The `watchfiles` development dependency restarts the existing API and State entrypoints without changing their shutdown behavior.
+Keep the private root `.env` limited to `APP_ORIGIN`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` and the optional tunnel variables below.
+Compose derives `DATABASE_URL` and fixes Demo mode and local Scan storage, so no provider keys or S3 settings are needed.
+Set `APP_ORIGIN` to the exact public HTTPS origin before building and supply a strong `POSTGRES_PASSWORD`.
+The database name must end in `_demo` or `_design` for guarded seeding; the default is `spellbook_demo`.
+The one-shot migrator seeds the bundled Demo before API and State start.
+API, web and State explicitly enable Demo mode; the live Catalog worker is omitted.
+API and Scan share the local `demo_scans` volume, so no S3 service or credentials are required.
+All visitors share the mutable `demo` account; registration remains disabled.
+Re-running the seed preserves existing private Demo edits unless an explicit reset is requested.
+Demo prices are static examples; card images still use remote Scryfall URLs.
+
+To expose the stack, set `PANGOLIN_ENDPOINT`, `NEWT_ID` and `NEWT_SECRET` in the private environment file and add `--profile tunnel` before `up`.
+Configure the Pangolin HTTPS resource to target `http://frontend:3000` through that dedicated Newt site.
+No Demo service publishes a host port, including host loopback.
+Newt reaches `frontend:3000` on the private Compose network; the API remains on frontend loopback.
+Verify login, Search, Inventory, Decks and long-lived API streams through the public origin before declaring deployment complete.
+Configure an operator-owned user service for reboot startup; restart policies alone do not establish host boot integration.
+Rebuild web and update the API origin when moving this Demo to another domain.
+Use a separate project and fresh database for the regular production mode.
+Stop the Demo with the same private environment file and project name using `down`, without `--volumes` to retain data.
 
 ## Prepare a shared UI development session
 
@@ -193,7 +207,7 @@ API/State image contexts are the repository root; Catalog/Scan retain package-ro
 | `worker`       | Scryfall catalog ingestion and synchronization                        |
 | `frontend`     | SvelteKit rendering, forms and same-origin streaming API proxy        |
 | `api`          | Python HTTP authentication, use cases, database and resource lifetime |
-| `state-worker` | Scheduled ValueHistory jobs                     |
+| `state-worker` | Scheduled ValueHistory jobs                                           |
 | `scan-worker`  | Scan API scaffold that returns no matches                             |
 | `newt`         | Optional Pangolin tunnel, enabled by the `tunnel` profile             |
 
@@ -218,7 +232,8 @@ Explicit [Demo setup](./local-auth.md#demo-mode) publishes the versioned searcha
 Its private Precon starter remains separate; [Demo setup](./local-auth.md#demo-mode) owns the selected composition and guarded replacement of the previous fixture.
 Neither workflow downloads Catalog card image files.
 
-Web publishes host loopback port 3000.
+Neither Compose stack publishes host ports.
+Web listens on container port 3000 and Newt reaches `frontend:3000` through the private Compose network.
 The API shares the frontend network namespace and binds only `127.0.0.1:3001`; it has no published port.
 Web forwards `/api/*` and `/openapi.json` to it.
 Configure external same-origin ingress through a reverse proxy or the optional tunnel.
@@ -259,7 +274,7 @@ The tunnel transports requests; local authentication owns login.
 | `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                                                            |
 | `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                                                              |
 | `SCAN_WORKER_URL`                                   | API-only internal scan-worker URL; Compose uses `http://scan-worker:8080`                                                                                 |
-| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in production or `local` in development                                                                   |
+| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in production or `local` in development                                                                                      |
 | `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                                                           |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | API/Scan-worker S3-compatible endpoint, region and bucket; never web configuration                                                                        |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | API/Scan-worker S3-compatible credentials                                                                                                                 |
@@ -268,7 +283,7 @@ The tunnel transports requests; local authentication owns login.
 Native Python commands do not implicitly load `.env`.
 From `backend/workers/catalog/` or `backend/workers/scan/`, use `uv run --env-file ../../../.env` before the existing command when its configuration should come from that file.
 Production Compose constructs internal database URLs from `POSTGRES_*` and sets `DEMO_MODE=false`.
-Development Compose sets `DEMO_MODE=true` and supplies its own local origin.
+Demo Compose sets `DEMO_MODE=true` and supplies its own local origin.
 
 Set `APP_ORIGIN` before building web and starting the API.
 Changing it requires `podman-compose -p spellbook -f compose.prod.yml build frontend` and recreation of frontend and API with the same public Origin.
@@ -296,7 +311,6 @@ See [request validation](../architecture/mobile-and-scan.md#request-validation).
 OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables are no longer used.
 Browser catalog reads are public; account operations and the versioned integration API require authentication.
 Remove obsolete search origins and credentials from deployment configuration.
-
 
 ## Application and native operator ownership
 

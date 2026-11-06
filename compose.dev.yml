@@ -1,104 +1,108 @@
-# Use a distinct Compose project name and database for disposable Demo data.
+# Hosted Demo stack with built images and optional Pangolin tunnel.
 services:
   postgres:
     image: docker.io/postgres:18.6-bookworm
     environment:
-      POSTGRES_DB: spellbook_demo
-      POSTGRES_USER: spellbook
-      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: ${POSTGRES_DB:-spellbook_demo}
+      POSTGRES_USER: ${POSTGRES_USER:-spellbook}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a private demo database password}
     volumes:
-      - demo_postgres:/var/lib/postgresql
+      - postgres18_data:/var/lib/postgresql
     healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U spellbook -d spellbook_demo']
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-spellbook} -d ${POSTGRES_DB:-spellbook_demo}
       interval: 5s
       timeout: 5s
       retries: 12
-
-  prepare:
+    restart: unless-stopped
+  db-migrate:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-      target: api
-    command: [sh, -c, 'spellbook-migrate && spellbook-demo-seed']
+      dockerfile: backend/api/Dockerfile
+    command:
+      - /bin/sh
+      - -c
+      - /app/backend/api/.venv/bin/spellbook-migrate && /app/backend/api/.venv/bin/spellbook-demo-seed
     environment:
-      DATABASE_URL: postgres://spellbook:demo@postgres:5432/spellbook_demo
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${POSTGRES_DB:-spellbook_demo}
     depends_on:
       postgres:
         condition: service_healthy
-
+    restart: "no"
   scan-worker:
     build:
       context: ./backend/workers/scan
     environment:
       SCAN_STORAGE_DRIVER: local
       SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
-      PYTHONPATH: /app/src
-    command: [uv, run, --no-sync, uvicorn, 'scan_worker.main:app', --host, 0.0.0.0, --port, '8080', --reload]
+    restart: unless-stopped
     volumes:
       - demo_scans:/app/storage/scans
-      - ./backend/workers/scan/src:/app/src:z
-
-  state-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-      target: state
-    command: [watchfiles, '--filter', python, spellbook-state-worker, /app/backend/workers/state/src, /app/backend/core/src]
-    environment:
-      DEMO_MODE: 'true'
-      DATABASE_URL: postgres://spellbook:demo@postgres:5432/spellbook_demo
-    volumes:
-      - ./backend/workers/state/src:/app/backend/workers/state/src:z
-      - ./backend/core/src:/app/backend/core/src:z
-    depends_on:
-      prepare:
-        condition: service_completed_successfully
-
   api:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-      target: api
+      dockerfile: backend/api/Dockerfile
     network_mode: service:frontend
-    command: [watchfiles, '--filter', python, spellbook-api, /app/backend/api/src, /app/backend/core/src]
     environment:
       API_HOST: 127.0.0.1
       API_PORT: 3001
-      API_TRUSTED_PROXY_ADDRESSES: '127.0.0.1,::1'
-      APP_ORIGIN: http://localhost:5173
-      DEMO_MODE: 'true'
-      DATABASE_URL: postgres://spellbook:demo@postgres:5432/spellbook_demo
+      API_TRUSTED_PROXY_ADDRESSES: 127.0.0.1,::1
+      APP_ORIGIN: ${APP_ORIGIN}
+      DEMO_MODE: "true"
+      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${POSTGRES_DB:-spellbook_demo}
       SCAN_STORAGE_DRIVER: local
-      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
       SCAN_WORKER_URL: http://scan-worker:8080
-    volumes:
-      - ./backend/api/src:/app/backend/api/src:z
-      - ./backend/core/src:/app/backend/core/src:z
-      - demo_scans:/app/storage/scans
+      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
     depends_on:
-      prepare:
+      db-migrate:
         condition: service_completed_successfully
       scan-worker:
         condition: service_started
-
+    restart: unless-stopped
+    volumes:
+      - demo_scans:/app/storage/scans
+  state-worker:
+    build:
+      context: .
+      dockerfile: backend/workers/state/Dockerfile
+    environment:
+      DEMO_MODE: "true"
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${POSTGRES_DB:-spellbook_demo}
+      VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
+      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-      target: web
-    command: [pnpm, '--dir', frontend, dev, '--host', 0.0.0.0]
+      dockerfile: frontend/Dockerfile
+      args:
+        APP_ORIGIN: ${APP_ORIGIN}
     environment:
-      DEV_APP_ORIGIN: http://localhost:5173
-      APP_ORIGIN: http://localhost:5173
-      DEMO_MODE: 'true'
+      HOST: 0.0.0.0
+      PORT: 3000
+      APP_ORIGIN: ${APP_ORIGIN}
+      DEMO_MODE: "true"
       API_INTERNAL_URL: http://127.0.0.1:3001
-    ports:
-      - '127.0.0.1:5173:5173'
-    volumes:
-      - ./frontend/src:/app/frontend/src:z
-      - ./frontend/static:/app/frontend/static:z
-      - ./contracts/src:/app/contracts/src:z
-
+      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
+      XFF_DEPTH: ${XFF_DEPTH:-1}
+      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-12M}
+    restart: unless-stopped
+  newt:
+    image: docker.io/fosrl/newt:1.18.1
+    profiles:
+      - tunnel
+    restart: unless-stopped
+    environment:
+      PANGOLIN_ENDPOINT: ${PANGOLIN_ENDPOINT}
+      NEWT_ID: ${NEWT_ID}
+      NEWT_SECRET: ${NEWT_SECRET}
+    depends_on:
+      - frontend
 volumes:
-  demo_postgres:
-  demo_scans:
+  postgres18_data: null
+  demo_scans: null
