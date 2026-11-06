@@ -151,3 +151,12 @@ def test_dashboard_option_is_explicit_and_forwarded(monkeypatch: pytest.MonkeyPa
     assert calls[-1]["dashboard_scenario"] is True
     assert seed.main([]) == 0
     assert calls[-1]["dashboard_scenario"] is False
+
+
+def test_reset_requires_explicit_disposable_opt_in(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://owner@invalid/isolated_demo")
+    monkeypatch.delenv("DEMO_RESET_DISPOSABLE", raising=False)
+    assert seed.main(["--reset-users"]) == 1
+    assert "DEMO_RESET_DISPOSABLE=true" in capsys.readouterr().err

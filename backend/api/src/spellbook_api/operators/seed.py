@@ -27,6 +27,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         url = os.environ.get("DATABASE_URL", "")
         require_demo_database(url)
+        if args.reset_users and os.environ.get("DEMO_RESET_DISPOSABLE") != "true":
+            raise OperatorError("Reset requires DEMO_RESET_DISPOSABLE=true.")
         directory = args.fixtures_dir if args.fixtures_dir is not None else fixture_directory()
         bundle = verify_bundle(directory)
         result = seed_demo(

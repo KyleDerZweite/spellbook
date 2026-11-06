@@ -2,28 +2,35 @@
 services:
   postgres:
     environment:
-      POSTGRES_DB: ${DEV_POSTGRES_DB:-spellbook_dev_demo}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-spellbook_dev}
       POSTGRES_USER: ${DEV_POSTGRES_USER:-spellbook}
       POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?Set a private development database password}
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${DEV_POSTGRES_USER:-spellbook} -d ${DEV_POSTGRES_DB:-spellbook_dev_demo}
+        - pg_isready -U ${DEV_POSTGRES_USER:-spellbook} -d ${DEV_POSTGRES_DB:-spellbook_dev}
   db-migrate:
+    command: ["/app/backend/api/.venv/bin/spellbook-migrate"]
     environment:
-      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev_demo}
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
+  worker:
+    environment:
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
   api:
     environment:
+      DEMO_MODE: "false"
       APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
-      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev_demo}
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
   state-worker:
     environment:
-      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev_demo}
+      DEMO_MODE: "false"
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
   frontend:
     build:
       args:
         APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
     environment:
+      DEMO_MODE: "false"
       APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
   newt:
     image: docker.io/fosrl/newt:1.18.1

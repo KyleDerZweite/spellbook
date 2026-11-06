@@ -292,3 +292,45 @@ def test_qr_redemption_rechecks_approver_expiry_after_session_lock_wait(
                     await asyncio.gather(redeem, return_exceptions=True)
 
     asyncio.run(scenario())
+
+
+def test_demo_fences_existing_sessions_and_qr_issuance() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            demo = create_local_auth(f.pool, f.auth.passwords, demo_mode=True)
+            assert await f.auth.validate_session(f.first.session.token)
+            assert await demo.validate_session(f.first.session.token) is None
+            assert await demo.authenticate("register", "new_owner", PASSWORD) is None
+            assert await demo.authenticate("login", f.first.user.username, PASSWORD) is None
+            async with transaction(f.pool) as tx:
+                row = await (
+                    await tx.execute(
+                        "SELECT password_hash FROM local_credentials WHERE account_id=%s",
+                        (f.first.user.account_id,),
+                    )
+                ).fetchone()
+                assert row
+                assert await demo.create_session(f.first.user.account_id, str(row[0]), tx) is None
+            assert await f.auth.authenticate("login", f.first.user.username, PASSWORD)
+            code, secret = await challenge(f)
+            await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+            with pytest.raises(QrAuthError):
+                await demo.qr.redeem(code, Requester(requester_secret=secret), "fixture")
+            from spellbook_core.passwords import hash_password
+
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE user_profiles SET username='demo' WHERE account_id=%s",
+                    (f.second.user.account_id,),
+                )
+                await tx.execute(
+                    "UPDATE local_credentials SET username='demo',password_hash=%s "
+                    "WHERE account_id=%s",
+                    (hash_password("demo"), f.second.user.account_id),
+                )
+            logged = await demo.authenticate("login", "demo", "demo")
+            assert logged and await demo.validate_session(logged.session.token)
+            assert await demo.authenticate("login", "demo", PASSWORD) is None
+            assert await demo.change_password(logged.user, "demo", PASSWORD) is None
+
+    asyncio.run(scenario())

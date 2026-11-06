@@ -1,9 +1,9 @@
 # Catalog
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-06
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: environment isolation and Catalog-preserving private Demo reset, managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
@@ -49,7 +49,7 @@ Neither that version nor the source filename establishes fresh Scryfall or Price
 The versioned [Upgrades Unleashed fixture](../../backend/scripts/demo/upgrades-unleashed.json) seeds the current private Demo Deck and Inventory separately from public Catalog publication.
 [Demo setup](../operations/local-auth.md#demo-mode) owns its official composition, extra owned Commander, printing assumptions and guarded replacement of the previous starter.
 The retained [legacy fixture](../../backend/scripts/demo/cards.json) verifies that old Inventory is unchanged before replacement.
-Ordinary Demo seed refreshes the public bundle before returning for an existing account and preserves private edits.
+Ordinary Demo seed bootstraps the bundle only without an active Catalog and preserves private edits.
 Repeating an already-active complete bundle leaves its pointer and timestamp unchanged.
 Explicit `--reset-users` remains the separate destructive private reset path.
 Images retain remote Scryfall URLs.

@@ -47,8 +47,9 @@ def valid_session_token(token: object) -> bool:
 
 
 class SessionAuth:
-    def __init__(self, pool: ConnectionPool):
+    def __init__(self, pool: ConnectionPool, demo_mode: bool = False):
         self._pool = pool
+        self.demo_mode = demo_mode
         # Like Node's WeakMap: identity, not DTO fields, establishes the issuer binding.
         # Only a digest is retained, and neither the digest nor token enters Actor/SessionInfo.
         self.__actors: WeakKeyDictionary[Actor, str] = WeakKeyDictionary()
@@ -68,7 +69,11 @@ class SessionAuth:
                 (digest, _now()),
             )
             row = await cursor.fetchone()
-        return self._trust(row, digest) if row else None
+        return (
+            self._trust(row, digest)
+            if row and (not self.demo_mode or row.username == "demo")
+            else None
+        )
 
     async def _inspect(self, digest: str, tx: Transaction | None = None) -> SessionInfo | None:
         if tx is not None:
@@ -148,9 +153,8 @@ class LocalAuth(SessionAuth):
     def __init__(self, pool: ConnectionPool, passwords: PasswordVerifier, demo_mode: bool = False):
         from .qr import QrAuth
 
-        super().__init__(pool)
+        super().__init__(pool, demo_mode)
         self.passwords = passwords
-        self.demo_mode = demo_mode
         self._attempts = AttemptLimiter(20)
         self.qr = QrAuth(pool, self)
 
@@ -161,9 +165,11 @@ class LocalAuth(SessionAuth):
         self, account_id: str, expected_hash: str, tx: Transaction
     ) -> TokenSession | None:
         profile = await tx.execute(
-            "SELECT account_id FROM user_profiles WHERE account_id=%s FOR UPDATE", (account_id,)
+            "SELECT account_id,username FROM user_profiles WHERE account_id=%s FOR UPDATE",
+            (account_id,),
         )
-        if not await profile.fetchone():
+        owner = await profile.fetchone()
+        if not owner or (self.demo_mode and owner[1] != "demo"):
             return None
         current = await tx.execute(
             "SELECT password_hash FROM local_credentials WHERE account_id=%s", (account_id,)
@@ -205,7 +211,7 @@ class LocalAuth(SessionAuth):
         if mode == "register" and artwork not in ARTWORK_IDS:
             return None
         username = normalize_username(username_input)
-        if self.demo_mode and (mode != "login" or username != "demo"):
+        if self.demo_mode and (mode != "login" or username != "demo" or password != "demo"):
             return None
         if (
             not username

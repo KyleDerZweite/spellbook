@@ -1,9 +1,9 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-06
 - Source of Truth: code
-- Update Triggers: managed Category removal, native HTTP validation and safe error responses, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Update Triggers: environment isolation and Catalog-preserving private Demo reset, managed Category removal, native HTTP validation and safe error responses, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
@@ -143,7 +143,7 @@ This does not reset avatar, artwork, inventory or deck edits.
 Usernames contain 3 to 32 ASCII letters, digits, underscores, or hyphens, start with a letter or digit, and are trimmed and lowercased.
 Passwords contain 12 to 128 characters.
 Explicit `DEMO_MODE=true` permits the seeded `demo` account to sign in with `demo`, still using password hashing and ordinary sessions.
-This mode rejects registration and other usernames.
+This mode rejects registration and other usernames, rejects existing non-Demo sessions and fences QR session issuance.
 The login page displays the demo credentials; the registration page redirects to login.
 [Demo setup](../operations/local-auth.md#demo-mode) owns seeding and reset commands.
 Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.

@@ -188,8 +188,14 @@ def test_full_seed_preserves_edits_validates_reruns_and_explicitly_resets(
         for row in samples
     )
     client.execute("UPDATE inventory_cards SET notes='owned edit' WHERE spellbook_position=0")
+    # Stand in for a worker-owned publication. Seed must not validate/reselect its bundle.
+    client.execute("UPDATE catalog_generations SET source_type='all_cards'")
+    public_rows = client.execute("SELECT * FROM catalog_generations ORDER BY id").fetchall()
     before = snapshot(client)
     assert seed_demo(url, bundle, precon)["status"] == "preserved"
+    assert (
+        client.execute("SELECT * FROM catalog_generations ORDER BY id").fetchall() == public_rows
+    )
     assert snapshot(client) == before
     assert (
         client.execute(
@@ -198,7 +204,7 @@ def test_full_seed_preserves_edits_validates_reruns_and_explicitly_resets(
         == samples
     )
     broken = replace(bundle, manifest=replace(bundle.manifest, jsonl_sha256="0" * 64))
-    with pytest.raises(OperatorError, match="payload integrity"), client.transaction():
+    with pytest.raises(OperatorError, match="inconsistent"), client.transaction():
         publish_demo_catalog(client, broken)
     assert snapshot(client) == before
     account(client, "private_owner")
@@ -206,7 +212,13 @@ def test_full_seed_preserves_edits_validates_reruns_and_explicitly_resets(
     with pytest.raises(OperatorError, match="transaction rolled back"):
         seed_demo(url, bundle, precon)
     assert snapshot(client) == private
+    with pytest.raises(OperatorError, match="transaction rolled back"):
+        seed_demo(url, bundle, precon, reset=True)
+    assert snapshot(client) == private
+    client.execute("DELETE FROM user_profiles WHERE username='private_owner'")
+    public = client.execute("SELECT * FROM catalog_state").fetchall()
     assert seed_demo(url, bundle, precon, reset=True)["status"] == "seeded"
+    assert client.execute("SELECT * FROM catalog_state").fetchall() == public
     assert client.execute("SELECT username FROM user_profiles").fetchall() == [
         {"username": "demo"}
     ]
@@ -458,3 +470,45 @@ def test_dashboard_late_write_failure_is_atomic(database: tuple[str, Client]) ->
     with pytest.raises(OperatorError):
         seed_demo(url, bundle, precon, dashboard_scenario=True)
     assert snapshot(client) == before
+
+
+def test_reset_lock_timeout_preserves_private_and_public_state(
+    database: tuple[str, Client], tmp_path: Path
+) -> None:
+    url, client = database
+    bundle, precon = small_bundle(tmp_path), load_precon(FIXTURES)
+    seed_demo(url, bundle, precon)
+    before = snapshot(client)
+    with psycopg.connect(url) as writer:
+        writer.execute("UPDATE user_profiles SET email='in-flight' WHERE username='demo'")
+        with pytest.raises(OperatorError, match="rolled back"):
+            seed_demo(url, bundle, precon, reset=True)
+        writer.rollback()
+    assert snapshot(client) == before
+
+
+def test_private_reset_failure_restores_account_sessions_and_publication(
+    database: tuple[str, Client], tmp_path: Path
+) -> None:
+    url, client = database
+    bundle, precon = small_bundle(tmp_path), load_precon(FIXTURES)
+    seed_demo(url, bundle, precon)
+    owner = client.execute("SELECT account_id FROM user_profiles").fetchone()
+    assert owner
+    session(client, str(owner["account_id"]))
+    before = snapshot(client)
+    sessions = client.execute("SELECT * FROM auth_sessions").fetchall()
+    prices = client.execute("SELECT * FROM price_state").fetchall()
+    client.execute(
+        "CREATE FUNCTION operator_test_reject() RETURNS trigger LANGUAGE plpgsql "
+        "AS $$ BEGIN RAISE EXCEPTION 'test rejection'; END $$"
+    )
+    client.execute(
+        "CREATE TRIGGER operator_test_reject BEFORE INSERT ON deck_cards "
+        "FOR EACH ROW EXECUTE FUNCTION operator_test_reject()"
+    )
+    with pytest.raises(OperatorError, match="rolled back"):
+        seed_demo(url, bundle, precon, reset=True)
+    assert snapshot(client) == before
+    assert client.execute("SELECT * FROM auth_sessions").fetchall() == sessions
+    assert client.execute("SELECT * FROM price_state").fetchall() == prices

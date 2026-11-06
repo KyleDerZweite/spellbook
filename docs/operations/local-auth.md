@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-06
 - Source of Truth: code
-- Update Triggers: hosted built Demo runtime, Compose Demo and production entrypoints, explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: reviewed environment and guarded private reset contract, hosted built Demo runtime, Compose Demo and production entrypoints, explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
@@ -96,10 +96,10 @@ Card images retain Scryfall source URLs.
 This is a shared editable account; changes persist across server restarts.
 
 The seed refuses databases with other usernames.
-To explicitly delete all accounts and their related data in the selected disposable database and recreate the demo, run from the repository root:
+To recreate the sole Demo account in an explicitly disposable target, stop private writers and run from the repository root:
 
 ```sh
-pnpm demo:seed --reset-users
+DEMO_RESET_DISPOSABLE=true pnpm demo:seed --reset-users
 ```
 
 The installed Python Demo commands load and verify public fixtures, then call the [backend Demo operators](../../backend/core/src/spellbook_core/operators/demo.py) with explicit inputs.
@@ -107,7 +107,7 @@ Backend owns SQL, transactions and pool cleanup.
 Backend owns these native implementations and fixtures.
 Root `pnpm demo:seed` and `pnpm demo:replace-inventory` invoke the installed Python CLI.
 
-Ordinary `pnpm demo:seed` refreshes the versioned public Catalog before returning for an existing Demo account, preserving credentials, Decks, Inventory, revisions, Notes and other private edits.
+Ordinary `pnpm demo:seed` bootstraps the versioned public Catalog only when none is active, preserving credentials, Decks, Inventory, revisions, Notes and other private edits.
 Only explicit `--reset-users` deletes private users and revokes their sessions through account deletion.
 A complete already-active bundle is a Catalog pointer/timestamp no-op.
 The existing seed transaction rolls back Catalog and private changes together on failure.
@@ -199,3 +199,31 @@ Absent opt-ins are unexecuted integration evidence, not a successful database ch
 For a built demo server, seed before starting and set `DEMO_MODE=true` in both API and web runtime environments.
 Normal deployments leave it unset.
 Demo mode does not replace ordinary authentication with an automatic session.
+
+## Reviewed environment and private reset contract
+
+The selected 2026-11-06 contract separates public reference publication from disposable private Demo state.
+Production uses normal accounts and persistent private data, and remains disabled until its first deliberate activation by the deployment owner.
+Public Demo permits only `demo` sessions, including previously issued sessions and QR issuance.
+Development uses normal accounts and persistent private data, without Demo seeding or reset.
+Demo static example valuation remains selected through `DEMO_MODE`; Catalog freshness does not change that valuation policy.
+Splitting valuation into a separate mode is an unselected product change.
+
+Ordinary Demo startup migrates once and seeds only missing private state.
+It bootstraps the English bundle only when no active Catalog exists.
+An existing full `all_cards` publication and all public Price data survive startup and private reset.
+The Worker retains its existing transform exclusions; complete means that supported `all_cards` input, not every upstream record.
+
+The existing `spellbook-demo-seed --reset-users` operator requires `DEMO_RESET_DISPOSABLE=true` in addition to the `_demo` or `_design` database-name guard.
+It refuses other accounts and requires an active Catalog.
+Reset recreates the private Demo profile, credentials, Inventory, Decks and illustrative history; cascading deletion revokes its sessions and approved QR authority.
+Account IDs change, so clients must sign in again.
+Private Scan metadata is removed with the account; external upload bytes require separate storage maintenance.
+A daily timer, timezone and upload retention policy remain unselected and are not installed here.
+
+Reset and seed serialize under the Demo advisory lock, exclude concurrent account writes with a Profile table lock and serialize with Catalog publishers under their existing lock.
+Lock waits fail after five seconds; each SQL statement fails after 120 seconds.
+A failure rolls back the entire transaction and returns a nonzero operator exit.
+Concurrent operations may fail or require a new login after reset; stop API and State writers during reset maintenance to avoid deadlocks and stale in-flight responses.
+Do not retry an ambiguous operator result before inspecting private state.
+No public Catalog or Price rows are deleted by reset.

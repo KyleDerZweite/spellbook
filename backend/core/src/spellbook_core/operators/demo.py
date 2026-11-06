@@ -175,16 +175,30 @@ def seed_demo(
     with _client(url) as client:
         try:
             with client.transaction():
+                client.execute("SET LOCAL lock_timeout = '5s'")
+                client.execute("SET LOCAL statement_timeout = '120s'")
                 client.execute("SELECT pg_advisory_xact_lock(hashtext('spellbook-demo-seed'))")
+                # Exclude account creation and private writes throughout validation/reset.
+                client.execute("LOCK TABLE user_profiles IN EXCLUSIVE MODE")
                 users = client.execute(
                     "SELECT account_id,username FROM user_profiles LIMIT 2"
                 ).fetchall()
-                if not reset and (len(users) > 1 or any(u["username"] != "demo" for u in users)):
+                if len(users) > 1 or any(u["username"] != "demo" for u in users):
                     raise OperatorError("Database contains other users.")
                 if dashboard_scenario and users and not reset:
                     return seed_dashboard(client)
-                publish_demo_catalog(client, bundle)
+                # Serialize with public publishers, but never replace an active Catalog.
+                client.execute("SELECT pg_advisory_xact_lock(%s,%s)", (1936747619, 1))
+                active = client.execute(
+                    "SELECT active_generation FROM catalog_state WHERE id=1"
+                ).fetchone()
+                if not active or active["active_generation"] is None:
+                    if reset:
+                        raise OperatorError("Reset requires an active Catalog.")
+                    publish_demo_catalog(client, bundle)
                 if reset:
+                    if len(users) != 1:
+                        raise OperatorError("Reset requires the sole Demo account.")
                     client.execute("DELETE FROM user_profiles")
                 elif any(u["username"] == "demo" for u in users):
                     seed_demo_history(client, str(users[0]["account_id"]), precon, timezone)
