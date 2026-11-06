@@ -10,7 +10,7 @@ services:
         - CMD-SHELL
         - pg_isready -U ${DEV_POSTGRES_USER:-spellbook} -d ${DEV_POSTGRES_DB:-spellbook_dev}
   db-migrate:
-    command: ["/app/backend/api/.venv/bin/spellbook-migrate"]
+    command: ['/app/backend/api/.venv/bin/spellbook-migrate']
     environment:
       DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
   worker:
@@ -18,19 +18,19 @@ services:
       DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
   api:
     environment:
-      DEMO_MODE: "false"
+      DEMO_MODE: 'false'
       APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
       DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
   state-worker:
     environment:
-      DEMO_MODE: "false"
+      DEMO_MODE: 'false'
       DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
   frontend:
     build:
       args:
         APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
     environment:
-      DEMO_MODE: "false"
+      DEMO_MODE: 'false'
       APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
   newt:
     image: docker.io/fosrl/newt:1.18.1
