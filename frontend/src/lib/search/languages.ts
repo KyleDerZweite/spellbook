@@ -1,25 +1,25 @@
 import type { CatalogLanguage } from './types.ts';
 
 export const DEFAULT_SEARCH_LANGUAGES: CatalogLanguage[] = ['de', 'en'];
-export const LANGUAGE_OPTIONS: { id: CatalogLanguage; label: string }[] = [
-	{ id: 'de', label: 'German' },
-	{ id: 'en', label: 'English' },
-	{ id: 'es', label: 'Spanish' },
-	{ id: 'fr', label: 'French' },
-	{ id: 'it', label: 'Italian' },
-	{ id: 'pt', label: 'Portuguese' },
-	{ id: 'ja', label: 'Japanese' },
-	{ id: 'ko', label: 'Korean' },
-	{ id: 'ru', label: 'Russian' },
-	{ id: 'zhs', label: 'Simplified Chinese' },
-	{ id: 'zht', label: 'Traditional Chinese' },
-	{ id: 'he', label: 'Hebrew' },
-	{ id: 'la', label: 'Latin' },
-	{ id: 'grc', label: 'Ancient Greek' },
-	{ id: 'ar', label: 'Arabic' },
-	{ id: 'sa', label: 'Sanskrit' },
-	{ id: 'ph', label: 'Phyrexian' },
-	{ id: 'qya', label: 'Quenya' },
-	{ id: 'dw', label: 'Dwarvish' },
-	{ id: 'tlh', label: 'Klingon' }
+export const LANGUAGE_OPTIONS: { id: CatalogLanguage; label: string; flag: string }[] = [
+	{ id: 'de', label: 'German', flag: '🇩🇪' },
+	{ id: 'en', label: 'English', flag: '🇬🇧' },
+	{ id: 'es', label: 'Spanish', flag: '🇪🇸' },
+	{ id: 'fr', label: 'French', flag: '🇫🇷' },
+	{ id: 'it', label: 'Italian', flag: '🇮🇹' },
+	{ id: 'pt', label: 'Portuguese', flag: '🇵🇹' },
+	{ id: 'ja', label: 'Japanese', flag: '🇯🇵' },
+	{ id: 'ko', label: 'Korean', flag: '🇰🇷' },
+	{ id: 'ru', label: 'Russian', flag: '🇷🇺' },
+	{ id: 'zhs', label: 'Simplified Chinese', flag: '🇨🇳' },
+	{ id: 'zht', label: 'Traditional Chinese', flag: '🇹🇼' },
+	{ id: 'he', label: 'Hebrew', flag: '🇮🇱' },
+	{ id: 'la', label: 'Latin', flag: '🇻🇦' },
+	{ id: 'grc', label: 'Ancient Greek', flag: '🇬🇷' },
+	{ id: 'ar', label: 'Arabic', flag: '🇸🇦' },
+	{ id: 'sa', label: 'Sanskrit', flag: '🇮🇳' },
+	{ id: 'ph', label: 'Phyrexian', flag: '⚑' },
+	{ id: 'qya', label: 'Quenya', flag: '⚑' },
+	{ id: 'dw', label: 'Dwarvish', flag: '⚑' },
+	{ id: 'tlh', label: 'Klingon', flag: '⚑' }
 ];
