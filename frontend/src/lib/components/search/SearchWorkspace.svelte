@@ -331,20 +331,6 @@
 				<summary>Filters</summary>
 				<div class="grid gap-4 sm:grid-cols-4">
 					<fieldset>
-						<legend>Language</legend>
-						<p>No languages selected means all languages.</p>
-						{#each LANGUAGE_OPTIONS as language}
-							<label class="flex items-center gap-2"
-								><input
-									type="checkbox"
-									name="lang"
-									value={language.id}
-									checked={input.filters.languages?.includes(language.id)}
-								/>{language.label}</label
-							>
-						{/each}
-					</fieldset>
-					<fieldset>
 						<legend>Match colors by</legend>
 						<label class="mr-3"
 							><input
@@ -379,6 +365,23 @@
 								>{/each}
 						</fieldset>
 					{/each}
+					<fieldset>
+						<legend>Language</legend>
+						<p>No languages selected means all languages.</p>
+						{#each LANGUAGE_OPTIONS as language}
+							<label class="flex items-center gap-2"
+								><input
+									type="checkbox"
+									name="lang"
+									value={language.id}
+									checked={input.filters.languages?.includes(language.id)}
+								/><span
+									class="inline-flex w-5 shrink-0 justify-center text-base leading-none"
+									aria-hidden="true">{language.flag}</span
+								>{language.label}</label
+							>
+						{/each}
+					</fieldset>
 				</div>
 				<button class="btn btn-secondary" type="submit">Apply filters</button>
 				<a class="btn btn-secondary" href={nativeClearHref}>Clear filters</a>
