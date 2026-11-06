@@ -140,7 +140,7 @@ def test_explicit_source_switch_and_forced_rebuild(publisher, tmp_path):
     before = state(publisher)[0]
     with publisher._connect() as conn:
         conn.execute("SELECT pg_advisory_xact_lock(%s, %s)", PUBLISH_LOCK)
-        conn.execute("UPDATE catalog_generations SET schema_version = 0 WHERE id=%s", (before,))
+        conn.execute("UPDATE catalog_generations SET schema_version = 5 WHERE id=%s", (before,))
     assert not publisher.is_current(default)
     publisher.publish(path, default)
     assert state(publisher)[0] != before

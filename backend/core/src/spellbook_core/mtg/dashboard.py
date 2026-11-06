@@ -363,8 +363,7 @@ class Dashboard:
                     (SELECT coalesce(jsonb_agg(preview), '[]'::jsonb) FROM (
                         SELECT dc.catalog_card_id AS "catalogCardId", dc.name,
                         dc.image_uri AS "imageUri",
-                        COALESCE(p.document->'image_uris'->>'art_crop',
-                        p.document->'card_faces'->0->'image_uris'->>'art_crop') AS "artCrop",
+                        p.document->>'image_uri_art_crop' AS "artCrop",
                         p.document->'color_identity' AS "colorIdentity"
                         FROM deck_cards dc
                         LEFT JOIN catalog_state cs ON cs.id=1
