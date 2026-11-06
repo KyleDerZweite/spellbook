@@ -1,9 +1,9 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-06
 - Source of Truth: code
-- Update Triggers: managed Category removal, complete face-color projection and explicit color evidence validation, Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence
+- Update Triggers: art crop transform version 6, managed Category removal, complete face-color projection and explicit color evidence validation, Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence
 - Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL.
@@ -28,6 +28,8 @@ Manual execution exits after the startup attempt, with a nonzero exit status on 
 Daily and weekly execution log a failed attempt and wait the full configured interval before trying again.
 They do not retry a failed download immediately.
 Database schema readiness uses a separate bounded exponential backoff before the first sync.
+
+The [Catalog artwork contract](./catalog.md) owns the flattened art crop field and transform-version rebuild requirements.
 
 ## Ingestion
 

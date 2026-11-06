@@ -17,7 +17,7 @@ from worker.scryfall import BulkDataInfo
 from worker.tokens import build_token_index
 from worker.transform import transform_card
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 # Shared by every catalog publisher. Held until commit or rollback.
 PUBLISH_LOCK = (1936747619, 1)
 

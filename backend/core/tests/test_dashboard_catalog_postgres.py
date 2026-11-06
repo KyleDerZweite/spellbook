@@ -261,3 +261,60 @@ def test_dashboard_matches_deck_reader_when_stored_canonical_ids_disagree() -> N
             assert result["requirements"]["alternate"][0]["alternate"] == 1
 
     asyncio.run(scenario())
+
+
+def test_commander_preview_reads_real_worker_document_and_recent_order() -> None:
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from psycopg.types.json import Jsonb
+
+    worker = Path(__file__).resolve().parents[2] / "workers/catalog"
+    transformed = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-c",
+                "import json; from worker.transform import transform_card; "
+                "print(json.dumps(transform_card(json.load(open("
+                "'tests/fixtures/aang_crossroads.json')))))",
+            ],
+            cwd=worker,
+            env={**os.environ, "PYTHONPATH": str(worker / "src")},
+        )
+    )
+    assert "image_uris" not in transformed and "card_faces" not in transformed
+
+    async def scenario() -> None:
+        async with native_fixture() as f:
+            auth = create_session_auth(f.pool)
+            actor = await auth.validate_session(f.token)
+            assert actor
+            ids = [str(uuid4()) for _ in range(8)]
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE catalog_printings SET document=%s WHERE generation_id=%s AND id=%s",
+                    (Jsonb(transformed), f.generation, f.printing),
+                )
+                for index, identifier in enumerate(ids):
+                    await tx.execute(
+                        "INSERT INTO decks(id,account_id,game,name,updated_at) "
+                        "VALUES(%s,%s,'mtg',%s,now() - %s * interval '1 minute')",
+                        (identifier, f.account, f"Recent {index}", index),
+                    )
+                await tx.execute(
+                    "INSERT INTO deck_cards(id,deck_id,account_id,game,catalog_card_id,"
+                    "canonical_card_id,name,set_code,image_uri,quantity,role) "
+                    "VALUES(%s,%s,%s,'mtg',%s,%s,%s,'tst','',1,'commander')",
+                    (uuid4(), ids[0], f.account, f.printing, f.oracle, transformed["name"]),
+                )
+            result = await create_dashboard(f.pool, auth, f.values).get(actor)
+            assert [row["id"] for row in result["decks"]] == ids
+            preview = result["decks"][0]["commanders"][0]
+            assert preview["artCrop"] == transformed["image_uri_art_crop"]
+            assert preview["colorIdentity"] == transformed["color_identity"]
+            assert "/art_crop/front/" in preview["artCrop"]
+
+    asyncio.run(scenario())

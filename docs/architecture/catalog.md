@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-06
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: reviewed browser language filtering contract, environment isolation and Catalog-preserving private Demo reset, managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: flattened Commander art crops, reviewed browser language filtering contract, environment isolation and Catalog-preserving private Demo reset, managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
@@ -31,6 +31,15 @@ The repository does not contain the complete multilingual Scryfall Catalog.
 It includes a versioned English Demo bundle; the Worker downloads its configured bulk snapshot at runtime.
 By default, that source is `all_cards`.
 Each catalog document stores card metadata and Scryfall image URLs.
+`image_uri_art_crop` preserves the supplied top-level or front-face `art_crop` URL for Commander previews, with an empty string when absent.
+Existing generations and the versioned Demo bundle lack this field.
+The Worker transform schema version is 6.
+The current-generation skip requires that exact version as well as matching source, source timestamp and paired Price publication, so version 5 generations rebuild even when the provider timestamp is unchanged.
+Root must reimport the configured `all_cards` source through the updated Worker for the hosted Demo, preserving its multilingual Catalog and private edits.
+The English fallback bundle remains a separate bootstrap source at transform version 5; it must not replace an active `all_cards` publication.
+Regenerating that bundle is separate source maintenance and is not required for the hosted target.
+No SQL schema migration or private Deck/Inventory reset is required.
+Restarting readers alone does not repair existing documents.
 Spellbook does not copy these images into PostgreSQL or proxy them through the application.
 Printed colors preserve Scryfall's explicit top-level array, including a known colorless empty array.
 When that array is absent, the native transform combines complete face-defined color arrays in WUBRG order, independently of color identity.

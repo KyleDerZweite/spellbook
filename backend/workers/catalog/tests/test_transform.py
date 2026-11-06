@@ -462,3 +462,20 @@ def test_missing_target_stays_unresolved_with_an_index():
             {"catalogCardId": "c20e427c-efa5-476c-aa33-e3149648d207", "name": "Spirit"}
         ],
     }
+
+
+@pytest.mark.parametrize("fixture", ["normal_card.json", "aang_crossroads.json"])
+def test_preserves_provider_art_crop_in_flat_document(fixture):
+    raw = load_fixture(fixture)
+    images = raw.get("image_uris") or raw["card_faces"][0]["image_uris"]
+    doc = transform_card(raw)
+    assert doc["image_uri_art_crop"] == images["art_crop"]
+    assert doc["image_uri_art_crop"] != doc["image_uri"]
+    assert "image_uris" not in doc and "card_faces" not in doc
+    assert doc["color_identity"] == raw["color_identity"]
+
+
+def test_missing_art_crop_does_not_invent_url():
+    raw = load_fixture("normal_card.json")
+    del raw["image_uris"]["art_crop"]
+    assert transform_card(raw)["image_uri_art_crop"] == ""

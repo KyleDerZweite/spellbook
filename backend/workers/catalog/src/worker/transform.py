@@ -60,7 +60,7 @@ def transform_card(raw: dict, token_index: dict[str, dict] | None = None) -> dic
         return None
 
     # Resolve image URIs (top-level or from front face for DFCs)
-    image_uri, image_uri_small = _resolve_images(raw)
+    image_uri, image_uri_small, image_uri_art_crop = _resolve_images(raw)
 
     # Resolve oracle text
     oracle_text = _resolve_oracle_text(raw, layout)
@@ -100,6 +100,7 @@ def transform_card(raw: dict, token_index: dict[str, dict] | None = None) -> dic
         "collector_number": raw.get("collector_number", ""),
         "image_uri": image_uri,
         "image_uri_small": image_uri_small,
+        "image_uri_art_crop": image_uri_art_crop,
         "is_foil_available": is_foil_available,
         "is_nonfoil_available": is_nonfoil_available,
         "legalities": raw.get("legalities") or {},
@@ -145,20 +146,13 @@ def _extract_card_types(type_line: str) -> list[str]:
     return result
 
 
-def _resolve_images(raw: dict) -> tuple[str, str]:
-    """Get normal and small image URIs, handling DFCs."""
-    # Try top-level image_uris first
-    image_uris = raw.get("image_uris")
-    if image_uris:
-        return image_uris.get("normal", ""), image_uris.get("small", "")
-
-    # Fall back to front face for DFCs
-    faces = raw.get("card_faces") or []
-    if faces:
-        front_imgs = faces[0].get("image_uris") or {}
-        return front_imgs.get("normal", ""), front_imgs.get("small", "")
-
-    return "", ""
+def _resolve_images(raw: dict) -> tuple[str, str, str]:
+    """Preserve supplied normal, small and art crop URLs from the front face."""
+    images = raw.get("image_uris")
+    if not images:
+        faces = raw.get("card_faces") or []
+        images = (faces[0].get("image_uris") or {}) if faces else {}
+    return images.get("normal", ""), images.get("small", ""), images.get("art_crop", "")
 
 
 def _resolve_oracle_text(raw: dict, layout: str) -> str:
