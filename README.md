@@ -18,10 +18,12 @@ No production recognizer is implemented.
 Keep one private root `.env` per checkout, with separate `PROD_*`, `DEMO_*` and `DEV_*` keys from `.env.example`.
 Start the server connector with `podman-compose --env-file .env -p spellbook-site -f compose.site.yml up -d`.
 Start hosted Demo with `podman-compose --env-file .env -p spellbook-demo -f compose.dev.yml -f compose.ingress.yml up --build -d`.
-The Demo uses its own database, bundled Catalog and local Scan storage.
+The Demo uses its own database and local Scan storage.
+Its seed bootstraps the bundled Catalog only when no active Catalog exists, preserving subsequent full imports and private edits on restart.
+Use the opt-in [Catalog worker](docs/operations/deployment.md#environment-update-and-reset-interface) to import Scryfall `all_cards`, including German and English Printings.
 No application host port is published.
 Production stays stopped until explicitly selected.
-Development runs the same Demo with a separate project, database and site through `compose.development.yml`.
+Development uses a separate project, database and site through `compose.development.yml`, with normal account behavior and no Demo seed or automatic reset.
 See [deployment and Development](docs/operations/deployment.md#stable-server-site-and-optional-development) for exact start/stop commands, origin builds and private configuration.
 
 - [Product specification](docs/product/specification.md)
