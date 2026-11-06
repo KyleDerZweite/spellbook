@@ -1,0 +1,38 @@
+# Run with compose.dev.yml, a distinct spellbook-dev project and the same .env.
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-spellbook_dev_demo}
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-spellbook}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?Set a private development database password}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${DEV_POSTGRES_USER:-spellbook} -d ${DEV_POSTGRES_DB:-spellbook_dev_demo}
+  db-migrate:
+    environment:
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev_demo}
+  api:
+    environment:
+      APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev_demo}
+  state-worker:
+    environment:
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set a private development database password}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev_demo}
+  frontend:
+    build:
+      args:
+        APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
+    environment:
+      APP_ORIGIN: ${DEV_APP_ORIGIN:?Set the development origin}
+  newt:
+    image: docker.io/fosrl/newt:1.18.1
+    profiles:
+      - tunnel
+    restart: unless-stopped
+    environment:
+      PANGOLIN_ENDPOINT: ${DEV_PANGOLIN_ENDPOINT:?Set the development gateway endpoint}
+      NEWT_ID: ${DEV_NEWT_ID:?Set the development site ID}
+      NEWT_SECRET: ${DEV_NEWT_SECRET:?Set the development site secret}
+    depends_on:
+      - frontend

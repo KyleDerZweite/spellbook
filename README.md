@@ -15,15 +15,14 @@ Android implementation and verification are in progress under the [independent a
 No production recognizer is implemented.
 [The recognition decision](docs/decisions/0023-local-recognition-in-scanner-clients.md) distinguishes that direction from the current upload/review workflow.
 
-Start the built Demo with `podman-compose --env-file .env -p spellbook-demo -f compose.dev.yml up --build -d`.
-The private environment file must supply `APP_ORIGIN` and a strong `POSTGRES_PASSWORD`.
-Web listens on port 3000 inside the container network; no host ports are published.
-The API is private to the frontend network namespace.
-Startup migrates and seeds an isolated Demo database before API and State start.
-The Demo uses the bundled Catalog, local Scan storage and no live Catalog worker.
-The optional `tunnel` profile connects Newt to Pangolin.
-Stop with the same options followed by `down`, without removing volumes.
-See [Demo deployment](docs/operations/deployment.md#demo-deployment) for configuration and [independent build/start](docs/operations/deployment.md#independent-build-and-start) for native development.
+Keep one private root `.env` per checkout, with separate `PROD_*`, `DEMO_*` and `DEV_*` keys from `.env.example`.
+Start the server connector with `podman-compose --env-file .env -p spellbook-site -f compose.site.yml up -d`.
+Start hosted Demo with `podman-compose --env-file .env -p spellbook-demo -f compose.dev.yml -f compose.ingress.yml up --build -d`.
+The Demo uses its own database, bundled Catalog and local Scan storage.
+No application host port is published.
+Production stays stopped until explicitly selected.
+Development runs the same Demo with a separate project, database and site through `compose.development.yml`.
+See [deployment and Development](docs/operations/deployment.md#stable-server-site-and-optional-development) for exact start/stop commands, origin builds and private configuration.
 
 - [Product specification](docs/product/specification.md)
 - [Documentation index](docs/README.md)

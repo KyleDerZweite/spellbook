@@ -1,0 +1,13 @@
+# Attach only the web/API namespace to the stable server connector network.
+services:
+  frontend:
+    networks:
+      default: {}
+      ingress:
+        aliases:
+          - ${PROD_FRONTEND_ALIAS:?Set a unique frontend alias}
+networks:
+  default: {}
+  ingress:
+    external: true
+    name: ${PROD_INGRESS_NETWORK:?Set the shared server ingress network}

@@ -1,17 +1,17 @@
-# Hosted Demo stack with built images and optional Pangolin tunnel.
+# Hosted Demo stack. Development overrides its credentials in compose.development.yml.
 services:
   postgres:
     image: docker.io/postgres:18.6-bookworm
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-spellbook_demo}
-      POSTGRES_USER: ${POSTGRES_USER:-spellbook}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a private demo database password}
+      POSTGRES_DB: ${DEMO_POSTGRES_DB:-spellbook_demo}
+      POSTGRES_USER: ${DEMO_POSTGRES_USER:-spellbook}
+      POSTGRES_PASSWORD: ${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}
     volumes:
       - postgres18_data:/var/lib/postgresql
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${POSTGRES_USER:-spellbook} -d ${POSTGRES_DB:-spellbook_demo}
+        - pg_isready -U ${DEMO_POSTGRES_USER:-spellbook} -d ${DEMO_POSTGRES_DB:-spellbook_demo}
       interval: 5s
       timeout: 5s
       retries: 12
@@ -25,11 +25,11 @@ services:
       - -c
       - /app/backend/api/.venv/bin/spellbook-migrate && /app/backend/api/.venv/bin/spellbook-demo-seed
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${POSTGRES_DB:-spellbook_demo}
+      DATABASE_URL: postgres://${DEMO_POSTGRES_USER:-spellbook}:${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${DEMO_POSTGRES_DB:-spellbook_demo}
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
   scan-worker:
     build:
       context: ./backend/workers/scan
@@ -48,10 +48,10 @@ services:
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_TRUSTED_PROXY_ADDRESSES: 127.0.0.1,::1
-      APP_ORIGIN: ${APP_ORIGIN}
-      DEMO_MODE: "true"
+      APP_ORIGIN: ${DEMO_APP_ORIGIN}
+      DEMO_MODE: 'true'
       VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
-      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${POSTGRES_DB:-spellbook_demo}
+      DATABASE_URL: postgres://${DEMO_POSTGRES_USER:-spellbook}:${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${DEMO_POSTGRES_DB:-spellbook_demo}
       SCAN_STORAGE_DRIVER: local
       SCAN_WORKER_URL: http://scan-worker:8080
       SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
@@ -68,8 +68,8 @@ services:
       context: .
       dockerfile: backend/workers/state/Dockerfile
     environment:
-      DEMO_MODE: "true"
-      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${POSTGRES_DB:-spellbook_demo}
+      DEMO_MODE: 'true'
+      DATABASE_URL: postgres://${DEMO_POSTGRES_USER:-spellbook}:${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${DEMO_POSTGRES_DB:-spellbook_demo}
       VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
       VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
     depends_on:
@@ -81,28 +81,18 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        APP_ORIGIN: ${APP_ORIGIN}
+        APP_ORIGIN: ${DEMO_APP_ORIGIN}
     environment:
       HOST: 0.0.0.0
       PORT: 3000
-      APP_ORIGIN: ${APP_ORIGIN}
-      DEMO_MODE: "true"
+      APP_ORIGIN: ${DEMO_APP_ORIGIN}
+      DEMO_MODE: 'true'
       API_INTERNAL_URL: http://127.0.0.1:3001
       ADDRESS_HEADER: ${ADDRESS_HEADER:-}
       XFF_DEPTH: ${XFF_DEPTH:-1}
       BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-12M}
     restart: unless-stopped
-  newt:
-    image: docker.io/fosrl/newt:1.18.1
-    profiles:
-      - tunnel
-    restart: unless-stopped
-    environment:
-      PANGOLIN_ENDPOINT: ${PANGOLIN_ENDPOINT}
-      NEWT_ID: ${NEWT_ID}
-      NEWT_SECRET: ${NEWT_SECRET}
-    depends_on:
-      - frontend
+
 volumes:
   postgres18_data: null
   demo_scans: null

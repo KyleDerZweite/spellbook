@@ -575,7 +575,7 @@ test('default Compose uses Python API, migrator and sole state scheduler ownersh
 		/state-worker:\n\s+build:\n\s+context: \.\n\s+dockerfile: backend\/workers\/state\/Dockerfile/
 	);
 	assert.match(source, /condition: service_completed_successfully/);
-	assert.match(source, /command: \["\/app\/backend\/api\/.venv\/bin\/spellbook-migrate"\]/);
+	assert.match(source, /command: \[("|')\/app\/backend\/api\/.venv\/bin\/spellbook-migrate\1\]/);
 	assert.doesNotMatch(source, /backend\/Dockerfile|NODE_ENV/);
 });
 
