@@ -22,6 +22,24 @@ Labels describe the work and its current status; they do not promise acceptance 
 3. Follow the [repository verification workflow](docs/operations/github-automation.md#local-checks) before opening a PR.
 4. Open a pull request against `main` with a concise description.
 
+## Website translations
+
+When adding, changing or removing website text, update the bundled English and German dictionaries in `frontend/src/lib/i18n/` in the same change.
+Follow the [website language contract](docs/architecture/frontend.md#website-language).
+
+- Cover visible text, accessible names and status announcements, validation errors, and loading or pending states.
+- Translate complete messages with parameters and explicit plural variants rather than concatenating translated fragments.
+  Keep dictionary keys and placeholders aligned, and update `parameters.ts` when interpolation parameters change.
+- Render through the reactive language context so switching languages also updates retained errors and statuses.
+  Format numbers and dates with the selected locale.
+- Preserve provider text, user content and stored domain values.
+  Keep protocol and keyboard identifiers such as `Home` unchanged.
+- Run the frontend type checks and unit tests required by repository verification.
+  Verify affected screens in both languages, including switching without losing entered data.
+
+Dictionary checks detect mismatched keys and placeholders, but do not detect every hardcoded string or judge translation quality.
+Review changed templates, messages and accessibility text for omissions before marking the work complete.
+
 ## Pull request expectations
 
 1. Explain what changed and why.

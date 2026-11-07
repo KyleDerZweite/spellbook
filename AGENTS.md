@@ -39,6 +39,9 @@ Keep Demo and production separate, and preserve existing processes and data.
 
 ## Task-specific references
 
+- When adding or changing website text, follow [translation maintenance](CONTRIBUTING.md#website-translations).
+  Update English and German in the same change, including accessible labels, validation and pending states.
+
 - Before strategic decisions or resuming strategic work, read the [historical wiki index](docs/wiki/index.md) and relevant pages, then follow its query and ingestion rules.
 
 - Before changing card identity, inventory, deck or scan terminology, read [GLOSSARY.md](GLOSSARY.md).
