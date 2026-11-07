@@ -27,9 +27,15 @@
 	}
 
 	let { data, children }: Props = $props();
-	const language = provideLanguage(() => data.locale);
+	let selectedLocale = $state<Locale>();
+	const language = provideLanguage(
+		() => selectedLocale ?? data.locale,
+		(locale) => {
+			selectedLocale = locale;
+		}
+	);
 	$effect(() => {
-		document.documentElement.lang = data.locale;
+		document.documentElement.lang = language.locale;
 	});
 	const search = provideSearchSession();
 	if (page.url.pathname === '/mtg/search') search.hydrate(parseSearchUrl(page.url));

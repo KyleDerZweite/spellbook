@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { invalidateAll } from '$app/navigation';
+	import { isLocale } from '#lib/i18n/locale.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	let menu: HTMLDetailsElement;
@@ -22,7 +22,9 @@
 				failed = true;
 				return;
 			}
-			await invalidateAll();
+			const result = await response.json();
+			if (!isLocale(result.locale)) throw new Error('Invalid language response');
+			language.select(result.locale);
 			menu.open = false;
 			menu.querySelector('summary')?.focus();
 		} catch {

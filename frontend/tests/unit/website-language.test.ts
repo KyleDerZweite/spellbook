@@ -98,3 +98,16 @@ it('supports an enhanced cookie-only update without navigating or submitting pag
 	expect(await response.json()).toEqual({ locale: 'de' });
 	expect(fixture.writes).toHaveLength(1);
 });
+
+import { createLanguage } from '../../src/lib/i18n/context.ts';
+it('updates the selected translation through the existing language context', () => {
+	let locale: 'en' | 'de' = 'en';
+	const language = createLanguage(
+		() => locale,
+		(value) => {
+			locale = value;
+		}
+	);
+	language.select('de');
+	expect(language.t('ui.Sign.in')).toBe('Anmelden');
+});

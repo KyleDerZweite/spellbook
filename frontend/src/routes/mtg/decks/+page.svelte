@@ -1091,9 +1091,9 @@
 										!importableCount ||
 										preview.unresolved.length > 0 ||
 										preview.ambiguous.length > 0}
-									><PlusIcon />{language.t('ui.Add.all')}
-									{importableCount}
-									{language.t('ui.cards')}</Button
+									><PlusIcon />{language.t(`deck.import.add.${language.plural(importableCount)}`, {
+										count: language.number(importableCount)
+									})}</Button
 								>
 							</form>
 						</div>

@@ -755,8 +755,8 @@
 	"ui.References.only.Tokens.are.not.included.in.the.Deck.s.card.totals": "References only. Tokens are not included in the Deck's card totals.",
 	"ui.No.resolved.Token.references": "No resolved Token references.",
 	"ui.Some.Token.references.are.unavailable": "Some Token references are unavailable.",
-	"printing.one": "{count} printing",
-	"printing.other": "{count} printings",
+	"printing.one": "{count} Printing",
+	"printing.other": "{count} Printings",
 	"unique.one": "{count} unique card",
 	"unique.other": "{count} unique cards",
 	"notice.covered.total.copies": "{covered} / {total} copies",
@@ -1202,5 +1202,7 @@
 	"api.validation.CSV.header.must.be.name.format.description.catalogCardId.quantity.role": "CSV header must be name,format,description,catalogCardId,quantity,role",
 	"api.validation.CSV.requires.card.records.or.one.metadata.only.record.for.an.empty.Deck": "CSV requires card records or one metadata-only record for an empty Deck",
 	"api.validation.Candidates.do.not.match.the.Scan.result.status": "Candidates do not match the Scan result status",
-	"profile.powerHelp": "Number, *, X or KPI. Fill both or leave both empty."
+	"profile.powerHelp": "Number, *, X or KPI. Fill both or leave both empty.",
+	"deck.import.add.one": "Add all {count} card",
+	"deck.import.add.other": "Add all {count} cards"
 }

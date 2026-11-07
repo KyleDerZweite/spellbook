@@ -1,4 +1,6 @@
 export interface MessageParameters {
+	'deck.import.add.one': { count: string | number };
+	'deck.import.add.other': { count: string | number };
 	'validation.characters': { count: string | number };
 	'validation.lines': { count: string | number };
 	'validation.placeholder': { token: string | number };

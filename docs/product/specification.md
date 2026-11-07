@@ -3,8 +3,39 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-07
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: browser website language selection, compact Dashboard Deck cards and Deck Library ownership filters/views, managed Category removal, Inventory New badge UTC creation date, selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+- Update Triggers:
+  - Account and platform behavior:
+    - Account access, preferences and browser website language selection.
+    - Independent API/web ownership, versioned MTG routes and module ownership.
+    - Supported platforms, client feature parity and release acceptance.
+    - PWA/QR delivery and pending browser/Android acceptance.
+  - Dashboard and value:
+    - Dashboard summaries, selected layout and compact Deck cards.
+    - Daily metric cards, direct detail links and personal History previews.
+    - Market reference values, Inventory history and native Demo evaluation.
+  - Catalog, Inventory and Decks:
+    - Catalog identity, Inventory and Deck behavior, and import formats.
+    - Deck Library ownership filters and views, and managed Category removal.
+    - Inventory metadata shortcuts, compact read-only rows and UTC New badges.
+    - Bounded Inventory loading, scaling evidence and API contracts.
+    - Continuous Lazy browsing, Card dialogs and selected versus implemented read limits.
+  - Scan and physical integration:
+    - Scan capability, priorities and physical-card integration requirements.
+    - Local recognition and client responsibilities.
+    - Browser scanning and phone computation-host evaluation.
+- Related Docs:
+  - [Domain model](../../GLOSSARY.md)
+  - [Routes](./routing-and-games.md)
+  - [UI direction](./ui-design-direction.md)
+  - [Value tracking](./value-tracking.md)
+  - [System architecture](../architecture/system-overview.md)
+  - [Authentication](../architecture/auth.md)
+  - [Mobile and scan](../architecture/mobile-and-scan.md)
+  - [Deployment](../operations/deployment.md)
+  - [Card scanner and sorter](../integrations/card-robot.md)
+  - [Product index](./README.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
 Visitors can search the local catalog and inspect printings without an account.
@@ -345,7 +376,8 @@ Routine quantity and role edits must not demand repeated confirmations.
 Disabled and pending controls must prevent accidental duplicate submissions while preserving visible error recovery.
 
 Import and export belong in this workspace.
-The user must review imported text before committing it and see malformed, unresolved, ambiguous, or unsupported lines.
+The user must review imported text before committing it.
+The preview must show malformed, unresolved, ambiguous, or unsupported lines.
 An export must be a downloadable or copyable plain-text decklist with supported sections.
 
 Drag-and-drop, deck tags, maybeboard persistence, playtesting, deck sharing, collaboration, and a full rules engine are not required for this builder.
@@ -396,7 +428,9 @@ Maybeboard entries are preview-only and are not persisted.
 
 The user must see which lines will be committed and which remain uncommitted.
 Editing the text invalidates the displayed preview.
-Preview is not a durable catalog snapshot, so catalog changes between preview and commit can change resolution; the commit response is authoritative.
+Preview is not a durable catalog snapshot.
+Catalog changes between preview and commit can change resolution.
+The commit response is authoritative.
 
 Deck text export preserves quantities and role sections.
 Exact printing round trips depend on available printing metadata.

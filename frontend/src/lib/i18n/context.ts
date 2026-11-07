@@ -3,8 +3,9 @@ import type { Locale } from './locale.ts';
 import { translate, pluralKey, type MessageKey, type MessageValues } from './messages.ts';
 import { localizeMessage } from './presentation.ts';
 const KEY = Symbol('website-language');
-export function createLanguage(locale: () => Locale) {
+export function createLanguage(locale: () => Locale, select: (locale: Locale) => void = () => {}) {
 	return {
+		select,
 		get locale() {
 			return locale();
 		},
@@ -22,8 +23,8 @@ export function createLanguage(locale: () => Locale) {
 			new Intl.DateTimeFormat(locale(), options).format(value)
 	};
 }
-export function provideLanguage(locale: () => Locale) {
-	return setContext(KEY, createLanguage(locale));
+export function provideLanguage(locale: () => Locale, select?: (locale: Locale) => void) {
+	return setContext(KEY, createLanguage(locale, select));
 }
 export function useLanguage() {
 	return getContext<ReturnType<typeof createLanguage>>(KEY) ?? createLanguage(() => 'en');
