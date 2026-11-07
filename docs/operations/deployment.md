@@ -8,6 +8,7 @@
   - Compose services, independent images, startup commands and graceful shutdown.
   - Stable server ingress, Development tunnels, loopback ports and origin builds.
   - Database migration ownership, retained data, recovery and operator commands.
+  - Automatic Demo update eligibility, documentation-only restarts and proposed workflow improvements.
   - Catalog publication, Demo bundles, private reset and source refresh.
   - Scan storage, worker ownership, value-history scheduling and reporting configuration.
   - Authentication, QR sessions, PWA operation and current runtime acceptance.
@@ -163,6 +164,25 @@ Resolved Compose configuration alone does not establish runtime health.
 Configure Pangolin resources with maintenance enabled and type `automatic`.
 Use an HTTP target check for `/openapi.json` expecting 200 to check frontend forwarding to API.
 Keep automatic maintenance enabled during normal operation; deliberately disabled Production stays disabled.
+
+### Automatic Demo updates
+
+The private Demo updater selects a new `main` revision after its newest push-CI attempt succeeds.
+As verified on 2026-11-07, it does not filter revisions by changed paths.
+Documentation, `.gitignore` and other repository-only changes can therefore trigger an image build and Demo restart through the active timer.
+Updating a checkout alone does not establish which revision is running; use the deployment receipt and actual image IDs.
+Private ignored skill edits alone do not create a new Git revision.
+Keep the updater's implementation, target binding and access details in protected operator storage.
+
+The following workflow improvements are proposals, not implemented behavior:
+
+- Define the Development acceptance checks that must pass before selecting a deployment revision, using the existing verification workflow.
+- Classify changes before building or restarting, with explicit rules for runtime configuration, migrations and dependency changes.
+- Reuse complete verified immutable image sets and measure build, rollout and health-check durations before choosing further optimizations.
+- Define and test recovery against retained images and a disposable database restore, including migration compatibility and the failure-latch procedure.
+
+Keep source synchronization, CI success, deployment verification and recovery evidence distinct.
+These proposals do not authorize changes to the running updater, automatic recovery or removal of retained data.
 
 ### Operator cutover from overlays
 
