@@ -10,11 +10,19 @@
 	let pending = $state(false);
 	let saveError = $state('');
 	let passwordForm: HTMLFormElement;
-	const fields = [
-		{ name: 'currentPassword', label: 'Current password', autocomplete: 'current-password' },
-		{ name: 'newPassword', label: 'New password', autocomplete: 'new-password' },
-		{ name: 'confirmPassword', label: 'Confirm new password', autocomplete: 'new-password' }
-	] as const;
+	const fields = $derived([
+		{
+			name: 'currentPassword',
+			label: language.t('ui.Current.password'),
+			autocomplete: 'current-password'
+		},
+		{ name: 'newPassword', label: language.t('ui.New.password'), autocomplete: 'new-password' },
+		{
+			name: 'confirmPassword',
+			label: language.t('ui.Confirm.new.password'),
+			autocomplete: 'new-password'
+		}
+	] as const);
 </script>
 
 <svelte:head
@@ -86,14 +94,14 @@
 	{/each}
 	<div class="password-save">
 		<button class="btn btn-primary" disabled={pending || data.demoMode}
-			>{pending ? 'Saving...' : language.t('ui.Change.password')}</button
+			>{pending ? language.t('ui.Saving') : language.t('ui.Change.password')}</button
 		>
 		<p
 			role="status"
 			class="text-sm text-text-secondary"
 			class:text-error={!!saveError || (form && !form.success)}
 		>
-			{saveError || form?.message || ''}
+			{language.message(saveError || form?.message || '')}
 		</p>
 	</div>
 </form>

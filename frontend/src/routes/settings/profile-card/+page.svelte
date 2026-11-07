@@ -220,7 +220,7 @@
 			/>
 			<div class="settings-save">
 				<button class="btn btn-primary" disabled={pending}
-					>{pending ? 'Saving...' : language.t('ui.Save.card')}</button
+					>{pending ? language.t('ui.Saving') : language.t('ui.Save.card')}</button
 				>
 				<div
 					id="profile-status"

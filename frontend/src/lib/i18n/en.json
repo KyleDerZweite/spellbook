@@ -1204,5 +1204,6 @@
 	"api.validation.Candidates.do.not.match.the.Scan.result.status": "Candidates do not match the Scan result status",
 	"profile.powerHelp": "Number, *, X or KPI. Fill both or leave both empty.",
 	"deck.import.add.one": "Add all {count} card",
-	"deck.import.add.other": "Add all {count} cards"
+	"deck.import.add.other": "Add all {count} cards",
+	"ui.Saving": "Saving..."
 }

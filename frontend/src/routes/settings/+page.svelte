@@ -125,7 +125,7 @@
 				<p id="email-error" class="field-error">{language.message(emailError ?? '')}</p>
 				<div class="profile-save">
 					<button class="btn btn-primary" disabled={pending}
-						>{pending ? 'Saving...' : language.t('ui.Save.email')}</button
+						>{pending ? language.t('ui.Saving') : language.t('ui.Save.email')}</button
 					>
 					<p
 						role="status"

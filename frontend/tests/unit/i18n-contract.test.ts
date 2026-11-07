@@ -43,3 +43,20 @@ describe('translation contract', () => {
 		expect(localizeMessage('en', 'Email saved.')).toBe('Email saved.');
 	});
 });
+
+// Retained action payloads may already contain a translation from the submitting request.
+it('relocalizes retained validation failures in both directions without losing parameters', () => {
+	for (const message of [
+		'Invalid username or password.',
+		'Use at most 200 characters.',
+		'Use at most 8 lines.',
+		'Unknown placeholder {custom}. Choose a value from Insert KPI.',
+		'Close each placeholder with braces, for example {total_owned_cards}.',
+		'Use up to 8 mana symbols in braces, for example {2}{U}.'
+	]) {
+		const german = localizeMessage('de', message);
+		expect(german).not.toBe(message);
+		expect(localizeMessage('en', german)).toBe(message);
+		expect(localizeMessage('de', localizeMessage('en', german))).toBe(german);
+	}
+});

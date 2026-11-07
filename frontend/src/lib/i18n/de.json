@@ -1204,5 +1204,6 @@
 	"api.validation.Candidates.do.not.match.the.Scan.result.status": "Die Kandidaten passen nicht zum Scan-Ergebnisstatus",
 	"profile.powerHelp": "Zahl, *, X oder KPI. Fülle beide Felder aus oder lasse beide leer.",
 	"deck.import.add.one": "Alle {count} Karte hinzufügen",
-	"deck.import.add.other": "Alle {count} Karten hinzufügen"
+	"deck.import.add.other": "Alle {count} Karten hinzufügen",
+	"ui.Saving": "Wird gespeichert..."
 }

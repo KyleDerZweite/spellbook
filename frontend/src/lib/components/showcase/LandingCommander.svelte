@@ -21,11 +21,7 @@
 	}
 
 	function moveFocus(event: KeyboardEvent, index: number) {
-		if (
-			!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', language.t('ui.Home'), 'End'].includes(
-				event.key
-			)
-		)
+		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))
 			return;
 		event.preventDefault();
 		selectCard(
