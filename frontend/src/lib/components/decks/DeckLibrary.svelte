@@ -197,7 +197,7 @@
 					return;
 				focusError =
 					result.cause instanceof Error
-						? result.cause.message
+						? language.message(result.cause.message)
 						: language.t('ui.Focused.Deck.position.could.not.be.restored');
 				return;
 			}
@@ -358,7 +358,7 @@
 							return;
 						positionError =
 							result.cause instanceof Error
-								? result.cause.message
+								? language.message(result.cause.message)
 								: language.t('ui.Saved.Deck.position.could.not.be.restored');
 						return;
 					}
@@ -462,7 +462,7 @@
 			if (alive && !terminal)
 				positionError =
 					cause instanceof Error
-						? cause.message
+						? language.message(cause.message)
 						: language.t('ui.Saved.Deck.position.could.not.be.restored');
 		} finally {
 			layingOut = false;

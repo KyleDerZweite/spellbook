@@ -79,7 +79,9 @@
 			{#if field.name === 'newPassword'}<p id="password-help" class="field-help">
 					{language.t('ui.12.to.128.characters.Other.sessions.will.be.signed.out')}
 				</p>{/if}
-			<p id={`${field.name}-error`} class="field-error">{form?.errors?.[field.name] ?? ''}</p>
+			<p id={`${field.name}-error`} class="field-error">
+				{language.message(form?.errors?.[field.name] ?? '')}
+			</p>
 		</div>
 	{/each}
 	<div class="password-save">

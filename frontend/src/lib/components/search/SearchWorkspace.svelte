@@ -359,7 +359,9 @@
 						<fieldset>
 							<legend
 								title={group.name === 'colorAnd'
-									? 'A second color filter assigns NOT to remaining colors; Clear filters resets the selection'
+									? language.message(
+											'A second color filter assigns NOT to remaining colors; Clear filters resets the selection'
+										)
 									: undefined}>{group.label}</legend
 							>{#each group.options as option}<label class="flex items-center gap-2"
 									><input
@@ -367,7 +369,7 @@
 										name={group.name}
 										value={option.id}
 										checked={group.selected?.some((value) => value === option.id)}
-									/>{option.label}</label
+									/>{language.message(option.label)}</label
 								>{/each}
 						</fieldset>
 					{/each}
@@ -456,7 +458,7 @@
 				onScrollPositionChange={(top) => (session.scrollTop = top)}
 				onFocusReset={resetFocus}
 				{loading}
-				{error}
+				error={language.message(error)}
 				query={input.query}
 				{browseMode}
 				onRetry={() => catalog.retry()}

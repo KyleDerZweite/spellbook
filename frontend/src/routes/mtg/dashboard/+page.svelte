@@ -76,7 +76,7 @@
 	</WorkspaceHeader>
 	{#if loadError}
 		<div class="dashboard-empty" role="alert">
-			<p>{loadError}</p>
+			<p>{language.message(loadError)}</p>
 			<button class="btn btn-secondary btn-sm" onclick={retry} disabled={retrying}
 				>{retrying ? 'Loading...' : language.t('ui.Try.again')}</button
 			>

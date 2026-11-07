@@ -50,7 +50,7 @@
 		p1: String(entry.quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')),
 		p2: String(entry.name),
 		p3: String(entry.setCode.toUpperCase()),
-		p4: String(entry.finish === 'foil' ? 'Foil' : 'Nonfoil'),
+		p4: String(entry.finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')),
 		p5: String(entry.condition)
 	})}
 	pending={mutation.pending}
@@ -81,7 +81,9 @@
 					>{/each}
 			</div>
 		{/if}
-		{#if mutation.error}<p role="alert" class="mt-3 text-sm text-error">{mutation.error}</p>{/if}
+		{#if mutation.error}<p role="alert" class="mt-3 text-sm text-error">
+				{language.message(mutation.error)}
+			</p>{/if}
 		<div class="group-form-actions">
 			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
 				>{language.t('ui.Cancel')}</button

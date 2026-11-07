@@ -41,7 +41,7 @@
 				id="auth-error"
 				class="rounded-lg border border-error p-3 text-sm text-error"
 			>
-				{form.message}
+				{language.message(form.message)}
 			</p>{/if}
 		<div>
 			<label for="username" class="label">{language.t('ui.Username')}</label>

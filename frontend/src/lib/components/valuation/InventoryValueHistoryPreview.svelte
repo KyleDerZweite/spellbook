@@ -88,7 +88,7 @@
 <HistoryFilters {query} {history} onNavigate={navigate} />
 <InventoryValueHistoryView
 	{history}
-	{error}
+	error={language.message(error)}
 	{loading}
 	{demo}
 	embedded

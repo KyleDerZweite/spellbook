@@ -694,7 +694,7 @@
 	</p>{/if}
 <SavedStateStatus resource={deckSubscription} />
 {#snippet retryError()}
-	{#if saveError}<p class="notice" role="alert">{saveError}</p>{/if}
+	{#if saveError}<p class="notice" role="alert">{language.message(saveError)}</p>{/if}
 {/snippet}
 
 <svelte:head
@@ -815,7 +815,9 @@
 				maxlength="4000"
 				bind:value={createDescription}></textarea>
 			{@render retryError()}
-			{#if !saveError && form?.message}<p role="status" class="muted">{form.message}</p>{/if}
+			{#if !saveError && form?.message}<p role="status" class="muted">
+					{language.message(form.message)}
+				</p>{/if}
 			<Button type="submit" variant="default" disabled={busy || deletedTarget}
 				><PlusIcon />{language.t('ui.Create.deck')}</Button
 			>
@@ -823,7 +825,7 @@
 	</DeckDialog>
 	{@render retryError()}
 	{#if !saveError && form?.message && !form?.success}<p class="notice" role="alert">
-			{form.message}
+			{language.message(form.message)}
 		</p>{/if}
 	{#if selectedDeck && detailsDraft && !editOpen}
 		<section data-deck-draft-recovery aria-labelledby="draft-recovery-title" class="form-stack">
@@ -973,7 +975,7 @@
 								</div>{/if}
 							{@render retryError()}
 							{#if !saveError && form?.message}<p role="status" class="muted">
-									{form.message}
+									{language.message(form.message)}
 								</p>{/if}<Button type="submit" variant="default" disabled={busy || deletedTarget}
 								>{language.t('ui.Save.details')}</Button
 							>
@@ -1029,7 +1031,9 @@
 						>
 					</form>
 					{@render retryError()}
-					{#if !saveError && form?.message}<p role="status" class="notice">{form.message}</p>{/if}
+					{#if !saveError && form?.message}<p role="status" class="notice">
+							{language.message(form.message)}
+						</p>{/if}
 					{#if preview && form?.importText === importText.trim()}
 						<div class="import-preview" aria-live="polite">
 							<p>
@@ -1064,7 +1068,7 @@
 									{#each preview.resolved.filter(({ line }) => line.role !== 'maybeboard') as item}<li
 										>
 											{item.line.quantity}
-											{item.card.name} · {item.line.role}
+											{item.card.name} · {language.t(`role.${item.line.role}`)}
 										</li>{/each}
 								</ul>
 							</details>
@@ -1312,7 +1316,7 @@
 		{roles}
 		{busy}
 		{searching}
-		{searchError}
+		searchError={language.message(searchError)}
 		requestId={data.requestId}
 		addAction={action('addCard')}
 		submit={save}

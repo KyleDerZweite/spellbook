@@ -203,6 +203,7 @@
 			<Dialog.Root bind:open={mobileMenuOpen}>
 				<Dialog.Trigger
 					class="btn btn-secondary btn-icon lg:hidden"
+					data-navigation-trigger
 					aria-label={language.t('ui.Open.navigation.menu')}
 					><svg
 						aria-hidden="true"

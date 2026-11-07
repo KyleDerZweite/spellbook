@@ -1,3 +1,5 @@
+import { localizeMessage } from '#lib/i18n/presentation.ts';
+import { translate } from '#lib/i18n/messages.ts';
 import {
 	deckLibraryQueryFromParams,
 	deckLibraryQueryKey
@@ -120,11 +122,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					ownedPrintings: []
 				};
 	} catch (cause) {
-		if (cause instanceof DeckNotFoundError) throw error(404, 'Deck not found');
+		if (cause instanceof DeckNotFoundError)
+			throw error(404, translate(locals.locale, 'notice.Deck.not.found'));
 		throw cause;
 	}
 	const selectedDeck = snapshot.decks.find((deck) => deck.id === selectedDeckId);
-	if (selectedDeckId && !selectedDeck) throw error(404, 'Deck not found');
+	if (selectedDeckId && !selectedDeck)
+		throw error(404, translate(locals.locale, 'notice.Deck.not.found'));
 	const query = (url.searchParams.get('q') ?? '').trim().slice(0, 200);
 	const oracleId = url.searchParams.get('printing') ?? '';
 	let catalogCards: CardDocument[] = [];
@@ -204,6 +208,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 function guarded(action: Action): Action {
 	return async (event) => {
+		const { locals } = event;
 		if (!event.locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks');
 		try {
 			return await action(event);
@@ -212,12 +217,20 @@ function guarded(action: Action): Action {
 			if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 				throw redirect(303, '/auth/login?returnTo=/mtg/decks');
 			if (cause instanceof DescriptionConflictError)
-				return fail(409, { message: cause.message, conflict: cause.latest });
-			if (cause instanceof RequestConflictError) return fail(409, { message: cause.message });
-			if (cause instanceof DeckNotFoundError) return fail(404, { message: cause.message });
-			if (cause instanceof ValidationError) return fail(400, { message: cause.message });
+				return fail(409, {
+					message: localizeMessage(locals.locale, cause.message),
+					conflict: cause.latest
+				});
+			if (cause instanceof RequestConflictError)
+				return fail(409, { message: localizeMessage(locals.locale, cause.message) });
+			if (cause instanceof DeckNotFoundError)
+				return fail(404, { message: localizeMessage(locals.locale, cause.message) });
+			if (cause instanceof ValidationError)
+				return fail(400, { message: localizeMessage(locals.locale, cause.message) });
 			console.error('Deck action failed', cause);
-			return fail(503, { message: 'The deck could not be saved. Try again.' });
+			return fail(503, {
+				message: translate(locals.locale, 'notice.The.deck.could.not.be.saved.Try.again')
+			});
 		}
 	};
 }
@@ -244,7 +257,7 @@ export const actions = {
 			});
 		} catch (cause) {
 			if (cause instanceof ValidationError)
-				return fail(400, { message: cause.message, createDraft });
+				return fail(400, { message: localizeMessage(locals.locale, cause.message), createDraft });
 			throw cause;
 		}
 		throw redirect(303, `/mtg/decks?deck=${encodeURIComponent(deck.id)}`);
@@ -282,17 +295,25 @@ export const actions = {
 		};
 		try {
 			const deck = await updateDeck(locals.user!, patch);
-			if (!deck) return fail(404, { message: 'Deck not found.' });
-			return { success: true, message: 'Deck details saved.', savedDetails: deck };
+			if (!deck) return fail(404, { message: translate(locals.locale, 'notice.Deck.not.found') });
+			return {
+				success: true,
+				message: translate(locals.locale, 'notice.Deck.details.saved'),
+				savedDetails: deck
+			};
 		} catch (cause) {
 			if (cause instanceof DescriptionConflictError)
-				return fail(409, { message: cause.message, conflict: cause.latest, detailsDraft });
+				return fail(409, {
+					message: localizeMessage(locals.locale, cause.message),
+					conflict: cause.latest,
+					detailsDraft
+				});
 			if (
 				cause instanceof ValidationError &&
 				!(cause instanceof DeckNotFoundError) &&
 				!(cause instanceof RequestConflictError)
 			)
-				return fail(400, { message: cause.message, detailsDraft });
+				return fail(400, { message: localizeMessage(locals.locale, cause.message), detailsDraft });
 			throw cause;
 		}
 	}),
@@ -310,7 +331,7 @@ export const actions = {
 			role: field(form, 'role'),
 			requestId: field(form, 'requestId')
 		});
-		return { success: true, message: 'Card added to deck.' };
+		return { success: true, message: translate(locals.locale, 'notice.Card.added.to.deck') };
 	}),
 
 	changePrinting: guarded(async ({ request, locals }) => {
@@ -323,7 +344,11 @@ export const actions = {
 			requestId: field(form, 'requestId')
 		};
 		const acknowledgement = await changeDeckPrinting(locals.user!, mergeDraft);
-		return { success: true, message: 'Card saved.', acknowledgement };
+		return {
+			success: true,
+			message: translate(locals.locale, 'notice.Card.saved'),
+			acknowledgement
+		};
 	}),
 
 	updateCard: guarded(async ({ request, locals }) => {
@@ -344,12 +369,12 @@ export const actions = {
 			mergeDraft.delta,
 			'web'
 		);
-		return { success: true, message: 'Card updated.' };
+		return { success: true, message: translate(locals.locale, 'notice.Card.updated') };
 	}),
 	removeCard: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
 		await removeDeckCard(locals.user!, field(form, 'entryId'), field(form, 'requestId'));
-		return { success: true, message: 'Card removed from deck.' };
+		return { success: true, message: translate(locals.locale, 'notice.Card.removed.from.deck') };
 	}),
 	previewImport: guarded(async ({ request, locals }) => {
 		const form = await readDeckImportForm(request);
@@ -358,7 +383,7 @@ export const actions = {
 			text = await deckImportText(form);
 			const snapshot = await application.decks.getDeck(locals.user!, field(form, 'deckId'));
 			const deck = snapshot.decks.find((entry) => entry.id === field(form, 'deckId'));
-			if (!deck) return fail(404, { message: 'Deck not found.' });
+			if (!deck) return fail(404, { message: translate(locals.locale, 'notice.Deck.not.found') });
 			return {
 				preview: await application.decks.previewMtgImport(locals.user!, text, deck.format),
 				importText: text,
@@ -367,7 +392,7 @@ export const actions = {
 		} catch (cause) {
 			if (cause instanceof ValidationError && !(cause instanceof DeckNotFoundError))
 				return fail(400, {
-					message: cause.message,
+					message: localizeMessage(locals.locale, cause.message),
 					importDraft: { text, requestId: field(form, 'requestId') }
 				});
 			throw cause;
@@ -378,7 +403,7 @@ export const actions = {
 		const text = field(form, 'text');
 		if (!text || text.length > 100_000)
 			return fail(400, {
-				message: 'Paste a decklist of up to 100,000 characters.',
+				message: translate(locals.locale, 'notice.Paste.a.decklist.of.up.to.100.000.characters'),
 				importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
 			});
 		try {
@@ -393,7 +418,7 @@ export const actions = {
 				(cause instanceof ValidationError && !(cause instanceof DeckNotFoundError))
 			)
 				return fail(cause instanceof RequestConflictError ? 409 : 400, {
-					message: cause.message,
+					message: localizeMessage(locals.locale, cause.message),
 					importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
 				});
 			throw cause;
@@ -401,8 +426,10 @@ export const actions = {
 		return {
 			success: true,
 			imported: true,
-			message:
-				'All imported cards added. Matching printing and role quantities were increased. Deck details were retained.'
+			message: translate(
+				locals.locale,
+				'notice.All.imported.cards.added.Matching.printing.and.role.quantities.were.increased.Deck.details.were.retained'
+			)
 		};
 	})
 } satisfies Actions;

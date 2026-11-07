@@ -150,8 +150,8 @@
 	]);
 
 	const FINISHES = $derived([
-		{ value: 'nonfoil', label: 'Nonfoil', disabled: !card.is_nonfoil_available },
-		{ value: 'foil', label: 'Foil', disabled: !card.is_foil_available }
+		{ value: 'nonfoil', label: language.t('notice.Nonfoil'), disabled: !card.is_nonfoil_available },
+		{ value: 'foil', label: language.t('notice.Foil'), disabled: !card.is_foil_available }
 	]);
 
 	$effect(() => {
@@ -245,7 +245,7 @@
 		disabled={blocked || !hasAvailableFinish}
 		class={['btn w-full', actionRole === 'secondary' ? 'btn-secondary text-sm' : 'btn-primary']}
 	>
-		<PlusIcon />{pending ? 'Adding...' : language.t('ui.Add.to.inventory')}
+		<PlusIcon />{pending ? language.t('notice.Adding') : language.t('ui.Add.to.inventory')}
 	</button>
 	{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
 			{language.t('sentence.Original.unconfirmed.addition.p0.of.p1.p2.p3', {
@@ -267,7 +267,7 @@
 			{language.t('ui.Choose.a.printing.with.an.available.Nonfoil.or.Foil.finish')}
 		</p>{/if}
 	{#if draft.error}<p id={`${id}-error`} role="alert" class="text-sm text-error">
-			{draft.error}
+			{language.message(draft.error)}
 		</p>{/if}
 	<p
 		role="status"

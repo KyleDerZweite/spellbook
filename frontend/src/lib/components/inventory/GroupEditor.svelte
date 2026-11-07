@@ -62,7 +62,7 @@
 			aria-describedby={mutation.error ? `${id}-error` : undefined}
 		/>
 		{#if mutation.error}<p id={`${id}-error`} role="alert" class="text-sm text-error">
-				{mutation.error}
+				{language.message(mutation.error)}
 			</p>{/if}
 		<div class="group-form-actions">
 			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}

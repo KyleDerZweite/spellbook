@@ -28,7 +28,7 @@
 			'ui.CSV.and.Spellbook.JSON.preserve.exact.printings.and.roles.Simple.text.loses.printing.choices.roles.and.Deck.details.Hosted.links.and.share.codes.are.not.imported'
 		)}
 	</p>
-	{#if form && 'message' in form}<p role="alert">{form.message}</p>{/if}
+	{#if form && 'message' in form}<p role="alert">{language.message(form.message)}</p>{/if}
 	{#if form && 'retryCommit' in form && form.retryCommit}
 		<form method="POST">
 			<input type="hidden" name="requestId" value={form.requestId} />

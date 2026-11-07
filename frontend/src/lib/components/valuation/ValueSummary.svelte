@@ -34,7 +34,7 @@
 >
 	<div class="value-heading">
 		<h2 class="text-sm font-medium text-text-muted">{title}</h2>
-		{#if error}<p class="mt-2 text-sm" role="alert">{error}</p>
+		{#if error}<p class="mt-2 text-sm" role="alert">{language.message(error)}</p>
 		{:else if estimate}
 			<p class="value-amount">
 				{estimate.totalQuantity > 0 && estimate.coveredQuantity === 0
@@ -47,7 +47,7 @@
 	{#if estimate && !error}
 		{#if inline}
 			<p class="value-basis">
-				{language.t('coverage.priced', {
+				{language.t('notice.covered.total.copies.priced', {
 					covered: language.number(estimate.coveredQuantity),
 					total: language.number(estimate.totalQuantity)
 				})}
@@ -63,7 +63,7 @@
 					value={estimate.coveredQuantity}
 					aria-label={language.t('ui.Copies.with.known.price.references')}
 				></progress><small
-					>{language.t('coverage.ratio', {
+					>{language.t('notice.covered.total.copies', {
 						covered: language.number(estimate.coveredQuantity),
 						total: language.number(estimate.totalQuantity)
 					})}</small
@@ -81,12 +81,15 @@
 	{#if estimate}
 		{#if referenceNote && !inline}<p class="mt-2 text-xs text-text-muted">{referenceNote}</p>{/if}
 		<p class="mt-2 text-xs text-text-muted">
-			{language.t('coverage.details', {
-				covered: language.number(estimate.coveredQuantity),
-				total: language.number(estimate.totalQuantity),
-				unknown: language.number(estimate.unknownQuantity),
-				stale: language.number(estimate.staleQuantity)
-			})}
+			{language.t(
+				'notice.covered.of.total.copies.covered.unknown.unknown.stale.covered.by.stale.references',
+				{
+					covered: language.number(estimate.coveredQuantity),
+					total: language.number(estimate.totalQuantity),
+					unknown: language.number(estimate.unknownQuantity),
+					stale: language.number(estimate.staleQuantity)
+				}
+			)}
 		</p>
 		{#if !estimate.complete}<p class="mt-1 text-xs text-text-muted">
 				{language.t('ui.Unknown.references.are.excluded.from.the.covered.value')}

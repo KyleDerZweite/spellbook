@@ -30,7 +30,7 @@ export function translate<K extends MessageKey>(
 		: [values?: MessageValues<K>]
 ): string {
 	const values = args[0] ?? {};
-	return dictionaries[locale][key].replace(/\{(\w+)\}/g, (_, name: string) => {
+	return dictionaries[locale ?? 'en'][key].replace(/\{(\w+)\}/g, (_, name: string) => {
 		if (!(name in values)) throw new Error(`Missing translation parameter: ${key}.${name}`);
 		return String((values as Record<string, string | number>)[name]);
 	});

@@ -122,7 +122,7 @@
 				<p id="email-help" class="field-help">
 					{language.t('ui.Optional.contact.email.Sign.in.with.your.username')}
 				</p>
-				<p id="email-error" class="field-error">{emailError ?? ''}</p>
+				<p id="email-error" class="field-error">{language.message(emailError ?? '')}</p>
 				<div class="profile-save">
 					<button class="btn btn-primary" disabled={pending}
 						>{pending ? 'Saving...' : language.t('ui.Save.email')}</button

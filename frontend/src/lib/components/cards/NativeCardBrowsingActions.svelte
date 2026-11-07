@@ -263,10 +263,14 @@
 							options={[
 								{
 									value: 'nonfoil',
-									label: 'Nonfoil',
+									label: language.t('notice.Nonfoil'),
 									disabled: !selectedPrinting.is_nonfoil_available
 								},
-								{ value: 'foil', label: 'Foil', disabled: !selectedPrinting.is_foil_available }
+								{
+									value: 'foil',
+									label: language.t('notice.Foil'),
+									disabled: !selectedPrinting.is_foil_available
+								}
 							]}
 						/>
 					</div>
@@ -277,7 +281,20 @@
 							name="condition"
 							label={language.t('ui.Condition')}
 							value={inventorySubmitted?.condition ?? 'NM'}
-							options={['NM', 'LP', 'MP', 'HP', 'DMG'].map((value) => ({ value, label: value }))}
+							options={['NM', 'LP', 'MP', 'HP', 'DMG'].map((value) => ({
+								value,
+								label: language.t(
+									(
+										{
+											NM: 'ui.Near.Mint',
+											LP: 'ui.Lightly.Played',
+											MP: 'ui.Moderately.Played',
+											HP: 'ui.Heavily.Played',
+											DMG: 'ui.Damaged'
+										} as const
+									)[value as 'NM']
+								)
+							}))}
 						/>
 					</div>
 				</div>

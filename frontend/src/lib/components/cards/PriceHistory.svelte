@@ -35,7 +35,7 @@
 					if (current())
 						error =
 							cause instanceof Error
-								? cause.message
+								? language.message(cause.message)
 								: language.t('ui.Source.history.could.not.be.loaded');
 				})
 				.finally(() => {
@@ -62,7 +62,7 @@
 			)}{/if}
 	</p>
 	{#if loading}<p role="status">{language.t('ui.Loading.source.history')}</p>
-	{:else if error}<p role="alert">{error}</p>
+	{:else if error}<p role="alert">{language.message(error)}</p>
 		<button type="button" class="btn btn-secondary" onclick={() => retry++}
 			>{language.t('ui.Retry.history')}</button
 		>

@@ -98,7 +98,9 @@
 				if (!controller.signal.aborted) {
 					loadingPrintings = false;
 					printingsError =
-						cause instanceof Error ? cause.message : language.t('ui.Unable.to.load.printings');
+						cause instanceof Error
+							? language.message(cause.message)
+							: language.t('ui.Unable.to.load.printings');
 				}
 			});
 
@@ -390,7 +392,9 @@
 										(foilFilter =
 											foilFilter === finish ? 'all' : finish === 'foil' ? 'foil' : 'nonfoil')}
 									aria-pressed={foilFilter === finish}
-									>{finish === 'foil' ? 'Foil' : 'Nonfoil'}</button
+									>{finish === 'foil'
+										? language.t('notice.Foil')
+										: language.t('notice.Nonfoil')}</button
 								>
 							{/each}
 						</div>

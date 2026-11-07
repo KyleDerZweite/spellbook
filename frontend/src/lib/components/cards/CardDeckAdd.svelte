@@ -242,7 +242,9 @@
 		/>
 		{#if loading}<p role="status" class="text-sm text-text-secondary">
 				{language.t('ui.Loading.Decks')}
-			</p>{:else if readError}<p role="alert" class="text-sm text-error">{readError}</p>
+			</p>{:else if readError}<p role="alert" class="text-sm text-error">
+				{language.message(readError)}
+			</p>
 			<button
 				class="btn btn-secondary"
 				type="button"
@@ -280,7 +282,12 @@
 					name="role"
 					label={language.t('ui.Section')}
 					bind:value={draft.role}
-					options={DECK_ROLES}
+					options={DECK_ROLES.map((option) => ({
+						...option,
+						label: language.t(
+							`role.${option.value as 'main' | 'sideboard' | 'commander' | 'companion'}`
+						)
+					}))}
 					disabled={blocked}
 				/>
 			</div>
@@ -303,7 +310,7 @@
 			class="btn btn-primary"
 			type="submit"
 			disabled={blocked || loading || !!readError || !selected}
-			><PlusIcon />{pending ? 'Adding...' : language.t('ui.Add.to.Deck')}</button
+			><PlusIcon />{pending ? language.t('notice.Adding') : language.t('ui.Add.to.Deck')}</button
 		>
 		{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
 				{language.t(
@@ -312,7 +319,16 @@
 						p0: String(original.quantity),
 						p1: String(original.printingName ?? original.catalogCardId),
 						p2: String(original.deckName ?? original.deckId),
-						p3: String(original.role)
+						p3: language.message(
+							(
+								{
+									main: 'Main Deck',
+									sideboard: 'Sideboard',
+									commander: 'Commander',
+									companion: 'Companion'
+								} as Record<string, string>
+							)[original.role] ?? original.role
+						)
 					}
 				)}
 			</p>
@@ -325,7 +341,7 @@
 				disabled={blocked}>{language.t('ui.Retry.original.Deck.addition')}</button
 			>{/each}
 		{#if draft.error}<p id={`${id}-error`} role="alert" class="text-sm text-error">
-				{draft.error}
+				{language.message(draft.error)}
 			</p>{/if}
 		<p
 			role="status"

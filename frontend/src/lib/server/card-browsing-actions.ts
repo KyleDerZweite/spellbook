@@ -1,3 +1,5 @@
+import { translate } from '#lib/i18n/messages.ts';
+import { localizeMessage } from '#lib/i18n/presentation.ts';
 import { fail, redirect, type Action } from '@sveltejs/kit';
 import { application } from '#lib/server/composition.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
@@ -26,7 +28,7 @@ export const addToDeck: Action = async ({ request, locals }) => {
 	)
 		return fail(400, {
 			...result,
-			message: 'Choose a Deck, Section and whole positive Quantity.',
+			message: translate(locals.locale, 'notice.Choose.a.Deck.Section.and.whole.positive.Quantity'),
 			uncertain: false
 		});
 	if (form.get('originalUncertain') === 'true') {
@@ -39,7 +41,10 @@ export const addToDeck: Action = async ({ request, locals }) => {
 		} catch {
 			return fail(400, {
 				...result,
-				message: 'Invalid original retry snapshot. Enter a new addition.',
+				message: translate(
+					locals.locale,
+					'notice.Invalid.original.retry.snapshot.Enter.a.new.addition'
+				),
 				uncertain: false
 			});
 		}
@@ -54,22 +59,36 @@ export const addToDeck: Action = async ({ request, locals }) => {
 		if (cause instanceof DeckNotFoundError)
 			return fail(404, {
 				...result,
-				message: 'This Deck is no longer available. Choose an owned Deck.',
+				message: translate(
+					locals.locale,
+					'notice.This.Deck.is.no.longer.available.Choose.an.owned.Deck'
+				),
 				uncertain: false
 			});
 		if (cause instanceof RequestConflictError)
-			return fail(409, { ...result, message: cause.message, uncertain: false });
+			return fail(409, {
+				...result,
+				message: localizeMessage(locals.locale, cause.message),
+				uncertain: false
+			});
 		if (cause instanceof ValidationError)
-			return fail(400, { ...result, message: cause.message, uncertain: false });
+			return fail(400, {
+				...result,
+				message: localizeMessage(locals.locale, cause.message),
+				uncertain: false
+			});
 		if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 			return fail(401, {
 				...result,
-				message: 'Your session expired. Sign in again.',
+				message: translate(locals.locale, 'notice.Your.session.expired.Sign.in.again'),
 				uncertain: false
 			});
 		return fail(503, {
 			...result,
-			message: 'Could not confirm this addition. Retry the original request to confirm it safely.',
+			message: translate(
+				locals.locale,
+				'notice.Could.not.confirm.this.addition.Retry.the.original.request.to.confirm.it.safely'
+			),
 			uncertain: true
 		});
 	}
@@ -95,7 +114,10 @@ export const addBrowsingToInventory: Action = async ({ request, locals }) => {
 	)
 		return fail(400, {
 			...result,
-			message: 'Choose a Finish, Condition and whole positive Quantity.',
+			message: translate(
+				locals.locale,
+				'notice.Choose.a.Finish.Condition.and.whole.positive.Quantity'
+			),
 			uncertain: false
 		});
 	if (form.get('originalUncertain') === 'true') {
@@ -109,7 +131,10 @@ export const addBrowsingToInventory: Action = async ({ request, locals }) => {
 		} catch {
 			return fail(400, {
 				...result,
-				message: 'Invalid original retry snapshot. Enter a new addition.',
+				message: translate(
+					locals.locale,
+					'notice.Invalid.original.retry.snapshot.Enter.a.new.addition'
+				),
 				uncertain: false
 			});
 		}
@@ -123,19 +148,29 @@ export const addBrowsingToInventory: Action = async ({ request, locals }) => {
 		return { ...result, success: true, acknowledgement };
 	} catch (cause) {
 		if (cause instanceof RequestConflictError)
-			return fail(409, { ...result, message: cause.message, uncertain: false });
+			return fail(409, {
+				...result,
+				message: localizeMessage(locals.locale, cause.message),
+				uncertain: false
+			});
 		if (cause instanceof ValidationError)
-			return fail(400, { ...result, message: cause.message, uncertain: false });
+			return fail(400, {
+				...result,
+				message: localizeMessage(locals.locale, cause.message),
+				uncertain: false
+			});
 		if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 			return fail(401, {
 				...result,
-				message: 'Your session expired. Sign in again.',
+				message: translate(locals.locale, 'notice.Your.session.expired.Sign.in.again'),
 				uncertain: false
 			});
 		return fail(503, {
 			...result,
-			message:
-				'Could not confirm this Inventory addition. Retry the original request to confirm it safely.',
+			message: translate(
+				locals.locale,
+				'notice.Could.not.confirm.this.Inventory.addition.Retry.the.original.request.to.confirm.it.safely'
+			),
 			uncertain: true
 		});
 	}

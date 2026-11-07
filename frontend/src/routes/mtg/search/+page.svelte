@@ -64,7 +64,9 @@
 			{#if !data.user && data.choiceReadError}<p role="alert" class="text-error">
 					{data.choiceReadError}
 				</p>{/if}
-			{#if data.draftReadError}<p role="alert" class="text-error">{data.draftReadError}</p>{/if}
+			{#if data.draftReadError}<p role="alert" class="text-error">
+					{language.message(data.draftReadError)}
+				</p>{/if}
 			<NativeCardBrowsingActions
 				selectedPrinting={data.selectedPrinting}
 				printingReadError={data.printingReadError}

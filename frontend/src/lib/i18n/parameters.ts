@@ -1,13 +1,18 @@
 export interface MessageParameters {
+	'validation.characters': { count: string | number };
+	'validation.lines': { count: string | number };
+	'validation.placeholder': { token: string | number };
+	'validation.braces': { example: string | number };
+	'validation.mana': { example: string | number };
 	'cards.one': { count: string | number };
 	'cards.other': { count: string | number };
 	'printing.one': { count: string | number };
 	'printing.other': { count: string | number };
 	'unique.one': { count: string | number };
 	'unique.other': { count: string | number };
-	'coverage.ratio': { covered: string | number; total: string | number };
-	'coverage.priced': { covered: string | number; total: string | number };
-	'coverage.details': {
+	'notice.covered.total.copies': { covered: string | number; total: string | number };
+	'notice.covered.total.copies.priced': { covered: string | number; total: string | number };
+	'notice.covered.of.total.copies.covered.unknown.unknown.stale.covered.by.stale.references': {
 		covered: string | number;
 		stale: string | number;
 		total: string | number;

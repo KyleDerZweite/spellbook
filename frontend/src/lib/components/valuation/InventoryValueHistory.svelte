@@ -72,7 +72,7 @@
 			{language.t('ui.Loading.Inventory.history')}
 		</p>
 	{:else if error}
-		<p class="mt-3 text-sm" role="alert">{error}</p>
+		<p class="mt-3 text-sm" role="alert">{language.message(error)}</p>
 		{#if onRetry}<button type="button" class="btn btn-secondary mt-2" onclick={onRetry}
 				>{language.t('ui.Retry.history')}</button
 			>{/if}

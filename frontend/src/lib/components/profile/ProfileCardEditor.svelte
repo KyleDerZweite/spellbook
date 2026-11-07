@@ -43,7 +43,7 @@
 				aria-describedby="card-name-error"
 			/>
 			<p class="field-count">{card.name.length}/{PROFILE_CARD_LIMITS.name}</p>
-			<p id="card-name-error" class="field-error">{errors.name ?? ''}</p>
+			<p id="card-name-error" class="field-error">{language.message(errors.name ?? '')}</p>
 		</div>
 		<div>
 			<label class="label" for="card-mana">{language.t('ui.Mana.cost')}</label><input
@@ -59,7 +59,7 @@
 			<p id="card-mana-help" class="field-help">
 				{language.t('profile.manaHelp', { examples: '{2}{U}, {W/U}, {G/P}' })}
 			</p>
-			<p id="card-mana-error" class="field-error">{errors.manaCost ?? ''}</p>
+			<p id="card-mana-error" class="field-error">{language.message(errors.manaCost ?? '')}</p>
 		</div>
 	</div>
 	<div class="field-row">
@@ -72,7 +72,7 @@
 				bind:value={card.frame}
 				{disabled}
 			/>
-			<p class="field-error">{errors.frame ?? ''}</p>
+			<p class="field-error">{language.message(errors.frame ?? '')}</p>
 		</div>
 		<div>
 			<label class="label" for="card-rarity">{language.t('ui.Rarity')}</label><Select
@@ -83,7 +83,7 @@
 				bind:value={card.rarity}
 				{disabled}
 			/>
-			<p class="field-error">{errors.rarity ?? ''}</p>
+			<p class="field-error">{language.message(errors.rarity ?? '')}</p>
 		</div>
 	</div>
 	<label class="legendary-control"
@@ -104,7 +104,7 @@
 			aria-describedby="card-type-error"
 		/>
 		<p class="field-count">{card.typeLine.length}/{PROFILE_CARD_LIMITS.typeLine}</p>
-		<p id="card-type-error" class="field-error">{errors.typeLine ?? ''}</p>
+		<p id="card-type-error" class="field-error">{language.message(errors.typeLine ?? '')}</p>
 	</div>
 	<ProfileTextField
 		name="rulesText"
@@ -114,7 +114,7 @@
 		rows={4}
 		limit={PROFILE_CARD_LIMITS.rulesText}
 		{disabled}
-		error={errors.rulesText}
+		error={language.message(errors.rulesText)}
 		{totals}
 		help={language.t('profile.rulesHelp', { examples: '{G}, {T}, {Q}, {E}' })}
 	/>
@@ -126,7 +126,7 @@
 		rows={2}
 		limit={PROFILE_CARD_LIMITS.flavorText}
 		{disabled}
-		error={errors.flavorText}
+		error={language.message(errors.flavorText)}
 		{totals}
 	/>
 	<div class="field-row">
@@ -136,9 +136,9 @@
 			bind:value={card.power}
 			limit={PROFILE_CARD_LIMITS.power}
 			{disabled}
-			error={errors.power}
+			error={language.message(errors.power)}
 			{totals}
-			help="Number, *, X or KPI. Fill both or leave both empty."
+			help={language.t('profile.powerHelp')}
 		/>
 		<ProfileTextField
 			name="toughness"
@@ -146,13 +146,13 @@
 			bind:value={card.toughness}
 			limit={PROFILE_CARD_LIMITS.toughness}
 			{disabled}
-			error={errors.toughness}
+			error={language.message(errors.toughness)}
 			{totals}
-			help="Number, *, X or KPI. Fill both or leave both empty."
+			help={language.t('profile.powerHelp')}
 		/>
 	</div>
 	{#if errors.form || errors.template || errors.legendary}<p class="field-error" role="alert">
-			{errors.form ?? errors.template ?? errors.legendary}
+			{language.message(errors.form ?? errors.template ?? errors.legendary)}
 		</p>{/if}
 </div>
 

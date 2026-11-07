@@ -93,7 +93,7 @@
 		>
 	</div>{/if}
 <div class="catalog-results" aria-busy={searching}>
-	{#if searchError}<p class="notice" role="alert">{searchError}</p>{/if}
+	{#if searchError}<p class="notice" role="alert">{language.message(searchError)}</p>{/if}
 	{#each cards as card (card.id)}
 		<div class="catalog-row">
 			<button

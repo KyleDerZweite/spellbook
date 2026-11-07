@@ -142,7 +142,7 @@
 				const desktop = document.querySelector<HTMLElement>('.primary-nav a[href="/mtg/search"]');
 				const fallback = desktop?.getClientRects().length
 					? desktop
-					: document.querySelector<HTMLElement>('[aria-label="Open navigation menu"]');
+					: document.querySelector<HTMLElement>('[data-navigation-trigger]');
 				const target =
 					returnFocus?.isConnected && returnFocus.getClientRects().length ? returnFocus : fallback;
 				target?.focus({ preventScroll: true });

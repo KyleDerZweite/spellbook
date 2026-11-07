@@ -67,7 +67,7 @@
 						unavailable = true;
 						readFailure =
 							cause instanceof Error
-								? cause.message
+								? language.message(cause.message)
 								: language.t('ui.Saved.scan.details.are.unavailable');
 					}
 					throw cause;
@@ -148,7 +148,9 @@
 
 	function report(cause: unknown) {
 		failure =
-			cause instanceof Error ? cause.message : language.t('ui.The.request.failed.Try.again');
+			cause instanceof Error
+				? language.message(cause.message)
+				: language.t('ui.The.request.failed.Try.again');
 	}
 
 	async function openSession(id: string) {
@@ -407,7 +409,7 @@
 		</p>
 	{:else}
 		<div class="flex flex-wrap items-center gap-3 text-text-secondary">
-			<span>{session.status.replaceAll('_', ' ')}</span>
+			<span>{language.message(session.status.replaceAll('_', ' '))}</span>
 		</div>
 		{#if session.status === 'open'}
 			<form
@@ -597,12 +599,12 @@
 											options={[
 												{
 													value: 'nonfoil',
-													label: 'Nonfoil',
+													label: language.t('notice.Nonfoil'),
 													disabled: selectedPrinting?.is_nonfoil_available === false
 												},
 												{
 													value: 'foil',
-													label: 'Foil',
+													label: language.t('notice.Foil'),
 													disabled: selectedPrinting?.is_foil_available === false
 												}
 											]}
@@ -645,7 +647,7 @@
 									class="btn btn-primary"
 									disabled={busy || searching || !confirmed || !validQuantity}
 									><PlusIcon />{busy
-										? 'Adding...'
+										? language.t('notice.Adding')
 										: language.t('ui.Confirm.and.add.to.inventory')}</button
 								>
 							{/if}
@@ -677,7 +679,7 @@
 				onchange={openSession}
 				options={recentSessions.map((entry) => ({
 					value: entry.id,
-					label: `${new Date(entry.createdAt).toLocaleString(language.locale, { dateStyle: 'short', timeStyle: 'short' })} · ${(entry.id === session?.id ? session.status : entry.status).replaceAll('_', ' ')}`
+					label: `${new Date(entry.createdAt).toLocaleString(language.locale, { dateStyle: 'short', timeStyle: 'short' })} · ${language.message((entry.id === session?.id ? session.status : entry.status).replaceAll('_', ' '))}`
 				}))}
 			/>
 		</div>

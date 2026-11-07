@@ -18,7 +18,7 @@
 
 <AccountLayout title={language.t('ui.Approve.sign.in')}>
 	<div class="space-y-5">
-		{#if form?.message}<p role="alert" class="text-error">{form.message}</p>{/if}
+		{#if form?.message}<p role="alert" class="text-error">{language.message(form.message)}</p>{/if}
 		{#if request.status === 'pending'}
 			<p>
 				{language.t('ui.Sign.in.to')}

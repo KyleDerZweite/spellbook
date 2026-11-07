@@ -21,7 +21,7 @@
 					)}
 				</p>
 			{/if}
-			{#if pwaState.updateError}<p>{pwaState.updateError}</p>{/if}
+			{#if pwaState.updateError}<p>{language.message(pwaState.updateError)}</p>{/if}
 		</div>
 		{#if pwaState.updateReady || pwaState.updating}
 			<button

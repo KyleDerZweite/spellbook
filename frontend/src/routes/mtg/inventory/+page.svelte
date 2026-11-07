@@ -146,18 +146,31 @@
 	const columns: Array<{ column: Exclude<InventoryColumn, 'newest'>; label: string }> = $derived([
 		{ column: 'name', label: language.t('ui.Card') },
 		{ column: 'set', label: language.t('ui.Set') },
-		{ column: 'finish', label: 'Finish' },
-		{ column: 'condition', label: 'Condition' },
+		{ column: 'finish', label: language.t('ui.Finish') },
+		{ column: 'condition', label: language.t('ui.Condition') },
 		{ column: 'quantity', label: language.t('ui.Quantity') }
 	]);
 	const conditionOptions = $derived([
 		{ value: 'all', label: language.t('ui.All') },
-		...inventoryConditions.map((value) => ({ value, label: value }))
+		...inventoryConditions.map((value) => ({
+			value,
+			label: language.t(
+				(
+					{
+						NM: 'ui.Near.Mint',
+						LP: 'ui.Lightly.Played',
+						MP: 'ui.Moderately.Played',
+						HP: 'ui.Heavily.Played',
+						DMG: 'ui.Damaged'
+					} as const
+				)[value as 'NM']
+			)
+		}))
 	]);
 	const finishOptions = $derived([
 		{ value: 'all', label: language.t('ui.All') },
-		{ value: 'nonfoil', label: 'Nonfoil' },
-		{ value: 'foil', label: 'Foil' }
+		{ value: 'nonfoil', label: language.t('notice.Nonfoil') },
+		{ value: 'foil', label: language.t('notice.Foil') }
 	]);
 	let hydrated = $state(false),
 		windowVersion = $state(0),
@@ -384,7 +397,9 @@
 		} catch (cause) {
 			if (!controller.signal.aborted)
 				mutationError =
-					cause instanceof Error ? cause.message : language.t('ui.Could.not.load.this.page');
+					cause instanceof Error
+						? language.message(cause.message)
+						: language.t('ui.Could.not.load.this.page');
 		} finally {
 			if (pageController === controller) pageController = null;
 		}
@@ -454,7 +469,9 @@
 				} catch (cause) {
 					if (!controller.signal.aborted)
 						mutationError =
-							cause instanceof Error ? cause.message : language.t('ui.Could.not.apply.filters');
+							cause instanceof Error
+								? language.message(cause.message)
+								: language.t('ui.Could.not.apply.filters');
 				}
 			})();
 		}, 200);
@@ -636,7 +653,7 @@
 			if (!controller.signal.aborted)
 				mutationError =
 					cause instanceof Error
-						? cause.message
+						? language.message(cause.message)
 						: language.t('ui.Could.not.restore.the.inventory.position');
 			return false;
 		} finally {
@@ -662,7 +679,7 @@
 				if (workspaceSavedState.isActive(windowAccount))
 					mutationError =
 						cause instanceof Error
-							? cause.message
+							? language.message(cause.message)
 							: language.t('ui.Saved.entry.details.are.unavailable');
 			});
 		});
@@ -801,7 +818,9 @@
 	let setOptions = $derived(
 		[...new Set([...currentWindow.sets.map((set) => set.code), ...selectedSets])]
 			.map((value) => ({ value, label: setName(value) }))
-			.sort((a, b) => a.label.localeCompare(b.label) || a.value.localeCompare(b.value))
+			.sort(
+				(a, b) => a.label.localeCompare(b.label, language.locale) || a.value.localeCompare(b.value)
+			)
 	);
 	let visibleSets = $derived(
 		setOptions.filter((option) =>
@@ -1073,7 +1092,7 @@
 		{#if notesRecovery}
 			<section aria-labelledby="notes-recovery-title" class="inspector-form">
 				<h2 id="notes-recovery-title">{language.t('ui.Your.unsaved.Notes')}</h2>
-				<p role="alert">{form?.message}</p>
+				<p role="alert">{language.message(form?.message)}</p>
 				{#if latestNotes}<p>
 						{language.t('ui.Latest.saved.Notes')}
 						{latestNotes.notes || '(empty)'}
@@ -1217,7 +1236,19 @@
 					>{language.t('ui.Sort')}<select class="input" name="sort"
 						>{#each ['name', 'set', 'newest'] as value}<option
 								{value}
-								selected={data.window.query.sort === value}>{value}</option
+								selected={data.window.query.sort === value}
+								>{language.t(
+									(
+										{
+											name: 'ui.Name',
+											set: 'ui.Set',
+											newest: 'ui.Newest',
+											finish: 'ui.Finish',
+											condition: 'ui.Condition',
+											quantity: 'ui.Quantity'
+										} as const
+									)[value as 'name']
+								)}</option
 							>{/each}</select
 					></label
 				><label
@@ -1233,7 +1264,19 @@
 						><option value="">{language.t('ui.None')}</option
 						>{#each ['finish', 'condition', 'quantity'] as value}<option
 								{value}
-								selected={data.window.query.variant === value}>{value}</option
+								selected={data.window.query.variant === value}
+								>{language.t(
+									(
+										{
+											name: 'ui.Name',
+											set: 'ui.Set',
+											newest: 'ui.Newest',
+											finish: 'ui.Finish',
+											condition: 'ui.Condition',
+											quantity: 'ui.Quantity'
+										} as const
+									)[value as 'name']
+								)}</option
 							>{/each}</select
 					></label
 				><label
@@ -1477,7 +1520,10 @@
 								type="button"
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('finish', event)}
-								>{language.t('ui.Finish')} {selectedFinish === 'foil' ? 'Foil' : 'Nonfoil'}</button
+								>{language.t('ui.Finish')}
+								{selectedFinish === 'foil'
+									? language.t('notice.Foil')
+									: language.t('notice.Nonfoil')}</button
 							><button
 								type="button"
 								class="filter-chip-remove"
@@ -1738,7 +1784,7 @@
 			data-inventory-pinned-ssr-entries={metrics.pinnedSSREntries}
 		></div>
 		{#if hydrated && window.error}<p role="alert">
-				{window.error}<Button
+				{language.message(window.error)}<Button
 					variant="secondary"
 					onclick={() =>
 						window.plan(
@@ -1803,13 +1849,15 @@
 						),
 						p3: String(removing.name),
 						p4: String(removing.setCode.toUpperCase()),
-						p5: String(removing.finish === 'foil' ? 'Foil' : 'Nonfoil'),
+						p5: String(
+							removing.finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')
+						),
 						p6: String(removing.condition)
 					}
 				)
 			: ''}
 		pending={pendingId !== null}
-		error={mutationError}
+		error={language.message(mutationError)}
 		onCancel={cancelRemoval}
 		onCloseAutoFocus={returnFromRemoval}
 	>
@@ -1927,7 +1975,9 @@
 					/>
 					<input type="hidden" name="entryId" value={inspected.id} />
 					<p>
-						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
+						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil'
+							? language.t('notice.Foil')
+							: language.t('notice.Nonfoil')} · {inspected.condition}
 					</p>
 					{#if notesConflict}<p role="alert">
 							{language.t('ui.Latest.saved.Notes')}
@@ -1963,10 +2013,9 @@
 						class="btn btn-primary"
 						disabled={pendingId !== null || targetGone}
 						>{pendingId === inspected.id ? 'Saving…' : language.t('ui.Save')}</button
-					>{#if mutationError}<p class="mutation-error" role="alert">{mutationError}</p>{:else}<p
-							class="text-sm text-text-muted"
-							role="status"
-						>
+					>{#if mutationError}<p class="mutation-error" role="alert">
+							{language.message(mutationError)}
+						</p>{:else}<p class="text-sm text-text-muted" role="status">
 							{status}
 						</p>{/if}
 				</form>
@@ -1995,8 +2044,8 @@
 				? value.toUpperCase()
 				: kind === 'finish'
 					? value === 'foil'
-						? 'Foil'
-						: 'Nonfoil'
+						? language.t('notice.Foil')
+						: language.t('notice.Nonfoil')
 					: value}</span
 		>
 	</a>

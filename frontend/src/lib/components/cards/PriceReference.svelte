@@ -89,7 +89,7 @@
 							loading = false;
 							readError =
 								cause instanceof Error
-									? cause.message
+									? language.message(cause.message)
 									: language.t('ui.Reference.prices.could.not.be.loaded');
 						}
 						throw cause;
@@ -151,7 +151,7 @@
 				if (current())
 					readError =
 						cause instanceof Error
-							? cause.message
+							? language.message(cause.message)
 							: language.t('ui.Reference.prices.could.not.be.loaded');
 			})
 			.finally(() => {
@@ -174,8 +174,8 @@
 				label={language.t('ui.Reference.price.finish')}
 				value={finish}
 				options={[
-					{ value: 'nonfoil', label: 'Nonfoil' },
-					{ value: 'foil', label: 'Foil' }
+					{ value: 'nonfoil', label: language.t('notice.Nonfoil') },
+					{ value: 'foil', label: language.t('notice.Foil') }
 				]}
 				onchange={(value) => {
 					if (value === 'nonfoil' || value === 'foil') finish = value;
@@ -184,13 +184,13 @@
 			/>{/if}
 	</div>
 	{#if loading}<p role="status">{language.t('ui.Loading.reference')}</p>
-	{:else if readError}<p role="alert">{readError}</p>
+	{:else if readError}<p role="alert">{language.message(readError)}</p>
 		<button type="button" class="btn btn-secondary mt-2" onclick={() => retry++}
 			>{language.t('ui.Retry.reference')}</button
 		>
 	{:else if reference}
 		<p class="mt-2">
-			{reference.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {#if reference.kind === 'Known'}{formatReferenceEUR(
+			{reference.finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')} · {#if reference.kind === 'Known'}{formatReferenceEUR(
 					reference.amount,
 					1,
 					language.locale

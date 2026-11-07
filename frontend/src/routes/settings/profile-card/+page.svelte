@@ -228,9 +228,9 @@
 					aria-atomic="true"
 					class="text-sm text-text-secondary"
 				>
-					{#if saveError}<span class="text-error">{saveError}</span
+					{#if saveError}<span class="text-error">{language.message(saveError)}</span
 						>{:else if form?.message && (!form.success || isSaved)}<span
-							class:text-error={!form.success}>{form.message}</span
+							class:text-error={!form.success}>{language.message(form.message)}</span
 						>{/if}
 				</div>
 			</div>

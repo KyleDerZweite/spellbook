@@ -81,7 +81,7 @@
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
 				<p class="font-body text-sm text-error">{language.t('ui.Search.failed')}</p>
-				<p class="mt-2 max-w-md font-body text-sm text-text-muted">{error}</p>
+				<p class="mt-2 max-w-md font-body text-sm text-text-muted">{language.message(error)}</p>
 			</div>
 		</div>
 	{:else if totalCount === 0 && !loading && (browseMode || query.length >= 2)}
