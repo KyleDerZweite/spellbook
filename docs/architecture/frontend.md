@@ -899,6 +899,8 @@ UI language is independent of Catalog Printing language filters, provider text a
 
 Resolve a supported language cookie per request, then supported browser preferences, then English.
 Pass the locale through the root layout and component context, and render the matching HTML `lang`.
+A compact selected-language flag beside the top-right header controls opens the Deutsch/English choices.
+The control has accessible names and keyboard operation.
 An accessible native language form persists the cookie and preserves the current local route and query.
 Language changes follow existing Origin protection and safe local redirect rules.
 No mutable server-global locale is permitted.
