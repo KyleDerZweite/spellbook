@@ -1,17 +1,19 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { page } from '$app/state';
 	import type { LayoutProps } from './$types';
 	let { children }: LayoutProps = $props();
-	const links = [
-		{ href: '/settings', label: 'Profile' },
-		{ href: '/settings/profile-card', label: 'Profile Card' },
-		{ href: '/settings/password', label: 'Password' }
-	];
+	const links = $derived([
+		{ href: '/settings', label: language.t('ui.Profile') },
+		{ href: '/settings/profile-card', label: language.t('ui.Profile.Card') },
+		{ href: '/settings/password', label: language.t('ui.Password') }
+	]);
 </script>
 
 <div class="workspace-container">
 	<div class="settings-frame">
-		<nav class="settings-nav" aria-label="Settings">
+		<nav class="settings-nav" aria-label={language.t('ui.Settings')}>
 			{#each links as link}
 				<a href={link.href} aria-current={page.url.pathname === link.href ? 'page' : undefined}
 					>{link.label}</a

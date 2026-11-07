@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { Command, Dialog } from 'bits-ui';
 	import { onMount, tick, untrack } from 'svelte';
 	import { snapshot } from '$app/navigation';
@@ -136,7 +138,7 @@
 	<select id="evaluation-variant" class="input" bind:value={variant}>
 		{#each data.experiment.variants as item}<option value={item.id}>{item.label}</option>{/each}
 	</select>
-	<p>Power-user search <kbd>Ctrl / Cmd + K</kbd></p>
+	<p>{language.t('ui.Power.user.search')} <kbd>Ctrl / Cmd + K</kbd></p>
 	<p class="text-sm text-text-secondary">
 		Compare queries in the same shortcut menu. This route is disabled in production.
 	</p>
@@ -156,7 +158,7 @@
 				returnFocus?.focus();
 			}}
 		>
-			<Dialog.Title class="sr-only">Power-user search</Dialog.Title>
+			<Dialog.Title class="sr-only">{language.t('ui.Power.user.search')}</Dialog.Title>
 			<Dialog.Description class="sr-only"
 				>Search cards, synthetic Decks and pages. Arrow keys select a result. Enter opens it.</Dialog.Description
 			>
@@ -164,12 +166,12 @@
 				shouldFilter={false}
 				vimBindings={false}
 				bind:value={selected}
-				label="Power-user search"
+				label={language.t('ui.Power.user.search')}
 			>
 				<Command.Input
 					bind:ref={input}
 					bind:value={query}
-					aria-label="Power-user search"
+					aria-label={language.t('ui.Power.user.search')}
 					placeholder="Search anything…"
 					class="evaluation-input"
 					onkeydown={(event) => {
@@ -200,7 +202,12 @@
 				</Command.List>
 			</Command.Root>
 			<div class="evaluation-status" role="status" aria-live="polite">
-				<span>{failure || (pending ? 'Searching…' : `${results.length} results`)}</span>
+				<span
+					>{failure ||
+						(pending
+							? 'Searching…'
+							: language.t('message.p0.results', { p0: String(results.length) }))}</span
+				>
 				<span>{duration ? `${Math.round(duration)} ms` : ''} <kbd>Esc</kbd></span>
 			</div>
 		</Dialog.Content>

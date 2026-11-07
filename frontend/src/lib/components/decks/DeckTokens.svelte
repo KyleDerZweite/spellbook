@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { DeckRelatedTokens } from '@spellbook/contracts/deck-tokens.ts';
 	import type { DeckCard } from '@spellbook/contracts/decks.ts';
 	let { tokens, entries }: { tokens: DeckRelatedTokens; entries: DeckCard[] } = $props();
@@ -12,15 +14,19 @@
 	}
 </script>
 
-<section aria-label="Related tokens" class="tokens">
-	<h2>Related tokens</h2>
-	<p>Tokens referenced by cards in this Deck. Other token interactions may not be listed.</p>
+<section aria-label={language.t('ui.Related.tokens')} class="tokens">
+	<h2>{language.t('ui.Related.tokens')}</h2>
+	<p>
+		{language.t(
+			'ui.Tokens.referenced.by.cards.in.this.Deck.Other.token.interactions.may.not.be.listed'
+		)}
+	</p>
 	{#if tokens.status === 'unavailable'}<p role="status">
-			Token source references are unavailable.
+			{language.t('ui.Token.source.references.are.unavailable')}
 		</p>{:else if tokens.status === 'partial'}<p role="status">
-			Some token source references or artwork records are unavailable.
+			{language.t('ui.Some.token.source.references.or.artwork.records.are.unavailable')}
 		</p>{:else if !items.length && !tokens.unresolved.length}<p>
-			No directly linked tokens were found in the available source.
+			{language.t('ui.No.directly.linked.tokens.were.found.in.the.available.source')}
 		</p>{/if}
 	<div class="token-grid">
 		{#each items as token (token.catalogCardId)}
@@ -36,7 +42,9 @@
 								loading="lazy"
 								width="244"
 								height="340"
-							/>{:else}<p>Artwork unavailable for {face.name}.</p>{/if}
+							/>{:else}<p>
+								{language.t('sentence.Artwork.unavailable.for.p0', { p0: String(face.name) })}
+							</p>{/if}
 					{:else}<details>
 							<summary>{face.name}</summary>{#if face.imageUri || face.imageUriSmall}<img
 									src={face.imageUri ?? face.imageUriSmall ?? ''}
@@ -44,13 +52,13 @@
 									loading="lazy"
 									width="244"
 									height="340"
-								/>{:else}<p>Artwork unavailable.</p>{/if}
+								/>{:else}<p>{language.t('ui.Artwork.unavailable')}</p>{/if}
 							<p>{face.typeLine}</p>
 							<p>{face.oracleText}</p>
 						</details>{/if}
 				{/each}
 				{#if sources(token.sourceEntryIds)}<details class="token-sources">
-						<summary>Referenced by</summary>
+						<summary>{language.t('ui.Referenced.by')}</summary>
 						<p>{sources(token.sourceEntryIds)}</p>
 					</details>{/if}
 			</article>
@@ -58,8 +66,8 @@
 	</div>
 	{#if tokens.unresolved.length}<ul>
 			{#each tokens.unresolved as token}<li>
-					{token.name}. Token record unavailable.{#if sources(token.sourceEntryIds)}
-						Referenced by {sources(token.sourceEntryIds)}.{/if}
+					{token.name}{language.t('ui.Token.record.unavailable')}{#if sources(token.sourceEntryIds)}
+						{language.t('ui.Referenced.by')} {sources(token.sourceEntryIds)}.{/if}
 				</li>{/each}
 		</ul>{/if}
 </section>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { Snippet } from 'svelte';
 	import FormDialog from '#lib/components/ui/dialog/FormDialog.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
@@ -31,7 +33,9 @@
 		<h2 id={`${id}-title`} class="font-display text-2xl">{title}</h2>
 		<p class="muted">{description}</p>
 		{@render children()}
-		<Button href={cancelHref} variant="secondary" disabled={pending}>Cancel</Button>
+		<Button href={cancelHref} variant="secondary" disabled={pending}
+			>{language.t('ui.Cancel')}</Button
+		>
 	</section>
 {:else if open}
 	<FormDialog
@@ -51,7 +55,9 @@
 	>
 		{@render children()}
 		<div class="deck-dialog-cancel">
-			<Button variant="secondary" disabled={pending} onclick={() => (open = false)}>Cancel</Button>
+			<Button variant="secondary" disabled={pending} onclick={() => (open = false)}
+				>{language.t('ui.Cancel')}</Button
+			>
 		</div>
 	</FormDialog>
 {/if}

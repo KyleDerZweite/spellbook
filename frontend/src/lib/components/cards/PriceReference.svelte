@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { untrack } from 'svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import PriceHistory from './PriceHistory.svelte';
@@ -86,7 +88,9 @@
 							reference = null;
 							loading = false;
 							readError =
-								cause instanceof Error ? cause.message : 'Reference prices could not be loaded.';
+								cause instanceof Error
+									? cause.message
+									: language.t('ui.Reference.prices.could.not.be.loaded');
 						}
 						throw cause;
 					}
@@ -98,17 +102,19 @@
 			requestGeneration++;
 		};
 	});
-	const copyLabel = $derived(quantity === 1 ? 'copy' : 'copies');
-	const reasons: Record<string, string> = {
-		SourceUnavailable: 'No reference source has been published.',
-		PrintingMissing: 'This printing is missing from the reference source.',
-		AmountMissing: 'No EUR amount is available.',
-		ReferenceExpired: 'The reference is more than seven days old.',
-		UnsupportedFinish: 'No exact reference for this finish.',
-		AmbiguousLanguageMapping: 'An English printing cannot be matched uniquely.',
-		MissingVariantEvidence: 'There is not enough variant evidence for an English reference.',
-		AmbiguousSourceMapping: 'The provider identity cannot be matched uniquely.'
-	};
+	const copyLabel = $derived(quantity === 1 ? language.t('unit.copy') : language.t('unit.copies'));
+	const reasons: Record<string, string> = $derived({
+		SourceUnavailable: language.t('ui.No.reference.source.has.been.published'),
+		PrintingMissing: language.t('ui.This.printing.is.missing.from.the.reference.source'),
+		AmountMissing: language.t('ui.No.EUR.amount.is.available'),
+		ReferenceExpired: language.t('ui.The.reference.is.more.than.seven.days.old'),
+		UnsupportedFinish: language.t('ui.No.exact.reference.for.this.finish'),
+		AmbiguousLanguageMapping: language.t('ui.An.English.printing.cannot.be.matched.uniquely'),
+		MissingVariantEvidence: language.t(
+			'ui.There.is.not.enough.variant.evidence.for.an.English.reference'
+		),
+		AmbiguousSourceMapping: language.t('ui.The.provider.identity.cannot.be.matched.uniquely')
+	});
 	$effect(() => {
 		const selectedPrinting = printingId,
 			selectedEntry = entryId,
@@ -144,7 +150,9 @@
 			.catch((cause) => {
 				if (current())
 					readError =
-						cause instanceof Error ? cause.message : 'Reference prices could not be loaded.';
+						cause instanceof Error
+							? cause.message
+							: language.t('ui.Reference.prices.could.not.be.loaded');
 			})
 			.finally(() => {
 				if (current()) loading = false;
@@ -156,11 +164,14 @@
 	});
 </script>
 
-<section class="mt-3 rounded border border-border p-3 text-sm" aria-label="Reference price">
+<section
+	class="mt-3 rounded border border-border p-3 text-sm"
+	aria-label={language.t('ui.Reference.price')}
+>
 	<div class="flex flex-wrap items-center justify-between gap-2">
-		<h3 class="font-medium">Reference price</h3>
+		<h3 class="font-medium">{language.t('ui.Reference.price')}</h3>
 		{#if !entryId}<Select
-				label="Reference price finish"
+				label={language.t('ui.Reference.price.finish')}
 				value={finish}
 				options={[
 					{ value: 'nonfoil', label: 'Nonfoil' },
@@ -172,65 +183,82 @@
 				class="max-w-40"
 			/>{/if}
 	</div>
-	{#if loading}<p role="status">Loading reference…</p>
+	{#if loading}<p role="status">{language.t('ui.Loading.reference')}</p>
 	{:else if readError}<p role="alert">{readError}</p>
 		<button type="button" class="btn btn-secondary mt-2" onclick={() => retry++}
-			>Retry reference</button
+			>{language.t('ui.Retry.reference')}</button
 		>
 	{:else if reference}
 		<p class="mt-2">
 			{reference.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {#if reference.kind === 'Known'}{formatReferenceEUR(
-					reference.amount
-				)} per copy{:else}Unknown EUR reference{/if}
+					reference.amount,
+					1,
+					language.locale
+				)}
+				{language.t('ui.per.copy')}{:else}{language.t('ui.Unknown.EUR.reference')}{/if}
 		</p>
 		{#if reference.kind === 'Known'}
 			<p class="text-text-muted">
 				{reference.source} EUR · {reference.measure} · {reference.freshness === 'Static'
-					? 'Static Demo reference'
+					? language.t('ui.Static.Demo.reference')
 					: reference.freshness === 'Stale'
-						? 'Stale reference'
-						: 'Fresh reference'} · Source {reference.timePrecision === 'Instant'
-					? new Date(reference.sourceTime).toLocaleString()
-					: `${reference.sourceDate} (day precision)`}
+						? language.t('ui.Stale.reference')
+						: language.t('ui.Fresh.reference')}
+				{language.t('ui.Source')}
+				{reference.timePrecision === 'Instant'
+					? new Date(reference.sourceTime).toLocaleString(language.locale)
+					: language.t('message.p0.day.precision', { p0: String(reference.sourceDate) })}
 			</p>
 			{#if reference.provenance === 'EnglishFallback'}<p>
-					English printing reference · Same edition, collector number and variant
+					{language.t('ui.English.printing.reference.Same.edition.collector.number.and.variant')}
 				</p>{/if}
 			{#if entryId}<p>
-					{quantity}
-					{copyLabel} · Estimated reference total {formatReferenceEUR(reference.amount, quantity)}
+					{language.t('sentence.p0.p1.Estimated.reference.total.p2', {
+						p0: String(quantity),
+						p1: String(copyLabel),
+						p2: String(formatReferenceEUR(reference.amount, quantity, language.locale))
+					})}
 				</p>
 				<p class="text-text-muted">
-					Coverage: {quantity} of {quantity}
-					{copyLabel}{reference.freshness === 'Stale' ? ' (stale)' : ''}
+					{language.t('sentence.Coverage.p0.of.p1.p2.p3', {
+						p0: String(quantity),
+						p1: String(quantity),
+						p2: String(copyLabel),
+						p3: String(reference.freshness === 'Stale' ? ' (stale)' : '')
+					})}
 				</p>{/if}
 		{:else}<p class="text-text-muted">{reasons[reference.reason]}</p>
 
-			{#if entryId}<p class="text-text-muted">Coverage: 0 of {quantity} {copyLabel}</p>{/if}{/if}
+			{#if entryId}<p class="text-text-muted">
+					{language.t('sentence.Coverage.0.of.p0.p1', {
+						p0: String(quantity),
+						p1: String(copyLabel)
+					})}
+				</p>{/if}{/if}
 		{#each health as status}<p class="text-text-muted text-xs">
 				{status.source}: {status.kind === 'Failed'
 					? 'Latest refresh failed; original source age applies.'
 					: status.kind === 'Disabled'
 						? 'Disabled'
 						: status.kind === 'NeverAttempted'
-							? 'No successful publication'
+							? language.t('ui.No.successful.publication')
 							: 'Published'}
 			</p>{/each}
 		{#if reference.kind === 'Known' && reference.timePrecision === 'Day'}<p
 				class="text-text-muted text-xs"
 			>
-				Freshness uses a conservative UTC day bound, evaluated {new Date(
-					reference.asOf
-				).toLocaleString()}.
+				{language.t('sentence.Freshness.uses.a.conservative.UTC.day.bound.evaluated.p0', {
+					p0: String(new Date(reference.asOf).toLocaleString(language.locale))
+				})}
 			</p>{/if}
 		{#if reference.kind === 'Known' && reference.source === 'MTGJSON'}<p
 				class="text-text-muted text-xs"
 			>
-				Upstream: Cardmarket. These sources are not independent confirmations.
+				{language.t('ui.Upstream.Cardmarket.These.sources.are.not.independent.confirmations')}
 			</p>{/if}
 		{#if reference.links.length}<nav
 				class="mt-2 flex flex-wrap gap-3"
-				aria-label="External product links"
+				aria-label={language.t('ui.External.product.links')}
 			>
 				{#each reference.links as link}<a
 						class="underline hover:text-gold"
@@ -241,7 +269,7 @@
 					>{/each}
 			</nav>{/if}
 		<p class="mt-2 text-xs text-text-muted">
-			Market reference estimate. No condition discount or guaranteed sale amount.
+			{language.t('ui.Market.reference.estimate.No.condition.discount.or.guaranteed.sale.amount')}
 		</p>
 	{/if}
 	{#if historyEnabled}<PriceHistory {printingId} {finish} />{/if}

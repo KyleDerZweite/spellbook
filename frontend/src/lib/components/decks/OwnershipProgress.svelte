@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	let {
 		required,
 		exact,
@@ -10,12 +12,18 @@
 
 <div
 	class="ownership"
-	aria-label={`Inventory match: ${exact} exact printing, ${alternate} alternate printing, ${missing} missing`}
+	aria-label={language.t(
+		'message.Inventory.match.p0.exact.printing.p1.alternate.printing.p2.missing',
+		{ p0: String(exact), p1: String(alternate), p2: String(missing) }
+	)}
 >
 	<div class="counts">
-		<span>{owned.toLocaleString()} / {required.toLocaleString()} owned</span><span
-			>{required ? Math.floor((owned / required) * 100) : 0}%</span
-		>
+		<span
+			>{language.t('sentence.p0.p1.owned', {
+				p0: String(owned.toLocaleString(language.locale)),
+				p1: String(required.toLocaleString(language.locale))
+			})}</span
+		><span>{required ? Math.floor((owned / required) * 100) : 0}%</span>
 	</div>
 	<div class="track" aria-hidden="true">
 		{#each [{ value: exact, color: 'var(--color-success)' }, { value: alternate, color: 'var(--color-violet)' }, { value: missing, color: 'var(--color-warning)' }] as segment}<span

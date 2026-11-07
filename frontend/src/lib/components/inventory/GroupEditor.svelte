@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { page } from '$app/state';
 	import { inventoryAction, effectiveInventoryUrl } from '#lib/mtg/inventory-action.ts';
@@ -29,8 +31,8 @@
 </script>
 
 <FormDialog
-	title={group ? 'Rename box' : 'New box'}
-	description="Boxes organize your existing inventory."
+	title={group ? language.t('ui.Rename.box') : language.t('ui.New.box')}
+	description={language.t('ui.Boxes.organize.your.existing.inventory')}
 	pending={mutation.pending}
 	onCancel={onClose}
 	{onCloseAutoFocus}
@@ -44,7 +46,7 @@
 	>
 		<input type="hidden" name="requestId" value={page.data.requestId} />
 		{#if group}<input type="hidden" name="groupId" value={group.id} />{/if}
-		<label class="label" for={`${id}-name`}>Name</label>
+		<label class="label" for={`${id}-name`}>{language.t('ui.Name')}</label>
 		<input
 			class="input"
 			id={`${id}-name`}
@@ -53,7 +55,7 @@
 			minlength="1"
 			maxlength="128"
 			pattern={'.{1,64}'}
-			title="Use 1 to 64 characters."
+			title={language.t('ui.Use.1.to.64.characters')}
 			required
 			disabled={mutation.pending}
 			autocomplete="off"
@@ -64,13 +66,13 @@
 			</p>{/if}
 		<div class="group-form-actions">
 			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
-				>Cancel</button
+				>{language.t('ui.Cancel')}</button
 			><button type="submit" class="btn btn-primary" disabled={mutation.pending}
 				>{#if !group}<PlusIcon />{/if}{mutation.pending
 					? 'Saving...'
 					: group
-						? 'Save'
-						: 'Create box'}</button
+						? language.t('ui.Save')
+						: language.t('ui.Create.box')}</button
 			>
 		</div>
 	</form>

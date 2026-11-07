@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import PriceReference from './PriceReference.svelte';
@@ -95,7 +97,8 @@
 			.catch((cause: unknown) => {
 				if (!controller.signal.aborted) {
 					loadingPrintings = false;
-					printingsError = cause instanceof Error ? cause.message : 'Unable to load printings.';
+					printingsError =
+						cause instanceof Error ? cause.message : language.t('ui.Unable.to.load.printings');
 				}
 			});
 
@@ -174,7 +177,7 @@
 
 	<!-- Tab bar -->
 	<div class="mt-3 flex gap-6">
-		{#each [{ id: 'printings' as TabId, label: 'Printings' }, { id: 'info' as TabId, label: 'Card Info' }] as tab (tab.id)}
+		{#each [{ id: 'printings' as TabId, label: language.t('ui.Printings') }, { id: 'info' as TabId, label: language.t('ui.Card.Info') }] as tab (tab.id)}
 			<button
 				onclick={() => {
 					activeTab = tab.id;
@@ -234,13 +237,13 @@
 			<!-- ==================== ALL PRINTINGS GRID ==================== -->
 			<div>
 				<div class="mb-3 flex items-center justify-between">
-					<h3 class="sr-only">Select a printing</h3>
+					<h3 class="sr-only">{language.t('ui.Select.a.printing')}</h3>
 					<button
 						disabled={pending}
 						onclick={() => (allPrintingsView = false)}
 						class="min-h-11 cursor-pointer rounded border-none bg-transparent px-2 py-1 font-body text-sm text-text-muted transition-colors hover:text-gold-bright"
 					>
-						&#8592; Back
+						{language.t('ui.Back')}
 					</button>
 				</div>
 
@@ -253,10 +256,14 @@
 							class="h-5 w-5 animate-spin rounded-full"
 							style="border: 2px solid var(--color-gold-dim); border-top-color: var(--color-gold-bright);"
 						></div>
-						<p class="font-body text-sm text-text-secondary">Loading printings...</p>
+						<p class="font-body text-sm text-text-secondary">
+							{language.t('ui.Loading.printings')}
+						</p>
 					</div>
 				{:else if printings.length === 0}
-					<p class="font-body text-sm italic text-text-muted">Printings unavailable right now.</p>
+					<p class="font-body text-sm italic text-text-muted">
+						{language.t('ui.Printings.unavailable.right.now')}
+					</p>
 				{:else}
 					{#if availableLanguages.length > 1}
 						<div class="mb-3 flex flex-wrap gap-1">
@@ -271,7 +278,7 @@
 													opacity: {selectedLang === lang ? '1' : '0.5'};
 												"
 									title={lang}
-									aria-label={`Show ${lang} printings`}
+									aria-label={language.t('message.Show.p0.printings', { p0: String(lang) })}
 									aria-pressed={selectedLang === lang}
 								>
 									{LANG_FLAGS[lang] ?? lang}
@@ -302,7 +309,7 @@
 										class="py-1 text-center font-body text-xs"
 										style="background-color: var(--color-gold); color: var(--color-text-on-gold);"
 									>
-										Selected
+										{language.t('ui.Selected')}
 									</div>
 								{/if}
 								<img
@@ -327,7 +334,7 @@
 
 					{#if filteredPrintings.length === 0}
 						<p class="font-body text-xs italic text-text-muted">
-							No printings match the current filters.
+							{language.t('ui.No.printings.match.the.current.filters')}
 						</p>
 					{/if}
 				{/if}
@@ -344,13 +351,15 @@
 						class="h-5 w-5 animate-spin rounded-full"
 						style="border: 2px solid var(--color-gold-dim); border-top-color: var(--color-gold-bright);"
 					></div>
-					<p class="font-body text-sm text-text-secondary">Loading printings...</p>
+					<p class="font-body text-sm text-text-secondary">{language.t('ui.Loading.printings')}</p>
 				</div>
 			{:else if printings.length === 0}
-				<p class="font-body text-sm italic text-text-muted">Printings unavailable right now.</p>
+				<p class="font-body text-sm italic text-text-muted">
+					{language.t('ui.Printings.unavailable.right.now')}
+				</p>
 			{:else}
 				<Select
-					label="Select card printing"
+					label={language.t('ui.Select.card.printing')}
 					disabled={pending}
 					value={activeCard.id}
 					displayValue={`${activeCard.set_name} (${activeCard.set_code.toUpperCase()}) #${activeCard.collector_number}`}
@@ -369,10 +378,10 @@
 						type="button"
 						onclick={() => (allPrintingsView = true)}
 						disabled={pending}
-						class="btn btn-secondary font-body text-xs">All printings</button
+						class="btn btn-secondary font-body text-xs">{language.t('ui.All.printings')}</button
 					>
 					<fieldset class="printing-availability" disabled={pending}>
-						<legend>Printing availability</legend>
+						<legend>{language.t('ui.Printing.availability')}</legend>
 						<div>
 							{#each ['nonfoil', 'foil'] as finish}
 								<button
@@ -402,7 +411,7 @@
 													opacity: {selectedLang === lang ? '1' : '0.5'};
 												"
 								title={lang}
-								aria-label={`Show ${lang} printings`}
+								aria-label={language.t('message.Show.p0.printings', { p0: String(lang) })}
 								aria-pressed={selectedLang === lang}
 							>
 								{LANG_FLAGS[lang] ?? lang}
@@ -429,7 +438,7 @@
 					aria-haspopup="dialog"
 					disabled={pending}
 					onclick={() => (personalHistory = { ...inventoryHistoryIdentity! })}
-					>Personal Inventory history for this holding</button
+					>{language.t('ui.Personal.Inventory.history.for.this.holding')}</button
 				>
 			{/if}
 			{#if actions}{@render actions(activeCard)}
@@ -444,7 +453,7 @@
 			{:else}<a
 					class="btn btn-primary"
 					href={`/auth/login?returnTo=${encodeURIComponent(`/mtg/search?q=${encodeURIComponent(card.name)}`)}`}
-					>Sign in to add to inventory</a
+					>{language.t('ui.Sign.in.to.add.to.inventory')}</a
 				>{/if}
 		{:else}
 			<!-- ==================== CARD INFO TAB ==================== -->
@@ -484,22 +493,25 @@
 			<div class="flex flex-col gap-1.5 font-body text-sm">
 				{#if hasPowerToughness}
 					<p>
-						<span class="font-semibold text-text-secondary">Power/Toughness:</span>
+						<span class="font-semibold text-text-secondary">{language.t('ui.Power.Toughness')}</span
+						>
 						<span class="ml-1 text-text-primary">{activeCard.power}/{activeCard.toughness}</span>
 					</p>
 				{/if}
 				<p>
-					<span class="font-semibold text-text-secondary">Rarity:</span>
+					<span class="font-semibold text-text-secondary">{language.t('ui.Rarity')}</span>
 					<span class="ml-1 capitalize text-text-primary">{activeCard.rarity}</span>
 				</p>
 				{#if activeCard.collector_number}
 					<p>
-						<span class="font-semibold text-text-secondary">Collector Number:</span>
+						<span class="font-semibold text-text-secondary"
+							>{language.t('ui.Collector.Number')}</span
+						>
 						<span class="ml-1 text-text-primary">{activeCard.collector_number}</span>
 					</p>
 				{/if}
 				<p>
-					<span class="font-semibold text-text-secondary">Set:</span>
+					<span class="font-semibold text-text-secondary">{language.t('ui.Set')}</span>
 					<span class="ml-1 text-text-primary">{activeCard.set_name}</span>
 				</p>
 			</div>
@@ -508,7 +520,7 @@
 			{#if activeCard.legalities && Object.keys(activeCard.legalities).length > 0}
 				<div class="border-t border-border" aria-hidden="true"></div>
 				<div>
-					<h3 class="sr-only">Legalities</h3>
+					<h3 class="sr-only">{language.t('ui.Legalities')}</h3>
 					<div class="flex flex-wrap gap-1.5">
 						{#each Object.entries(activeCard.legalities) as [format, status]}
 							<span

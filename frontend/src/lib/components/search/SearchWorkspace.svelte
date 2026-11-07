@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { LANGUAGE_OPTIONS, DEFAULT_SEARCH_LANGUAGES } from '#lib/search/languages.ts';
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
+	import { printingLanguageOptions, DEFAULT_SEARCH_LANGUAGES } from '#lib/search/languages.ts';
 	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import SearchBar from './SearchBar.svelte';
@@ -111,7 +113,7 @@
 	const loading = $derived(mounted ? snapshot.loading : false);
 	const error = $derived(mounted ? snapshot.error : serverError);
 	const browseMode = $derived(input.query.trim().length < 2);
-	const activeFilters = $derived(getActiveFilters(filters));
+	const activeFilters = $derived(getActiveFilters(filters, language.locale));
 	const hasFilters = $derived(
 		mounted
 			? filters.hasFilters
@@ -324,21 +326,24 @@
 				onclick={() => (filtersOpen = !filtersOpen)}
 				aria-expanded={filtersOpen}
 				class="btn btn-secondary md:hidden"
-				>Filters{activeFilters.length ? ` (${activeFilters.length})` : ''}</button
+				>{language.t('ui.Filters')}{activeFilters.length
+					? ` (${activeFilters.length})`
+					: ''}</button
 			>
 		{:else}
 			<details class="w-full">
-				<summary>Filters</summary>
+				<summary>{language.t('ui.Filters')}</summary>
 				<div class="grid gap-4 sm:grid-cols-4">
 					<fieldset>
-						<legend>Match colors by</legend>
+						<legend>{language.t('ui.Match.colors.by')}</legend>
 						<label class="mr-3"
 							><input
 								type="radio"
 								name="colorMode"
 								value="color"
 								checked={input.filters.colorMatch?.field !== 'identity'}
-							/> Color</label
+							/>
+							{language.t('ui.Color')}</label
 						>
 						<label
 							><input
@@ -346,10 +351,11 @@
 								name="colorMode"
 								value="identity"
 								checked={input.filters.colorMatch?.field === 'identity'}
-							/> Identity</label
+							/>
+							{language.t('ui.Identity')}</label
 						>
 					</fieldset>
-					{#each [{ name: 'color', label: 'Colors · OR', options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: 'Colors · AND', options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'colorNot', label: 'Colors · NOT', options: MANA_COLORS, selected: input.filters.colorMatch?.not }, { name: 'rarity', label: 'Rarity', options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: 'Card type', options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: 'Legality', options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
+					{#each [{ name: 'color', label: language.t('ui.Colors.OR'), options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: language.t('ui.Colors.AND'), options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'colorNot', label: language.t('ui.Colors.NOT'), options: MANA_COLORS, selected: input.filters.colorMatch?.not }, { name: 'rarity', label: language.t('ui.Rarity'), options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: language.t('ui.Card.type'), options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: language.t('ui.Legality'), options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
 						<fieldset>
 							<legend
 								title={group.name === 'colorAnd'
@@ -366,25 +372,25 @@
 						</fieldset>
 					{/each}
 					<fieldset>
-						<legend>Language</legend>
-						<p>No languages selected means all languages.</p>
-						{#each LANGUAGE_OPTIONS as language}
+						<legend>{language.t('ui.Language')}</legend>
+						<p>{language.t('ui.No.languages.selected.means.all.languages')}</p>
+						{#each printingLanguageOptions(language.locale) as printingLanguage}
 							<label class="flex items-center gap-2"
 								><input
 									type="checkbox"
 									name="lang"
-									value={language.id}
-									checked={input.filters.languages?.includes(language.id)}
+									value={printingLanguage.id}
+									checked={input.filters.languages?.includes(printingLanguage.id)}
 								/><span
 									class="inline-flex w-5 shrink-0 justify-center text-base leading-none"
-									aria-hidden="true">{language.flag}</span
-								>{language.label}</label
+									aria-hidden="true">{printingLanguage.flag}</span
+								>{printingLanguage.label}</label
 							>
 						{/each}
 					</fieldset>
 				</div>
-				<button class="btn btn-secondary" type="submit">Apply filters</button>
-				<a class="btn btn-secondary" href={nativeClearHref}>Clear filters</a>
+				<button class="btn btn-secondary" type="submit">{language.t('ui.Apply.filters')}</button>
+				<a class="btn btn-secondary" href={nativeClearHref}>{language.t('ui.Clear.filters')}</a>
 			</details>
 		{/if}
 		{@render controls?.()}
@@ -402,29 +408,33 @@
 			>
 				<span class="font-medium text-foreground"
 					>{loading && !total
-						? 'Finding cards…'
-						: `${matchedPrintingTotal.toLocaleString()} ${matchedPrintingTotal === 1 ? 'Printing' : 'Printings'}`}</span
+						? language.t('ui.Finding.cards')
+						: language.t(`printing.${language.plural(matchedPrintingTotal)}`, {
+								count: language.number(matchedPrintingTotal)
+							})}</span
 				>
-				<span>{total.toLocaleString()} {total === 1 ? 'unique card' : 'unique cards'}</span>
+				<span
+					>{language.t(`unique.${language.plural(total)}`, { count: language.number(total) })}</span
+				>
 				{#if colorExpression}
 					<span
 						class="color-expression"
 						role="status"
 						aria-label={colorMatch?.field === 'identity'
-							? 'Color identity filter expression'
-							: 'Color filter expression'}
-						title={`${colorMatch?.field === 'identity' ? 'Color identity' : 'Color'}: ${colorExpression.spoken}`}
+							? language.t('ui.Color.identity.filter.expression')
+							: language.t('ui.Color.filter.expression')}
+						title={`${colorMatch?.field === 'identity' ? language.t('ui.Color.identity') : language.t('ui.Color')}: ${colorExpression.spoken}`}
 					>
 						<code class="full-expression" aria-hidden="true">{colorExpression.visual}</code>
 						<code class="compact-expression" aria-hidden="true">{compactColorExpression}</code>
 						<span class="sr-only">{colorExpression.spoken}</span>
 					</span>
 				{/if}
-				{#if error}<span class="text-error">Search unavailable</span>{#if mounted}<button
-							class="btn btn-ghost"
-							onclick={() => catalog.retry()}>Retry</button
-						>{:else}<a {href}>Retry search</a>{/if}{:else if loading && total}<span>Loading…</span
-					>{/if}
+				{#if error}<span class="text-error">{language.t('ui.Search.unavailable')}</span
+					>{#if mounted}<button class="btn btn-ghost" onclick={() => catalog.retry()}
+							>{language.t('ui.Retry')}</button
+						>{:else}<a {href}>{language.t('ui.Retry.search')}</a
+						>{/if}{:else if loading && total}<span>{language.t('ui.Loading')}</span>{/if}
 			</h2>
 			<SearchResults
 				{restorationTarget}

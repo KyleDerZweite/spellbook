@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { goto } from '$app/navigation';
@@ -64,7 +66,9 @@
 					if (current()) {
 						unavailable = true;
 						readFailure =
-							cause instanceof Error ? cause.message : 'Saved scan details are unavailable.';
+							cause instanceof Error
+								? cause.message
+								: language.t('ui.Saved.scan.details.are.unavailable');
 					}
 					throw cause;
 				}
@@ -107,13 +111,13 @@
 			),
 		read: (id) => request<ScanSessionResult>(`${api}/scan/sessions/${id}/result`)
 	});
-	const conditions = [
-		['NM', 'Near mint'],
-		['LP', 'Lightly played'],
-		['MP', 'Moderately played'],
-		['HP', 'Heavily played'],
-		['DMG', 'Damaged']
-	];
+	const conditions = $derived([
+		['NM', language.t('ui.Near.mint')],
+		['LP', language.t('ui.Lightly.played')],
+		['MP', language.t('ui.Moderately.played')],
+		['HP', language.t('ui.Heavily.played')],
+		['DMG', language.t('ui.Damaged')]
+	]);
 	const session = $derived(result?.session);
 	const artifact = $derived(result?.lastResult ? { id: result.lastResult.artifactId } : undefined);
 	const candidates = $derived(result?.lastResult?.candidates ?? []);
@@ -134,13 +138,17 @@
 			workspaceSavedState.expire();
 		if (!response.ok) {
 			const body = await response.json().catch(() => null);
-			throw new Error(body?.message ?? `Request failed (${response.status}). Try again.`);
+			throw new Error(
+				body?.message ??
+					language.t('message.Request.failed.p0.Try.again', { p0: String(response.status) })
+			);
 		}
 		return response.json();
 	}
 
 	function report(cause: unknown) {
-		failure = cause instanceof Error ? cause.message : 'The request failed. Try again.';
+		failure =
+			cause instanceof Error ? cause.message : language.t('ui.The.request.failed.Try.again');
 	}
 
 	async function openSession(id: string) {
@@ -183,7 +191,7 @@
 		failure = '';
 		message = '';
 		if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || !file.size) {
-			failure = 'Choose a nonempty JPEG, PNG, or WebP photo.';
+			failure = language.t('ui.Choose.a.nonempty.JPEG.PNG.or.WebP.photo');
 			return;
 		}
 		const write = workspaceSavedState.beginWrite(['scan']);
@@ -194,7 +202,7 @@
 			form.set('file', file);
 			await request(`${api}/scan/sessions/${sessionId}/frames`, { method: 'POST', body: form });
 			if (!write.current() || !mounted || session?.id !== sessionId) return;
-			message = 'Photo uploaded. Review the printing before adding it to inventory.';
+			message = language.t('ui.Photo.uploaded.Review.the.printing.before.adding.it.to.inventory');
 		} catch (cause) {
 			if (write.current() && mounted && session?.id === sessionId) report(cause);
 		} finally {
@@ -263,7 +271,7 @@
 			printingCount = response.estimatedTotalHits;
 			const choice = printings.find((card) => card.id === preferredId) ?? printings[0];
 			if (!choice) {
-				failure = 'No printings found for this card.';
+				failure = language.t('ui.No.printings.found.for.this.card');
 				return;
 			}
 			choosePrinting(choice);
@@ -339,7 +347,11 @@
 			pendingCommit = null;
 			result = { ...result!, session: { ...session, status: 'committed' } };
 			confirmed = false;
-			message = `Added ${attemptedQuantity} ${attemptedQuantity === 1 ? 'copy' : 'copies'} of ${attemptedName} to inventory.`;
+			message = language.t('message.Added.p0.p1.of.p2.to.inventory', {
+				p0: String(attemptedQuantity),
+				p1: String(attemptedQuantity === 1 ? language.t('unit.copy') : language.t('unit.copies')),
+				p2: String(attemptedName)
+			});
 			subscription?.invalidate();
 		} catch (cause) {
 			if (mounted && write.current() && session?.id === sessionId) report(cause);
@@ -353,7 +365,7 @@
 <div class="workspace-container space-y-5 text-sm">
 	<SavedStateStatus resource={subscription} />
 	{#if changedPhoto}<p role="alert">
-			The saved photo changed. Your selection is retained for review.
+			{language.t('ui.The.saved.photo.changed.Your.selection.is.retained.for.review')}
 		</p>
 		<button
 			class="btn btn-secondary"
@@ -363,17 +375,19 @@
 				selected = null;
 				reviewArtifactId = artifact?.id;
 				confirmed = false;
-			}}>Review current photo</button
+			}}>{language.t('ui.Review.current.photo')}</button
 		>{/if}
 	{#if unavailable}<p role="alert">
-			This saved scan is unavailable. Your choices are kept, but cannot be submitted.
+			{language.t(
+				'ui.This.saved.scan.is.unavailable.Your.choices.are.kept.but.cannot.be.submitted'
+			)}
 		</p>{/if}
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<div class="page-title">
-			<h1>Scan</h1>
+			<h1>{language.t('ui.Scan')}</h1>
 		</div>
 		<button class="btn btn-primary" disabled={busy} onclick={createSession}
-			><PlusIcon />New scan</button
+			><PlusIcon />{language.t('ui.New.scan')}</button
 		>
 	</div>
 
@@ -384,11 +398,13 @@
 	{#if readFailure}<div role="alert" class="space-y-2">
 			<p>{readFailure}</p>
 			<button class="btn btn-secondary" disabled={busy} onclick={refresh}
-				>Retry saved scan details</button
+				>{language.t('ui.Retry.saved.scan.details')}</button
 			>
 		</div>{/if}
 	{#if !session}
-		<p class="text-text-secondary">Start a scan to upload and review a card photo.</p>
+		<p class="text-text-secondary">
+			{language.t('ui.Start.a.scan.to.upload.and.review.a.card.photo')}
+		</p>
 	{:else}
 		<div class="flex flex-wrap items-center gap-3 text-text-secondary">
 			<span>{session.status.replaceAll('_', ' ')}</span>
@@ -401,7 +417,7 @@
 					upload();
 				}}
 			>
-				<label for="scan-photo" class="block">Card photo</label>
+				<label for="scan-photo" class="block">{language.t('ui.Card.photo')}</label>
 				<input
 					id="scan-photo"
 					type="file"
@@ -413,10 +429,10 @@
 					aria-describedby="scan-upload-help"
 				/>
 				<p id="scan-upload-help" class="text-text-secondary">
-					One card photo per session. Choose a JPEG, PNG, or WebP image.
+					{language.t('ui.One.card.photo.per.session.Choose.a.JPEG.PNG.or.WebP.image')}
 				</p>
 				<button class="btn btn-primary" disabled={busy || !files?.length}
-					>{busy ? 'Uploading...' : 'Upload photo'}</button
+					>{busy ? 'Uploading...' : language.t('ui.Upload.photo')}</button
 				>
 			</form>
 		{/if}
@@ -425,12 +441,14 @@
 				<div class="surface-card space-y-3 p-3">
 					<img
 						src={`${api}/scan/artifacts/${artifact.id}/image`}
-						alt="Original card submitted for review"
+						alt={language.t('ui.Original.card.submitted.for.review')}
 						class="max-h-[420px] w-full rounded object-contain"
 					/>
 
 					{#if candidates.length === 0}<p class="text-text-secondary">
-							No recognition candidates. Search the catalog to select the printing manually.
+							{language.t(
+								'ui.No.recognition.candidates.Search.the.catalog.to.select.the.printing.manually'
+							)}
 						</p>{/if}
 					{#each candidates as candidate}
 						<button
@@ -443,7 +461,11 @@
 								)}
 						>
 							<span>{candidate.name}</span><span class="text-xs"
-								>{candidate.setCode.toUpperCase()} #{candidate.collectorNumber} · Score {candidate.finalScore}/100</span
+								>{language.t('sentence.p0.p1.Score.p2.100', {
+									p0: String(candidate.setCode.toUpperCase()),
+									p1: String(candidate.collectorNumber),
+									p2: String(candidate.finalScore)
+								})}</span
 							>
 						</button>
 					{/each}
@@ -458,7 +480,8 @@
 							}}
 						>
 							<div class="min-w-0 flex-1">
-								<label for="scan-search" class="mb-1 block">Find card</label><input
+								<label for="scan-search" class="mb-1 block">{language.t('ui.Find.card')}</label
+								><input
 									id="scan-search"
 									class="input w-full"
 									bind:value={query}
@@ -470,11 +493,11 @@
 							<button
 								class="btn btn-secondary"
 								disabled={busy || searching || query.trim().length < 2}
-								>{searching ? 'Searching...' : 'Search'}</button
+								>{searching ? language.t('ui.Searching') : language.t('ui.Search')}</button
 							>
 						</form>
 						{#if searched && !hits.length}<p role="status" class="text-text-secondary">
-								No cards found. Try another name.
+								{language.t('ui.No.cards.found.Try.another.name')}
 							</p>{/if}
 						{#if hits.length}
 							<ul class="surface-card max-h-64 overflow-y-auto divide-y divide-mist">
@@ -519,12 +542,13 @@
 									confirmed = false;
 								}}
 							>
-								<legend class="sr-only">Printing and inventory details</legend>
+								<legend class="sr-only">{language.t('ui.Printing.and.inventory.details')}</legend>
 								{#if printings.length}
 									<div>
-										<label for="scan-printing" class="mb-1 block">Printing</label><Select
+										<label for="scan-printing" class="mb-1 block">{language.t('ui.Printing')}</label
+										><Select
 											id="scan-printing"
-											label="Printing"
+											label={language.t('ui.Printing')}
 											value={selected.catalogCardId}
 											disabled={busy || searching || !editable}
 											options={printings.map((card) => ({
@@ -542,12 +566,16 @@
 											type="button"
 											class="btn btn-secondary"
 											onclick={morePrintings}
-											>Load more printings ({printings.length} of {printingCount})</button
+											>{language.t('sentence.Load.more.printings.p0.of.p1', {
+												p0: String(printings.length),
+												p1: String(printingCount)
+											})}</button
 										>{/if}
 								{/if}
 								<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 									<div>
-										<label for="scan-quantity" class="mb-1 block">Quantity</label><input
+										<label for="scan-quantity" class="mb-1 block">{language.t('ui.Quantity')}</label
+										><input
 											id="scan-quantity"
 											class="input w-full"
 											type="number"
@@ -559,9 +587,10 @@
 										/>
 									</div>
 									<div>
-										<label for="scan-finish" class="mb-1 block">Finish</label><Select
+										<label for="scan-finish" class="mb-1 block">{language.t('ui.Finish')}</label
+										><Select
 											id="scan-finish"
-											label="Finish"
+											label={language.t('ui.Finish')}
 											bind:value={finish}
 											disabled={busy || searching || !editable}
 											onchange={() => (confirmed = false)}
@@ -580,9 +609,11 @@
 										/>
 									</div>
 									<div>
-										<label for="scan-condition" class="mb-1 block">Condition</label><Select
+										<label for="scan-condition" class="mb-1 block"
+											>{language.t('ui.Condition')}</label
+										><Select
 											id="scan-condition"
-											label="Condition"
+											label={language.t('ui.Condition')}
 											bind:value={condition}
 											disabled={busy || searching || !editable}
 											onchange={() => (confirmed = false)}
@@ -599,22 +630,31 @@
 										disabled={busy || searching}
 										class="mt-1 accent-gold"
 									/><span
-										>I checked the printing, finish, condition, and quantity. Add {quantity}
-										{quantity === 1 ? 'copy' : 'copies'} to inventory.</span
+										>{language.t(
+											'sentence.I.checked.the.printing.finish.condition.and.quantity.Add.p0.p1.to.inventory',
+											{
+												p0: String(quantity),
+												p1: String(
+													quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')
+												)
+											}
+										)}</span
 									></label
 								>
 								<button
 									class="btn btn-primary"
 									disabled={busy || searching || !confirmed || !validQuantity}
-									><PlusIcon />{busy ? 'Adding...' : 'Confirm and add to inventory'}</button
+									><PlusIcon />{busy
+										? 'Adding...'
+										: language.t('ui.Confirm.and.add.to.inventory')}</button
 								>
 							{/if}
 						</form>
 					{/if}
 					{#if session.status === 'committed'}<p role="status">
-							This scan has been added to inventory. <a
-								href="/mtg/inventory"
-								class="text-gold-bright underline">Open inventory</a
+							{language.t('ui.This.scan.has.been.added.to.inventory')}
+							<a href="/mtg/inventory" class="text-gold-bright underline"
+								>{language.t('ui.Open.inventory')}</a
 							>
 						</p>{/if}
 				</div>
@@ -625,22 +665,24 @@
 		class="scan-sessions grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
 	>
 		<div class="min-w-0">
-			<label for="scan-session" class="mb-1 block">Recent scans</label>
+			<label for="scan-session" class="mb-1 block">{language.t('ui.Recent.scans')}</label>
 			<Select
 				id="scan-session"
-				label="Session"
-				placeholder={recentSessions.length ? 'Choose a scan' : 'No scans yet'}
+				label={language.t('ui.Session')}
+				placeholder={recentSessions.length
+					? language.t('ui.Choose.a.scan')
+					: language.t('ui.No.scans.yet')}
 				value={session?.id ?? ''}
 				disabled={busy}
 				onchange={openSession}
 				options={recentSessions.map((entry) => ({
 					value: entry.id,
-					label: `${new Date(entry.createdAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })} · ${(entry.id === session?.id ? session.status : entry.status).replaceAll('_', ' ')}`
+					label: `${new Date(entry.createdAt).toLocaleString(language.locale, { dateStyle: 'short', timeStyle: 'short' })} · ${(entry.id === session?.id ? session.status : entry.status).replaceAll('_', ' ')}`
 				}))}
 			/>
 		</div>
 		<details class="scan-recovery">
-			<summary>Open by session ID</summary>
+			<summary>{language.t('ui.Open.by.session.ID')}</summary>
 			<form
 				class="mt-3 flex min-w-0 items-end gap-2"
 				onsubmit={(event) => {
@@ -649,7 +691,8 @@
 				}}
 			>
 				<div class="min-w-0 flex-1">
-					<label for="scan-session-id" class="mb-1 block">Session ID</label><input
+					<label for="scan-session-id" class="mb-1 block">{language.t('ui.Session.ID')}</label
+					><input
 						id="scan-session-id"
 						class="input w-full font-mono text-xs"
 						bind:value={sessionInput}
@@ -657,10 +700,11 @@
 						disabled={busy}
 					/>
 				</div>
-				<button class="btn btn-secondary" disabled={busy}>Open</button>
+				<button class="btn btn-secondary" disabled={busy}>{language.t('ui.Open')}</button>
 			</form>
 		</details>
-		{#if session}<button class="btn btn-secondary" disabled={busy} onclick={refresh}>Refresh</button
+		{#if session}<button class="btn btn-secondary" disabled={busy} onclick={refresh}
+				>{language.t('ui.Refresh')}</button
 			>{/if}
 	</div>
 </div>

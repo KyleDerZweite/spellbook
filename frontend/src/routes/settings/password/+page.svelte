@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
@@ -16,12 +18,12 @@
 </script>
 
 <svelte:head
-	><title>Password | Spellbook</title><meta
+	><title>{language.t('ui.Password.Spellbook')}</title><meta
 		name="robots"
 		content="noindex, nofollow"
 	/></svelte:head
 >
-<div class="page-title"><h1>Password</h1></div>
+<div class="page-title"><h1>{language.t('ui.Password')}</h1></div>
 <form
 	class="password-settings"
 	bind:this={passwordForm}
@@ -39,7 +41,8 @@
 					return;
 				}
 				if (!write.current()) return;
-				if (result.type === 'error') saveError = 'Could not change your password. Try again.';
+				if (result.type === 'error')
+					saveError = language.t('ui.Could.not.change.your.password.Try.again');
 				else {
 					await update({ reset: false, refreshAll: false, navigate: false });
 					if (!write.current()) return;
@@ -57,7 +60,7 @@
 	}}
 >
 	{#if data.demoMode}<p class="text-sm text-text-secondary">
-			Password changes are disabled in demo mode.
+			{language.t('ui.Password.changes.are.disabled.in.demo.mode')}
 		</p>{/if}
 	{#each fields as field}
 		<div>
@@ -74,14 +77,14 @@
 				aria-describedby={`${field.name}-error ${field.name === 'newPassword' ? 'password-help' : ''}`}
 			/>
 			{#if field.name === 'newPassword'}<p id="password-help" class="field-help">
-					12 to 128 characters. Other sessions will be signed out.
+					{language.t('ui.12.to.128.characters.Other.sessions.will.be.signed.out')}
 				</p>{/if}
 			<p id={`${field.name}-error`} class="field-error">{form?.errors?.[field.name] ?? ''}</p>
 		</div>
 	{/each}
 	<div class="password-save">
 		<button class="btn btn-primary" disabled={pending || data.demoMode}
-			>{pending ? 'Saving...' : 'Change password'}</button
+			>{pending ? 'Saving...' : language.t('ui.Change.password')}</button
 		>
 		<p
 			role="status"

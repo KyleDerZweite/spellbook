@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { PageProps } from './$types';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
@@ -9,18 +11,22 @@
 	);
 </script>
 
-<svelte:head><title>Import Deck | Spellbook</title></svelte:head>
+<svelte:head><title>{language.t('ui.Import.Deck.Spellbook')}</title></svelte:head>
 <div class="workspace-container exchange">
-	<WorkspaceHeader title="Import a new Deck">
-		{#snippet actions()}<Button href="/mtg/decks" variant="secondary">All decks</Button>{/snippet}
+	<WorkspaceHeader title={language.t('ui.Import.a.new.Deck')}>
+		{#snippet actions()}<Button href="/mtg/decks" variant="secondary"
+				>{language.t('ui.All.decks')}</Button
+			>{/snippet}
 	</WorkspaceHeader>
 	<p>
-		Paste or upload Arena text, simple quantity-name text, Spellbook CSV or Spellbook Deck JSON v1.
-		Preview every record before creating the complete Deck.
+		{language.t(
+			'ui.Paste.or.upload.Arena.text.simple.quantity.name.text.Spellbook.CSV.or.Spellbook.Deck.JSON.v1.Preview.every.record.before.creating.the.complete.Deck'
+		)}
 	</p>
 	<p>
-		CSV and Spellbook JSON preserve exact printings and roles. Simple text loses printing choices,
-		roles and Deck details. Hosted links and share codes are not imported.
+		{language.t(
+			'ui.CSV.and.Spellbook.JSON.preserve.exact.printings.and.roles.Simple.text.loses.printing.choices.roles.and.Deck.details.Hosted.links.and.share.codes.are.not.imported'
+		)}
 	</p>
 	{#if form && 'message' in form}<p role="alert">{form.message}</p>{/if}
 	{#if form && 'retryCommit' in form && form.retryCommit}
@@ -30,12 +36,14 @@
 			<input type="hidden" name="name" value={form.name} />
 			<input type="hidden" name="format" value={form.format} />
 			<input type="hidden" name="description" value={form.description} />
-			<Button type="submit" name="intent" value="commit">Retry creating the same Deck</Button>
+			<Button type="submit" name="intent" value="commit"
+				>{language.t('ui.Retry.creating.the.same.Deck')}</Button
+			>
 		</form>
 	{/if}
 	<form method="POST" enctype="multipart/form-data" class="form-stack">
 		<input type="hidden" name="requestId" value={form?.requestId || data.requestId} />
-		<label class="label" for="deck-source">Decklist</label>
+		<label class="label" for="deck-source">{language.t('ui.Decklist')}</label>
 		<textarea
 			class="input"
 			id="deck-source"
@@ -43,20 +51,24 @@
 			maxlength="100000"
 			rows="10"
 			value={form?.text ?? ''}></textarea>
-		<label class="label" for="deck-file">Or upload a UTF-8 file</label>
+		<label class="label" for="deck-file">{language.t('ui.Or.upload.a.UTF.8.file')}</label>
 		<input
 			id="deck-file"
 			name="file"
 			type="file"
 			accept=".txt,.csv,.json,text/plain,text/csv,application/json"
 		/>
-		<p>Maximum 100,000 characters, 400,000 file bytes and 1,000 card records.</p>
+		<p>{language.t('ui.Maximum.100.000.characters.400.000.file.bytes.and.1.000.card.records')}</p>
 		<details open={!preview?.metadata}>
-			<summary>Details for text imports</summary>
-			<p>CSV and JSON supply their own details. An Arena About/Name header supplies its name.</p>
-			<label class="label" for="deck-name">Deck name</label>
+			<summary>{language.t('ui.Details.for.text.imports')}</summary>
+			<p>
+				{language.t(
+					'ui.CSV.and.JSON.supply.their.own.details.An.Arena.About.Name.header.supplies.its.name'
+				)}
+			</p>
+			<label class="label" for="deck-name">{language.t('ui.Deck.name')}</label>
 			<input class="input" id="deck-name" name="name" maxlength="200" value={form?.name ?? ''} />
-			<label class="label" for="deck-format">Format</label>
+			<label class="label" for="deck-format">{language.t('ui.Format')}</label>
 			<input
 				class="input"
 				id="deck-format"
@@ -64,7 +76,7 @@
 				maxlength="100"
 				value={form?.format ?? 'Commander'}
 			/>
-			<label class="label" for="deck-description">Description</label>
+			<label class="label" for="deck-description">{language.t('ui.Description')}</label>
 			<textarea
 				class="input"
 				id="deck-description"
@@ -73,29 +85,37 @@
 				rows="3"
 				value={form?.description ?? ''}></textarea>
 		</details>
-		<Button type="submit" variant="secondary" name="intent" value="preview">Preview import</Button>
+		<Button type="submit" variant="secondary" name="intent" value="preview"
+			>{language.t('ui.Preview.import')}</Button
+		>
 	</form>
 	{#if preview}
 		<section aria-labelledby="preview-title" class="form-stack">
-			<h2 id="preview-title">Import preview</h2>
+			<h2 id="preview-title">{language.t('ui.Import.preview')}</h2>
 			{#if preview.metadata}<h3>{preview.metadata.name}</h3>
 				<p>{preview.metadata.format}</p>
 				<p class="description">{preview.metadata.description}</p>{/if}
 			<p>
-				{preview.resolved.reduce((total, item) => total + item.line.quantity, 0)} matched copies in {preview
-					.resolved.length} records.
+				{language.t('sentence.p0.matched.copies.in.p1.records', {
+					p0: String(preview.resolved.reduce((total, item) => total + item.line.quantity, 0)),
+					p1: String(preview.resolved.length)
+				})}
 			</p>
-			{#if blocked}<p role="alert">Resolve every record before creating the Deck.</p>{/if}
+			{#if blocked}<p role="alert">
+					{language.t('ui.Resolve.every.record.before.creating.the.Deck')}
+				</p>{/if}
 			<ul>
 				{#each preview.unresolved as item}<li>
 						<code>{item.line.raw}</code>: {item.reason}
 					</li>{/each}
 				{#each preview.ambiguous as item}<li>
-						<code>{item.line.raw}</code>: Multiple matches. Add a set code and collector number.
+						<code>{item.line.raw}</code>{language.t(
+							'ui.Multiple.matches.Add.a.set.code.and.collector.number'
+						)}
 					</li>{/each}
 			</ul>
 			<details open>
-				<summary>Matched cards</summary>
+				<summary>{language.t('ui.Matched.cards')}</summary>
 				<ul>
 					{#each preview.resolved as item}<li>
 							{item.line.quantity}
@@ -105,7 +125,7 @@
 				</ul>
 			</details>
 			{#if preview.warnings.length}<details>
-					<summary>Format warnings</summary>
+					<summary>{language.t('ui.Format.warnings')}</summary>
 					<ul>
 						{#each preview.warnings as warning}<li>{warning.message}</li>{/each}
 					</ul>
@@ -117,7 +137,7 @@
 				<input type="hidden" name="format" value={form?.format ?? 'Commander'} />
 				<input type="hidden" name="description" value={form?.description ?? ''} />
 				<Button type="submit" name="intent" value="commit" disabled={blocked}
-					>Create complete Deck</Button
+					>{language.t('ui.Create.complete.Deck')}</Button
 				>
 			</form>
 		</section>

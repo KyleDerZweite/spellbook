@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import type { Snippet } from 'svelte';
 	import Button from './button/Button.svelte';
@@ -22,8 +24,9 @@
 </script>
 
 <div class="quantity-control">
-	{#each [-1, 1] as delta}{#if delta === 1}<span class="quantity" aria-label={`${quantity} copies`}
-				>{quantity}</span
+	{#each [-1, 1] as delta}{#if delta === 1}<span
+				class="quantity"
+				aria-label={language.t('message.p0.copies', { p0: String(quantity) })}>{quantity}</span
 			>{/if}
 		<form method="POST" {action} use:enhance={submit}>
 			{@render fields(delta)}<Button
@@ -33,7 +36,10 @@
 				disabled={disabled ||
 					(delta === -1 && quantity <= 1) ||
 					(delta === 1 && quantity >= maxQuantity)}
-				aria-label={`${delta === -1 ? 'Decrease' : 'Increase'} ${label} quantity`}
+				aria-label={language.t('message.p0.p1.quantity', {
+					p0: String(delta === -1 ? language.t('ui.Decrease') : language.t('ui.Increase')),
+					p1: String(label)
+				})}
 				><svg
 					aria-hidden="true"
 					width="14"

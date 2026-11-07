@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type {
 		InventoryValueHistory,
 		InventoryValueHistoryRequest
@@ -21,7 +23,7 @@
 </script>
 
 <FormDialog
-	title={query.printingId ? 'Card value history' : 'Inventory value'}
+	title={query.printingId ? language.t('ui.Card.value.history') : language.t('ui.Inventory.value')}
 	description=""
 	variant="history"
 	{onCancel}

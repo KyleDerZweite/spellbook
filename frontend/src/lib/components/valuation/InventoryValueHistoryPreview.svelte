@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
@@ -60,7 +62,9 @@
 					}
 				} catch (cause) {
 					if (lease.current())
-						error = 'History could not be loaded. Choose a valid period and try again.';
+						error = language.t(
+							'ui.History.could.not.be.loaded.Choose.a.valid.period.and.try.again'
+						);
 					throw cause;
 				} finally {
 					if (lease.current()) loading = false;

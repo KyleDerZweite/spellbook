@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { page } from '$app/state';
 	import { inventoryAction, effectiveInventoryUrl } from '#lib/mtg/inventory-action.ts';
 	import { enhance } from '$app/forms';
@@ -42,8 +44,15 @@
 </script>
 
 <FormDialog
-	title="Boxes"
-	description={`Boxes include all ${entry.quantity} ${entry.quantity === 1 ? 'copy' : 'copies'} of ${entry.name} (${entry.setCode.toUpperCase()}, ${entry.finish === 'foil' ? 'Foil' : 'Nonfoil'}, ${entry.condition}).`}
+	title={language.t('ui.Boxes')}
+	description={language.t('message.Boxes.include.all.p0.p1.of.p2.p3.p4.p5', {
+		p0: String(entry.quantity),
+		p1: String(entry.quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')),
+		p2: String(entry.name),
+		p3: String(entry.setCode.toUpperCase()),
+		p4: String(entry.finish === 'foil' ? 'Foil' : 'Nonfoil'),
+		p5: String(entry.condition)
+	})}
 	pending={mutation.pending}
 	onCancel={onClose}
 	{onCloseAutoFocus}
@@ -57,7 +66,7 @@
 		<input type="hidden" name="requestId" value={page.data.requestId} />
 		<input type="hidden" name="entryId" value={entry.id} />
 		{#if groups.length === 0}<p class="text-sm text-text-secondary">
-				Create a box in the Boxes view first.
+				{language.t('ui.Create.a.box.in.the.Boxes.view.first')}
 			</p>{:else}
 			<div class="membership-list">
 				{#each groups as group (group.id)}<label
@@ -75,12 +84,12 @@
 		{#if mutation.error}<p role="alert" class="mt-3 text-sm text-error">{mutation.error}</p>{/if}
 		<div class="group-form-actions">
 			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
-				>Cancel</button
+				>{language.t('ui.Cancel')}</button
 			><button
 				type="submit"
 				class="btn btn-primary"
 				disabled={mutation.pending || groups.length === 0}
-				>{mutation.pending ? 'Saving...' : 'Save boxes'}</button
+				>{mutation.pending ? 'Saving...' : language.t('ui.Save.boxes')}</button
 			>
 		</div>
 	</form>

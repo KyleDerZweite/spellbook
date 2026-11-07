@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { ValueEstimate } from '@spellbook/contracts/inventory-value.ts';
 	import { formatValueEUR } from '#lib/valuation/money.ts';
 	import { estimateLabel } from '#lib/valuation/history-chart.ts';
 	let {
 		estimate,
-		title = 'Inventory value',
+		title = language.t('ui.Inventory.value'),
 		error = '',
 		evaluatedAt,
 		compact = false,
@@ -19,7 +21,9 @@
 		inline?: boolean;
 		referenceNote?: string;
 	} = $props();
-	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
+	const percent = $derived(
+		new Intl.NumberFormat(language.locale, { style: 'percent', maximumFractionDigits: 1 })
+	);
 </script>
 
 <section
@@ -34,35 +38,40 @@
 		{:else if estimate}
 			<p class="value-amount">
 				{estimate.totalQuantity > 0 && estimate.coveredQuantity === 0
-					? 'Unknown'
-					: formatValueEUR(estimate.coveredValue)}
+					? language.t('ui.Unknown')
+					: formatValueEUR(estimate.coveredValue, language.locale)}
 			</p>
-			<p class="value-label">{estimateLabel(estimate)}</p>
-		{:else}<p class="mt-2 text-sm text-text-muted">Value unavailable.</p>{/if}
+			<p class="value-label">{estimateLabel(estimate, language.locale)}</p>
+		{:else}<p class="mt-2 text-sm text-text-muted">{language.t('ui.Value.unavailable')}</p>{/if}
 	</div>
 	{#if estimate && !error}
 		{#if inline}
 			<p class="value-basis">
-				{estimate.coveredQuantity.toLocaleString()} / {estimate.totalQuantity.toLocaleString()} copies
-				priced
+				{language.t('coverage.priced', {
+					covered: language.number(estimate.coveredQuantity),
+					total: language.number(estimate.totalQuantity)
+				})}
 			</p>
 			{#if referenceNote}<p class="value-basis">{referenceNote}</p>{/if}
 		{/if}
 		{#if compact && estimate.totalQuantity > 0}
 			<div class="coverage-meter">
-				<span>Price coverage</span><strong
+				<span>{language.t('ui.Price.coverage')}</span><strong
 					>{percent.format(estimate.coveredQuantity / estimate.totalQuantity)}</strong
 				><progress
 					max={estimate.totalQuantity}
 					value={estimate.coveredQuantity}
-					aria-label="Copies with known price references"
+					aria-label={language.t('ui.Copies.with.known.price.references')}
 				></progress><small
-					>{estimate.coveredQuantity.toLocaleString()} / {estimate.totalQuantity.toLocaleString()} copies</small
+					>{language.t('coverage.ratio', {
+						covered: language.number(estimate.coveredQuantity),
+						total: language.number(estimate.totalQuantity)
+					})}</small
 				>
 			</div>
 		{/if}
 		{#if compact || inline}<details class="coverage-details">
-				<summary>Coverage details</summary>{@render coverageDetails()}
+				<summary>{language.t('ui.Coverage.details')}</summary>{@render coverageDetails()}
 			</details>
 		{:else}{@render coverageDetails()}{/if}
 	{/if}
@@ -72,15 +81,19 @@
 	{#if estimate}
 		{#if referenceNote && !inline}<p class="mt-2 text-xs text-text-muted">{referenceNote}</p>{/if}
 		<p class="mt-2 text-xs text-text-muted">
-			{estimate.coveredQuantity.toLocaleString()} of {estimate.totalQuantity.toLocaleString()} copies
-			covered. {estimate.unknownQuantity.toLocaleString()} unknown. {estimate.staleQuantity.toLocaleString()}
-			covered by stale references.
+			{language.t('coverage.details', {
+				covered: language.number(estimate.coveredQuantity),
+				total: language.number(estimate.totalQuantity),
+				unknown: language.number(estimate.unknownQuantity),
+				stale: language.number(estimate.staleQuantity)
+			})}
 		</p>
 		{#if !estimate.complete}<p class="mt-1 text-xs text-text-muted">
-				Unknown references are excluded from the covered value.
+				{language.t('ui.Unknown.references.are.excluded.from.the.covered.value')}
 			</p>{/if}
 		{#if evaluatedAt}<p class="mt-2 text-xs text-text-muted">
-				Evaluated <time datetime={evaluatedAt}>{new Date(evaluatedAt).toLocaleString()}</time>.
+				{language.t('ui.Evaluated')}
+				<time datetime={evaluatedAt}>{new Date(evaluatedAt).toLocaleString(language.locale)}</time>.
 			</p>{/if}
 	{/if}
 {/snippet}

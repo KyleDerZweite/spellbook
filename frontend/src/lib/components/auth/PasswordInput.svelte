@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	let { ...attributes }: Omit<HTMLInputAttributes, 'type' | 'class'> = $props();
@@ -11,7 +13,7 @@
 		type="button"
 		disabled={attributes.disabled}
 		class="btn btn-ghost password-toggle"
-		aria-label={visible ? 'Hide password' : 'Show password'}
+		aria-label={visible ? language.t('ui.Hide.password') : language.t('ui.Show.password')}
 		aria-controls={attributes.id}
 		onclick={() => (visible = !visible)}
 	>

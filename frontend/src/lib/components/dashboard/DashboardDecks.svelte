@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import OwnershipProgress from '#lib/components/decks/OwnershipProgress.svelte';
@@ -7,8 +9,8 @@
 
 <section class="dashboard-decks dashboard-surface" aria-labelledby="decks-heading">
 	<div class="section-heading">
-		<h2 id="decks-heading">Your decks</h2>
-		<a href="/mtg/decks">View decks ↗</a>
+		<h2 id="decks-heading">{language.t('ui.Your.decks')}</h2>
+		<a href="/mtg/decks">{language.t('ui.View.decks')}</a>
 	</div>
 	{#if dashboard.decks.length}<ul>
 			{#each dashboard.decks.slice(0, 6) as deck (deck.id)}
@@ -30,11 +32,12 @@
 						<div class="details">
 							<span class="deck-name">{deck.name}</span>
 							<div class="meta">
-								<span>{deck.format}</span><span aria-label="Commander color identity"
+								<span>{deck.format}</span><span
+									aria-label={language.t('ui.Commander.color.identity')}
 									>{#each ['W', 'U', 'B', 'R', 'G'].filter( (color) => deck.commanders.some( (card) => card.colorIdentity?.includes(color) ) ) as color}<i
 											class={`ms ms-${color.toLowerCase()} ms-cost`}
 											role="img"
-											aria-label={`${color} identity`}
+											aria-label={language.t('message.p0.identity', { p0: String(color) })}
 										></i>{/each}</span
 								>
 							</div>
@@ -42,8 +45,10 @@
 						</div>
 					</a>
 				</li>{/each}
-		</ul>{:else}<p>No decks yet.</p>
-		<a href="/mtg/decks" class="btn btn-secondary btn-sm"><PlusIcon />Create a deck</a>{/if}
+		</ul>{:else}<p>{language.t('ui.No.decks.yet')}</p>
+		<a href="/mtg/decks" class="btn btn-secondary btn-sm"
+			><PlusIcon />{language.t('ui.Create.a.deck')}</a
+		>{/if}
 </section>
 
 <style>

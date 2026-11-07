@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { PageData, ActionData } from './$types';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	import NativeCardBrowsingActions from '#lib/components/cards/NativeCardBrowsingActions.svelte';
@@ -39,11 +41,15 @@
 	}
 </script>
 
-<svelte:head><title>Search | Spellbook</title></svelte:head>
+<svelte:head><title>{language.t('ui.Search.Spellbook')}</title></svelte:head>
 <div class="workspace-container search-page">
-	<h1 class="sr-only">Search cards</h1>
+	<h1 class="sr-only">{language.t('ui.Search.cards')}</h1>
 	{#if nativePanelVisible}
-		<section bind:this={nativePanel} aria-label="Selected card" class="native-card-panel">
+		<section
+			bind:this={nativePanel}
+			aria-label={language.t('ui.Selected.card')}
+			class="native-card-panel"
+		>
 			{#if data.selectedPrinting}
 				<h2>{data.selectedPrinting.name}</h2>
 				<p class="text-sm text-text-secondary">

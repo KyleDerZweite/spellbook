@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { deckSections } from '#lib/decks/sections.ts';
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import DeckOverview from '#lib/components/decks/DeckOverview.svelte';
@@ -47,12 +49,12 @@
 		'Brawl',
 		'Casual'
 	].map((value) => ({ value, label: value }));
-	const roles = [
+	const roles = $derived([
 		{ value: 'commander', label: 'Commander' },
-		{ value: 'main', label: 'Main deck' },
-		{ value: 'sideboard', label: 'Sideboard' },
-		{ value: 'companion', label: 'Companion' }
-	];
+		{ value: 'main', label: language.t('ui.Main.deck') },
+		{ value: 'sideboard', label: language.t('ui.Sideboard') },
+		{ value: 'companion', label: language.t('ui.Companion') }
+	]);
 	let { data, form }: PageProps = $props();
 	let savedDecks = $state(
 		untrack(() => ({
@@ -426,7 +428,9 @@
 			)
 	);
 
-	const sections = $derived(deckSections(deckCards, visibleCards, savedDecks.deckDocuments));
+	const sections = $derived(
+		deckSections(deckCards, visibleCards, savedDecks.deckDocuments, language.locale)
+	);
 	const catalogCards = $derived(
 		results.filter((card) => !ownedOnly || (ownedByCanonical.get(card.oracle_id) ?? 0) > 0)
 	);
@@ -505,8 +509,8 @@
 		optionalReads.dispose();
 	});
 	function reportUnconfirmedSave() {
-		saveError = 'Could not confirm the save. Your changes are still here. Try again.';
-		saveStatus = 'Could not confirm the save. Try again.';
+		saveError = language.t('ui.Could.not.confirm.the.save.Your.changes.are.still.here.Try.again');
+		saveStatus = language.t('ui.Could.not.confirm.the.save.Try.again');
 	}
 
 	function isCurrentSave(submission: DeckSubmission): boolean {
@@ -607,7 +611,7 @@
 					}
 				}
 				if (result.type === 'success' || result.type === 'redirect') {
-					saveStatus = 'Saved';
+					saveStatus = language.t('ui.Saved');
 					for (const [payload, id] of pendingRequests)
 						if (id === savedRequestId) pendingRequests.delete(payload);
 					if (removedCard) {
@@ -674,7 +678,7 @@
 			} finally {
 				write?.complete();
 				if (!(write?.current() ?? true) || !isCurrentSave(submission)) return;
-				if (result.type === 'failure') saveStatus = 'Could not save. Try again.';
+				if (result.type === 'failure') saveStatus = language.t('ui.Could.not.save.Try.again');
 				busy = false;
 			}
 		};
@@ -684,7 +688,9 @@
 {#snippet addIcon()}<PlusIcon />{/snippet}
 
 {#if deletedTarget}<p role="alert">
-		This Deck was removed elsewhere. Your draft is retained; it cannot be saved to the removed Deck.
+		{language.t(
+			'ui.This.Deck.was.removed.elsewhere.Your.draft.is.retained.it.cannot.be.saved.to.the.removed.Deck'
+		)}
 	</p>{/if}
 <SavedStateStatus resource={deckSubscription} />
 {#snippet retryError()}
@@ -692,48 +698,60 @@
 {/snippet}
 
 <svelte:head
-	><title>{selectedDeck ? `${selectedDeck.name} | Decks` : 'Decks'} | Spellbook</title></svelte:head
+	><title
+		>{selectedDeck
+			? language.t('message.p0.Decks', { p0: String(selectedDeck.name) })
+			: language.t('ui.Decks')} | Spellbook</title
+	></svelte:head
 >
 
 <div class="builder workspace-container">
-	<WorkspaceHeader title={selectedDeck?.name ?? 'Decks'}>
+	<WorkspaceHeader title={selectedDeck?.name ?? language.t('ui.Decks')}>
 		{#snippet metadata()}
-			{#if selectedDeck}<a href={allDecksHref()}>All decks</a>
+			{#if selectedDeck}<a href={allDecksHref()}>{language.t('ui.All.decks')}</a>
 				<p class="deck-format">{selectedDeck.format}</p>{/if}
 		{/snippet}
 		{#snippet actions()}
 			<div class="deck-picker">
 				{#if selectedDeck}
 					<ActionMenu
-						label="Deck actions"
+						label={language.t('ui.Deck.actions')}
 						iconOnly
 						bind:triggerRef={actionsTrigger}
 						items={[
-							{ label: 'New deck', icon: addIcon, onSelect: () => openEditor('create') },
-							{ label: 'Edit details', onSelect: () => openEditor('details') },
-							{ label: 'Import decklist', onSelect: () => openEditor('import') },
 							{
-								label: 'Export Arena',
+								label: language.t('ui.New.deck'),
+								icon: addIcon,
+								onSelect: () => openEditor('create')
+							},
+							{ label: language.t('ui.Edit.details'), onSelect: () => openEditor('details') },
+							{ label: language.t('ui.Import.decklist'), onSelect: () => openEditor('import') },
+							{
+								label: language.t('ui.Export.Arena'),
 								href: `/mtg/decks/${selectedDeck.id}/export`,
 								download: true
 							},
 							{
-								label: 'Export simple text',
+								label: language.t('ui.Export.simple.text'),
 								href: `/mtg/decks/${selectedDeck.id}/export?format=simple`,
 								download: true
 							},
 							{
-								label: 'Export CSV',
+								label: language.t('ui.Export.CSV'),
 								href: `/mtg/decks/${selectedDeck.id}/export?format=csv`,
 								download: true
 							},
 							{
-								label: 'Export Spellbook JSON',
+								label: language.t('ui.Export.Spellbook.JSON'),
 								href: `/mtg/decks/${selectedDeck.id}/export?format=json`,
 								download: true
 							},
-							{ label: 'Print deck', href: `/mtg/decks/${selectedDeck.id}/print` },
-							{ label: 'Delete deck', destructive: true, onSelect: () => openEditor('delete') }
+							{ label: language.t('ui.Print.deck'), href: `/mtg/decks/${selectedDeck.id}/print` },
+							{
+								label: language.t('ui.Delete.deck'),
+								destructive: true,
+								onSelect: () => openEditor('delete')
+							}
 						]}
 						onCloseAutoFocus={(event) => {
 							if (createOpen || editOpen || importOpen || deleteOpen) event.preventDefault();
@@ -753,16 +771,17 @@
 							>{/snippet}
 					</ActionMenu>
 				{/if}
-				{#if !selectedDeck}<Button href="/mtg/decks/import" variant="secondary">Import deck</Button
+				{#if !selectedDeck}<Button href="/mtg/decks/import" variant="secondary"
+						>{language.t('ui.Import.deck')}</Button
 					><Button href={flowHref('create')} onclick={openCreate} disabled={busy || deletedTarget}
-						><PlusIcon />New deck</Button
+						><PlusIcon />{language.t('ui.New.deck')}</Button
 					>{/if}
 			</div>
 		{/snippet}
 	</WorkspaceHeader>
 	<DeckDialog
-		title="Create a deck"
-		description="Name the deck and choose its format."
+		title={language.t('ui.Create.a.deck')}
+		description={language.t('ui.Name.the.deck.and.choose.its.format')}
 		native={data.flow === 'create'}
 		pending={busy}
 		cancelHref={flowHref()}
@@ -771,24 +790,24 @@
 	>
 		<form method="POST" action={action('createDeck')} use:enhance={save} class="form-stack">
 			<input type="hidden" name="requestId" value={data.requestId} />
-			<label class="label" for="new-name">Deck name</label><input
+			<label class="label" for="new-name">{language.t('ui.Deck.name')}</label><input
 				id="new-name"
 				name="name"
 				class="input"
 				required
 				maxlength="200"
-				placeholder="My next deck"
+				placeholder={language.t('ui.My.next.deck')}
 				bind:value={createName}
 			/>
-			<label class="label" for="new-format">Format</label><Select
+			<label class="label" for="new-format">{language.t('ui.Format')}</label><Select
 				native={data.flow === 'create'}
 				id="new-format"
 				name="format"
-				label="Deck format"
+				label={language.t('ui.Deck.format')}
 				bind:value={createFormat}
 				options={formats}
 			/>
-			<label class="label" for="new-description">Description</label><textarea
+			<label class="label" for="new-description">{language.t('ui.Description')}</label><textarea
 				id="new-description"
 				name="description"
 				class="input"
@@ -798,7 +817,7 @@
 			{@render retryError()}
 			{#if !saveError && form?.message}<p role="status" class="muted">{form.message}</p>{/if}
 			<Button type="submit" variant="default" disabled={busy || deletedTarget}
-				><PlusIcon />Create deck</Button
+				><PlusIcon />{language.t('ui.Create.deck')}</Button
 			>
 		</form>
 	</DeckDialog>
@@ -808,9 +827,12 @@
 		</p>{/if}
 	{#if selectedDeck && detailsDraft && !editOpen}
 		<section data-deck-draft-recovery aria-labelledby="draft-recovery-title" class="form-stack">
-			<h2 id="draft-recovery-title">Recover your unsaved deck details</h2>
-			<p>Your draft is below. Review it before saving again.</p>
-			{#if form?.conflict}<p>Latest saved Description: {form.conflict.description}</p>{/if}
+			<h2 id="draft-recovery-title">{language.t('ui.Recover.your.unsaved.deck.details')}</h2>
+			<p>{language.t('ui.Your.draft.is.below.Review.it.before.saving.again')}</p>
+			{#if form?.conflict}<p>
+					{language.t('ui.Latest.saved.Description')}
+					{form.conflict.description}
+				</p>{/if}
 			<form method="POST" action={action('updateDeck')} use:enhance={save} class="form-stack">
 				<input type="hidden" name="deckId" value={detailsDraft.deckId} />
 				<input type="hidden" name="descriptionRevision" value={detailsDraft.descriptionRevision} />
@@ -829,7 +851,7 @@
 						name="descriptionBase"
 						value={detailsDraft.descriptionBase}
 					/>{/if}
-				<label for="recovery-name">Deck name</label><input
+				<label for="recovery-name">{language.t('ui.Deck.name')}</label><input
 					id="recovery-name"
 					class="input"
 					name="name"
@@ -837,7 +859,7 @@
 					required
 					maxlength="200"
 				/>
-				<label for="recovery-format">Format</label><select
+				<label for="recovery-format">{language.t('ui.Format')}</label><select
 					id="recovery-format"
 					class="input"
 					name="format"
@@ -851,7 +873,7 @@
 							selected={format.value === detailsDraft.format}>{format.label}</option
 						>{/each}
 				</select>
-				<label for="recovery-description">Description</label><textarea
+				<label for="recovery-description">{language.t('ui.Description')}</label><textarea
 					id="recovery-description"
 					class="input"
 					name="description"
@@ -859,19 +881,22 @@
 					maxlength="4000">{detailsDraft.description}</textarea
 				>
 				{@render retryError()}
-				<Button type="submit" variant="default" disabled={busy || deletedTarget}>Save draft</Button>
+				<Button type="submit" variant="default" disabled={busy || deletedTarget}
+					>{language.t('ui.Save.draft')}</Button
+				>
 				{#if form?.conflict}<Button
 						type="submit"
 						variant="secondary"
 						name="rebaseDescription"
 						value={form.conflict.descriptionRevision}
-						disabled={busy || deletedTarget}>Use latest revision and save my draft</Button
+						disabled={busy || deletedTarget}
+						>{language.t('ui.Use.latest.revision.and.save.my.draft')}</Button
 					>{/if}
 			</form>
 		</section>
 	{/if}
 	{#if selectedDeck}
-		<section class="deck-overview" aria-label="Deck overview">
+		<section class="deck-overview" aria-label={language.t('ui.Deck.overview')}>
 			<DeckOverview
 				cards={deckCards}
 				documents={savedDecks.deckDocuments}
@@ -881,16 +906,16 @@
 				onInspect={inspect}
 			/>
 			{#if selectedDeck.description}<details class="deck-notes">
-					<summary>Deck notes</summary>
+					<summary>{language.t('ui.Deck.notes')}</summary>
 					<p class="muted">{selectedDeck.description}</p>
 				</details>{/if}
 			<div class="deck-actions">
 				<DeckDialog
-					title="Deck details"
+					title={language.t('ui.Deck.details')}
 					native={data.flow === 'edit'}
 					pending={busy}
 					cancelHref={flowHref()}
-					description="Update the name, format, or notes for this deck."
+					description={language.t('ui.Update.the.name.format.or.notes.for.this.deck')}
 					returnFocus={actionsTrigger}
 					bind:open={editOpen}
 				>
@@ -909,7 +934,7 @@
 								value={formatBase}
 							/><input type="hidden" name="descriptionBase" value={descriptionBase} /><label
 								class="label"
-								for="edit-name">Deck name</label
+								for="edit-name">{language.t('ui.Deck.name')}</label
 							><input
 								id="edit-name"
 								class="input"
@@ -918,15 +943,16 @@
 								required
 								maxlength="200"
 							/>
-							<label class="label" for="edit-format">Format</label><Select
+							<label class="label" for="edit-format">{language.t('ui.Format')}</label><Select
 								native={data.flow === 'edit'}
 								id="edit-format"
 								name="format"
-								label="Deck format"
+								label={language.t('ui.Deck.format')}
 								bind:value={formatDraft}
 								options={formats}
 							/>
-							<label class="label" for="edit-description">Description</label><textarea
+							<label class="label" for="edit-description">{language.t('ui.Description')}</label
+							><textarea
 								id="edit-description"
 								class="input"
 								name="description"
@@ -942,24 +968,26 @@
 										variant="secondary"
 										onclick={() => {
 											descriptionBaseRevision = form!.conflict!.descriptionRevision;
-										}}>Use latest revision and keep my draft</Button
+										}}>{language.t('ui.Use.latest.revision.and.keep.my.draft')}</Button
 									>
 								</div>{/if}
 							{@render retryError()}
 							{#if !saveError && form?.message}<p role="status" class="muted">
 									{form.message}
 								</p>{/if}<Button type="submit" variant="default" disabled={busy || deletedTarget}
-								>Save details</Button
+								>{language.t('ui.Save.details')}</Button
 							>
 						</form>{/key}
 				</DeckDialog>
 				<DeckDialog
-					title="Import decklist"
+					title={language.t('ui.Import.decklist')}
 					native={data.flow === 'import'}
 					pending={busy}
 					cancelHref={flowHref()}
 					variant="import"
-					description="Paste or upload Arena text, simple text, Spellbook CSV or JSON v1. Imports add quantities to this Deck and retain its details."
+					description={language.t(
+						'ui.Paste.or.upload.Arena.text.simple.text.Spellbook.CSV.or.JSON.v1.Imports.add.quantities.to.this.Deck.and.retain.its.details'
+					)}
 					returnFocus={actionsTrigger}
 					bind:open={importOpen}
 				>
@@ -973,7 +1001,7 @@
 						<input type="hidden" name="requestId" value={importRequestId || data.requestId} />
 						<input type="hidden" name="deckId" value={selectedDeck.id} /><label
 							class="label"
-							for="import-text">Decklist</label
+							for="import-text">{language.t('ui.Decklist')}</label
 						><textarea
 							id="import-text"
 							name="text"
@@ -983,7 +1011,7 @@
 							bind:value={importText}
 							placeholder={"Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n10 Forest"}
 						></textarea>
-						<label class="label" for="import-file">Or upload a UTF-8 file</label>
+						<label class="label" for="import-file">{language.t('ui.Or.upload.a.UTF.8.file')}</label>
 						<input
 							id="import-file"
 							type="file"
@@ -991,38 +1019,47 @@
 							accept=".txt,.csv,.json,text/plain,text/csv,application/json"
 						/>
 						<p>
-							Maximum 100,000 characters, 400,000 file bytes and 1,000 card records. Simple text
-							loses printing choices and roles.
+							{language.t(
+								'ui.Maximum.100.000.characters.400.000.file.bytes.and.1.000.card.records.Simple.text.loses.printing.choices.and.roles'
+							)}
 						</p>
-						<a href="/mtg/decks/import">Import as a complete new Deck</a>
+						<a href="/mtg/decks/import">{language.t('ui.Import.as.a.complete.new.Deck')}</a>
 						<Button type="submit" variant="secondary" disabled={busy || deletedTarget}
-							>{busy ? 'Working...' : 'Preview import'}</Button
+							>{busy ? 'Working...' : language.t('ui.Preview.import')}</Button
 						>
 					</form>
 					{@render retryError()}
 					{#if !saveError && form?.message}<p role="status" class="notice">{form.message}</p>{/if}
 					{#if preview && form?.importText === importText.trim()}
 						<div class="import-preview" aria-live="polite">
-							<p>{importableCount} cards matched for import.</p>
+							<p>
+								{language.t('sentence.p0.cards.matched.for.import', {
+									p0: String(importableCount)
+								})}
+							</p>
 							{#if preview.unresolved.length || preview.ambiguous.length}<p class="warning">
-									Resolve every record before importing. Edit the list and preview again.
+									{language.t(
+										'ui.Resolve.every.record.before.importing.Edit.the.list.and.preview.again'
+									)}
 								</p>{/if}
 							<ul>
 								{#each preview.unresolved as item}<li>
 										<code>{item.line.raw}</code>: {item.reason}
 									</li>{/each}{#each preview.ambiguous as item}<li>
-										<code>{item.line.raw}</code>: Multiple matches. Add a set code and collector
-										number.
+										<code>{item.line.raw}</code>{language.t(
+											'ui.Multiple.matches.Add.a.set.code.and.collector.number'
+										)}
 									</li>{/each}
 							</ul>
 							{#if preview.resolved.some(({ line }) => line.role === 'maybeboard')}<p
 									class="warning"
 								>
-									Maybeboard is unsupported. Move these cards into a supported Deck section before
-									importing.
+									{language.t(
+										'ui.Maybeboard.is.unsupported.Move.these.cards.into.a.supported.Deck.section.before.importing'
+									)}
 								</p>{/if}
 							<details>
-								<summary>Matched cards</summary>
+								<summary>{language.t('ui.Matched.cards')}</summary>
 								<ul>
 									{#each preview.resolved.filter(({ line }) => line.role !== 'maybeboard') as item}<li
 										>
@@ -1032,7 +1069,7 @@
 								</ul>
 							</details>
 							{#if preview.warnings.length}<details>
-									<summary>Format warnings for imported cards</summary>
+									<summary>{language.t('ui.Format.warnings.for.imported.cards')}</summary>
 									<ul>
 										{#each preview.warnings as warning}<li>{warning.message}</li>{/each}
 									</ul>
@@ -1050,7 +1087,9 @@
 										!importableCount ||
 										preview.unresolved.length > 0 ||
 										preview.ambiguous.length > 0}
-									><PlusIcon />Add all {importableCount} cards</Button
+									><PlusIcon />{language.t('ui.Add.all')}
+									{importableCount}
+									{language.t('ui.cards')}</Button
 								>
 							</form>
 						</div>
@@ -1060,22 +1099,29 @@
 						class="native-deck-form form-stack"
 						aria-labelledby="native-delete-title"
 					>
-						<h2 id="native-delete-title">Delete deck</h2>
-						<p>Delete {selectedDeck.name} and its card list? Your inventory stays unchanged.</p>
+						<h2 id="native-delete-title">{language.t('ui.Delete.deck')}</h2>
+						<p>
+							{language.t('ui.Delete')}
+							{selectedDeck.name}
+							{language.t('ui.and.its.card.list.Your.inventory.stays.unchanged')}
+						</p>
 						<Button href={flowHref()} variant="secondary" disabled={busy || deletedTarget}
-							>Cancel</Button
+							>{language.t('ui.Cancel')}</Button
 						>
 						<form method="POST" action={action('deleteDeck')} use:enhance={save}>
 							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
 								type="submit"
 								variant="destructive"
-								disabled={busy || deletedTarget}>Delete this deck</Button
+								disabled={busy || deletedTarget}>{language.t('ui.Delete.this.deck')}</Button
 							>
 						</form>
 					</section>{:else}<ConfirmationDialog
 						open={deleteOpen}
-						title="Delete deck"
-						description={`Delete ${selectedDeck.name} and its card list? Your inventory stays unchanged.`}
+						title={language.t('ui.Delete.deck')}
+						description={language.t(
+							'message.Delete.p0.and.its.card.list.Your.inventory.stays.unchanged',
+							{ p0: String(selectedDeck.name) }
+						)}
 						pending={busy}
 						error={saveError || (form?.success ? '' : (form?.message ?? ''))}
 						onCancel={() => (deleteOpen = false)}
@@ -1087,39 +1133,49 @@
 							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
 								type="submit"
 								variant="destructive"
-								disabled={busy || deletedTarget}>Delete this deck</Button
+								disabled={busy || deletedTarget}>{language.t('ui.Delete.this.deck')}</Button
 							>
 						</form></ConfirmationDialog
 					>{/if}
 			</div>
 		</section>
 		<noscript
-			><nav aria-label="Deck tasks">
-				<a class="inline-flex items-center gap-2" href={flowHref('create')}><PlusIcon />New deck</a>
-				· <a href={flowHref('edit')}>Edit details</a> ·
-				<a href={flowHref('import')}>Import decklist</a>
-				· <a href={`/mtg/decks/${selectedDeck.id}/export?format=json`}>Export Spellbook JSON</a> ·
-				<a href={`/mtg/decks/${selectedDeck.id}/export?format=csv`}>Export CSV</a>
-				· <a href={`/mtg/decks/${selectedDeck.id}/export`}>Export Arena</a> ·
-				<a href={`/mtg/decks/${selectedDeck.id}/export?format=simple`}>Export simple text</a>
-				· <a href={`/mtg/decks/${selectedDeck.id}/print`}>Print deck</a> ·
-				<a href={flowHref('delete')}>Delete deck</a>
-				· <a href={flowHref('search')}>Find cards</a>
+			><nav aria-label={language.t('ui.Deck.tasks')}>
+				<a class="inline-flex items-center gap-2" href={flowHref('create')}
+					><PlusIcon />{language.t('ui.New.deck')}</a
+				>
+				· <a href={flowHref('edit')}>{language.t('ui.Edit.details')}</a> ·
+				<a href={flowHref('import')}>{language.t('ui.Import.decklist')}</a>
+				·
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=json`}
+					>{language.t('ui.Export.Spellbook.JSON')}</a
+				>
+				·
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=csv`}>{language.t('ui.Export.CSV')}</a
+				>
+				· <a href={`/mtg/decks/${selectedDeck.id}/export`}>{language.t('ui.Export.Arena')}</a> ·
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=simple`}
+					>{language.t('ui.Export.simple.text')}</a
+				>
+				· <a href={`/mtg/decks/${selectedDeck.id}/print`}>{language.t('ui.Print.deck')}</a> ·
+				<a href={flowHref('delete')}>{language.t('ui.Delete.deck')}</a>
+				· <a href={flowHref('search')}>{language.t('ui.Find.cards')}</a>
 			</nav></noscript
 		>
 		<div class="deck-summary">
 			<span class="deck-size"
-				><i class="ms ms-deck" aria-hidden="true"></i>{total.toLocaleString()} cards</span
+				><i class="ms ms-deck" aria-hidden="true"></i>{total.toLocaleString(language.locale)}
+				{language.t('ui.cards')}</span
 			>
 			<Button
 				variant={missingOnly ? 'secondary' : 'ghost'}
 				aria-pressed={missingOnly}
-				onclick={() => (missingOnly = !missingOnly)}>{missing} missing</Button
+				onclick={() => (missingOnly = !missingOnly)}>{missing} {language.t('ui.missing')}</Button
 			>
 			<a href="#format-checks"
 				>{savedDecks.legalityError
-					? 'Format checks unavailable'
-					: `${savedDecks.warnings.length} format warnings`}</a
+					? language.t('ui.Format.checks.unavailable')
+					: language.t('message.p0.format.warnings', { p0: String(savedDecks.warnings.length) })}</a
 			>
 			<span class="save-status" role="status">{saveStatus}</span>
 			<Button
@@ -1130,13 +1186,13 @@
 					event.preventDefault();
 					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
 					setSearchOpen(true);
-				}}><PlusIcon />Add cards</Button
+				}}><PlusIcon />{language.t('ui.Add.cards')}</Button
 			>
 		</div>
 		{#if removed && removed.deckId === selectedDeck.id}
 			<form method="POST" action={action('addCard')} use:enhance={save} class="undo-row">
 				<input type="hidden" name="requestId" value={data.requestId} />
-				<span>Removed {removed.name}.</span>
+				<span>{language.t('ui.Removed')} {removed.name}.</span>
 				<input type="hidden" name="deckId" value={selectedDeck.id} />
 				<input type="hidden" name="catalogCardId" value={removed.catalogCardId} />
 				<input type="hidden" name="quantity" value={removed.quantity} />
@@ -1145,42 +1201,46 @@
 					name="undo"
 					value="1"
 				/>
-				<Button type="submit" variant="ghost" disabled={busy || deletedTarget}>Undo</Button>
+				<Button type="submit" variant="ghost" disabled={busy || deletedTarget}
+					>{language.t('ui.Undo')}</Button
+				>
 			</form>
 		{/if}
 		<div class="workspace">
-			<section class="deck-list" aria-label="Deck cards" aria-busy={busy}>
+			<section class="deck-list" aria-label={language.t('ui.Deck.cards')} aria-busy={busy}>
 				<div class="list-controls">
-					<div class="view-controls" aria-label="Deck view">
+					<div class="view-controls" aria-label={language.t('ui.Deck.view')}>
 						<Button
 							variant={displayedView === 'list' ? 'secondary' : 'ghost'}
 							aria-pressed={displayedView === 'list'}
-							onclick={() => (view = 'list')}>List</Button
+							onclick={() => (view = 'list')}>{language.t('ui.List')}</Button
 						>
 						<Button
 							variant={displayedView === 'stacks' ? 'secondary' : 'ghost'}
 							aria-pressed={displayedView === 'stacks'}
 							disabled={!mounted}
-							onclick={() => (view = 'stacks')}>Stacks</Button
+							onclick={() => (view = 'stacks')}>{language.t('ui.Stacks')}</Button
 						>
 					</div>
 					<input
 						class="input"
 						type="search"
-						aria-label="Filter deck cards"
-						placeholder="Find in this deck"
+						aria-label={language.t('ui.Filter.deck.cards')}
+						placeholder={language.t('ui.Find.in.this.deck')}
 						bind:value={listQuery}
 					/><Select
-						label="Sort deck cards"
+						label={language.t('ui.Sort.deck.cards')}
 						bind:value={sortBy}
 						options={[
-							{ value: 'name', label: 'Name' },
-							{ value: 'quantity', label: 'Quantity' }
+							{ value: 'name', label: language.t('ui.Name') },
+							{ value: 'quantity', label: language.t('ui.Quantity') }
 						]}
 					/>
 				</div>
 				{#if deckCards.length === 0}<div class="empty-state">
-						<p>Search the catalog to add a card, or import an existing decklist.</p>
+						<p>
+							{language.t('ui.Search.the.catalog.to.add.a.card.or.import.an.existing.decklist')}
+						</p>
 					</div>{/if}
 				{#each sections as section (section.value)}
 					<section aria-label={section.label} class="deck-section">
@@ -1206,7 +1266,7 @@
 				<DeckTokens tokens={savedDecks.relatedTokens} entries={deckCards} />
 
 				{#if !visibleCards.length && deckCards.length}<p class="empty-state">
-						No deck cards match this filter.
+						{language.t('ui.No.deck.cards.match.this.filter')}
 					</p>{/if}
 				<details
 					id="format-checks"
@@ -1214,21 +1274,25 @@
 					open={savedDecks.warnings.length > 0 || !!savedDecks.legalityError}
 				>
 					<summary
-						>Format checks {savedDecks.warnings.length
-							? `(${savedDecks.warnings.length})`
-							: ''}</summary
+						>{language.t('ui.Format.checks')}
+						{savedDecks.warnings.length ? `(${savedDecks.warnings.length})` : ''}</summary
 					>
-					<p class="muted">Advisory checks only. Review current format rules before an event.</p>
+					<p class="muted">
+						{language.t('ui.Advisory.checks.only.Review.current.format.rules.before.an.event')}
+					</p>
 					{#if savedDecks.legalityError}<p class="warning">
 							{savedDecks.legalityError}
 						</p>{:else if savedDecks.warnings.length}<ul>
 							{#each savedDecks.warnings as warning}<li>{warning.message}</li>{/each}
-						</ul>{:else}<p>No warnings from the available checks.</p>{/if}
+						</ul>{:else}<p>{language.t('ui.No.warnings.from.the.available.checks')}</p>{/if}
 				</details>
 			</section>
-			<aside class="deck-sidebar" aria-label="Deck tools and analysis">
-				{#if data.flow !== 'search'}<section class="catalog desktop-search" aria-label="Find cards">
-						<h2 class="catalog-title">Add cards</h2>
+			<aside class="deck-sidebar" aria-label={language.t('ui.Deck.tools.and.analysis')}>
+				{#if data.flow !== 'search'}<section
+						class="catalog desktop-search"
+						aria-label={language.t('ui.Find.cards')}
+					>
+						<h2 class="catalog-title">{language.t('ui.Add.cards')}</h2>
 						{@render discovery()}
 					</section>{/if}
 				<DeckStatistics cards={deckCards} documents={savedDecks.deckDocuments} />
@@ -1259,8 +1323,8 @@
 	/>{/snippet}
 
 <DeckDialog
-	title="Find cards"
-	description="Search the catalog for this deck."
+	title={language.t('ui.Find.cards')}
+	description={language.t('ui.Search.the.catalog.for.this.deck')}
 	native={data.flow === 'search'}
 	cancelHref={flowHref()}
 	pending={busy}
@@ -1275,18 +1339,27 @@
 			{@const owned = inspectorOwned.filter((card) => card.canonicalCardId === printing.oracle_id)}
 			<div class="inspector-form">
 				<p class="muted">
-					{#if ownershipLoading}Loading owned quantities…{:else if ownershipError}{ownershipError}{:else}
+					{#if ownershipLoading}{language.t(
+							'ui.Loading.owned.quantities'
+						)}{:else if ownershipError}{ownershipError}{:else}
 						{owned
 							.filter((card) => card.catalogCardId === printing.id)
-							.reduce((sum, card) => sum + card.quantity, 0)} exact · {owned
+							.reduce((sum, card) => sum + card.quantity, 0)}
+						{language.t('ui.exact')}
+						{owned
 							.filter((card) => card.catalogCardId !== printing.id)
-							.reduce((sum, card) => sum + card.quantity, 0)} other printings owned{/if}
+							.reduce((sum, card) => sum + card.quantity, 0)}
+						{language.t('ui.other.printings.owned')}{/if}
 				</p>
 				{#if inspectorGone}<p role="alert">
-						This saved Deck entry was removed. Your draft is kept, but cannot be submitted.
+						{language.t(
+							'ui.This.saved.Deck.entry.was.removed.Your.draft.is.kept.but.cannot.be.submitted'
+						)}
 					</p>{/if}
 				{#if inspectedEntry}<p class="muted">
-						This deck: {availability[inspectedEntry.id]?.missing ?? 0} missing. Inventory is not reserved.
+						{language.t('sentence.This.deck.p0.missing.Inventory.is.not.reserved', {
+							p0: String(availability[inspectedEntry.id]?.missing ?? 0)
+						})}
 					</p>{/if}
 				<form
 					method="POST"
@@ -1301,7 +1374,7 @@
 						name="entryId"
 						value={inspectedEntryId ?? ''}
 					/><input type="hidden" name="catalogCardId" value={printing.id} />
-					<label class="label" for="inspect-quantity">Quantity</label><input
+					<label class="label" for="inspect-quantity">{language.t('ui.Quantity')}</label><input
 						class="input"
 						id="inspect-quantity"
 						name="quantity"
@@ -1311,10 +1384,10 @@
 						required
 						bind:value={inspectorQuantity}
 					/>
-					<label class="label" for="inspect-role">Section</label><Select
+					<label class="label" for="inspect-role">{language.t('ui.Section')}</label><Select
 						id="inspect-role"
 						name="role"
-						label="Section"
+						label={language.t('ui.Section')}
 						bind:value={inspectorRole}
 						options={roles}
 					/>
@@ -1324,8 +1397,8 @@
 					</p>
 					<Button type="submit" variant="default" disabled={busy || deletedTarget || inspectorGone}
 						>{#if !inspectedEntryId}<PlusIcon />{/if}{inspectedEntryId
-							? 'Save card'
-							: 'Add to deck'}</Button
+							? language.t('ui.Save.card')
+							: language.t('ui.Add.to.deck')}</Button
 					>
 				</form>
 				{#if inspectedEntry}<form method="POST" action={action('removeCard')} use:enhance={save}>
@@ -1333,7 +1406,7 @@
 						<input type="hidden" name="entryId" value={inspectedEntry.id} /><Button
 							type="submit"
 							variant="destructive"
-							disabled={busy || deletedTarget}>Remove card</Button
+							disabled={busy || deletedTarget}>{language.t('ui.Remove.card')}</Button
 						>
 					</form>
 				{/if}

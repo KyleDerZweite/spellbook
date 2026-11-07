@@ -1,3 +1,4 @@
+import type { Locale } from '#lib/i18n/locale.ts';
 import type { InventoryValueHistory } from '@spellbook/contracts/inventory-value.ts';
 import { hasPlottableValue } from './history-chart.ts';
 import { formatValueEUR } from './money.ts';
@@ -34,10 +35,10 @@ export function metricTrend(history: InventoryValueHistory | null, key: MetricKe
 		to
 	};
 }
-export function metricChange(value: bigint, currency = false) {
+export function metricChange(value: bigint, currency = false, locale: Locale = 'en') {
 	const absolute = value < 0n ? -value : value;
 	const amount = currency
-		? formatValueEUR(`${absolute / 100n}.${(absolute % 100n).toString().padStart(2, '0')}`)
-		: absolute.toLocaleString();
+		? formatValueEUR(`${absolute / 100n}.${(absolute % 100n).toString().padStart(2, '0')}`, locale)
+		: absolute.toLocaleString(locale);
 	return `${value > 0n ? '+' : value < 0n ? '−' : ''}${amount}`;
 }

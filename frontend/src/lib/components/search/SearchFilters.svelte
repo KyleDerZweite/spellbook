@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { LANGUAGE_OPTIONS } from '#lib/search/languages.ts';
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
+	import { translate, type MessageKey } from '#lib/i18n/messages.ts';
+	const colorLabel = (id: string) => translate(language.locale, `color.${id}` as MessageKey);
+	import { printingLanguageOptions } from '#lib/search/languages.ts';
 	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { Collapsible } from 'bits-ui';
 	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
@@ -28,7 +32,9 @@
 {#snippet groupLabel(label: string, open: boolean, selected: number)}
 	<span class="flex min-w-0 items-center gap-2">
 		{label}
-		{#if selected}<span class="filter-count" aria-label={`${selected} selected`}>{selected}</span
+		{#if selected}<span
+				class="filter-count"
+				aria-label={language.t('filter.selected', { count: selected })}>{selected}</span
 			>{/if}
 	</span>
 	<svg
@@ -44,29 +50,33 @@
 	>
 {/snippet}
 
-<aside class="search-filters {className}" aria-label="Search filters">
+<aside class="search-filters {className}" aria-label={language.t('ui.Search.filters')}>
 	<div class="filter-reset">
 		<button
 			type="button"
 			class="filter-clear"
 			disabled={!filters.hasFilters}
-			onclick={() => filters.clear()}>Clear filters</button
+			onclick={() => filters.clear()}>{language.t('ui.Clear.filters')}</button
 		>
 	</div>
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger class="filter-trigger">
-			{@render groupLabel('Colors', colorsOpen, filters.selectedColors.size)}
+			{@render groupLabel(language.t('ui.Colors'), colorsOpen, filters.selectedColors.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<p id={descriptionId} class="sr-only">
 				{filters.colorCycleLocked
-					? 'Click to cycle OR, AND, NOT. Colorless also cycles off. Clear filters to reset colors.'
-					: 'Click to cycle OR, AND, NOT, then off. A second color filter sets remaining WUBRG colors to NOT. Colorless stays unchanged.'}
+					? language.t(
+							'ui.Click.to.cycle.OR.AND.NOT.Colorless.also.cycles.off.Clear.filters.to.reset.colors'
+						)
+					: language.t(
+							'ui.Click.to.cycle.OR.AND.NOT.then.off.A.second.color.filter.sets.remaining.WUBRG.colors.to.NOT.Colorless.stays.unchanged'
+						)}
 			</p>
 			<div
 				class="filter-colors"
 				role="group"
-				aria-label="Card colors"
+				aria-label={language.t('ui.Card.colors')}
 				aria-describedby={descriptionId}
 			>
 				{#each MANA_COLORS as color}
@@ -82,8 +92,22 @@
 						onclick={() => filters.toggleColor(color.id)}
 						class="filter-color"
 						data-logic={logic}
-						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : logic === 'AND' ? 'NOT' : color.id !== 'C' && filters.colorCycleLocked ? 'OR' : 'off'}`}
-						title={`${color.label}: ${logic}`}
+						aria-label={language.t('message.p0.p1.Next.click.p2', {
+							p0: String(colorLabel(color.label)),
+							p1: String(logic),
+							p2: String(
+								logic === 'off'
+									? 'OR'
+									: logic === 'OR'
+										? 'AND'
+										: logic === 'AND'
+											? 'NOT'
+											: color.id !== 'C' && filters.colorCycleLocked
+												? 'OR'
+												: 'off'
+							)
+						})}
+						title={`${colorLabel(color.label)}: ${logic}`}
 						aria-pressed={logic !== 'off'}
 					>
 						<i class="ms ms-cost {color.msClass}" aria-hidden="true"></i>
@@ -91,8 +115,8 @@
 				{/each}
 			</div>
 			<fieldset class="color-mode">
-				<legend class="sr-only">Match colors by</legend>
-				{#each [{ value: 'color', label: 'Color' }, { value: 'identity', label: 'Identity' }] as mode}
+				<legend class="sr-only">{language.t('ui.Match.colors.by')}</legend>
+				{#each [{ value: 'color', label: language.t('ui.Color') }, { value: 'identity', label: language.t('ui.Identity') }] as mode}
 					<label
 						><input
 							type="radio"
@@ -107,7 +131,7 @@
 	</Collapsible.Root>
 	<Collapsible.Root bind:open={rarityOpen}>
 		<Collapsible.Trigger class="filter-trigger">
-			{@render groupLabel('Rarity', rarityOpen, filters.selectedRarities.size)}
+			{@render groupLabel(language.t('ui.Rarity'), rarityOpen, filters.selectedRarities.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="filter-options">
@@ -119,8 +143,12 @@
 						aria-pressed={filters.selectedRarities.has(rarity.id)}
 					>
 						<i class="ms ms-rarity" style:color={rarity.color} aria-hidden="true"></i>
-						<span class="option-label">{rarity.label}</span>
-						<span class="facet-count">{facets?.rarity[rarity.id]?.toLocaleString() ?? ''}</span>
+						<span class="option-label"
+							>{translate(language.locale, `rarity.${rarity.id}` as MessageKey)}</span
+						>
+						<span class="facet-count"
+							>{facets?.rarity[rarity.id]?.toLocaleString(language.locale) ?? ''}</span
+						>
 						<span class="selection-mark" aria-hidden="true"></span>
 					</button>
 				{/each}
@@ -129,7 +157,7 @@
 	</Collapsible.Root>
 	<Collapsible.Root bind:open={typesOpen}>
 		<Collapsible.Trigger class="filter-trigger">
-			{@render groupLabel('Card type', typesOpen, filters.selectedTypes.size)}
+			{@render groupLabel(language.t('ui.Card.type'), typesOpen, filters.selectedTypes.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="filter-options filter-option-grid">
@@ -144,7 +172,9 @@
 						<span class="selection-mark" aria-hidden="true"></span>{#if symbol}<i
 								class={`type-symbol ms ms-${symbol}`}
 								aria-hidden="true"
-							></i>{/if}<span class="option-label">{type.label}</span>
+							></i>{/if}<span class="option-label"
+							>{translate(language.locale, `type.${type.id}` as MessageKey)}</span
+						>
 					</button>
 				{/each}
 			</div>
@@ -152,7 +182,7 @@
 	</Collapsible.Root>
 	<Collapsible.Root bind:open={legalityOpen}>
 		<Collapsible.Trigger class="filter-trigger">
-			{@render groupLabel('Legality', legalityOpen, filters.selectedLegalities.size)}
+			{@render groupLabel(language.t('ui.Legality'), legalityOpen, filters.selectedLegalities.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="filter-options filter-option-grid">
@@ -174,29 +204,29 @@
 	<Collapsible.Root bind:open={languagesOpen}>
 		<Collapsible.Trigger class="filter-trigger">
 			{@render groupLabel(
-				filters.selectedLanguages.size ? 'Language' : 'Language · All',
+				filters.selectedLanguages.size ? language.t('ui.Language') : language.t('ui.Language.All'),
 				languagesOpen,
 				filters.selectedLanguages.size
 			)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
-			<div class="filter-options" role="group" aria-label="Printing languages">
+			<div class="filter-options" role="group" aria-label={language.t('ui.Printing.languages')}>
 				<button
 					type="button"
 					class="filter-option"
 					aria-pressed={filters.selectedLanguages.size === 0}
-					onclick={() => filters.setLanguages([])}>All languages</button
+					onclick={() => filters.setLanguages([])}>{language.t('ui.All.languages')}</button
 				>
-				{#each LANGUAGE_OPTIONS as language}
+				{#each printingLanguageOptions(language.locale) as printingLanguage}
 					<button
 						type="button"
 						class="filter-option"
-						aria-pressed={filters.selectedLanguages.has(language.id)}
-						onclick={() => filters.toggleLanguage(language.id)}
+						aria-pressed={filters.selectedLanguages.has(printingLanguage.id)}
+						onclick={() => filters.toggleLanguage(printingLanguage.id)}
 					>
 						<span class="selection-mark" aria-hidden="true"></span>
-						<span class="language-flag" aria-hidden="true">{language.flag}</span>
-						<span class="option-label">{language.label}</span>
+						<span class="language-flag" aria-hidden="true">{printingLanguage.flag}</span>
+						<span class="option-label">{printingLanguage.label}</span>
 					</button>
 				{/each}
 			</div>

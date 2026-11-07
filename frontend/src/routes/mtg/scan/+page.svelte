@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { PageProps } from './$types';
 	import ScanWorkspace from './ScanWorkspace.svelte';
 	let { data }: PageProps = $props();
 </script>
 
 <svelte:head>
-	<title>Scan | Spellbook</title>
+	<title>{language.t('ui.Scan.Spellbook')}</title>
 	<meta name="robots" content="noindex" />
 </svelte:head>
 

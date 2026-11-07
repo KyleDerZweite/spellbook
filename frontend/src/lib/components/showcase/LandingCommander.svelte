@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { showcaseAsset } from '#lib/showcase/assets.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import { commanderDeck, commanderStack } from '#lib/showcase/commander-deck.ts';
@@ -6,20 +8,24 @@
 	let selectedCard = $state(1);
 	let deckElement: HTMLElement;
 	const currentCard = $derived(commanderStack[selectedCard]);
-	const colorNames: Record<string, string> = {
-		W: 'White',
-		U: 'Blue',
-		B: 'Black',
-		R: 'Red',
-		G: 'Green'
-	};
+	const colorNames: Record<string, string> = $derived({
+		W: language.t('ui.White'),
+		U: language.t('ui.Blue'),
+		B: language.t('ui.Black'),
+		R: language.t('ui.Red'),
+		G: language.t('ui.Green')
+	});
 
 	function selectCard(index: number) {
 		selectedCard = (index + commanderStack.length) % commanderStack.length;
 	}
 
 	function moveFocus(event: KeyboardEvent, index: number) {
-		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))
+		if (
+			!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', language.t('ui.Home'), 'End'].includes(
+				event.key
+			)
+		)
 			return;
 		event.preventDefault();
 		selectCard(
@@ -33,7 +39,11 @@
 	}
 </script>
 
-<article class="commander-deck" aria-label="Commander deck preview" bind:this={deckElement}>
+<article
+	class="commander-deck"
+	aria-label={language.t('ui.Commander.deck.preview')}
+	bind:this={deckElement}
+>
 	<a
 		class="deck-title"
 		href={commanderDeck.sourceURL}
@@ -47,7 +57,7 @@
 	>
 		{commanderDeck.name}
 	</a>
-	<div class="deck-stage" role="group" aria-label="Preview deck cards">
+	<div class="deck-stage" role="group" aria-label={language.t('ui.Preview.deck.cards')}>
 		<div class="ground-shadow" aria-hidden="true"></div>
 		<div class="deck-box">
 			<div class="box-back material" aria-hidden="true"></div>
@@ -93,7 +103,7 @@
 			variant="ghost"
 			size="icon"
 			class="browse-card"
-			aria-label="Preview previous card"
+			aria-label={language.t('ui.Preview.previous.card')}
 			onclick={() => selectCard(selectedCard - 1)}
 		>
 			<svg
@@ -114,7 +124,7 @@
 			variant="ghost"
 			size="icon"
 			class="browse-card"
-			aria-label="Preview next card"
+			aria-label={language.t('ui.Preview.next.card')}
 			onclick={() => selectCard(selectedCard + 1)}
 		>
 			<svg
@@ -131,14 +141,15 @@
 	<div class="deck-details">
 		<div class="deck-meta">
 			<span
-				><span class="commander-role">{commanderDeck.format}</span> · {commanderDeck.cardCount} cards</span
+				><span class="commander-role">{commanderDeck.format}</span> · {commanderDeck.cardCount}
+				{language.t('ui.cards')}</span
 			>
 			<span
 				class="colors"
 				role="img"
 				aria-label="{commanderDeck.colorIdentity
 					.map((color) => colorNames[color])
-					.join(' and ')} color identity"
+					.join(' and ')} {language.t('ui.color.identity')}"
 			>
 				{#each commanderDeck.colorIdentity as color (color)}
 					<i class="ms ms-cost ms-{color.toLowerCase()}" aria-hidden="true"></i>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { enhance } from '$app/forms';
 	import AccountLayout from '#lib/components/auth/AccountLayout.svelte';
 	import PasswordInput from '#lib/components/auth/PasswordInput.svelte';
@@ -11,10 +13,13 @@
 </script>
 
 <svelte:head
-	><title>Create an account | Spellbook</title><meta name="robots" content="noindex" /></svelte:head
+	><title>{language.t('ui.Create.an.account.Spellbook')}</title><meta
+		name="robots"
+		content="noindex"
+	/></svelte:head
 >
 
-<AccountLayout title="Create an account">
+<AccountLayout title={language.t('ui.Create.an.account')}>
 	<form
 		method="POST"
 		class="space-y-5"
@@ -39,7 +44,7 @@
 				{form.message}
 			</p>{/if}
 		<div>
-			<label for="username" class="label">Username</label>
+			<label for="username" class="label">{language.t('ui.Username')}</label>
 			<input
 				id="username"
 				name="username"
@@ -52,11 +57,13 @@
 				class="input w-full"
 			/>
 			<p id="username-help" class="mt-2 text-xs text-[var(--color-text-secondary)]">
-				3 to 32 letters, numbers, underscores or hyphens. Start with a letter or number.
+				{language.t(
+					'ui.3.to.32.letters.numbers.underscores.or.hyphens.Start.with.a.letter.or.number'
+				)}
 			</p>
 		</div>
 		<div>
-			<label for="password" class="label">Password</label>
+			<label for="password" class="label">{language.t('ui.Password')}</label>
 			<PasswordInput
 				id="password"
 				name="password"
@@ -67,17 +74,18 @@
 				aria-describedby={form?.message ? 'password-help auth-error' : 'password-help'}
 			/>
 			<p id="password-help" class="mt-2 text-xs text-[var(--color-text-secondary)]">
-				Use 12 to 128 characters.
+				{language.t('ui.Use.12.to.128.characters')}
 			</p>
 		</div>
 		<ArtworkPicker bind:selected={selectedArtwork} disabled={pending} compact />
 		<button type="submit" disabled={pending} class="btn btn-primary w-full disabled:opacity-50"
-			>{pending ? 'Please wait...' : 'Create an account'}</button
+			>{pending ? language.t('ui.Please.wait') : language.t('ui.Create.an.account')}</button
 		>
 	</form>
 	<p class="auth-switch">
-		Already have an account? <a href={`/auth/login?returnTo=${encodeURIComponent(data.returnTo)}`}
-			>Sign in</a
+		{language.t('ui.Already.have.an.account')}
+		<a href={`/auth/login?returnTo=${encodeURIComponent(data.returnTo)}`}
+			>{language.t('ui.Sign.in')}</a
 		>
 	</p>
 </AccountLayout>

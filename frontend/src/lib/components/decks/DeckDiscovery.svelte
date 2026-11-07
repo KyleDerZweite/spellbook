@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -57,28 +59,31 @@
 		type="search"
 		name="q"
 		bind:value={query}
-		aria-label="Search cards"
-		placeholder="Search cards"
+		aria-label={language.t('ui.Search.cards')}
+		placeholder={language.t('ui.Search.cards')}
 		minlength="2"
 		maxlength="200"
 		required
 	/>
-	<Button type="submit" variant="default" disabled={searching}>Search</Button>
+	<Button type="submit" variant="default" disabled={searching}>{language.t('ui.Search')}</Button>
 </form>
 <div class="catalog-options">
-	<label><input type="checkbox" bind:checked={ownedOnly} /> Owned only</label>
-	<span>{searching ? 'Searching…' : `${cards.length} shown`}</span>
+	<label><input type="checkbox" bind:checked={ownedOnly} /> {language.t('ui.Owned.only')}</label>
+	<span
+		>{searching ? 'Searching…' : language.t('message.p0.shown', { p0: String(cards.length) })}</span
+	>
 </div>
 {#if !native}<div class="add-options">
 		<div class="add-section">
-			<span class="label">Add to</span><Select
-				label="Add to section"
+			<span class="label">{language.t('ui.Add.to')}</span><Select
+				label={language.t('ui.Add.to.section')}
 				bind:value={addRole}
 				options={roles}
 			/>
 		</div>
 		<label
-			>Quantity <input
+			>{language.t('ui.Quantity')}
+			<input
 				class="input quantity"
 				type="number"
 				min="1"
@@ -94,14 +99,18 @@
 			<button
 				class="catalog-art"
 				onclick={() => onInspect(card)}
-				aria-label={`Inspect ${card.name}`}
+				aria-label={language.t('message.Inspect.p0', { p0: String(card.name) })}
 				><img src={card.image_uri_small || card.image_uri} alt={card.name} loading="lazy" /></button
 			>
 			<div class="catalog-card-info">
 				<button class="card-name" onclick={() => onInspect(card)}>{card.name}</button>
 				<ManaCost cost={card.mana_cost} />
 				<p class="muted">
-					{card.set_code.toUpperCase()} #{card.collector_number} · {owned.get(card.oracle_id) ?? 0} owned
+					{language.t('sentence.p0.p1.p2.owned', {
+						p0: String(card.set_code.toUpperCase()),
+						p1: String(card.collector_number),
+						p2: String(owned.get(card.oracle_id) ?? 0)
+					})}
 				</p>
 				<form method="POST" action={addAction} use:enhance={submit}>
 					<input type="hidden" name="requestId" value={requestId} />
@@ -111,13 +120,13 @@
 						value={card.id}
 					/>
 					{#if native}<label
-							>Section<select name="role" class="input"
+							>{language.t('ui.Section')}<select name="role" class="input"
 								>{#each roles as role}<option value={role.value} selected={role.value === addRole}
 										>{role.label}</option
 									>{/each}</select
 							></label
 						><label
-							>Quantity<input
+							>{language.t('ui.Quantity')}<input
 								name="quantity"
 								type="number"
 								class="input"
@@ -137,7 +146,8 @@
 							!Number.isInteger(addQuantity) ||
 							addQuantity < 1 ||
 							addQuantity > 10000}
-						aria-label={`Add ${card.name}`}><PlusIcon />Add</Button
+						aria-label={language.t('message.Add.p0', { p0: String(card.name) })}
+						><PlusIcon />{language.t('ui.Add')}</Button
 					>
 					<Button
 						variant="ghost"
@@ -145,7 +155,7 @@
 						onclick={(event) => {
 							event.preventDefault();
 							onInspect(card);
-						}}>Printings</Button
+						}}>{language.t('ui.Printings')}</Button
 					>
 				</form>
 			</div>
@@ -154,8 +164,8 @@
 			{searching
 				? 'Searching…'
 				: query
-					? 'No cards found. Try another search or turn off the owned filter.'
-					: 'Find a card to add to your deck.'}
+					? language.t('ui.No.cards.found.Try.another.search.or.turn.off.the.owned.filter')
+					: language.t('ui.Find.a.card.to.add.to.your.deck')}
 		</p>{/each}
 </div>
 

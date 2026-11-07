@@ -7,6 +7,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 	const activeGame = isAvailableGame(cookieGame) ? cookieGame : DEFAULT_GAME;
 
 	return {
+		locale: locals.locale,
 		user: locals.user,
 		demoMode,
 		activeGame

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import '../app.css';
+	import { provideLanguage } from '#lib/i18n/context.ts';
+	import type { Locale } from '#lib/i18n/locale.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { afterNavigate } from '$app/navigation';
 	import { confirmAuthenticatedNavigation } from '#lib/saved-state/authentication.ts';
@@ -17,6 +19,7 @@
 
 	interface Props {
 		data: {
+			locale: Locale;
 			user: AuthUser | null;
 			activeGame: Game;
 		};
@@ -24,6 +27,10 @@
 	}
 
 	let { data, children }: Props = $props();
+	const language = provideLanguage(() => data.locale);
+	$effect(() => {
+		document.documentElement.lang = data.locale;
+	});
 	const search = provideSearchSession();
 	if (page.url.pathname === '/mtg/search') search.hydrate(parseSearchUrl(page.url));
 
@@ -81,7 +88,9 @@
 
 <Shell>
 	{#if workspaceSavedState.getState() === 'expired' && data.user}
-		<p role="alert">Your session has ended. <a href="/auth/login">Sign in again</a>.</p>
+		<p role="alert">
+			{language.t('session.ended')} <a href="/auth/login">{language.t('session.signIn')}</a>.
+		</p>
 	{:else}
 		{@render children()}
 	{/if}

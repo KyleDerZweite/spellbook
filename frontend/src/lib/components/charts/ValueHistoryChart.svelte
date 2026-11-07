@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { scaleLinear, scaleUtc } from 'd3-scale';
 	import { area, line } from 'd3-shape';
 	import type { InventoryValueHistoryPoint } from '@spellbook/contracts/inventory-value.ts';
@@ -71,12 +73,17 @@
 	const tickLabel = (tick: bigint) =>
 		relative
 			? `${Math.round(fraction(tick) * 100)}%`
-			: formatValueEUR(`${tick / 100n}.${(tick % 100n).toString().padStart(2, '0')}`);
-	const dateLabel = new Intl.DateTimeFormat('en-GB', {
-		day: 'numeric',
-		month: 'short',
-		timeZone: 'UTC'
-	});
+			: formatValueEUR(
+					`${tick / 100n}.${(tick % 100n).toString().padStart(2, '0')}`,
+					language.locale
+				);
+	const dateLabel = $derived(
+		new Intl.DateTimeFormat(language.locale, {
+			day: 'numeric',
+			month: 'short',
+			timeZone: 'UTC'
+		})
+	);
 </script>
 
 <div class="history-chart" bind:clientWidth={width}>
@@ -87,7 +94,7 @@
 			aria-hidden="true"
 		>
 			<span>{dateLabel.format(new Date(`${current.day}T00:00:00Z`))}</span>
-			<strong>{formatValueEUR(current.estimate.coveredValue)}</strong>
+			<strong>{formatValueEUR(current.estimate.coveredValue, language.locale)}</strong>
 		</div>
 	{/if}
 	<svg
@@ -96,7 +103,9 @@
 		onpointermove={inspect}
 		onpointerdown={inspect}
 		role="img"
-		aria-label="Covered value history with an adaptive value axis. Exact values and coverage are available below."
+		aria-label={language.t(
+			'ui.Covered.value.history.with.an.adaptive.value.axis.Exact.values.and.coverage.are.available.below'
+		)}
 	>
 		{#each chart.axis.ticks as tick}
 			<line x1="62" x2={right} y1={y(fraction(tick))} y2={y(fraction(tick))} class="grid-line" />
@@ -118,7 +127,8 @@
 				>
 					<title
 						>{observation.point.day}: {formatValueEUR(
-							observation.point.estimate.coveredValue
+							observation.point.estimate.coveredValue,
+							language.locale
 						)}</title
 					>
 				</circle>
@@ -143,11 +153,13 @@
 		>
 	</svg>
 	{#if relative}<p class="history-inspect">
-			Axis shows position within the captured value range. Inspect a day for its exact amount.
+			{language.t(
+				'ui.Axis.shows.position.within.the.captured.value.range.Inspect.a.day.for.its.exact.amount'
+			)}
 		</p>{/if}
 	{#if current}
 		<label class="history-inspect"
-			>Choose day
+			>{language.t('ui.Choose.day')}
 			<input
 				type="range"
 				min="0"
@@ -155,17 +167,18 @@
 				step="1"
 				value={selectedIndex}
 				oninput={(event) => (selected = Number(event.currentTarget.value))}
-				aria-label="History observation"
+				aria-label={language.t('ui.History.observation')}
 			/>
 		</label>
 		<p class="history-readout" aria-live="polite">
 			<time datetime={current.observedAt}>{current.day}</time><strong
-				>{formatValueEUR(current.estimate.coveredValue)}</strong
+				>{formatValueEUR(current.estimate.coveredValue, language.locale)}</strong
 			><span
-				>{current.estimate.coveredQuantity} / {current.estimate.totalQuantity} copies covered · {current
-					.estimate.complete
-					? 'complete'
-					: 'partial'}</span
+				>{language.t('sentence.p0.p1.copies.covered.p2', {
+					p0: String(current.estimate.coveredQuantity),
+					p1: String(current.estimate.totalQuantity),
+					p2: String(current.estimate.complete ? 'complete' : 'partial')
+				})}</span
 			>
 		</p>
 	{/if}

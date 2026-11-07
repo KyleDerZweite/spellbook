@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import { PROFILE_KPIS, profileKpiValue, type ProfileKpiKey } from '#lib/profile/card.ts';
 	import type { ProfileTotals } from '#lib/profile/types.ts';
@@ -16,7 +18,7 @@
 	let inserted = false;
 	let items = $derived(
 		PROFILE_KPIS.map((kpi) => ({
-			label: `${kpi.label} · ${profileKpiValue(kpi.key, totals)}`,
+			label: `${language.t(`profileKpi.${kpi.key}`)} · ${profileKpiValue(kpi.key, totals, language.locale)}`,
 			disabled,
 			onSelect: () => {
 				inserted = true;
@@ -28,7 +30,7 @@
 
 <fieldset {disabled} class="kpi-insert">
 	<ActionMenu
-		label={`Insert KPI into ${fieldLabel}`}
+		label={language.t('message.Insert.KPI.into.p0', { p0: String(fieldLabel) })}
 		{items}
 		class="!min-h-8 max-sm:!min-h-11 !px-2 !py-1 !text-xs"
 		onCloseAutoFocus={(event) => {
@@ -36,7 +38,7 @@
 			inserted = false;
 		}}
 	>
-		{#snippet trigger()}Insert KPI{/snippet}
+		{#snippet trigger()}{language.t('ui.Insert.KPI')}{/snippet}
 	</ActionMenu>
 </fieldset>
 

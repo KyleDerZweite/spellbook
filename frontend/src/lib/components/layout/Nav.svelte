@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { authState } from '#lib/auth/state.svelte.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { tick } from 'svelte';
@@ -13,6 +15,7 @@
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import AuthEntry from './AuthEntry.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
+	import LanguageSwitcher from './LanguageSwitcher.svelte';
 	import GameSwitcher from './GameSwitcher.svelte';
 
 	const search = getSearchSession();
@@ -26,41 +29,49 @@
 	const NAV_LINKS = $derived([
 		{
 			href: user ? '/mtg/dashboard' : '/',
-			label: user ? 'Dashboard' : 'Home',
+			label: user ? language.t('ui.Dashboard') : language.t('ui.Home'),
 			icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'
 		},
 		{
 			href: '/mtg/search',
-			label: 'Search',
+			label: language.t('ui.Search'),
 			icon: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0'
 		},
-		{ href: '/mtg/inventory', label: 'Inventory', icon: 'M4 4h16v16H4zM4 10h16M10 10v10' },
+		{
+			href: '/mtg/inventory',
+			label: language.t('ui.Inventory'),
+			icon: 'M4 4h16v16H4zM4 10h16M10 10v10'
+		},
 		{
 			href: '/mtg/decks',
-			label: 'Decks',
+			label: language.t('ui.Decks'),
 			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
 		}
 	]);
 
-	const APP_LINKS = [
+	const APP_LINKS = $derived([
 		{ href: '/app', label: 'App', icon: 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h4' },
 		{
 			href: '/mtg/search',
-			label: 'Search',
+			label: language.t('ui.Search'),
 			icon: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0'
 		},
-		{ href: '/mtg/inventory', label: 'Inventory', icon: 'M4 4h16v16H4zM4 10h16M10 10v10' },
+		{
+			href: '/mtg/inventory',
+			label: language.t('ui.Inventory'),
+			icon: 'M4 4h16v16H4zM4 10h16M10 10v10'
+		},
 		{
 			href: '/mtg/decks',
-			label: 'Decks',
+			label: language.t('ui.Decks'),
 			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
 		},
 		{
 			href: '/app/connect',
-			label: 'Connect',
+			label: language.t('ui.Connect'),
 			icon: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M8 8h8v8H8z'
 		}
-	];
+	]);
 
 	let collapsed = $state(false);
 	$effect(() => {
@@ -75,12 +86,12 @@
 	});
 	let mobileMenuOpen = $state(false);
 	let logoutForm: HTMLFormElement | undefined = $state();
-	const userName = $derived(user?.username || 'Account');
-	const accountActions: ComponentProps<typeof ActionMenu>['items'] = [
-		{ label: 'Settings', href: '/settings' },
+	const userName = $derived(user?.username || language.t('ui.Account'));
+	const accountActions: ComponentProps<typeof ActionMenu>['items'] = $derived([
+		{ label: language.t('ui.Settings'), href: '/settings' },
 		{ label: 'App', href: '/app' },
-		{ label: 'Sign out', onSelect: () => logoutForm?.requestSubmit() }
-	];
+		{ label: language.t('ui.Sign.out'), onSelect: () => logoutForm?.requestSubmit() }
+	]);
 
 	function searchClick(event: MouseEvent, mobile = false) {
 		if (!isPrimaryClick(event)) return;
@@ -103,7 +114,7 @@
 <a
 	href="#main-content"
 	class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-[200] focus:rounded focus:bg-gold focus:px-4 focus:py-2 focus:text-text-on-gold"
-	>Skip to content</a
+	>{language.t('ui.Skip.to.content')}</a
 >
 
 {#if pwaState.standalone}
@@ -129,13 +140,18 @@
 	</nav>
 {/if}
 
-<nav class="primary-nav" class:collapsed class:installed={pwaState.standalone} aria-label="Primary">
+<nav
+	class="primary-nav"
+	class:collapsed
+	class:installed={pwaState.standalone}
+	aria-label={language.t('ui.Primary')}
+>
 	<div class="nav-inner">
 		<div class="brand-controls">
 			<a
 				href="/"
 				class="brand-link font-display font-normal tracking-tight text-foreground no-underline"
-				aria-label="Spellbook home"
+				aria-label={language.t('ui.Spellbook.home')}
 			>
 				<img src={asset('logo.webp')} alt="" width="36" height="36" class="shrink-0" />
 				<span class="brand-name">Spellbook</span>
@@ -166,12 +182,13 @@
 		<div class="account-controls">
 			<GameSwitcher />
 			<ThemeToggle />
+			<LanguageSwitcher />
 			{#if user}
 				<form method="POST" action="/auth/logout" bind:this={logoutForm}></form>
 			{/if}
 			<div class="desktop-account">
 				{#if user}
-					<ActionMenu label="Account menu" iconOnly items={accountActions}>
+					<ActionMenu label={language.t('ui.Account.menu')} iconOnly items={accountActions}>
 						{#snippet trigger()}
 							<Avatar id={user.avatarId} size={26} />
 						{/snippet}
@@ -186,7 +203,7 @@
 			<Dialog.Root bind:open={mobileMenuOpen}>
 				<Dialog.Trigger
 					class="btn btn-secondary btn-icon lg:hidden"
-					aria-label="Open navigation menu"
+					aria-label={language.t('ui.Open.navigation.menu')}
 					><svg
 						aria-hidden="true"
 						width="18"
@@ -204,11 +221,13 @@
 					>
 						<div class="flex items-center justify-between p-3">
 							<Dialog.Title class="font-semibold tracking-tight">Spellbook</Dialog.Title>
-							<Dialog.Close class="btn btn-ghost" aria-label="Close navigation menu">✕</Dialog.Close
+							<Dialog.Close
+								class="btn btn-ghost"
+								aria-label={language.t('ui.Close.navigation.menu')}>✕</Dialog.Close
 							>
 						</div>
 						<Dialog.Description class="sr-only"
-							>Navigate your Magic card workspace.</Dialog.Description
+							>{language.t('ui.Navigate.your.Magic.card.workspace')}</Dialog.Description
 						>
 						{#each NAV_LINKS as link}
 							<a

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { Popover } from 'bits-ui';
 	import type { Snippet } from 'svelte';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
@@ -7,8 +9,8 @@
 		open = $bindable(false),
 		active = false,
 		children,
-		label = 'Filters',
-		triggerLabel = 'Filter',
+		label = language.t('ui.Filters'),
+		triggerLabel = language.t('ui.Filter'),
 		onOpenAutoFocus,
 		onCloseAutoFocus
 	}: {

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import {
 		normalizeLazyBrowsePagination,
 		browsePageCount,
@@ -36,8 +38,10 @@
 </script>
 
 {#if native}
-	<nav class="flex flex-wrap items-center gap-4 py-4" aria-label="More results">
-		{#if previous}<a class="btn btn-secondary" href={previous}>Previous 200 results</a>{/if}
-		{#if next}<a class="btn btn-secondary" href={next}>Next 200 results</a>{/if}
+	<nav class="flex flex-wrap items-center gap-4 py-4" aria-label={language.t('ui.More.results')}>
+		{#if previous}<a class="btn btn-secondary" href={previous}
+				>{language.t('ui.Previous.200.results')}</a
+			>{/if}
+		{#if next}<a class="btn btn-secondary" href={next}>{language.t('ui.Next.200.results')}</a>{/if}
 	</nav>
 {/if}

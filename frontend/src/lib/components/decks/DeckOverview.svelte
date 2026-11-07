@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { DeckCard, DeckAvailability } from '@spellbook/contracts/decks.ts';
 	import type { DeckValueEstimates } from '@spellbook/contracts/inventory-value.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -37,10 +39,14 @@
 		)
 	);
 	const segments = $derived([
-		{ label: 'Exact printing', value: totals.exact, color: 'var(--color-success)' },
-		{ label: 'Alternate printing', value: totals.alternate, color: 'var(--color-violet)' },
-		{ label: 'Missing', value: totals.missing, color: 'var(--color-warning)' },
-		{ label: 'Unavailable', value: totals.unknown, color: 'var(--color-text-muted)' }
+		{ label: language.t('ui.Exact.printing'), value: totals.exact, color: 'var(--color-success)' },
+		{
+			label: language.t('ui.Alternate.printing'),
+			value: totals.alternate,
+			color: 'var(--color-violet)'
+		},
+		{ label: language.t('ui.Missing'), value: totals.missing, color: 'var(--color-warning)' },
+		{ label: language.t('ui.Unavailable'), value: totals.unknown, color: 'var(--color-text-muted)' }
 	]);
 	const colors = $derived(
 		['W', 'U', 'B', 'R', 'G'].filter((color) =>
@@ -49,12 +55,12 @@
 	);
 </script>
 
-<section class="deck-overview" aria-label="Deck overview">
-	{#if commanders.length}<div class="commanders" aria-label="Commanders">
+<section class="deck-overview" aria-label={language.t('ui.Deck.overview')}>
+	{#if commanders.length}<div class="commanders" aria-label={language.t('ui.Commanders')}>
 			{#each commanders as card (card.id)}<button
 					class="commander-art"
 					onclick={() => onInspect(documents[card.catalogCardId] ?? storedCardDocument(card), card)}
-					aria-label={`Inspect commander ${card.name}`}
+					aria-label={language.t('message.Inspect.commander.p0', { p0: String(card.name) })}
 				>
 					{#if card.imageUri}<img
 							src={card.imageUri}
@@ -66,34 +72,53 @@
 		</div>{/if}
 	<div class="availability-summary">
 		<div class="availability-heading">
-			<h2>Inventory match</h2>
-			<span class="color-identity" aria-label="Commander color identity"
+			<h2>{language.t('ui.Inventory.match')}</h2>
+			<span class="color-identity" aria-label={language.t('ui.Commander.color.identity')}
 				>{#each colors as color}<i
 						class={`ms ms-${color.toLowerCase()} ms-cost`}
 						role="img"
-						aria-label={`${({ W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' } as Record<string, string>)[color]} identity`}
+						aria-label={language.t('message.p0.identity', {
+							p0: String(
+								(
+									{ W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' } as Record<
+										string,
+										string
+									>
+								)[color]
+							)
+						})}
 					></i>{/each}</span
 			>
 		</div>
 		<p class="availability-number">
-			{(totals.exact + totals.alternate).toLocaleString()}<span>
-				/ {total.toLocaleString()} copies</span
+			{(totals.exact + totals.alternate).toLocaleString(language.locale)}<span
+				>{language.t('sentence.p0.copies', {
+					p0: String(total.toLocaleString(language.locale))
+				})}</span
 			>
 		</p>
-		{#if total}<ProportionChart label="Deck Inventory match" kind="bar" items={segments} />{/if}
+		{#if total}<ProportionChart
+				label={language.t('ui.Deck.Inventory.match')}
+				kind="bar"
+				items={segments}
+			/>{/if}
 		<p class="availability-meta">
 			{totals.unknown
-				? `${totals.unknown.toLocaleString()} unavailable`
+				? language.t('message.p0.unavailable', {
+						p0: String(totals.unknown.toLocaleString(language.locale))
+					})
 				: totals.missing
-					? `${totals.missing.toLocaleString()} missing`
+					? language.t('message.p0.missing', {
+							p0: String(totals.missing.toLocaleString(language.locale))
+						})
 					: total
-						? 'All copies available'
-						: 'No cards yet'}{#if totals.alternate}
-				· {totals.alternate.toLocaleString()} alternate{/if}
+						? language.t('ui.All.copies.available')
+						: language.t('ui.No.cards.yet')}{#if totals.alternate}
+				· {totals.alternate.toLocaleString(language.locale)} {language.t('ui.alternate')}{/if}
 		</p>
 	</div>
 	<ValueSummary
-		title="Deck estimate"
+		title={language.t('ui.Deck.estimate')}
 		referenceNote="Selected printings · Nonfoil · EUR"
 		estimate={estimates?.required ?? null}
 		evaluatedAt={estimates?.evaluatedAt}
@@ -101,7 +126,7 @@
 		inline
 	/>
 	<ValueSummary
-		title="Missing cards estimate"
+		title={language.t('ui.Missing.cards.estimate')}
 		referenceNote="Missing quantities · Selected printings · Nonfoil · EUR"
 		estimate={estimates?.missing ?? null}
 		evaluatedAt={estimates?.evaluatedAt}

@@ -1,10 +1,12 @@
+import { translate } from '#lib/i18n/messages.ts';
+import type { Locale } from '#lib/i18n/locale.ts';
 import type {
 	InventoryValueHistoryPoint,
 	ValueEstimate
 } from '@spellbook/contracts/inventory-value.ts';
 
-export function estimateLabel(estimate: ValueEstimate): string {
-	return estimate.complete ? 'Market value estimate' : 'Covered value';
+export function estimateLabel(estimate: ValueEstimate, locale: Locale = 'en'): string {
+	return translate(locale, estimate.complete ? 'valuation.market' : 'ui.Covered.value');
 }
 
 export function hasPlottableValue(estimate: ValueEstimate): boolean {
@@ -77,8 +79,8 @@ export function historyChart(points: InventoryValueHistoryPoint[]) {
 	return { segments, maximum, axis: valueAxis(values) };
 }
 
-export function observationTime(instant: string, timezone: string): string {
-	return new Intl.DateTimeFormat('en-GB', {
+export function observationTime(instant: string, timezone: string, locale: Locale = 'en'): string {
+	return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
 		year: 'numeric',
 		month: 'short',
 		day: 'numeric',

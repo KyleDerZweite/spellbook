@@ -1,4 +1,9 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
+	import { translate, type MessageKey } from '#lib/i18n/messages.ts';
+	const categoryLabel = (kind: 'type' | 'color', id: string) =>
+		translate(language.locale, `${kind}.${id}` as MessageKey);
 	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
@@ -51,8 +56,8 @@
 	let inspected = $state<string | null>(null);
 	const active = $derived(colors.find((item) => item.label === inspected));
 	const percent = (value: number, total: number) =>
-		`${(total ? (value / total) * 100 : 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
-	const typeOrder = [
+		`${(total ? (value / total) * 100 : 0).toLocaleString(language.locale, { maximumFractionDigits: 1 })}%`;
+	const typeOrder = $derived([
 		'Creature',
 		'Instant',
 		'Sorcery',
@@ -63,7 +68,7 @@
 		'Battle',
 		'Other',
 		'Unknown'
-	];
+	]);
 	const visibleTypes = $derived(
 		types
 			.filter((item) => item.value > 0)
@@ -84,9 +89,12 @@
 	function timestamp(value: string) {
 		const date = new Date(value);
 		return Number.isNaN(date.getTime())
-			? value || 'Edit time unavailable'
-			: date.toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) +
-					' UTC';
+			? value || language.t('ui.Edit.time.unavailable')
+			: date.toLocaleString(language.locale, {
+					timeZone: 'UTC',
+					dateStyle: 'medium',
+					timeStyle: 'short'
+				}) + ' UTC';
 	}
 </script>
 
@@ -104,44 +112,54 @@
 
 <div class="insights">
 	<section class="panel dashboard-surface">
-		<header>{@render heading('Card Types')}</header>
-		{#if !dashboard.catalogBreakdown}<p>Catalog breakdown unavailable.</p>{:else}
+		<header>{@render heading(language.t('ui.Card.Types'))}</header>
+		{#if !dashboard.catalogBreakdown}<p>{language.t('ui.Catalog.breakdown.unavailable')}</p>{:else}
 			<div class="type-layout">
 				<div class="donut">
 					<ProportionChart
-						label="Physical copies by exclusive primary card type"
+						label={language.t('ui.Physical.copies.by.exclusive.primary.card.type')}
 						kind="ring"
-						items={[...visibleTypes, ...types.filter((item) => item.value === 0)]}
+						items={[...visibleTypes, ...types.filter((item) => item.value === 0)].map((item) => ({
+							...item,
+							label: categoryLabel('type', item.label)
+						}))}
 					>
-						{#snippet center()}<strong class="total">{typeTotal.toLocaleString()}</strong><span
-								class="center-label">copies</span
-							>{/snippet}
+						{#snippet center()}<strong class="total"
+								>{typeTotal.toLocaleString(language.locale)}</strong
+							><span class="center-label">{language.t('ui.copies')}</span>{/snippet}
 					</ProportionChart>
 				</div>
 				<dl class="legend">
 					{#each visibleTypes as item}
 						{@const symbol = cardTypeSymbol(item.label)}
-						<div title={`${item.label}: ${item.value} copies`}>
+						<div
+							title={language.t('message.p0.p1.copies', {
+								p0: String(item.label),
+								p1: String(item.value)
+							})}
+						>
 							<dt>
 								{#if symbol}<i class={`ms ms-${symbol}`} style:color={item.color} aria-hidden="true"
 									></i>{:else}<i
 										class="type-swatch"
 										style:background={item.color}
 										aria-hidden="true"
-									></i>{/if}{item.label}
+									></i>{/if}{categoryLabel('type', item.label)}
 							</dt>
 							<dd>
-								<span class="sr-only">{item.value} copies, </span>{percent(item.value, typeTotal)}
+								<span class="sr-only"
+									>{language.t('sentence.p0.copies', { p0: String(item.value) })}</span
+								>{percent(item.value, typeTotal)}
 							</dd>
 						</div>{/each}
 				</dl>
 			</div>
-			{#if !typeTotal}<p>No owned cards yet.</p>{/if}
+			{#if !typeTotal}<p>{language.t('ui.No.owned.cards.yet')}</p>{/if}
 		{/if}
 	</section>
 	<section class="panel dashboard-surface">
-		<header>{@render heading('Mana Color Identity')}</header>
-		{#if !dashboard.catalogBreakdown}<p>Catalog breakdown unavailable.</p>{:else}
+		<header>{@render heading(language.t('ui.Mana.Color.Identity'))}</header>
+		{#if !dashboard.catalogBreakdown}<p>{language.t('ui.Catalog.breakdown.unavailable')}</p>{:else}
 			<div
 				bind:this={colorRoot}
 				class="color-chart"
@@ -156,14 +174,21 @@
 					if (!pinned && !colorRoot?.contains(document.activeElement)) inspected = null;
 				}}
 				role="group"
-				aria-label="Physical copies by color identity"
+				aria-label={language.t('ui.Physical.copies.by.color.identity')}
 			>
 				<div class="columns">
 					{#each visibleColors as item}<button
 							type="button"
-							aria-label={`${item.label}: ${item.quantity} copies, ${percent(item.quantity, dashboard.totals.total)}`}
+							aria-label={language.t('message.p0.p1.copies.p2', {
+								p0: String(item.label),
+								p1: String(item.quantity),
+								p2: String(percent(item.quantity, dashboard.totals.total))
+							})}
 							aria-pressed={pinned && inspected === item.label}
-							title={`${item.label}: ${item.quantity} copies`}
+							title={language.t('message.p0.p1.copies', {
+								p0: String(item.label),
+								p1: String(item.quantity)
+							})}
 							onpointerenter={() => {
 								if (!pinned) inspected = item.label;
 							}}
@@ -190,22 +215,25 @@
 										class={`ms ms-${symbols[item.label]}`}
 										class:ms-cost={item.label !== 'Multicolor'}
 									></i>{:else}?{/if}</span
-							><strong>{item.quantity.toLocaleString()}</strong>
+							><strong>{item.quantity.toLocaleString(language.locale)}</strong>
 						</button>{/each}
 				</div>
 				<p class="inspection" aria-live="polite">
-					{#if active}{active.label} · {active.quantity.toLocaleString()} copies · {percent(
-							active.quantity,
-							dashboard.totals.total
-						)}{:else}<span class="sr-only">Select a color to inspect</span>{/if}
+					{#if active}{categoryLabel('color', active.label)} · {active.quantity.toLocaleString(
+							language.locale
+						)}
+						{language.t('ui.copies')}
+						{percent(active.quantity, dashboard.totals.total)}{:else}<span class="sr-only"
+							>{language.t('ui.Select.a.color.to.inspect')}</span
+						>{/if}
 				</p>
 			</div>
 		{/if}
 	</section>
 	<section class="panel dashboard-surface sets">
 		<header>
-			{@render heading('Collection by Set')}<a class="view-all" href="/mtg/inventory"
-				>View all <span aria-hidden="true">→</span></a
+			{@render heading(language.t('ui.Collection.by.Set'))}<a class="view-all" href="/mtg/inventory"
+				>{language.t('ui.View.all')} <span aria-hidden="true">→</span></a
 			>
 		</header>
 		<div class="set-list">
@@ -225,22 +253,29 @@
 					<div
 						class="track"
 						role="img"
-						aria-label={`${setName(item.label)}: ${item.quantity} copies`}
+						aria-label={language.t('message.p0.p1.copies', {
+							p0: String(setName(item.label)),
+							p1: String(item.quantity)
+						})}
 					>
 						<i style:width={`${(item.quantity / setMaximum) * 100}%`}></i>
 					</div>
-					<strong>{item.quantity.toLocaleString()}</strong>
+					<strong>{item.quantity.toLocaleString(language.locale)}</strong>
 				</div>
-			{:else}<p>No owned cards yet.</p>{/each}
+			{:else}<p>{language.t('ui.No.owned.cards.yet')}</p>{/each}
 		</div>
 		<footer>
 			<details>
-				<summary>All set quantities</summary>
+				<summary>{language.t('ui.All.set.quantities')}</summary>
 				<dl>
 					{#each sets as item}<div>
 							<dt>{setName(item.label)}</dt>
-							<dd>{item.quantity.toLocaleString()} copies</dd>
-						</div>{:else}<p>No sets yet.</p>{/each}
+							<dd>
+								{language.t('sentence.p0.copies', {
+									p0: String(item.quantity.toLocaleString(language.locale))
+								})}
+							</dd>
+						</div>{:else}<p>{language.t('ui.No.sets.yet')}</p>{/each}
 				</dl>
 			</details>
 		</footer>
@@ -250,12 +285,17 @@
 		<DashboardDecks {dashboard} />
 		<section class="panel dashboard-surface recent">
 			<header>
-				{@render heading('Recent activity')}<a class="view-all" href="/mtg/inventory"
-					>View all <span aria-hidden="true">→</span></a
+				{@render heading(language.t('ui.Recent.activity'))}<a class="view-all" href="/mtg/inventory"
+					>{language.t('ui.View.all')} <span aria-hidden="true">→</span></a
 				>
 			</header>
 			<!-- svelte-ignore a11y_no_noninteractive_tabindex (Native scrolling region needs keyboard access.) -->
-			<div class="entries" role="region" aria-label="Recent inventory updates" tabindex="0">
+			<div
+				class="entries"
+				role="region"
+				aria-label={language.t('ui.Recent.inventory.updates')}
+				tabindex="0"
+			>
 				{#each dashboard.recentEntries.slice(0, 4) as entry}<a
 						class="entry"
 						href={`/mtg/inventory/${encodeURIComponent(entry.id)}`}
@@ -270,7 +310,13 @@
 						</div>
 						<div class="entry-text">
 							<span class="entry-title">{entry.name}</span><span class="entry-context"
-								>{`Inventory updated · ${entry.setCode.toUpperCase()} · ${entry.quantity.toLocaleString()} ${entry.quantity === 1 ? 'copy' : 'copies'}`}</span
+								>{language.t('message.Inventory.updated.p0.p1.p2', {
+									p0: String(entry.setCode.toUpperCase()),
+									p1: String(entry.quantity.toLocaleString(language.locale)),
+									p2: String(
+										entry.quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')
+									)
+								})}</span
 							><time
 								class="entry-time"
 								datetime={entry.updatedAt}
@@ -278,7 +324,7 @@
 							>
 						</div>
 						<span class="chevron" aria-hidden="true">›</span></a
-					>{:else}<p>No recent inventory updates.</p>{/each}
+					>{:else}<p>{language.t('ui.No.recent.inventory.updates')}</p>{/each}
 			</div>
 		</section>
 	</div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { page } from '$app/state';
 	import { onDestroy } from 'svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -50,7 +52,7 @@
 {:else}<a
 		class="btn btn-primary"
 		href={`/auth/login?returnTo=${encodeURIComponent('/mtg/search?printing=' + card.id)}`}
-		>Sign in to add cards</a
+		>{language.t('ui.Sign.in.to.add.cards')}</a
 	>{/if}
 
 <style>

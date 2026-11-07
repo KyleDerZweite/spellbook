@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { page } from '$app/state';
-	let { label = 'Sign in' }: { label?: string } = $props();
+	let { label = language.t('ui.Sign.in') }: { label?: string } = $props();
 	const returnTo = $derived(
 		page.url.searchParams.get('returnTo') ??
 			(page.url.pathname === '/' || page.url.pathname.startsWith('/auth/')

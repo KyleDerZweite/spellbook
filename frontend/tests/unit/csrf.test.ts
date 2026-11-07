@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { requireFormOrigin } from '../../src/lib/server/auth/csrf';
 import { handle } from '../../src/hooks.server';
 
@@ -22,11 +22,16 @@ function event(
 		url,
 		request: new Request(url, { method, headers }),
 		locals: {},
+		getClientAddress: () => '127.0.0.1',
 		cookies: { get: vi.fn(), set: vi.fn(), delete: vi.fn() }
 	};
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+	vi.clearAllMocks();
+	vi.stubEnv('API_INTERNAL_URL', 'http://127.0.0.1:8080');
+});
+afterEach(() => vi.unstubAllEnvs());
 describe('framework form Origin protection', () => {
 	it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('guards framework form types for %s', (method) => {
 		for (const contentType of [
@@ -101,7 +106,10 @@ describe('page routing', () => {
 		const response = await handle({ event: fixture, resolve } as never);
 		expect(response.status).toBe(404);
 		expect(response.headers.has('location')).toBe(false);
-		expect(resolve).toHaveBeenCalledWith(fixture);
+		expect(resolve).toHaveBeenCalledWith(
+			fixture,
+			expect.objectContaining({ transformPageChunk: expect.any(Function) })
+		);
 	});
 	it.each(['/mtg/inventory', '/mtg/decks', '/mtg/scan'])(
 		'keeps the sign-in redirect for %s',
@@ -115,4 +123,21 @@ describe('page routing', () => {
 			expect(resolve).not.toHaveBeenCalled();
 		}
 	);
+});
+
+it('renders each request with its negotiated HTML language and response metadata', async () => {
+	for (const locale of ['de', 'en']) {
+		const fixture = event('/auth/login', 'GET', null);
+		fixture.request.headers.set('accept-language', locale === 'de' ? 'de-AT,de;q=0.8' : 'en-GB');
+		const response = await handle({
+			event: fixture,
+			resolve: async (
+				_event: unknown,
+				options: { transformPageChunk: (chunk: { html: string }) => string }
+			) => new Response(options.transformPageChunk({ html: '<html lang="%website.locale%">' }))
+		} as never);
+		expect(await response.text()).toBe(`<html lang="${locale}">`);
+		expect(response.headers.get('Content-Language')).toBe(locale);
+		expect(response.headers.get('Vary')).toContain('Accept-Language');
+	}
 });

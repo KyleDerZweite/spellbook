@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { Select } from 'bits-ui';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 
@@ -66,7 +68,7 @@
 				className
 			]}
 			aria-label={iconOnly
-				? `${label}, ${options.find((option) => option.value === value)?.label ?? placeholder ?? 'Any'}`
+				? `${label}, ${options.find((option) => option.value === value)?.label ?? placeholder ?? language.t('ui.Any')}`
 				: label}
 		>
 			{#if iconOnly}
@@ -138,7 +140,9 @@
 								{/snippet}
 							</Select.Item>
 						{:else}
-							<p class="px-3 py-2 text-sm text-text-muted">No options available.</p>
+							<p class="px-3 py-2 text-sm text-text-muted">
+								{language.t('ui.No.options.available')}
+							</p>
 						{/each}
 					</Select.Viewport>
 				</ScrollArea>

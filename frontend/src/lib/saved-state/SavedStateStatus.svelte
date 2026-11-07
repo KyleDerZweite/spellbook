@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { workspaceSavedState } from './workspace.svelte.ts';
 	import type { ResourceSubscription } from './workspace.ts';
 	let { resource }: { resource: ResourceSubscription | undefined } = $props();
@@ -31,15 +33,15 @@
 		<p role="status">
 			{resourceState?.error ||
 				(transport === 'live'
-					? 'Refreshing saved changes.'
-					: `Saved changes synchronization is ${transport}.`)}
+					? language.t('ui.Refreshing.saved.changes')
+					: language.t('message.Saved.changes.synchronization.is.p0', { p0: String(transport) }))}
 		</p>
 		{#if resourceState?.error || transport === 'offline' || transport === 'recovering'}
 			<button
 				type="button"
 				class="btn btn-secondary"
 				disabled={resourceState?.refreshing}
-				onclick={() => resource?.invalidate()}>Retry saved data</button
+				onclick={() => resource?.invalidate()}>{language.t('ui.Retry.saved.data')}</button
 			>
 		{/if}
 	</div>

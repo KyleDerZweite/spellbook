@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { Dialog } from 'bits-ui';
@@ -29,7 +31,9 @@
 </script>
 
 <Dialog.Root bind:open={() => open, changeOpen}>
-	<Dialog.Trigger bind:ref={trigger} class="btn btn-secondary">Edit avatar</Dialog.Trigger>
+	<Dialog.Trigger bind:ref={trigger} class="btn btn-secondary"
+		>{language.t('ui.Edit.avatar')}</Dialog.Trigger
+	>
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-50 bg-black/70" />
 		<Dialog.Content
@@ -46,8 +50,10 @@
 				content?.querySelector<HTMLInputElement>('input:checked')?.focus();
 			}}
 		>
-			<Dialog.Title class="mb-5 text-xl font-display">Edit avatar</Dialog.Title>
-			<Dialog.Description class="sr-only">Choose a sprite for your account.</Dialog.Description>
+			<Dialog.Title class="mb-5 text-xl font-display">{language.t('ui.Edit.avatar')}</Dialog.Title>
+			<Dialog.Description class="sr-only"
+				>{language.t('ui.Choose.a.sprite.for.your.account')}</Dialog.Description
+			>
 			<form
 				method="POST"
 				action="/settings"
@@ -69,7 +75,7 @@
 								message =
 									result.type === 'failure' && result.data?.message
 										? String(result.data.message)
-										: 'Could not save your avatar. Try again.';
+										: language.t('ui.Could.not.save.your.avatar.Try.again');
 						} finally {
 							write?.complete();
 							if (!write || write.current()) pending = false;
@@ -82,10 +88,10 @@
 				<p role="alert" class="mt-3 text-sm text-error">{message}</p>
 				<div class="mt-5 flex flex-wrap justify-end gap-3">
 					<Dialog.Close type="button" class="btn btn-secondary" disabled={pending}
-						>Cancel</Dialog.Close
+						>{language.t('ui.Cancel')}</Dialog.Close
 					>
 					<button class="btn btn-primary" disabled={pending}
-						>{pending ? 'Saving...' : 'Save avatar'}</button
+						>{pending ? 'Saving...' : language.t('ui.Save.avatar')}</button
 					>
 				</div>
 			</form>

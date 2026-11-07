@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { page } from '$app/state';
 	import { enhance, type SubmitFunction } from '$app/forms';
@@ -47,51 +49,54 @@
 	);
 	let selected = $derived.by(() => selectedDeckChoice(choices, draft.deckId));
 	let blocked = $derived(pending || callerPending || !authorized);
-	const resource = workspaceSavedState.subscribe({
-		topics: ['decks'],
-		clear() {
-			if (!mounted) return;
-			choices = null;
-			query = '';
-			offset = 0;
-			loading = false;
-			readError = '';
-			Object.assign(draft, createDeckAdditionDraft());
-			pending = false;
-			onPendingChange?.(false);
-		},
-		async refresh(lease) {
-			const captured = { account, query, offset, deckId: draft.deckId, draft };
-			const current = () =>
-				mounted &&
-				lease.current() &&
-				account === captured.account &&
-				draft === captured.draft &&
-				query === captured.query &&
-				offset === captured.offset &&
-				draft.deckId === captured.deckId;
-			const params = new URLSearchParams({
-				query: captured.query,
-				offset: String(captured.offset),
-				limit: '20'
-			});
-			if (captured.deckId) params.set('selectedDeckId', captured.deckId);
-			loading = true;
-			try {
-				const value = await readSavedJSON<DeckChoicePage>('/api/v1/mtg/decks/choices?' + params, {
-					signal: lease.signal,
-					current
-				});
-				if (!current() || !value) return;
-				choices = value;
+	const resource = $derived(
+		workspaceSavedState.subscribe({
+			topics: ['decks'],
+			clear() {
+				if (!mounted) return;
+				choices = null;
+				query = '';
+				offset = 0;
+				loading = false;
 				readError = '';
-			} catch {
-				if (current()) readError = 'Deck choices could not be loaded. Retry the read.';
-			} finally {
-				if (current()) loading = false;
+				Object.assign(draft, createDeckAdditionDraft());
+				pending = false;
+				onPendingChange?.(false);
+			},
+			async refresh(lease) {
+				const captured = { account, query, offset, deckId: draft.deckId, draft };
+				const current = () =>
+					mounted &&
+					lease.current() &&
+					account === captured.account &&
+					draft === captured.draft &&
+					query === captured.query &&
+					offset === captured.offset &&
+					draft.deckId === captured.deckId;
+				const params = new URLSearchParams({
+					query: captured.query,
+					offset: String(captured.offset),
+					limit: '20'
+				});
+				if (captured.deckId) params.set('selectedDeckId', captured.deckId);
+				loading = true;
+				try {
+					const value = await readSavedJSON<DeckChoicePage>('/api/v1/mtg/decks/choices?' + params, {
+						signal: lease.signal,
+						current
+					});
+					if (!current() || !value) return;
+					choices = value;
+					readError = '';
+				} catch {
+					if (current())
+						readError = language.t('ui.Deck.choices.could.not.be.loaded.Retry.the.read');
+				} finally {
+					if (current()) loading = false;
+				}
 			}
-		}
-	});
+		})
+	);
 	$effect(() => {
 		const next = account;
 		const state = workspaceSavedState.getState();
@@ -164,7 +169,11 @@
 					deckAdditionConfirmed(result.data.acknowledgement, intent)
 				) {
 					draft.acknowledgement = result.data.acknowledgement;
-					draft.message = `Added ${intent.quantity} of ${intent.printingName ?? intent.catalogCardId} to ${intent.deckName ?? intent.deckId}.`;
+					draft.message = language.t('message.Added.p0.of.p1.to.p2', {
+						p0: String(intent.quantity),
+						p1: String(intent.printingName ?? intent.catalogCardId),
+						p2: String(intent.deckName ?? intent.deckId)
+					});
 					draft.uncertain = draft.uncertain.filter((item) => item.requestId !== intent.requestId);
 					draft.requestId = crypto.randomUUID();
 				} else if (result.type === 'redirect') {
@@ -177,7 +186,7 @@
 					draft.error =
 						result.type === 'failure' && typeof result.data?.message === 'string'
 							? result.data.message
-							: 'Could not confirm this addition. Retry the original request.';
+							: language.t('ui.Could.not.confirm.this.addition.Retry.the.original.request');
 					if (result.type === 'failure' && result.status === 401) workspaceSavedState.expire();
 				}
 			} finally {
@@ -197,7 +206,7 @@
 			resource.invalidate();
 		}}
 	>
-		<label class="label" for={`${id}-query`}>Find a Deck</label>
+		<label class="label" for={`${id}-query`}>{language.t('ui.Find.a.Deck')}</label>
 		<div class="flex gap-2">
 			<input
 				id={`${id}-query`}
@@ -206,7 +215,7 @@
 				maxlength="200"
 				bind:value={query}
 				disabled={blocked}
-			/><button class="btn btn-secondary" disabled={blocked}>Find</button>
+			/><button class="btn btn-secondary" disabled={blocked}>{language.t('ui.Find')}</button>
 		</div>
 	</form>
 	<form
@@ -219,11 +228,11 @@
 	>
 		<input type="hidden" name="requestId" value={draft.requestId || nativeRequestId} />
 		<input type="hidden" name="catalogCardId" value={card.id} />
-		<label class="label" for={`${id}-deck`}>Deck</label>
+		<label class="label" for={`${id}-deck`}>{language.t('ui.Deck')}</label>
 		<Select
 			id={`${id}-deck`}
 			name="deckId"
-			label="Deck"
+			label={language.t('ui.Deck')}
 			value={draft.deckId}
 			onchange={(value) => {
 				draft.deckId = value;
@@ -232,50 +241,51 @@
 			disabled={blocked || loading || !!readError}
 		/>
 		{#if loading}<p role="status" class="text-sm text-text-secondary">
-				Loading Decks...
+				{language.t('ui.Loading.Decks')}
 			</p>{:else if readError}<p role="alert" class="text-sm text-error">{readError}</p>
 			<button
 				class="btn btn-secondary"
 				type="button"
 				onclick={() => resource.invalidate()}
-				disabled={blocked}>Retry Deck read</button
+				disabled={blocked}>{language.t('ui.Retry.Deck.read')}</button
 			>{:else if !choices?.items.length}<p class="text-sm text-text-secondary">
-				No matching Decks. Create a Deck or change the search.
+				{language.t('ui.No.matching.Decks.Create.a.Deck.or.change.the.search')}
 			</p>{/if}
 		{#if draft.deckId && !loading && !readError && !selected}<p
 				role="alert"
 				class="text-sm text-error"
 			>
-				The selected Deck is no longer available. Choose another Deck.
+				{language.t('ui.The.selected.Deck.is.no.longer.available.Choose.another.Deck')}
 			</p>{/if}
 		<div class="flex flex-wrap gap-2">
 			<button
 				type="button"
 				class="btn btn-secondary"
 				onclick={() => (offset = Math.max(0, offset - 20))}
-				disabled={blocked || loading || !offset}>Previous Decks</button
+				disabled={blocked || loading || !offset}>{language.t('ui.Previous.Decks')}</button
 			><button
 				type="button"
 				class="btn btn-secondary"
 				onclick={() => {
 					if (choices?.nextOffset != null) offset = choices.nextOffset;
 				}}
-				disabled={blocked || loading || choices?.nextOffset == null}>Next Decks</button
+				disabled={blocked || loading || choices?.nextOffset == null}
+				>{language.t('ui.Next.Decks')}</button
 			>
 		</div>
 		<div class="fields">
 			<div>
-				<label class="label" for={`${id}-role`}>Section</label><Select
+				<label class="label" for={`${id}-role`}>{language.t('ui.Section')}</label><Select
 					id={`${id}-role`}
 					name="role"
-					label="Section"
+					label={language.t('ui.Section')}
 					bind:value={draft.role}
 					options={DECK_ROLES}
 					disabled={blocked}
 				/>
 			</div>
 			<div>
-				<label class="label" for={`${id}-quantity`}>Quantity</label><input
+				<label class="label" for={`${id}-quantity`}>{language.t('ui.Quantity')}</label><input
 					id={`${id}-quantity`}
 					class="input"
 					name="quantity"
@@ -293,12 +303,18 @@
 			class="btn btn-primary"
 			type="submit"
 			disabled={blocked || loading || !!readError || !selected}
-			><PlusIcon />{pending ? 'Adding...' : 'Add to Deck'}</button
+			><PlusIcon />{pending ? 'Adding...' : language.t('ui.Add.to.Deck')}</button
 		>
 		{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
-				Original unconfirmed addition: {original.quantity} of {original.printingName ??
-					original.catalogCardId} to {original.deckName ?? original.deckId}, {original.role}. New
-				controls are a separate intent.
+				{language.t(
+					'sentence.Original.unconfirmed.addition.p0.of.p1.to.p2.p3.New.controls.are.a.separate.intent',
+					{
+						p0: String(original.quantity),
+						p1: String(original.printingName ?? original.catalogCardId),
+						p2: String(original.deckName ?? original.deckId),
+						p3: String(original.role)
+					}
+				)}
 			</p>
 			<button
 				class="btn btn-secondary"
@@ -306,7 +322,7 @@
 				name="retryOriginal"
 				value={original.requestId}
 				formnovalidate
-				disabled={blocked}>Retry original Deck addition</button
+				disabled={blocked}>{language.t('ui.Retry.original.Deck.addition')}</button
 			>{/each}
 		{#if draft.error}<p id={`${id}-error`} role="alert" class="text-sm text-error">
 				{draft.error}

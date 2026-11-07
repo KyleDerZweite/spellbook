@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { AlertDialog } from 'bits-ui';
 	import type { Snippet } from 'svelte';
 
@@ -48,7 +50,7 @@
 			{#if error}<p class="confirm-error" role="alert">{error}</p>{/if}
 			<div class="confirm-actions">
 				<AlertDialog.Cancel bind:ref={cancelButton} class="btn btn-secondary" disabled={pending}
-					>Cancel</AlertDialog.Cancel
+					>{language.t('ui.Cancel')}</AlertDialog.Cancel
 				>
 				{@render children()}
 			</div>

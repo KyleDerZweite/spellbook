@@ -1,15 +1,21 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 </script>
 
-<section class="panel dashboard-surface quick-actions" aria-label="Quick Actions">
-	<h2>Quick Actions</h2>
-	<nav aria-label="Dashboard quick actions">
+<section class="panel dashboard-surface quick-actions" aria-label={language.t('ui.Quick.Actions')}>
+	<h2>{language.t('ui.Quick.Actions')}</h2>
+	<nav aria-label={language.t('ui.Dashboard.quick.actions')}>
 		<a href="/mtg/search"
-			><PlusIcon /><span>Add cards</span><span class="arrow" aria-hidden="true">↗</span></a
+			><PlusIcon /><span>{language.t('ui.Add.cards')}</span><span class="arrow" aria-hidden="true"
+				>↗</span
+			></a
 		>
 		<a href="/mtg/decks?flow=create"
-			><PlusIcon /><span>New deck</span><span class="arrow" aria-hidden="true">↗</span></a
+			><PlusIcon /><span>{language.t('ui.New.deck')}</span><span class="arrow" aria-hidden="true"
+				>↗</span
+			></a
 		>
 		<a href="/mtg/scan">
 			<svg
@@ -24,7 +30,7 @@
 				aria-hidden="true"
 				focusable="false"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M4 12h16" /></svg
 			>
-			<span>Scan cards</span><span class="arrow" aria-hidden="true">↗</span>
+			<span>{language.t('ui.Scan.cards')}</span><span class="arrow" aria-hidden="true">↗</span>
 		</a>
 		<a href="/mtg/inventory?view=groups">
 			<svg
@@ -40,7 +46,7 @@
 				focusable="false"
 				><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7.5 5l9 4" /></svg
 			>
-			<span>Manage boxes</span><span class="arrow" aria-hidden="true">↗</span>
+			<span>{language.t('ui.Manage.boxes')}</span><span class="arrow" aria-hidden="true">↗</span>
 		</a>
 	</nav>
 </section>

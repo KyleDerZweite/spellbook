@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { nextLoadedRange, type LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 	import type { Snippet } from 'svelte';
 	import { tick, untrack } from 'svelte';
@@ -350,7 +352,7 @@
 <ul
 	bind:this={viewport}
 	class="virtual-inventory"
-	aria-label="Inventory entries"
+	aria-label={language.t('ui.Inventory.entries')}
 	style:height={`${extent}px`}
 	data-browse-span-start={span.start}
 	data-browse-span-end={span.end}
@@ -367,7 +369,7 @@
 		>
 			{#if slot.entry}{@render row(slot.entry, slot.index)}{:else}<div
 					class="row-placeholder"
-					aria-label="Loading inventory entry"
+					aria-label={language.t('ui.Loading.inventory.entry')}
 					aria-busy="true"
 				></div>{/if}
 		</li>{/each}

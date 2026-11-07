@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import { Dialog } from 'bits-ui';
 	import type { Snippet } from 'svelte';
@@ -63,7 +65,7 @@
 			>
 				<Dialog.Title class="sr-only">{card.name}</Dialog.Title>
 				<Dialog.Description class="sr-only"
-					>Card information and printing selection.</Dialog.Description
+					>{language.t('ui.Card.information.and.printing.selection')}</Dialog.Description
 				>
 				<CardInspector
 					{card}
@@ -80,7 +82,7 @@
 				<Dialog.Close
 					disabled={pending}
 					class="btn btn-ghost btn-icon absolute right-2 top-2 z-10"
-					aria-label="Close card detail">✕</Dialog.Close
+					aria-label={language.t('ui.Close.card.detail')}>✕</Dialog.Close
 				>
 			</Dialog.Content>
 		</Dialog.Overlay>

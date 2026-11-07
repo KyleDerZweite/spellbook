@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { page } from '$app/state';
 	import { untrack, onDestroy } from 'svelte';
@@ -115,7 +117,10 @@
 				) {
 					draft.uncertain = draft.uncertain.filter((item) => item.requestId !== intent.requestId);
 					draft.requestId = crypto.randomUUID();
-					draft.message = `Added ${intent.quantity} of ${intent.printingName ?? intent.catalogCardId} to inventory.`;
+					draft.message = language.t('message.Added.p0.of.p1.to.inventory', {
+						p0: String(intent.quantity),
+						p1: String(intent.printingName ?? intent.catalogCardId)
+					});
 				} else if (result.type === 'redirect') {
 					await update({ reset: false });
 				} else {
@@ -126,7 +131,7 @@
 					draft.error =
 						result.type === 'failure' && typeof result.data?.message === 'string'
 							? result.data.message
-							: 'Could not confirm this addition. Retry the original request.';
+							: language.t('ui.Could.not.confirm.this.addition.Retry.the.original.request');
 					if (result.type === 'failure' && result.status === 401) workspaceSavedState.expire();
 				}
 			} finally {
@@ -136,13 +141,13 @@
 			}
 		};
 	};
-	const CONDITIONS = [
-		{ value: 'NM', label: 'Near Mint' },
-		{ value: 'LP', label: 'Lightly Played' },
-		{ value: 'MP', label: 'Moderately Played' },
-		{ value: 'HP', label: 'Heavily Played' },
-		{ value: 'DMG', label: 'Damaged' }
-	];
+	const CONDITIONS = $derived([
+		{ value: 'NM', label: language.t('ui.Near.Mint') },
+		{ value: 'LP', label: language.t('ui.Lightly.Played') },
+		{ value: 'MP', label: language.t('ui.Moderately.Played') },
+		{ value: 'HP', label: language.t('ui.Heavily.Played') },
+		{ value: 'DMG', label: language.t('ui.Damaged') }
+	]);
 
 	const FINISHES = $derived([
 		{ value: 'nonfoil', label: 'Nonfoil', disabled: !card.is_nonfoil_available },
@@ -175,12 +180,12 @@
 	<input type="hidden" name="imageUri" value={card.image_uri || card.image_uri_small} />
 
 	<div>
-		<label for={`${id}-quantity`} class="label"> Quantity </label>
+		<label for={`${id}-quantity`} class="label"> {language.t('ui.Quantity')} </label>
 		<div class="flex items-center gap-2">
 			<button
 				type="button"
 				onclick={() => (draft.quantity = Math.max(1, (draft.quantity || 1) - 1))}
-				aria-label="Decrease quantity"
+				aria-label={language.t('ui.Decrease.quantity')}
 				disabled={blocked || draft.quantity <= 1}
 				class="btn btn-secondary btn-icon quantity-step"
 			>
@@ -201,7 +206,7 @@
 			<button
 				type="button"
 				onclick={() => (draft.quantity = Math.min(99, (draft.quantity || 1) + 1))}
-				aria-label="Increase quantity"
+				aria-label={language.t('ui.Increase.quantity')}
 				disabled={blocked || draft.quantity >= 99}
 				class="btn btn-secondary btn-icon quantity-step"
 			>
@@ -212,11 +217,11 @@
 
 	<div class="inventory-attributes">
 		<div>
-			<label for={`${id}-finish`} class="label"> Finish </label>
+			<label for={`${id}-finish`} class="label"> {language.t('ui.Finish')} </label>
 			<Select
 				id={`${id}-finish`}
 				name="finish"
-				label="Finish"
+				label={language.t('ui.Finish')}
 				bind:value={draft.finish}
 				disabled={blocked}
 				options={FINISHES}
@@ -224,11 +229,11 @@
 		</div>
 
 		<div>
-			<label for={`${id}-condition`} class="label"> Condition </label>
+			<label for={`${id}-condition`} class="label"> {language.t('ui.Condition')} </label>
 			<Select
 				id={`${id}-condition`}
 				name="condition"
-				label="Condition"
+				label={language.t('ui.Condition')}
 				bind:value={draft.condition}
 				disabled={blocked}
 				options={CONDITIONS}
@@ -240,11 +245,15 @@
 		disabled={blocked || !hasAvailableFinish}
 		class={['btn w-full', actionRole === 'secondary' ? 'btn-secondary text-sm' : 'btn-primary']}
 	>
-		<PlusIcon />{pending ? 'Adding...' : 'Add to inventory'}
+		<PlusIcon />{pending ? 'Adding...' : language.t('ui.Add.to.inventory')}
 	</button>
 	{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
-			Original unconfirmed addition: {original.quantity} of {original.printingName ??
-				original.catalogCardId}, {original.finish}, {original.condition}.
+			{language.t('sentence.Original.unconfirmed.addition.p0.of.p1.p2.p3', {
+				p0: String(original.quantity),
+				p1: String(original.printingName ?? original.catalogCardId),
+				p2: String(original.finish),
+				p3: String(original.condition)
+			})}
 		</p>
 		<button
 			class="btn btn-secondary"
@@ -252,10 +261,10 @@
 			name="retryOriginal"
 			value={original.requestId}
 			formnovalidate
-			disabled={blocked}>Retry original Inventory addition</button
+			disabled={blocked}>{language.t('ui.Retry.original.Inventory.addition')}</button
 		>{/each}
 	{#if !hasAvailableFinish}<p class="text-sm text-text-secondary">
-			Choose a printing with an available Nonfoil or Foil finish.
+			{language.t('ui.Choose.a.printing.with.an.available.Nonfoil.or.Foil.finish')}
 		</p>{/if}
 	{#if draft.error}<p id={`${id}-error`} role="alert" class="text-sm text-error">
 			{draft.error}
