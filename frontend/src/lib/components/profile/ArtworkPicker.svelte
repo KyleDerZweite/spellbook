@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { PROFILE_ARTWORK, DEFAULT_ARTWORK_ID } from '#lib/profile/artwork.ts';
 
 	let {
@@ -9,7 +11,7 @@
 </script>
 
 <fieldset class="artwork-picker" class:compact {disabled}>
-	<legend class="label">Artwork</legend>
+	<legend class="label">{language.t('ui.Artwork')}</legend>
 	<div class="artwork-options">
 		{#each PROFILE_ARTWORK as artwork (artwork.id)}
 			<label class="artwork-choice">

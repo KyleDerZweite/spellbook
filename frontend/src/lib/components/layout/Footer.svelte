@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	const year = new Date().getFullYear();
 </script>
 
 <footer class="site-footer mt-auto shrink-0">
-	<nav aria-label="Legal" class="footer-row">
-		<a href="/privacy" class="footer-link">Privacy</a>
-		<a href="/terms" class="footer-link">Terms</a>
+	<nav aria-label={language.t('ui.Legal')} class="footer-row">
+		<a href="/privacy" class="footer-link">{language.t('ui.Privacy')}</a>
+		<a href="/terms" class="footer-link">{language.t('ui.Terms')}</a>
 		<a
 			href="https://kylehub.dev/impressum"
 			target="_blank"
@@ -16,7 +18,7 @@
 	<p class="footer-row">
 		<span>© {year} Spellbook</span>
 		<a href="https://kylehub.dev" target="_blank" rel="noopener noreferrer" class="footer-link"
-			>By KyleHub</a
+			>{language.t('ui.By.KyleHub')}</a
 		>
 		<a
 			href="https://github.com/KyleDerZweite/spellbook/blob/main/LICENSE"
@@ -26,18 +28,19 @@
 		>
 	</p>
 	<p class="credits">
-		Card data: <a
+		{language.t('ui.Card.data')}
+		<a
 			href="https://scryfall.com/"
 			target="_blank"
 			rel="noopener noreferrer"
 			class="footer-link footer-link--inline">Scryfall</a
-		>. Mana symbols:
+		>{language.t('ui.Mana.symbols')}
 		<a
 			href="https://github.com/andrewgioia/mana"
 			target="_blank"
 			rel="noopener noreferrer"
 			class="footer-link footer-link--inline">Mana Font</a
-		>. Artwork:
+		>{language.t('ui.Artwork')}
 		<a
 			href="https://tcgdex.dev/"
 			target="_blank"
@@ -51,13 +54,13 @@
 			rel="noopener noreferrer"
 			class="footer-link footer-link--inline">YGOPRODeck</a
 		>
-		and
+		{language.t('ui.and')}
 		<a
 			href="https://www.bandai-tcg-plus.com/"
 			target="_blank"
 			rel="noopener noreferrer"
 			class="footer-link footer-link--inline">Bandai</a
-		>. Frames:
+		>{language.t('ui.Frames')}
 		<a
 			href="https://mtg-card-maker.herokuapp.com/"
 			target="_blank"
@@ -66,9 +69,9 @@
 		>.
 	</p>
 	<p class="credits">
-		Magic: The Gathering © Wizards of the Coast / Hasbro. Pokémon © Nintendo / Creatures / GAME
-		FREAK. Yu-Gi-Oh! © Studio Dice / SHUEISHA / TV TOKYO / KONAMI. Digimon © Akiyoshi Hongo / Toei
-		Animation. Spellbook is unaffiliated.
+		{language.t(
+			'ui.Magic.The.Gathering.Wizards.of.the.Coast.Hasbro.Pok.mon.Nintendo.Creatures.GAME.FREAK.Yu.Gi.Oh.Studio.Dice.SHUEISHA.TV.TOKYO.KONAMI.Digimon.Akiyoshi.Hongo.Toei.Animation.Spellbook.is.unaffiliated'
+		)}
 	</p>
 </footer>
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type {
 		InventoryValueHistoryRequest,
 		InventoryValueHistory
@@ -23,8 +25,8 @@
 </script>
 
 <div class="history-filters">
-	<div class="periods" role="group" aria-label="History period">
-		{#each [{ days: 7, label: '7 days' }, { days: 30, label: '30 days' }, { days: 90, label: '90 days' }, { days: 366, label: '1 year' }] as period}<button
+	<div class="periods" role="group" aria-label={language.t('ui.History.period')}>
+		{#each [{ days: 7, label: language.t('ui.7.days') }, { days: 30, label: language.t('ui.30.days') }, { days: 90, label: language.t('ui.90.days') }, { days: 366, label: language.t('ui.1.year') }] as period}<button
 				type="button"
 				aria-pressed={!query.from && (query.days ?? 30) === period.days}
 				onclick={() => onNavigate(params(period.days))}>{period.label}</button
@@ -46,15 +48,12 @@
 					value={query[key]}
 				/>{/if}{/each}
 		<label
-			>From <input
-				type="date"
-				name="from"
-				required
-				value={query.from ?? history?.window.from}
-			/></label
+			>{language.t('ui.From')}
+			<input type="date" name="from" required value={query.from ?? history?.window.from} /></label
 		><label
-			>To <input type="date" name="to" required value={query.to ?? history?.window.to} /></label
-		><button class="btn btn-secondary" type="submit">Apply dates</button>
+			>{language.t('ui.To')}
+			<input type="date" name="to" required value={query.to ?? history?.window.to} /></label
+		><button class="btn btn-secondary" type="submit">{language.t('ui.Apply.dates')}</button>
 	</form>
 </div>
 

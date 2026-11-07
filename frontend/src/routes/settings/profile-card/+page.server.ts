@@ -1,3 +1,5 @@
+import { localizeMessage } from '#lib/i18n/presentation.ts';
+import { translate } from '#lib/i18n/messages.ts';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { isProfileArtworkId } from '#lib/profile/artwork.ts';
 import {
@@ -85,9 +87,16 @@ export const actions: Actions = {
 			return fail(400, {
 				success: false,
 				message: !isProfileArtworkId(artworkId)
-					? 'Choose artwork from the collection.'
-					: 'Check the card fields and try again.',
-				errors: validatedCard.success ? {} : validatedCard.errors,
+					? translate(locals.locale, 'notice.Choose.artwork.from.the.collection')
+					: translate(locals.locale, 'notice.Check.the.card.fields.and.try.again'),
+				errors: validatedCard.success
+					? {}
+					: Object.fromEntries(
+							Object.entries(validatedCard.errors).map(([field, value]) => [
+								field,
+								localizeMessage(locals.locale, value ?? '')
+							])
+						),
 				card,
 				artworkId: typeof artworkId === 'string' ? artworkId : ''
 			});
@@ -96,8 +105,8 @@ export const actions: Actions = {
 			if (!baseline || !isProfileArtworkId(form.get('baselineArtworkId')))
 				return fail(400, {
 					success: false,
-					message: 'Reload the card editor and try again.',
-					errors: { form: 'Invalid saved card baseline.' },
+					message: translate(locals.locale, 'notice.Reload.the.card.editor.and.try.again'),
+					errors: { form: translate(locals.locale, 'notice.Invalid.saved.card.baseline') },
 					card,
 					artworkId
 				});
@@ -123,7 +132,8 @@ export const actions: Actions = {
 			savedCard = { card: saved.card, artworkId: saved.user.artworkId };
 		} catch (cause) {
 			if (cause && typeof cause === 'object' && 'kind' in cause) {
-				if (cause.kind === 'Unauthenticated') error(401, 'Authentication required');
+				if (cause.kind === 'Unauthenticated')
+					error(401, translate(locals.locale, 'notice.Authentication.required'));
 				if (
 					cause.kind === 'ValidationFailed' &&
 					'fields' in cause &&
@@ -133,11 +143,14 @@ export const actions: Actions = {
 					const errors: ProfileCardErrors = {};
 					for (const field of [...cardFields, 'form'] as const) {
 						const value = Reflect.get(cause.fields, field);
-						if (typeof value === 'string') errors[field] = value;
+						if (typeof value === 'string') errors[field] = localizeMessage(locals.locale, value);
 					}
 					return fail(400, {
 						success: false,
-						message: 'Your saved card changed. Review the highlighted fields and try again.',
+						message: translate(
+							locals.locale,
+							'notice.Your.saved.card.changed.Review.the.highlighted.fields.and.try.again'
+						),
 						errors,
 						card,
 						artworkId
@@ -147,6 +160,10 @@ export const actions: Actions = {
 			throw cause;
 		}
 
-		return { success: true, message: 'Profile card saved.', savedCard };
+		return {
+			success: true,
+			message: translate(locals.locale, 'notice.Profile.card.saved'),
+			savedCard
+		};
 	}
 };

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { untrack, tick } from 'svelte';
 	import {
 		initialLoadedSpan,
@@ -226,17 +228,17 @@
 
 {#if groups.length === 0}
 	<div class="empty-state">
-		<p>No boxes yet. Create one, then assign cards from their row menu.</p>
+		<p>{language.t('ui.No.boxes.yet.Create.one.then.assign.cards.from.their.row.menu')}</p>
 	</div>
 {:else}
 	{#if lazy && span.start > 0}<button class="btn btn-secondary" onclick={loadEarlier}
-			>Load earlier boxes</button
+			>{language.t('ui.Load.earlier.boxes')}</button
 		>{/if}
 	<ul
 		bind:this={list}
 		class="group-directory"
 		class:lazy
-		aria-label="Inventory boxes"
+		aria-label={language.t('ui.Inventory.boxes')}
 		style:height={lazy ? `${offset(span.end) - offset(span.start)}px` : undefined}
 		data-browse-span-start={span.start}
 		data-browse-span-end={span.end}
@@ -264,23 +266,26 @@
 					>
 					<span
 						><strong>{group.name}</strong><small
-							>{group.quantity.toLocaleString()}
+							>{group.quantity.toLocaleString(language.locale)}
 							{group.quantity === 1 ? 'card' : 'cards'} · {group.entryCount}
 							{group.entryCount === 1 ? 'entry' : 'entries'}</small
 						></span
 					>
 				</a>
 				<ActionMenu
-					label={`Actions for box ${group.name}`}
+					label={language.t('message.Actions.for.box.p0', { p0: String(group.name) })}
 					iconOnly
 					bind:triggerRef={() => triggers[group.id] ?? null, (ref) => (triggers[group.id] = ref)}
 					onCloseAutoFocus={(event) => {
 						if (dialogOpen) event.preventDefault();
 					}}
 					items={[
-						{ label: 'Rename', onSelect: () => onRename(group, triggers[group.id] ?? null) },
 						{
-							label: 'Delete box',
+							label: language.t('ui.Rename'),
+							onSelect: () => onRename(group, triggers[group.id] ?? null)
+						},
+						{
+							label: language.t('ui.Delete.box'),
 							destructive: true,
 							onSelect: () => onRemove(group, triggers[group.id] ?? null)
 						}

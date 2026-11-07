@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { Dialog } from 'bits-ui';
 	import { tick, type Snippet } from 'svelte';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
@@ -59,7 +61,7 @@
 						class="history-close"
 						disabled={pending}
 						onclick={onCancel}
-						aria-label="Close value history"
+						aria-label={language.t('ui.Close.value.history')}
 						><svg
 							width="18"
 							height="18"

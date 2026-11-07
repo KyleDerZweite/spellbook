@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { enhance } from '$app/forms';
 	import AccountLayout from '#lib/components/auth/AccountLayout.svelte';
 	import PasswordInput from '#lib/components/auth/PasswordInput.svelte';
@@ -8,13 +10,17 @@
 	let pending = $state(false);
 </script>
 
-<svelte:head><title>Sign in | Spellbook</title><meta name="robots" content="noindex" /></svelte:head
+<svelte:head
+	><title>{language.t('ui.Sign.in.Spellbook')}</title><meta
+		name="robots"
+		content="noindex"
+	/></svelte:head
 >
 
-<AccountLayout title="Sign in">
+<AccountLayout title={language.t('ui.Sign.in')}>
 	{#snippet aside()}<QrSignIn returnTo={data.returnTo} />{/snippet}
 	{#if data.demoMode}<p class="mb-5 text-sm text-text-secondary">
-			Demo mode. Sign in with <strong>demo</strong> / <strong>demo</strong>.
+			{language.t('ui.Demo.mode.Sign.in.with')} <strong>demo</strong> / <strong>demo</strong>.
 		</p>{/if}
 	<form
 		method="POST"
@@ -37,10 +43,10 @@
 				id="auth-error"
 				class="rounded-lg border border-error p-3 text-sm text-error"
 			>
-				{form.message}
+				{language.message(form.message)}
 			</p>{/if}
 		<div>
-			<label for="username" class="label">Username</label>
+			<label for="username" class="label">{language.t('ui.Username')}</label>
 			<input
 				id="username"
 				aria-describedby={form?.message ? 'auth-error' : undefined}
@@ -54,7 +60,7 @@
 			/>
 		</div>
 		<div>
-			<label for="password" class="label">Password</label>
+			<label for="password" class="label">{language.t('ui.Password')}</label>
 			<PasswordInput
 				id="password"
 				aria-describedby={form?.message ? 'auth-error' : undefined}
@@ -66,12 +72,13 @@
 			/>
 		</div>
 		<button type="submit" disabled={pending} class="btn btn-primary w-full disabled:opacity-50"
-			>{pending ? 'Please wait...' : 'Sign in'}</button
+			>{pending ? language.t('ui.Please.wait') : language.t('ui.Sign.in')}</button
 		>
 	</form>
 	{#if !data.demoMode}<p class="auth-switch">
-			New to Spellbook? <a href={`/auth/register?returnTo=${encodeURIComponent(data.returnTo)}`}
-				>Sign up</a
+			{language.t('ui.New.to.Spellbook')}
+			<a href={`/auth/register?returnTo=${encodeURIComponent(data.returnTo)}`}
+				>{language.t('ui.Sign.up')}</a
 			>
 		</p>{/if}
 </AccountLayout>

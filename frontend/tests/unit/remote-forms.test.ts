@@ -23,7 +23,7 @@ function setup(path: string, request: Request) {
 	const event = {
 		url: new URL(path, origin),
 		request,
-		locals: { user: { accountId: 'account' }, api },
+		locals: { locale: 'en' as 'en' | 'de', user: { accountId: 'account' }, api },
 		cookies
 	};
 	return { event, send, cookies, api };
@@ -31,6 +31,42 @@ function setup(path: string, request: Request) {
 beforeEach(() => vi.clearAllMocks());
 
 describe('streamed credential forms', () => {
+	it('localizes password failures per request while retaining field names', async () => {
+		const request = new Request(`${origin}/settings/password`, {
+			method: 'POST',
+			headers: { origin },
+			body: 'currentPassword=x'
+		});
+		const { event, send, cookies } = setup('/settings/password', request);
+		event.locals.locale = 'de';
+		send.mockResolvedValue(
+			Response.json(
+				{
+					success: false,
+					message: 'Check the password fields and try again.',
+					errors: {
+						currentPassword: 'Enter your current password.',
+						newPassword: 'Custom validation detail'
+					}
+				},
+				{ status: 400 }
+			)
+		);
+		const result = await passwordActions.default!(event as never);
+		expect(result).toMatchObject({
+			status: 400,
+			data: {
+				success: false,
+				message: 'Prüfe die Passwortfelder und versuche es erneut.',
+				errors: {
+					currentPassword: 'Gib dein aktuelles Passwort ein.',
+					newPassword: 'Custom validation detail'
+				}
+			}
+		});
+		expect(cookies.set).not.toHaveBeenCalled();
+	});
+
 	it.each(['login', 'register'] as const)(
 		'forwards malformed %s multipart before any web decoding',
 		async (mode) => {

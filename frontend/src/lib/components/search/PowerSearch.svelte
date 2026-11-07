@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { Command, Dialog } from 'bits-ui';
 	import { onMount, tick, untrack } from 'svelte';
 	import { page } from '$app/state';
@@ -134,16 +136,17 @@
 				if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
 			}}
 		>
-			<Dialog.Title class="sr-only">Power-user search</Dialog.Title>
+			<Dialog.Title class="sr-only">{language.t('ui.Power.user.search')}</Dialog.Title>
 			<Dialog.Description class="sr-only"
-				>Search cards, your Inventory, Decks and Settings. Use arrow keys to navigate, Enter to
-				select, and Escape to close.</Dialog.Description
+				>{language.t(
+					'ui.Search.cards.your.Inventory.Decks.and.Settings.Use.arrow.keys.to.navigate.Enter.to.select.and.Escape.to.close'
+				)}</Dialog.Description
 			>
 			<Command.Root
 				shouldFilter={false}
 				vimBindings={false}
 				bind:value={selected}
-				label="Power-user search"
+				label={language.t('ui.Power.user.search')}
 				class="power-search-command"
 			>
 				<div class="power-search-field">
@@ -152,8 +155,8 @@
 						bind:ref={input}
 						bind:value={query}
 						maxlength={300}
-						aria-label="Power-user search"
-						placeholder="Search cards, inventory, decks and settings..."
+						aria-label={language.t('ui.Power.user.search')}
+						placeholder={language.t('ui.Search.cards.inventory.decks.and.settings')}
 						onkeydown={(event) => {
 							if (event.isComposing && event.key === 'Enter') event.stopPropagation();
 						}}
@@ -183,13 +186,13 @@
 											>
 											<span class="power-search-context"
 												>{row.kind === 'catalog'
-													? 'Card Search'
+													? language.t('ui.Card.Search')
 													: row.kind === 'inventory'
-														? 'Inventory'
+														? language.t('ui.Inventory')
 														: row.kind.startsWith('deck')
-															? 'Deck'
+															? language.t('ui.Deck')
 															: row.kind === 'setting'
-																? 'Settings'
+																? language.t('ui.Settings')
 																: ''}</span
 											>
 										</Command.LinkItem>
@@ -200,17 +203,19 @@
 						{#if !rows.length && !readState.pending && !readState.error}<p
 								class="power-search-empty"
 							>
-								No results found.
+								{language.t('ui.No.results.found')}
 							</p>{/if}
 					</Command.Viewport>
 				</Command.List>
 				<div class="power-search-status" role="status" aria-live="polite">
-					{#if readState.error}{readState.error}{:else if readState.pending}Searching...{/if}
+					{#if readState.error}{readState.error}{:else if readState.pending}{language.t(
+							'ui.Searching'
+						)}{/if}
 				</div>
 				<div class="power-search-footer" aria-hidden="true">
-					<span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Select</span><span
-						><kbd>Esc</kbd> Close</span
-					>
+					<span><kbd>↑</kbd><kbd>↓</kbd> {language.t('ui.Navigate')}</span><span
+						><kbd>Enter</kbd> {language.t('ui.Select')}</span
+					><span><kbd>Esc</kbd> {language.t('ui.Close')}</span>
 				</div>
 			</Command.Root>
 		</Dialog.Content>

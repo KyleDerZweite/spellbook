@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	interface Props {
 		value: string;
 		onInput: (value: string) => void;
@@ -12,7 +14,7 @@
 	let {
 		value,
 		onInput,
-		placeholder = 'Search cards by name or rules text...',
+		placeholder = language.t('ui.Search.cards.by.name.or.rules.text'),
 		name,
 		submitLabel,
 		inputRef = $bindable(null),
@@ -47,7 +49,7 @@
 	</span>
 
 	<label>
-		<span class="sr-only">Search cards</span>
+		<span class="sr-only">{language.t('ui.Search.cards')}</span>
 		<input
 			bind:this={inputRef}
 			type="search"
@@ -72,7 +74,7 @@
 			onclick={handleClear}
 			class="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-text-muted transition-colors hover:text-text-primary"
 			class:clear-before-submit={!!submitLabel}
-			aria-label="Clear search"
+			aria-label={language.t('ui.Clear.search')}
 		>
 			&#10005;
 		</button>

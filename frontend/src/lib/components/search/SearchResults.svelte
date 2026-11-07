@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { untrack } from 'svelte';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -78,8 +80,8 @@
 		<!-- Error state -->
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
-				<p class="font-body text-sm text-error">Search failed</p>
-				<p class="mt-2 max-w-md font-body text-sm text-text-muted">{error}</p>
+				<p class="font-body text-sm text-error">{language.t('ui.Search.failed')}</p>
+				<p class="mt-2 max-w-md font-body text-sm text-text-muted">{language.message(error)}</p>
 			</div>
 		</div>
 	{:else if totalCount === 0 && !loading && (browseMode || query.length >= 2)}
@@ -87,22 +89,24 @@
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
 				<p class="font-body text-sm text-text-secondary">
-					{hasFilters || query.length >= 2 ? 'No cards found' : 'No cards available'}
+					{hasFilters || query.length >= 2
+						? language.t('ui.No.cards.found')
+						: language.t('ui.No.cards.available')}
 				</p>
 				<p class="mt-2 font-body text-sm italic text-text-muted">
-					{#if query.length >= 2}No cards match "{query}". Try another name.
-					{:else if hasFilters}No cards match these filters.
-					{:else}No cards are available in this catalog.{/if}
+					{#if query.length >= 2}{language.t('filter.noMatch', { query })}
+					{:else if hasFilters}{language.t('ui.No.cards.match.these.filters')}
+					{:else}{language.t('ui.No.cards.are.available.in.this.catalog')}{/if}
 				</p>
 				{#if hasFilters && clearFiltersHref}<a
 						class="btn btn-secondary mt-4"
-						href={clearFiltersHref}>Clear filters</a
+						href={clearFiltersHref}>{language.t('ui.Clear.filters')}</a
 					>
 				{:else if hasFilters && onClearFilters}<button
 						class="btn btn-secondary mt-4"
-						onclick={onClearFilters}>Clear filters</button
+						onclick={onClearFilters}>{language.t('ui.Clear.filters')}</button
 					>{:else if onRetry}<button class="btn btn-secondary mt-4" onclick={onRetry}
-						>Retry search</button
+						>{language.t('ui.Retry.search')}</button
 					>{/if}
 			</div>
 		</div>
@@ -132,7 +136,7 @@
 			</div>
 		{:else}
 			{#if span.start > 0}<button class="btn btn-secondary mb-4" onclick={onLoadEarlier}
-					>Load earlier cards</button
+					>{language.t('ui.Load.earlier.cards')}</button
 				>{/if}
 			<VirtualCardGrid
 				span={span.end > span.start

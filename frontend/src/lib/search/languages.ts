@@ -1,3 +1,5 @@
+import { translate } from '#lib/i18n/messages.ts';
+import type { Locale } from '#lib/i18n/locale.ts';
 import type { CatalogLanguage } from './types.ts';
 
 export const DEFAULT_SEARCH_LANGUAGES: CatalogLanguage[] = ['de', 'en'];
@@ -23,3 +25,10 @@ export const LANGUAGE_OPTIONS: { id: CatalogLanguage; label: string; flag: strin
 	{ id: 'dw', label: 'Dwarvish', flag: '⚑' },
 	{ id: 'tlh', label: 'Klingon', flag: '⚑' }
 ];
+
+export function printingLanguageOptions(locale: Locale) {
+	return LANGUAGE_OPTIONS.map((option) => ({
+		...option,
+		label: translate(locale, `printingLanguage.${option.id}`)
+	}));
+}

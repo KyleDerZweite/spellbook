@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { Command, Dialog } from 'bits-ui';
 	import { onMount, tick, untrack } from 'svelte';
 	import { snapshot } from '$app/navigation';
@@ -30,7 +32,7 @@
 		const q = normalize(value);
 		const targets = (data.experiment.targets as Result[]).map((row) => ({
 			...row,
-			reason: 'Page'
+			reason: language.t('notice.Page')
 		}));
 		if (!q) return targets.slice(0, 5);
 		return targets.filter((target) =>
@@ -98,7 +100,8 @@
 					signal: controller.signal,
 					body: JSON.stringify({ query: currentQuery, variant: currentVariant })
 				});
-				if (!response.ok) throw new Error('Search unavailable. Local page matches remain usable.');
+				if (!response.ok)
+					throw new Error(language.t('ui.Search.unavailable.Local.page.matches.remain.usable'));
 				const value = await response.json();
 				if (currentSequence === sequence) {
 					publish(value.results);
@@ -106,7 +109,7 @@
 				}
 			} catch {
 				if (currentSequence === sequence && !controller.signal.aborted)
-					failure = 'Search unavailable. Local page matches remain usable.';
+					failure = language.t('ui.Search.unavailable.Local.page.matches.remain.usable');
 			} finally {
 				if (currentSequence === sequence) {
 					pending = false;
@@ -122,21 +125,24 @@
 </script>
 
 <svelte:head
-	><title>Search evaluation | Spellbook</title><meta
+	><title>{language.t('notice.Search.evaluation')} | Spellbook</title><meta
 		name="robots"
 		content="noindex,nofollow"
 	/></svelte:head
 >
 <div class="workspace-container evaluation-page" data-evaluation-ready={ready}>
-	<h1 class="font-display text-2xl">Search evaluation</h1>
+	<h1 class="font-display text-2xl">{language.t('notice.Search.evaluation')}</h1>
 	<p class="text-sm text-text-secondary">
-		Local experiment · {data.experiment.cards.toLocaleString()} canonical cards · BGE-M3
+		{language.message('Local experiment')} · {data.experiment.cards.toLocaleString(language.locale)}
+		{language.message('canonical cards')} · BGE-M3
 	</p>
-	<label for="evaluation-variant">Search variant</label>
+	<label for="evaluation-variant">{language.t('notice.Search.variant')}</label>
 	<select id="evaluation-variant" class="input" bind:value={variant}>
-		{#each data.experiment.variants as item}<option value={item.id}>{item.label}</option>{/each}
+		{#each data.experiment.variants as item}<option value={item.id}
+				>{language.message(item.label)}</option
+			>{/each}
 	</select>
-	<p>Power-user search <kbd>Ctrl / Cmd + K</kbd></p>
+	<p>{language.t('ui.Power.user.search')} <kbd>Ctrl / Cmd + K</kbd></p>
 	<p class="text-sm text-text-secondary">
 		Compare queries in the same shortcut menu. This route is disabled in production.
 	</p>
@@ -156,21 +162,23 @@
 				returnFocus?.focus();
 			}}
 		>
-			<Dialog.Title class="sr-only">Power-user search</Dialog.Title>
+			<Dialog.Title class="sr-only">{language.t('ui.Power.user.search')}</Dialog.Title>
 			<Dialog.Description class="sr-only"
-				>Search cards, synthetic Decks and pages. Arrow keys select a result. Enter opens it.</Dialog.Description
+				>{language.t(
+					'notice.Search.cards.synthetic.Decks.and.pages.Arrow.keys.select.a.result.Enter.opens.it'
+				)}</Dialog.Description
 			>
 			<Command.Root
 				shouldFilter={false}
 				vimBindings={false}
 				bind:value={selected}
-				label="Power-user search"
+				label={language.t('ui.Power.user.search')}
 			>
 				<Command.Input
 					bind:ref={input}
 					bind:value={query}
-					aria-label="Power-user search"
-					placeholder="Search anything…"
+					aria-label={language.t('ui.Power.user.search')}
+					placeholder={language.t('notice.Search.anything')}
 					class="evaluation-input"
 					onkeydown={(event) => {
 						if (event.isComposing && event.key === 'Enter') event.stopPropagation();
@@ -189,18 +197,29 @@
 									>{result.kind === 'card' ? '◇' : result.kind === 'deck' ? '▤' : '↗'}</span
 								>
 								<span class="result-copy"
-									><span>{result.name}</span><span class="result-reason">{result.reason}</span
+									><span>{result.name}</span><span class="result-reason"
+										>{result.reason
+											.split(' + ')
+											.map((reason) => language.message(reason))
+											.join(' + ')}</span
 									></span
 								>
-								<span class="result-kind">{result.kind}</span>
+								<span class="result-kind">{language.message(result.kind)}</span>
 							</Command.LinkItem>
 						{/each}
-						{#if !results.length && !pending}<p class="evaluation-empty">No matches</p>{/if}
+						{#if !results.length && !pending}<p class="evaluation-empty">
+								{language.t('notice.No.matches')}
+							</p>{/if}
 					</Command.Viewport>
 				</Command.List>
 			</Command.Root>
 			<div class="evaluation-status" role="status" aria-live="polite">
-				<span>{failure || (pending ? 'Searching…' : `${results.length} results`)}</span>
+				<span
+					>{failure ||
+						(pending
+							? language.t('notice.Searching')
+							: language.t('message.p0.results', { p0: String(results.length) }))}</span
+				>
 				<span>{duration ? `${Math.round(duration)} ms` : ''} <kbd>Esc</kbd></span>
 			</div>
 		</Dialog.Content>

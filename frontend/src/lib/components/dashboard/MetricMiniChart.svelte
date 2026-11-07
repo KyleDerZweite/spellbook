@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { line } from 'd3-shape';
 	import { metricChange, type metricTrend } from '#lib/valuation/metric-trends.ts';
 	let {
@@ -35,7 +37,7 @@
 		points
 			.map(
 				(point) =>
-					`${point.day}: ${point.value === null ? 'unavailable' : metricChange(point.value, kind === 'line').replace(/^\+/, '')}`
+					`${point.day}: ${point.value === null ? 'unavailable' : metricChange(point.value, kind === 'line', language.locale).replace(/^\+/, '')}`
 			)
 			.join('; ')
 	);
@@ -73,7 +75,7 @@
 						height={40 - point.y}
 						rx="1"
 						opacity={point.day === trend.to ? 1 : 0.6}
-						><title>{point.day}: {point.value.toLocaleString()}</title></rect
+						><title>{point.day}: {point.value.toLocaleString(language.locale)}</title></rect
 					>{/if}{/each}{/if}
 	</svg>
 {/if}

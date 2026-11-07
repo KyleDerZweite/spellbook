@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
 	import { snapshot } from '$app/navigation';
 	import LandingBackdrop from './LandingBackdrop.svelte';
@@ -34,20 +36,22 @@
 			search.open(query, event.currentTarget.querySelector('input') ?? undefined);
 		}}
 		role="search"
-		aria-label="Card search"
+		aria-label={language.t('ui.Card.search')}
 	>
 		<SearchBar
 			value={query}
 			onInput={(value) => (query = value)}
 			name="q"
-			placeholder="Search cards..."
+			placeholder={language.t('ui.Search.cards')}
 			submitLabel="Search cards"
 		/>
 	</form>
 {/snippet}
 {#snippet supportNotice()}
 	<p class="support-note">
-		<i class="ms ms-planeswalker" aria-hidden="true"></i>Magic: The Gathering only for now.
+		<i class="ms ms-planeswalker" aria-hidden="true"></i>{language.t(
+			'ui.Magic.The.Gathering.only.for.now'
+		)}
 	</p>
 {/snippet}
 

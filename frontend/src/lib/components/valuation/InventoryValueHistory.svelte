@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { Snippet } from 'svelte';
 	import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
 	import type { InventoryValueHistory } from '@spellbook/contracts/inventory-value.ts';
@@ -30,57 +32,71 @@
 	} = $props();
 	const chart = $derived(historyChart(history?.points ?? []));
 	const overview = $derived(historyOverview(history?.points ?? []));
-	const dateFormat = new Intl.DateTimeFormat('en-GB', {
-		day: 'numeric',
-		month: 'short',
-		year: 'numeric',
-		timeZone: 'UTC'
-	});
+	const dateFormat = $derived(
+		new Intl.DateTimeFormat(language.locale, {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric',
+			timeZone: 'UTC'
+		})
+	);
 	const dayLabel = (day: string) => dateFormat.format(new Date(`${day}T00:00:00Z`));
 </script>
 
 <section
 	class="analytics-panel value-history"
 	class:compact
-	aria-label={history?.identity ? 'Card value history' : 'Inventory value history'}
+	aria-label={history?.identity
+		? language.t('ui.Card.value.history')
+		: language.t('ui.Inventory.value.history')}
 	aria-busy={loading}
 >
 	{#if summary}{@render summary()}{:else if !embedded}
 		<div class="history-heading">
-			<h2 class="analytics-title">{history?.identity ? 'Card value' : 'Inventory value'}</h2>
+			<h2 class="analytics-title">
+				{history?.identity ? language.t('ui.Card.value') : language.t('ui.Inventory.value')}
+			</h2>
 			{#if history}<span class="period-label"
-					>{dayLabel(history.window.from)} to {dayLabel(history.window.to)}</span
+					>{language.t('sentence.p0.to.p1', {
+						p0: String(dayLabel(history.window.from)),
+						p1: String(dayLabel(history.window.to))
+					})}</span
 				>{/if}
 		</div>
 	{/if}
 	{#if demo}<p class="demo-note">
-			<span>Demo prices</span> Fixed card-price snapshot with an illustrative history.
+			<span>{language.t('ui.Demo.prices')}</span>
+			{language.t('ui.Fixed.card.price.snapshot.with.an.illustrative.history')}
 		</p>{/if}
-	{#if loading}<p class="mt-3 text-sm" role="status">Loading Inventory history…</p>
+	{#if loading}<p class="mt-3 text-sm" role="status">
+			{language.t('ui.Loading.Inventory.history')}
+		</p>
 	{:else if error}
-		<p class="mt-3 text-sm" role="alert">{error}</p>
+		<p class="mt-3 text-sm" role="alert">{language.message(error)}</p>
 		{#if onRetry}<button type="button" class="btn btn-secondary mt-2" onclick={onRetry}
-				>Retry history</button
+				>{language.t('ui.Retry.history')}</button
 			>{/if}
 	{:else if history}
 		{#if !compact}
 			<div class="history-overview">
 				<div class="latest-value">
 					<span
-						>Latest priced day{overview.latest ? ` · ${dayLabel(overview.latest.day)}` : ''}</span
+						>{language.t('ui.Latest.priced.day')}{overview.latest
+							? ` · ${dayLabel(overview.latest.day)}`
+							: ''}</span
 					>
 					<strong
 						>{overview.latest
-							? formatValueEUR(overview.latest.estimate.coveredValue)
-							: 'Unknown'}</strong
+							? formatValueEUR(overview.latest.estimate.coveredValue, language.locale)
+							: language.t('ui.Unknown')}</strong
 					>
 				</div>
 				<div class="period-change">
-					<span>Covered value change</span><strong
+					<span>{language.t('ui.Covered.value.change')}</span><strong
 						>{overview.changeAmount !== null
-							? `${overview.change! > 0n ? '+' : overview.change! < 0n ? '−' : ''}${formatValueEUR(overview.changeAmount)}`
-							: 'Unavailable'}</strong
-					><small>Across priced days in this period</small>
+							? `${overview.change! > 0n ? '+' : overview.change! < 0n ? '−' : ''}${formatValueEUR(overview.changeAmount, language.locale)}`
+							: language.t('ui.Unavailable')}</strong
+					><small>{language.t('ui.Across.priced.days.in.this.period')}</small>
 				</div>
 			</div>
 		{/if}
@@ -96,12 +112,14 @@
 					aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6M12 7v5l3 2" /></svg
 				>
 				<strong
-					>{overview.captured === 0 ? 'No saved history yet' : 'No priced observations yet'}</strong
+					>{overview.captured === 0
+						? language.t('ui.No.saved.history.yet')
+						: language.t('ui.No.priced.observations.yet')}</strong
 				>
 				<p>
 					{overview.captured === 0
-						? 'Daily values appear after the first end-of-day capture.'
-						: 'Saved copies have no known price references. Values remain unknown.'}
+						? language.t('ui.Daily.values.appear.after.the.first.end.of.day.capture')
+						: language.t('ui.Saved.copies.have.no.known.price.references.Values.remain.unknown')}
 				</p>
 			</div>
 		{:else}
@@ -115,56 +133,73 @@
 		{#if !compact}
 			<div class="history-metrics">
 				<div>
-					<span>Price coverage</span><strong
+					<span>{language.t('ui.Price.coverage')}</span><strong
 						>{overview.latest
-							? `${overview.latest.estimate.coveredQuantity.toLocaleString()} / ${overview.latest.estimate.totalQuantity.toLocaleString()}`
-							: 'Unknown'}</strong
-					><small>Copies on the latest priced day</small>
+							? `${overview.latest.estimate.coveredQuantity.toLocaleString(language.locale)} / ${overview.latest.estimate.totalQuantity.toLocaleString(language.locale)}`
+							: language.t('ui.Unknown')}</strong
+					><small>{language.t('ui.Copies.on.the.latest.priced.day')}</small>
 				</div>
 				<div>
-					<span>Recorded days</span><strong
+					<span>{language.t('ui.Recorded.days')}</span><strong
 						>{overview.captured} <small>/ {history.window.days}</small></strong
-					><small>{overview.gaps} {overview.gaps === 1 ? 'day' : 'days'} without a capture</small>
+					><small
+						>{language.t('sentence.p0.p1.without.a.capture', {
+							p0: String(overview.gaps),
+							p1: String(overview.gaps === 1 ? 'day' : 'days')
+						})}</small
+					>
 				</div>
 				<div>
-					<span>Reporting calendar</span><strong class="calendar">{history.timezone}</strong><small
-						>Daily capture near midnight</small
-					>
+					<span>{language.t('ui.Reporting.calendar')}</span><strong class="calendar"
+						>{history.timezone}</strong
+					><small>{language.t('ui.Daily.capture.near.midnight')}</small>
 				</div>
 			</div>
 		{/if}
 		<table class="sr-only">
-			<caption class="sr-only">Exact daily values, coverage and observation times</caption>
+			<caption class="sr-only"
+				>{language.t('ui.Exact.daily.values.coverage.and.observation.times')}</caption
+			>
 			<thead
 				><tr
-					><th scope="col">Day</th><th scope="col" class="amount">Covered value</th><th scope="col"
-						>Price coverage</th
-					><th scope="col">Capture</th></tr
+					><th scope="col">{language.t('ui.Day')}</th><th scope="col" class="amount"
+						>{language.t('ui.Covered.value')}</th
+					><th scope="col">{language.t('ui.Price.coverage')}</th><th scope="col"
+						>{language.t('ui.Capture')}</th
+					></tr
 				></thead
 			>
 			<tbody>
 				{#each history.points.toReversed() as point}
 					<tr
 						><th scope="row"><time datetime={point.day}>{dayLabel(point.day)}</time></th>
-						{#if point.kind === 'Gap'}<td colspan="3" class="missing">No captured observation</td>
+						{#if point.kind === 'Gap'}<td colspan="3" class="missing"
+								>{language.t('ui.No.captured.observation')}</td
+							>
 						{:else}
 							<td class="amount"
 								>{hasPlottableValue(point.estimate)
-									? formatValueEUR(point.estimate.coveredValue)
-									: 'Unknown'}{#if !point.estimate.complete}<small>Partial coverage</small>{/if}</td
+									? formatValueEUR(point.estimate.coveredValue, language.locale)
+									: language.t('ui.Unknown')}{#if !point.estimate.complete}<small
+										>{language.t('ui.Partial.coverage')}</small
+									>{/if}</td
 							>
 							<td
 								><span
-									>{point.estimate.coveredQuantity.toLocaleString()} / {point.estimate.totalQuantity.toLocaleString()}
-									copies</span
+									>{language.t('sentence.p0.p1.copies', {
+										p0: String(point.estimate.coveredQuantity.toLocaleString(language.locale)),
+										p1: String(point.estimate.totalQuantity.toLocaleString(language.locale))
+									})}</span
 								><small
-									>{point.estimate.unknownQuantity.toLocaleString()} unknown · {point.estimate.staleQuantity.toLocaleString()}
-									stale</small
+									>{language.t('sentence.p0.unknown.p1.stale', {
+										p0: String(point.estimate.unknownQuantity.toLocaleString(language.locale)),
+										p1: String(point.estimate.staleQuantity.toLocaleString(language.locale))
+									})}</small
 								></td
 							>
 							<td class="capture"
 								><time datetime={point.observedAt}
-									>{observationTime(point.observedAt, point.timezone)}</time
+									>{observationTime(point.observedAt, point.timezone, language.locale)}</time
 								><small>{point.timezone}</small></td
 							>
 						{/if}
@@ -172,7 +207,7 @@
 				{/each}
 			</tbody>
 		</table>
-	{:else}<p class="mt-3 text-sm text-text-muted">History unavailable.</p>{/if}
+	{:else}<p class="mt-3 text-sm text-text-muted">{language.t('ui.History.unavailable')}</p>{/if}
 </section>
 
 <style>

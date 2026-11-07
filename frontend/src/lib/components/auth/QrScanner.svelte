@@ -1,11 +1,16 @@
 <script lang="ts">
+	import type { MessageKey } from '#lib/i18n/messages.ts';
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { onMount, onDestroy } from 'svelte';
 	import type { IScannerControls } from '@zxing/browser';
 
 	let { onScan }: { onScan: (value: string) => void } = $props();
 	let video: HTMLVideoElement | undefined = $state();
 	let active = $state(false);
-	let message = $state('Scan the QR code shown on the device you want to sign in to.');
+	let message = $state<MessageKey>(
+		'ui.Scan.the.QR.code.shown.on.the.device.you.want.to.sign.in.to'
+	);
 	let manual = $state('');
 	let controls: IScannerControls | undefined;
 	let camera: MediaStream | undefined;
@@ -34,11 +39,11 @@
 		stop();
 		if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
 			message =
-				'Camera scanning needs HTTPS and camera access. You can paste the sign-in link below.';
+				'ui.Camera.scanning.needs.HTTPS.and.camera.access.You.can.paste.the.sign.in.link.below';
 			return;
 		}
 		active = true;
-		message = 'Point your camera at the sign-in QR code.';
+		message = 'ui.Point.your.camera.at.the.sign.in.QR.code';
 		const current = generation;
 		try {
 			const { BrowserQRCodeReader } = await import('@zxing/browser');
@@ -61,7 +66,7 @@
 				if (result) {
 					void stopScanner(running);
 					stop();
-					message = 'Code found. Review the sign-in request before approving.';
+					message = 'ui.Code.found.Review.the.sign.in.request.before.approving';
 					onScan(result.getText());
 				}
 			});
@@ -71,7 +76,7 @@
 			if (current !== generation) return;
 			stop();
 			message =
-				'Unable to open the camera. Check camera permission or paste the sign-in link below.';
+				'ui.Unable.to.open.the.camera.Check.camera.permission.or.paste.the.sign.in.link.below';
 		}
 	}
 
@@ -79,7 +84,7 @@
 		const pause = () => {
 			if (document.hidden && active) {
 				stop();
-				message = 'Camera paused. Start scanning when you return.';
+				message = 'ui.Camera.paused.Start.scanning.when.you.return';
 			}
 		};
 		document.addEventListener('visibilitychange', pause);
@@ -88,8 +93,8 @@
 	onDestroy(stop);
 </script>
 
-<section class="space-y-4" aria-label="Sign-in QR scanner">
-	<p class="text-sm text-text-secondary" role="status">{message}</p>
+<section class="space-y-4" aria-label={language.t('ui.Sign.in.QR.scanner')}>
+	<p class="text-sm text-text-secondary" role="status">{language.t(message)}</p>
 	<video
 		bind:this={video}
 		class="aspect-square w-full rounded-xl border border-border bg-black object-cover"
@@ -97,13 +102,14 @@
 		autoplay
 		muted
 		playsinline
-		aria-label="QR camera preview"
+		aria-label={language.t('ui.QR.camera.preview')}
 	></video>
 	<div class="flex flex-wrap gap-3">
 		<button type="button" class="btn btn-primary" onclick={start} disabled={active}
-			>Start camera</button
+			>{language.t('ui.Start.camera')}</button
 		>
-		{#if active}<button type="button" class="btn btn-secondary" onclick={stop}>Stop camera</button
+		{#if active}<button type="button" class="btn btn-secondary" onclick={stop}
+				>{language.t('ui.Stop.camera')}</button
 			>{/if}
 	</div>
 	<form
@@ -114,7 +120,9 @@
 			onScan(manual);
 		}}
 	>
-		<label for="qr-sign-in-link" class="label">Or paste the sign-in link or code</label>
+		<label for="qr-sign-in-link" class="label"
+			>{language.t('ui.Or.paste.the.sign.in.link.or.code')}</label
+		>
 		<input
 			id="qr-sign-in-link"
 			class="input w-full"
@@ -124,6 +132,6 @@
 			autocomplete="off"
 			spellcheck="false"
 		/>
-		<button type="submit" class="btn btn-secondary">Review request</button>
+		<button type="submit" class="btn btn-secondary">{language.t('ui.Review.request')}</button>
 	</form>
 </section>

@@ -1,3 +1,4 @@
+import { negotiateLocale, LOCALE_COOKIE } from '#lib/i18n/locale.ts';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { error } from '@sveltejs/kit';
 import { RemoteClient } from '#lib/server/remote/client.ts';
@@ -56,6 +57,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return response;
 	}
 	requireFormOrigin(event);
+	event.locals.locale = negotiateLocale(
+		event.cookies.get(LOCALE_COOKIE),
+		event.request.headers.get('accept-language')
+	);
+	if (pathname === '/language') return resolve(event);
 
 	if (pathname === '/mtg' || pathname === '/mtg/') {
 		return createNoIndexRedirect(`/mtg/search${event.url.search}`, 308);
@@ -110,7 +116,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return createNoIndexRedirect(`/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
 	}
 
-	const response = await resolve(event);
+	const response = await resolve(event, {
+		transformPageChunk: ({ html }) => html.replace('%website.locale%', event.locals.locale)
+	});
+	response.headers.set('Content-Language', event.locals.locale);
+	response.headers.append('Vary', 'Cookie, Accept-Language');
 	if (pathname.startsWith('/auth/') || pathname === '/app' || pathname.startsWith('/app/')) {
 		response.headers.set('Cache-Control', 'no-store');
 		response.headers.set('Referrer-Policy', 'no-referrer');

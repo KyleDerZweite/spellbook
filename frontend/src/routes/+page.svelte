@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PublicLanding from '#lib/components/showcase/PublicLanding.svelte';
 	import { page } from '$app/state';
 	import { SITE_NAME, pageMetadata } from '#lib/seo/site.ts';
@@ -7,8 +9,10 @@
 		pageMetadata({
 			origin: page.url.origin,
 			path: '/',
-			title: `${SITE_NAME} | Your Magic workspace`,
-			description: 'Build Magic: The Gathering decks, search cards, and organize your inventory.'
+			title: language.t('message.p0.Your.Magic.workspace', { p0: String(SITE_NAME) }),
+			description: language.t(
+				'ui.Build.Magic.The.Gathering.decks.search.cards.and.organize.your.inventory'
+			)
 		})
 	);
 </script>

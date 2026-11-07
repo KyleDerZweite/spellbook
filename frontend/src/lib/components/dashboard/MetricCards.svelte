@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { onMount } from 'svelte';
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import { metricTrend, metricChange } from '#lib/valuation/metric-trends.ts';
@@ -17,40 +19,40 @@
 	const metrics = $derived([
 		{
 			key: 'value' as const,
-			label: 'Inventory value',
+			label: language.t('ui.Inventory.value'),
 			value: !estimate
-				? 'Unavailable'
+				? language.t('ui.Unavailable')
 				: estimate.totalQuantity > 0 && estimate.coveredQuantity === 0
-					? 'Unknown'
-					: formatValueEUR(estimate.coveredValue),
+					? language.t('ui.Unknown')
+					: formatValueEUR(estimate.coveredValue, language.locale),
 			secondary: '',
 			href: ''
 		},
 		{
 			key: 'total' as const,
-			label: 'Total / unique cards',
-			value: dashboard.totals.total.toLocaleString(),
-			secondary: `/ ${dashboard.totals.names.toLocaleString()}`,
+			label: language.t('ui.Total.unique.cards'),
+			value: dashboard.totals.total.toLocaleString(language.locale),
+			secondary: `/ ${dashboard.totals.names.toLocaleString(language.locale)}`,
 			href: '/mtg/inventory'
 		},
 		{
 			key: 'sets' as const,
-			label: 'Sets',
-			value: dashboard.totals.sets.toLocaleString(),
+			label: language.t('ui.Sets'),
+			value: dashboard.totals.sets.toLocaleString(language.locale),
 			secondary: '',
 			href: '/mtg/inventory'
 		},
 		{
 			key: 'decks' as const,
-			label: 'Decks',
-			value: dashboard.totals.decks.toLocaleString(),
+			label: language.t('ui.Decks'),
+			value: dashboard.totals.decks.toLocaleString(language.locale),
 			secondary: '',
 			href: '/mtg/decks'
 		}
 	]);
 </script>
 
-<ul class="metric-cards" aria-label="Collection overview">
+<ul class="metric-cards" aria-label={language.t('ui.Collection.overview')}>
 	{#each metrics as metric}
 		{@const trend = metricTrend(dashboard.inventoryValueHistory, metric.key)}
 		<li>
@@ -71,7 +73,10 @@
 				><MetricMiniChart
 					{trend}
 					kind={metric.key === 'value' ? 'line' : 'bars'}
-					label={`${metric.label}, 30 closed reporting dates${trend.partial ? ', covered subtotal with partial price coverage' : ''}`}
+					label={language.t('message.p0.30.closed.reporting.dates.p1', {
+						p0: String(metric.label),
+						p1: String(trend.partial ? ', covered subtotal with partial price coverage' : '')
+					})}
 				/></span
 			>
 		</li>
@@ -95,9 +100,12 @@
 			{#if trend.delta !== null}<span aria-hidden="true"
 					>{trend.delta > 0n ? '↗' : trend.delta < 0n ? '↘' : ''}</span
 				>
-				{metricChange(trend.delta, metric.key === 'value')}
-				<span class="comparison">over last month</span>{:else}<span class="comparison"
-					>{trend.captured ? 'No comparison yet' : 'No history yet'}</span
+				{metricChange(trend.delta, metric.key === 'value', language.locale)}
+				<span class="comparison">{language.t('ui.over.last.month')}</span>{:else}<span
+					class="comparison"
+					>{trend.captured
+						? language.t('ui.No.comparison.yet')
+						: language.t('ui.No.history.yet')}</span
 				>{/if}
 		</span>
 	</span>

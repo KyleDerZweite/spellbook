@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { arc, pie, type PieArcDatum } from 'd3-shape';
 	import type { Snippet } from 'svelte';
 	interface Item {
@@ -11,7 +13,7 @@
 		items,
 		kind = 'pie',
 		center,
-		unit = { singular: 'copy', plural: 'copies' }
+		unit = { singular: language.t('unit.copy'), plural: language.t('unit.copies') }
 	}: {
 		label: string;
 		items: Item[];
@@ -29,10 +31,12 @@
 	$effect(() => {
 		if (selected && !items.some((item) => item.label === selected && item.value > 0)) clear();
 	});
-	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
+	const percent = $derived(
+		new Intl.NumberFormat(language.locale, { style: 'percent', maximumFractionDigits: 1 })
+	);
 	const share = (value: number) => percent.format(total ? value / total : 0);
 	const copies = (value: number) =>
-		`${value.toLocaleString()} ${value === 1 ? unit.singular : unit.plural}`;
+		`${value.toLocaleString(language.locale)} ${value === 1 ? unit.singular : unit.plural}`;
 	const description = (item: Item) => `${item.label}: ${copies(item.value)}, ${share(item.value)}`;
 	const slices = $derived(
 		pie<Item>()
@@ -177,7 +181,7 @@
 			><strong>{copies(active.value)}</strong><small>{share(active.value)}</small>
 		</div>
 	{/if}
-	<span class="sr-only">{copies(total)} total</span>
+	<span class="sr-only">{language.t('sentence.p0.total', { p0: String(copies(total)) })}</span>
 	<noscript
 		><dl class="native-chart-data">
 			{#each items as item}<div>

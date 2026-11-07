@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import DashboardInsights from '#lib/components/dashboard/DashboardInsights.svelte';
@@ -58,26 +60,36 @@
 </script>
 
 <svelte:head
-	><title>Dashboard | Spellbook</title><meta name="robots" content="noindex" /></svelte:head
+	><title>{language.t('ui.Dashboard.Spellbook')}</title><meta
+		name="robots"
+		content="noindex"
+	/></svelte:head
 >
 <div class="workspace-container dashboard-page">
 	<SavedStateStatus resource={subscription} />
-	<WorkspaceHeader title="Dashboard" variant="overview">
-		{#snippet actions()}<a href="/mtg/inventory" class="btn btn-secondary btn-sm">View inventory</a
-			><a href="/mtg/search" class="btn btn-primary btn-sm"><PlusIcon />Add cards</a>{/snippet}
+	<WorkspaceHeader title={language.t('ui.Dashboard')} variant="overview">
+		{#snippet actions()}<a href="/mtg/inventory" class="btn btn-secondary btn-sm"
+				>{language.t('ui.View.inventory')}</a
+			><a href="/mtg/search" class="btn btn-primary btn-sm"
+				><PlusIcon />{language.t('ui.Add.cards')}</a
+			>{/snippet}
 	</WorkspaceHeader>
 	{#if loadError}
 		<div class="dashboard-empty" role="alert">
-			<p>{loadError}</p>
+			<p>{language.message(loadError)}</p>
 			<button class="btn btn-secondary btn-sm" onclick={retry} disabled={retrying}
-				>{retrying ? 'Loading...' : 'Try again'}</button
+				>{retrying ? 'Loading...' : language.t('ui.Try.again')}</button
 			>
 		</div>
 	{:else if dashboard}
 		<MetricCards {dashboard} demo={data.demoMode} />
 		{#if dashboard.totals.total === 0}<div class="dashboard-empty">
-				<p>Your inventory is empty. Add your first cards to start building your collection.</p>
-				<a href="/mtg/search" class="btn btn-primary btn-sm">Find cards</a>
+				<p>
+					{language.t(
+						'ui.Your.inventory.is.empty.Add.your.first.cards.to.start.building.your.collection'
+					)}
+				</p>
+				<a href="/mtg/search" class="btn btn-primary btn-sm">{language.t('ui.Find.cards')}</a>
 			</div>{/if}
 		<DashboardInsights {dashboard} />
 	{/if}

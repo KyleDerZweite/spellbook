@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { onMount } from 'svelte';
 	import TooltipButton from '#lib/components/ui/tooltip/TooltipButton.svelte';
 	type Theme = 'system' | 'light' | 'dark';
@@ -15,7 +17,10 @@
 </script>
 
 <TooltipButton
-	label={`Theme: ${theme}. Switch to ${next}`}
+	label={language.t('message.Theme.p0.Switch.to.p1', {
+		p0: language.t(`theme.${theme}`),
+		p1: language.t(`theme.${next}`)
+	})}
 	onclick={() => window.dispatchEvent(new CustomEvent('spellbook:set-theme', { detail: next }))}
 >
 	<svg

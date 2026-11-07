@@ -1,10 +1,57 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-11-06
+- Last Reviewed: 2026-11-07
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
-- Update Triggers: reviewed Deck summary responsibilities and acceptance, Search language filter placement and flags, Search language multi-selection and unique-card count, portable Deck imports/downloads and native print view, managed Category removal, completed color formulas and Deck-first Dashboard grid, explicit NOT Search colors, exact Search AND-only colors, Dashboard Quick Actions and activity/decks split, reordered Dashboard panels and removed composition disclosure, restored Deck grid and card-local Dashboard materials, selected Dashboard reference and pure summary panels, preview-only personal History and direct compact metric links, shared daily metric cards and leased History preview, Deck overview and intrinsic-height artwork Stacks, inline valuation disclosure, selected A+ Dashboard layout and native Demo evaluation, Mebius chart mark and selection refinement, enhanced Printing deep links, opt-in shortcut-only search evaluation lab, tri-state color expression URL/session/cache ownership, explicit static Demo valuation and simplified History presentation, compact Dashboard composition and valuation summary slot, shared D3 chart rendering and accessible inspection, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
-- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [Independent applications](./independent-applications.md)
+- Update Triggers:
+  - Website shell and presentation:
+    - Website language selection, bundled translations and locale formatting.
+    - Routes, authentication, public landing, responsive layout and typography.
+    - Shared controls, component choices and development review controls.
+    - PWA installation, updates, cache policy, QR presentation and camera cleanup.
+    - Installed narrow navigation and runtime compatibility.
+  - Search and Card inspection:
+    - Language filter placement, flags, multi-selection and result counts.
+    - Color expressions, AND-only and NOT semantics, URL/session/cache ownership.
+    - Printing deep links and opt-in shortcut-only search evaluation.
+    - Native Search context hydration and feedback restoration.
+    - Hybrid browsing, contextual Card dialogs and modal overflow.
+  - Dashboard and valuation:
+    - Selected Dashboard composition, Deck-first grid and panel responsibilities.
+    - Quick Actions, activity, Deck summaries and card-local materials.
+    - Shared daily metrics, direct detail links and leased History previews.
+    - Private value presentation, inline disclosure and boundary refresh.
+    - Static Demo valuation, native Demo evaluation and accessible D3 charts.
+    - Mebius chart marks and selection behavior.
+  - Inventory and Deck workspaces:
+    - Inventory ordering, filters, metadata shortcuts and compact read-only rows.
+    - Bounded loading, scale evidence and row measurement scheduling.
+    - Deck builder, overview, artwork Stacks and native task entry.
+    - Deck summary responsibilities, Library Editor state and reactivity checks.
+    - Portable imports, downloads, native printing and managed Category removal.
+    - Guarded initial Deck Search activation and bounded Deck choice reads.
+    - Shared Card addition adapters and retained caller drafts.
+  - Browsing and saved state:
+    - Continuous browsing, native range fallbacks and shared scroll viewports.
+    - Native window scrolling, visited result extents and deep-range prepending.
+    - Workspace SavedState consumers, feedback delay, leases and draft baselines.
+    - Topic-aware selected Deck refresh and publication acknowledgement.
+  - Application boundaries and verification:
+    - Versioned MTG routes, module ownership and replaced-interface removal.
+    - Python API activation and independent API/web ownership.
+    - Backend application/transport interfaces and framework lifecycle hooks.
+    - Root environment, local/build origins and relocated code references.
+    - Accepted design contracts and implementation evidence.
+- Related Docs:
+  - [System overview](./system-overview.md)
+  - [Auth](./auth.md)
+  - [Routes](../product/routing-and-games.md)
+  - [Catalog](./catalog.md)
+  - [Selected UI components](../reference/ui-libraries.md)
+  - [Design direction](../product/ui-design-direction.md)
+  - [Application contract](./application-contract.md)
+  - [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md)
+  - [Independent applications](./independent-applications.md)
 
 The SvelteKit application renders pages and owns native form presentation and browser cookies.
 Its [server composition](../../frontend/src/lib/server/composition.ts) exposes a request-bound [remote application](../../frontend/src/lib/server/remote/application.ts) over HTTP.
@@ -64,7 +111,8 @@ Background tiles and the deckbox scale within separate bounds, while action text
 [AccountLayout](../../frontend/src/lib/components/auth/AccountLayout.svelte) owns the shared login and registration form frame, selected logo and functional heading.
 Its narrow content centers within the shell on desktop and starts beneath the header on mobile.
 [PasswordInput](../../frontend/src/lib/components/auth/PasswordInput.svelte) owns the native password input and its 44-pixel Show/Hide control.
-Visibility changes the type of the existing input without replacing it; callers retain labels, autocomplete, length constraints and error associations.
+Visibility changes the type of the existing input without replacing it.
+Callers retain labels, autocomplete, length constraints and error associations.
 The pages retain their form actions, pending state and login destination.
 Legal text and account forms keep readable content widths inside the common shell.
 
@@ -90,7 +138,8 @@ The frontend [profile renderer helpers](../../frontend/src/lib/profile/card.ts) 
 Shared [ProfileTextField](../../frontend/src/lib/components/profile/ProfileTextField.svelte) and [KpiInsert](../../frontend/src/lib/components/profile/KpiInsert.svelte) insert placeholders using ActionMenu and restore field focus.
 The Profile Card route owns the reactive draft, saved/error status, authenticated card/artwork submission and height-aware sticky preview.
 It retains rejected inputs and focuses the first invalid field after controls are enabled.
-The shared [ArtworkPicker](../../frontend/src/lib/components/profile/ArtworkPicker.svelte) supplies native radios with complete 3:2 images in registration and the editor; [AvatarPicker](../../frontend/src/lib/components/profile/AvatarPicker.svelte) owns sprite choices.
+The shared [ArtworkPicker](../../frontend/src/lib/components/profile/ArtworkPicker.svelte) supplies native radios with complete 3:2 images in registration and the editor.
+[AvatarPicker](../../frontend/src/lib/components/profile/AvatarPicker.svelte) owns sprite choices.
 The backend Profile use case loads the stored definition independently of aggregate MTG totals so unavailable metrics do not block customization.
 Enhanced submissions send edited fields; native submissions include saved card/artwork baselines and derive the changed fields before calling the same Profile patch.
 Unchanged submissions authenticate without writing.
@@ -889,3 +938,28 @@ The [Catalog contract](./catalog.md#search-behavior) owns URL, API, grouping and
 The main result count shows matching Printings, with unique cards secondarily.
 The grid and Lazy pagination still use the unique-card total.
 Language state belongs to SearchSession and its normalized cache context, including later Lazy requests and native form submissions.
+
+## Website language
+
+Web implements website localization with bundled [English](../../frontend/src/lib/i18n/en.json) and [German](../../frontend/src/lib/i18n/de.json) JSON dictionaries.
+The dictionaries have identical typed keys and interpolation parameters, full messages and explicit plural variants.
+UI language is independent of Catalog Printing language filters, provider text and user-entered content.
+The [presentation adapter](../../frontend/src/lib/i18n/presentation.ts) translates known complete API messages.
+It preserves unknown API details, provider text and user-entered content.
+
+Each request resolves a supported language cookie, then weighted browser preferences, then English.
+The root layout passes the locale through reactive component context for SSR and browser rendering.
+The HTML `lang`, `Content-Language` and `Vary` headers reflect language resolution.
+No mutable server-global locale is used.
+
+A compact selected-language flag beside the top-right header controls opens the Deutsch/English choices.
+The control has accessible names and keyboard operation.
+Its native form posts to `/language`, persists the cookie and redirects to the current safe local route and query.
+Enhanced switching uses the same endpoint and updates the existing language context.
+It preserves mounted pages and their independent drafts.
+Language changes follow existing Origin protection and safe local redirect rules.
+Numbers and dates use the selected locale without changing exact monetary arithmetic, EUR currency or reporting timezones.
+No translation service, backend schema change or Android localization is part of this implementation.
+[Issue #329](https://github.com/KyleDerZweite/spellbook/issues/329) tracks verification and owner acceptance.
+Rendered guest and authenticated checks cover keyboard switching, reload persistence and retained Login/Profile drafts at wide and narrow widths.
+This does not establish complete translation-quality review or physical-device acceptance.

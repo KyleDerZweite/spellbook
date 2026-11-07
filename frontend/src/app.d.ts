@@ -35,6 +35,7 @@ declare global {
 		}
 
 		interface Locals {
+			locale: import('#lib/i18n/locale.ts').Locale;
 			api: import('#lib/server/remote/client.ts').RemoteClient;
 			user: AuthUser | null;
 			mobileBearerUser: AuthUser | null;

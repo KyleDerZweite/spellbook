@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
+	import { translate, type MessageKey } from '#lib/i18n/messages.ts';
+	const colorLabel = (id: string) => translate(language.locale, `color.${id}` as MessageKey);
 	import { scaleLinear } from 'd3-scale';
 	import { onMount } from 'svelte';
 	import type { DeckCard } from '@spellbook/contracts/decks.ts';
@@ -49,25 +53,36 @@
 	}}
 />
 
-<section class="deck-statistics" aria-label="Deck statistics">
+<section class="deck-statistics" aria-label={language.t('ui.Deck.statistics')}>
 	<div class="statistics-heading">
-		<h2>Deck analysis</h2>
-		<select class="input" aria-label="Analysis sections" bind:value={scope} disabled={!enhanced}>
-			<option value="deck">Main + commander</option><option value="main">Main deck</option><option
-				value="sideboard">Sideboard</option
-			><option value="companion">Companion</option><option value="all">All sections</option>
+		<h2>{language.t('ui.Deck.analysis')}</h2>
+		<select
+			class="input"
+			aria-label={language.t('ui.Analysis.sections')}
+			bind:value={scope}
+			disabled={!enhanced}
+		>
+			<option value="deck">{language.t('ui.Main.commander')}</option><option value="main"
+				>{language.t('ui.Main.deck')}</option
+			><option value="sideboard">{language.t('ui.Sideboard')}</option><option value="companion"
+				>{language.t('ui.Companion')}</option
+			><option value="all">{language.t('ui.All.sections')}</option>
 		</select>
 	</div>
 	<div class="analysis-grid">
-		<section class="analysis-panel" aria-label="Mana curve">
+		<section class="analysis-panel" aria-label={language.t('ui.Mana.curve')}>
 			<div class="chart-heading">
-				<h3>Mana curve</h3>
-				<span>{statistics.curveQuantity.toLocaleString()} nonland copies</span>
+				<h3>{language.t('ui.Mana.curve')}</h3>
+				<span
+					>{language.t('sentence.p0.nonland.copies', {
+						p0: String(statistics.curveQuantity.toLocaleString(language.locale))
+					})}</span
+				>
 			</div>
 			{#if statistics.curveQuantity}<div
 					class="curve"
 					role="group"
-					aria-label="Copies by mana value"
+					aria-label={language.t('ui.Copies.by.mana.value')}
 				>
 					{#each statistics.curve as item}<button
 							type="button"
@@ -75,8 +90,14 @@
 							onfocus={() => (inspectedMana = item.label)}
 							onpointerenter={() => (inspectedMana = item.label)}
 							onclick={() => (inspectedMana = item.label)}
-							aria-label={`Mana value ${item.label}: ${item.quantity.toLocaleString()} copies`}
-							title={`Mana value ${item.label}: ${item.quantity.toLocaleString()} copies`}
+							aria-label={language.t('message.Mana.value.p0.p1.copies', {
+								p0: String(item.label),
+								p1: String(item.quantity.toLocaleString(language.locale))
+							})}
+							title={language.t('message.Mana.value.p0.p1.copies', {
+								p0: String(item.label),
+								p1: String(item.quantity.toLocaleString(language.locale))
+							})}
 						>
 							<span class="curve-count">{item.quantity || ''}</span>
 							<div class="bar-space">
@@ -86,52 +107,58 @@
 						</button>{/each}
 				</div>
 				<p class="curve-readout" aria-live="polite">
-					{#if inspectedBucket}Mana value {inspectedBucket.label} · {inspectedBucket.quantity.toLocaleString()}
-						copies{/if}
+					{#if inspectedBucket}{language.t('ui.Mana.value')}
+						{inspectedBucket.label} · {inspectedBucket.quantity.toLocaleString(language.locale)}
+						{language.t('ui.copies')}{/if}
 				</p>{:else}<p class="empty-chart">
-					{statistics.quantity ? 'No resolved nonland mana values' : 'No cards in this section'}
+					{statistics.quantity
+						? language.t('ui.No.resolved.nonland.mana.values')
+						: language.t('ui.No.cards.in.this.section')}
 				</p>{/if}
 			<div class="chart-meta">
 				<span
-					>Average <strong
+					>{language.t('ui.Average')}
+					<strong
 						>{statistics.averageManaValue === null
-							? 'Unavailable'
-							: statistics.averageManaValue.toLocaleString(undefined, {
+							? language.t('ui.Unavailable')
+							: statistics.averageManaValue.toLocaleString(language.locale, {
 									maximumFractionDigits: 2
 								})}</strong
 					></span
 				><span
-					>{statistics.lands.toLocaleString()} lands excluded{#if statistics.curveUnknown}
-						· {statistics.curveUnknown.toLocaleString()} unknown{/if}</span
+					>{statistics.lands.toLocaleString(language.locale)}
+					{language.t('ui.lands.excluded')}{#if statistics.curveUnknown}
+						· {statistics.curveUnknown.toLocaleString(language.locale)}
+						{language.t('ui.unknown')}{/if}</span
 				>
 			</div>
 		</section>
-		<section class="analysis-panel" aria-label="Color distribution">
+		<section class="analysis-panel" aria-label={language.t('ui.Color.distribution')}>
 			<div class="chart-heading">
-				<h3>Color distribution</h3>
+				<h3>{language.t('ui.Color.distribution')}</h3>
 				<select
 					class="input measure"
-					aria-label="Deck color measure"
+					aria-label={language.t('ui.Deck.color.measure')}
 					bind:value={colorMeasure}
 					disabled={!enhanced}
-					><option value="colors">Colors</option><option value="colorIdentity"
-						>Color identity</option
+					><option value="colors">{language.t('ui.Colors')}</option><option value="colorIdentity"
+						>{language.t('ui.Color.identity')}</option
 					></select
 				>
 			</div>
 			{#if statistics.quantity}<div class="color-distribution">
 					<ProportionChart
-						label="Deck color distribution"
+						label={language.t('ui.Deck.color.distribution')}
 						kind="ring"
 						items={colors.map((item) => ({
-							label: item.label,
+							label: colorLabel(item.label),
 							value: item.quantity,
 							color: palette[item.label]
 						}))}
 					>
 						{#snippet center()}<strong class="color-total"
-								>{statistics.quantity.toLocaleString()}</strong
-							><span class="color-caption">copies</span>{/snippet}
+								>{statistics.quantity.toLocaleString(language.locale)}</strong
+							><span class="color-caption">{language.t('ui.copies')}</span>{/snippet}
 					</ProportionChart>
 					<dl class="color-key">
 						{#each colors as item}<div>
@@ -140,16 +167,18 @@
 										class={`ms ms-${symbols[item.label] ?? 'card'}`}
 										aria-hidden="true"
 										style:color={palette[item.label]}
-									></i>{item.label}
+									></i>{colorLabel(item.label)}
 								</dt>
-								<dd>{item.quantity.toLocaleString()}</dd>
+								<dd>{item.quantity.toLocaleString(language.locale)}</dd>
 							</div>{/each}
 					</dl>
 				</div>
-			{:else}<p class="empty-chart">No cards in this section</p>{/if}
+			{:else}<p class="empty-chart">{language.t('ui.No.cards.in.this.section')}</p>{/if}
 			<p class="chart-meta">
-				{statistics.quantity.toLocaleString()} copies{#if colorUnknown}
-					· {colorUnknown.toLocaleString()} color values unknown{/if}
+				{statistics.quantity.toLocaleString(language.locale)}
+				{language.t('ui.copies')}{#if colorUnknown}
+					· {colorUnknown.toLocaleString(language.locale)}
+					{language.t('ui.color.values.unknown')}{/if}
 			</p>
 		</section>
 	</div>

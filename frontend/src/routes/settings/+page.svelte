@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { untrack, tick } from 'svelte';
@@ -39,23 +41,28 @@
 </script>
 
 <svelte:head
-	><title>Profile | Spellbook</title><meta name="robots" content="noindex, nofollow" /></svelte:head
+	><title>{language.t('ui.Profile.Spellbook')}</title><meta
+		name="robots"
+		content="noindex, nofollow"
+	/></svelte:head
 >
 <div class="profile-page">
 	{#if savedProfile.status !== 'live' && savedProfile.status !== 'idle'}<p
 			role="status"
 			class="text-sm text-text-secondary"
 		>
-			Saved changes synchronization is {savedProfile.status}.
+			{language.t('sentence.Saved.changes.synchronization.is.p0', {
+				p0: String(savedProfile.status)
+			})}
 		</p>{/if}
-	<div class="page-title"><h1>Profile</h1></div>
+	<div class="page-title"><h1>{language.t('ui.Profile')}</h1></div>
 	<p id="power-user-search" class="text-sm text-text-secondary">
-		Power-user search <kbd>Ctrl / Cmd + K</kbd>
+		{language.t('ui.Power.user.search')} <kbd>Ctrl / Cmd + K</kbd>
 	</p>
 	<div class="profile-settings">
 		<div class="profile-fields">
 			<div>
-				<label for="profile-username" class="label">Username</label><input
+				<label for="profile-username" class="label">{language.t('ui.Username')}</label><input
 					id="profile-username"
 					class="input"
 					value={saved.user.username}
@@ -75,7 +82,8 @@
 					return async ({ result, update }) => {
 						try {
 							if (write && !write.current()) return;
-							if (result.type === 'error') saveError = 'Could not save your email. Try again.';
+							if (result.type === 'error')
+								saveError = language.t('ui.Could.not.save.your.email.Try.again');
 							else {
 								await update({ reset: false, refreshAll: false, navigate: false });
 								if (write && !write.current()) return;
@@ -98,7 +106,7 @@
 				}}
 			>
 				<input type="hidden" name="intent" value="email" />
-				<label for="profile-email" class="label">Email</label>
+				<label for="profile-email" class="label">{language.t('ui.Email')}</label>
 				<input
 					id="profile-email"
 					name="email"
@@ -112,12 +120,12 @@
 					aria-describedby="email-help email-error"
 				/>
 				<p id="email-help" class="field-help">
-					Optional contact email. Sign in with your username.
+					{language.t('ui.Optional.contact.email.Sign.in.with.your.username')}
 				</p>
-				<p id="email-error" class="field-error">{emailError ?? ''}</p>
+				<p id="email-error" class="field-error">{language.message(emailError ?? '')}</p>
 				<div class="profile-save">
 					<button class="btn btn-primary" disabled={pending}
-						>{pending ? 'Saving...' : 'Save email'}</button
+						>{pending ? language.t('ui.Saving') : language.t('ui.Save.email')}</button
 					>
 					<p
 						role="status"
@@ -132,7 +140,9 @@
 				<div
 					class="avatar-image"
 					role="img"
-					aria-label={`${getAvatar(saved.user.avatarId).label} avatar`}
+					aria-label={language.t('message.p0.avatar', {
+						p0: String(getAvatar(saved.user.avatarId).label)
+					})}
 				>
 					<Avatar id={saved.user.avatarId} size={88} />
 				</div>
@@ -147,7 +157,7 @@
 				totals={saved.totals}
 				definition={saved.card}
 			/>
-			<a href="/settings/profile-card" class="btn btn-secondary">Edit Card</a>
+			<a href="/settings/profile-card" class="btn btn-secondary">{language.t('ui.Edit.Card')}</a>
 			{#if saved.statsError}<p role="status" class="text-sm text-text-secondary">
 					{saved.statsError}
 				</p>{/if}

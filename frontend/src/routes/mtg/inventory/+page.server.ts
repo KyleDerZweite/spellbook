@@ -1,3 +1,5 @@
+import { localizeMessage } from '#lib/i18n/presentation.ts';
+import type { Locale } from '#lib/i18n/locale.ts';
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import {
@@ -24,13 +26,14 @@ import {
 } from '#lib/server/data/inventory-browsing.ts';
 import { browsePaginationHref } from '#lib/browsing/pagination.ts';
 
-function inventoryDisplayMessage(message: string): string {
-	if (message === 'Inventory group not found') return 'Inventory box not found';
+function inventoryDisplayMessage(locale: Locale, message: string): string {
+	if (message === 'Inventory group not found')
+		return localizeMessage(locale, 'Inventory box not found');
 	if (message === 'A group with this name already exists')
-		return 'A box with this name already exists';
+		return localizeMessage(locale, 'A box with this name already exists');
 	if (message === 'Group name must contain 1 to 64 characters')
-		return 'Box name must contain 1 to 64 characters';
-	return message;
+		return localizeMessage(locale, 'Box name must contain 1 to 64 characters');
+	return localizeMessage(locale, message);
 }
 
 export const load: PageServerLoad = async ({ locals, parent, url, request }) => {
@@ -96,8 +99,8 @@ export const load: PageServerLoad = async ({ locals, parent, url, request }) => 
 			error(401, 'Authentication required');
 		if (cause instanceof ValidationError) {
 			if (cause.message === 'Inventory group not found')
-				error(404, inventoryDisplayMessage(cause.message));
-			error(400, inventoryDisplayMessage(cause.message));
+				error(404, inventoryDisplayMessage(locals.locale, cause.message));
+			error(400, inventoryDisplayMessage(locals.locale, cause.message));
 		}
 		throw cause;
 	}
@@ -118,21 +121,28 @@ interface InventoryFormFailure {
 	latestNotes?: { entryId: string; notes: string; notesRevision: string };
 }
 function mutationFailure(
+	locale: Locale,
 	cause: unknown,
 	draft?: NotesRecovery
 ): ActionFailure<InventoryFormFailure> {
 	if (cause instanceof NotesConflictError)
 		return fail(409, {
-			message: inventoryDisplayMessage(cause.message),
+			message: inventoryDisplayMessage(locale, cause.message),
 			notesRecovery: draft,
 			latestNotes: cause.latest
 		});
 	if (cause instanceof InventoryQuantityChangedError || cause instanceof RequestConflictError)
-		return fail(409, { message: inventoryDisplayMessage(cause.message) });
+		return fail(409, { message: inventoryDisplayMessage(locale, cause.message) });
 	if (cause instanceof InventoryNotFoundError)
-		return fail(404, { message: inventoryDisplayMessage(cause.message), notesRecovery: draft });
+		return fail(404, {
+			message: inventoryDisplayMessage(locale, cause.message),
+			notesRecovery: draft
+		});
 	if (cause instanceof ValidationError)
-		return fail(400, { message: inventoryDisplayMessage(cause.message), notesRecovery: draft });
+		return fail(400, {
+			message: inventoryDisplayMessage(locale, cause.message),
+			notesRecovery: draft
+		});
 	throw cause;
 }
 export const actions = {
@@ -146,7 +156,7 @@ export const actions = {
 			});
 			return { success: true, acknowledgement, groupId: acknowledgement.groups[0]?.groupId };
 		} catch (cause) {
-			return mutationFailure(cause);
+			return mutationFailure(locals.locale, cause);
 		}
 	},
 	renameGroup: async ({ request, locals }) => {
@@ -160,7 +170,7 @@ export const actions = {
 			});
 			return { success: true, acknowledgement };
 		} catch (cause) {
-			return mutationFailure(cause);
+			return mutationFailure(locals.locale, cause);
 		}
 	},
 	deleteGroup: async ({ request, locals, url }) => {
@@ -184,7 +194,7 @@ export const actions = {
 			}
 			return { success: true, acknowledgement };
 		} catch (cause) {
-			return mutationFailure(cause);
+			return mutationFailure(locals.locale, cause);
 		}
 	},
 	assignGroups: async ({ request, locals }) => {
@@ -198,7 +208,7 @@ export const actions = {
 			});
 			return { success: true, acknowledgement };
 		} catch (cause) {
-			return mutationFailure(cause);
+			return mutationFailure(locals.locale, cause);
 		}
 	},
 	updateQuantity: async ({ request, locals }) => {
@@ -237,6 +247,7 @@ export const actions = {
 			return { success: true, acknowledgement };
 		} catch (cause) {
 			return mutationFailure(
+				locals.locale,
 				cause,
 				form.has('notes')
 					? {
@@ -263,7 +274,7 @@ export const actions = {
 			});
 			return { success: true, acknowledgement };
 		} catch (cause) {
-			return mutationFailure(cause);
+			return mutationFailure(locals.locale, cause);
 		}
 	}
 } satisfies Actions;

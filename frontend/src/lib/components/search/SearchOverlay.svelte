@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { Dialog } from 'bits-ui';
 	import { page } from '$app/state';
 	import { beforeNavigate, goto } from '$app/navigation';
@@ -140,15 +142,17 @@
 				const desktop = document.querySelector<HTMLElement>('.primary-nav a[href="/mtg/search"]');
 				const fallback = desktop?.getClientRects().length
 					? desktop
-					: document.querySelector<HTMLElement>('[aria-label="Open navigation menu"]');
+					: document.querySelector<HTMLElement>('[data-navigation-trigger]');
 				const target =
 					returnFocus?.isConnected && returnFocus.getClientRects().length ? returnFocus : fallback;
 				target?.focus({ preventScroll: true });
 			}}
 		>
-			<Dialog.Title class="sr-only">Search cards</Dialog.Title>
+			<Dialog.Title class="sr-only">{language.t('ui.Search.cards')}</Dialog.Title>
 			<Dialog.Description class="sr-only"
-				>Search the Magic catalog, inspect printings, and add cards to inventory.</Dialog.Description
+				>{language.t(
+					'ui.Search.the.Magic.catalog.inspect.printings.and.add.cards.to.inventory'
+				)}</Dialog.Description
 			>
 			{#if open}
 				<SearchWorkspace {viewport} controls={overlayControls} />
@@ -163,14 +167,14 @@
 			type="button"
 			class="btn btn-ghost shrink-0"
 			onclick={fullView}
-			disabled={session.pending}>Full view</button
+			disabled={session.pending}>{language.t('ui.Full.view')}</button
 		>
 		<button
 			type="button"
 			class="btn btn-ghost btn-icon shrink-0"
 			onclick={closeSearch}
 			disabled={session.pending}
-			aria-label="Close search">✕</button
+			aria-label={language.t('ui.Close.search')}>✕</button
 		>
 	</div>
 {/snippet}

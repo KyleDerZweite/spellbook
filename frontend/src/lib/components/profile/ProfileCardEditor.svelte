@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ProfileTextField from './ProfileTextField.svelte';
 	import ArtworkPicker from './ArtworkPicker.svelte';
@@ -29,7 +31,7 @@
 <div class="editor-fields">
 	<div class="field-row">
 		<div>
-			<label class="label" for="card-name">Name</label><input
+			<label class="label" for="card-name">{language.t('ui.Name')}</label><input
 				class="input"
 				id="card-name"
 				name="name"
@@ -41,10 +43,10 @@
 				aria-describedby="card-name-error"
 			/>
 			<p class="field-count">{card.name.length}/{PROFILE_CARD_LIMITS.name}</p>
-			<p id="card-name-error" class="field-error">{errors.name ?? ''}</p>
+			<p id="card-name-error" class="field-error">{language.message(errors.name ?? '')}</p>
 		</div>
 		<div>
-			<label class="label" for="card-mana">Mana cost</label><input
+			<label class="label" for="card-mana">{language.t('ui.Mana.cost')}</label><input
 				class="input"
 				id="card-mana"
 				name="manaCost"
@@ -54,40 +56,43 @@
 				aria-invalid={!!errors.manaCost}
 				aria-describedby="card-mana-help card-mana-error"
 			/>
-			<p id="card-mana-help" class="field-help">{'Up to 8 symbols: {2}{U}, {W/U}, {G/P}'}</p>
-			<p id="card-mana-error" class="field-error">{errors.manaCost ?? ''}</p>
+			<p id="card-mana-help" class="field-help">
+				{language.t('profile.manaHelp', { examples: '{2}{U}, {W/U}, {G/P}' })}
+			</p>
+			<p id="card-mana-error" class="field-error">{language.message(errors.manaCost ?? '')}</p>
 		</div>
 	</div>
 	<div class="field-row">
 		<div>
-			<label class="label" for="card-frame">Frame</label><Select
+			<label class="label" for="card-frame">{language.t('ui.Frame')}</label><Select
 				id="card-frame"
 				name="frame"
-				label="Frame color"
+				label={language.t('ui.Frame.color')}
 				options={[...PROFILE_CARD_FRAMES]}
 				bind:value={card.frame}
 				{disabled}
 			/>
-			<p class="field-error">{errors.frame ?? ''}</p>
+			<p class="field-error">{language.message(errors.frame ?? '')}</p>
 		</div>
 		<div>
-			<label class="label" for="card-rarity">Rarity</label><Select
+			<label class="label" for="card-rarity">{language.t('ui.Rarity')}</label><Select
 				id="card-rarity"
 				name="rarity"
-				label="Rarity"
+				label={language.t('ui.Rarity')}
 				options={[...PROFILE_CARD_RARITIES]}
 				bind:value={card.rarity}
 				{disabled}
 			/>
-			<p class="field-error">{errors.rarity ?? ''}</p>
+			<p class="field-error">{language.message(errors.rarity ?? '')}</p>
 		</div>
 	</div>
 	<label class="legendary-control"
-		><input type="checkbox" name="legendary" bind:checked={card.legendary} {disabled} /> Legendary frame</label
+		><input type="checkbox" name="legendary" bind:checked={card.legendary} {disabled} />
+		{language.t('ui.Legendary.frame')}</label
 	>
 	<ArtworkPicker bind:selected={artworkId} {disabled} />
 	<div>
-		<label class="label" for="card-type">Type line</label><input
+		<label class="label" for="card-type">{language.t('ui.Type.line')}</label><input
 			class="input"
 			id="card-type"
 			name="typeLine"
@@ -99,55 +104,55 @@
 			aria-describedby="card-type-error"
 		/>
 		<p class="field-count">{card.typeLine.length}/{PROFILE_CARD_LIMITS.typeLine}</p>
-		<p id="card-type-error" class="field-error">{errors.typeLine ?? ''}</p>
+		<p id="card-type-error" class="field-error">{language.message(errors.typeLine ?? '')}</p>
 	</div>
 	<ProfileTextField
 		name="rulesText"
-		label="Rules text"
+		label={language.t('ui.Rules.text')}
 		bind:value={card.rulesText}
 		multiline
 		rows={4}
 		limit={PROFILE_CARD_LIMITS.rulesText}
 		{disabled}
-		error={errors.rulesText}
+		error={language.message(errors.rulesText)}
 		{totals}
-		help={'KPIs update from your collection. Mana and action symbols use braces: {G}, {T}, {Q}, {E}.'}
+		help={language.t('profile.rulesHelp', { examples: '{G}, {T}, {Q}, {E}' })}
 	/>
 	<ProfileTextField
 		name="flavorText"
-		label="Flavor text"
+		label={language.t('ui.Flavor.text')}
 		bind:value={card.flavorText}
 		multiline
 		rows={2}
 		limit={PROFILE_CARD_LIMITS.flavorText}
 		{disabled}
-		error={errors.flavorText}
+		error={language.message(errors.flavorText)}
 		{totals}
 	/>
 	<div class="field-row">
 		<ProfileTextField
 			name="power"
-			label="Power"
+			label={language.t('ui.Power')}
 			bind:value={card.power}
 			limit={PROFILE_CARD_LIMITS.power}
 			{disabled}
-			error={errors.power}
+			error={language.message(errors.power)}
 			{totals}
-			help="Number, *, X or KPI. Fill both or leave both empty."
+			help={language.t('profile.powerHelp')}
 		/>
 		<ProfileTextField
 			name="toughness"
-			label="Toughness"
+			label={language.t('ui.Toughness')}
 			bind:value={card.toughness}
 			limit={PROFILE_CARD_LIMITS.toughness}
 			{disabled}
-			error={errors.toughness}
+			error={language.message(errors.toughness)}
 			{totals}
-			help="Number, *, X or KPI. Fill both or leave both empty."
+			help={language.t('profile.powerHelp')}
 		/>
 	</div>
 	{#if errors.form || errors.template || errors.legendary}<p class="field-error" role="alert">
-			{errors.form ?? errors.template ?? errors.legendary}
+			{language.message(errors.form ?? errors.template ?? errors.legendary)}
 		</p>{/if}
 </div>
 

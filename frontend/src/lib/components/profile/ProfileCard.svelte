@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import Avatar from './Avatar.svelte';
 	import ProfileCardText from './ProfileCardText.svelte';
 	import ProfileFrameRegion from './ProfileFrameRegion.svelte';
@@ -35,7 +37,11 @@
 	let creatureFrame = $derived(`${assetPrefix}-creature.webp`);
 </script>
 
-<article class="profile-card" data-frame={card.frame} aria-label={`Profile card for ${username}`}>
+<article
+	class="profile-card"
+	data-frame={card.frame}
+	aria-label={language.t('message.Profile.card.for.p0', { p0: String(username) })}
+>
 	<div class="card-name frame-section">
 		<ProfileFrameRegion src={frame} box={[0, 0, 745, 120]} start={56} end={14} />
 		<div class="card-name-content frame-content">
@@ -63,8 +69,9 @@
 				class="rarity"
 				data-rarity={card.rarity}
 				role="img"
-				aria-label={`${rarity?.label ?? 'Unknown'} rarity`}
-				><i class="ms ms-rarity" aria-hidden="true"></i></span
+				aria-label={language.t('message.p0.rarity', {
+					p0: String(rarity?.label ?? language.t('ui.Unknown'))
+				})}><i class="ms ms-rarity" aria-hidden="true"></i></span
 			>
 		</div>
 	</div>
@@ -88,9 +95,8 @@
 					horizontal
 				/>
 				<div class="card-stats-content frame-content">
-					<span>{resolveProfileText(card.power, totals) || '…'}</span><span>/</span><span
-						>{resolveProfileText(card.toughness, totals) || '…'}</span
-					>
+					<span>{resolveProfileText(card.power, totals, language.locale) || '…'}</span><span>/</span
+					><span>{resolveProfileText(card.toughness, totals, language.locale) || '…'}</span>
 				</div>
 			</div>{/if}
 		<div class="card-footer frame-content">

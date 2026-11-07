@@ -1,3 +1,4 @@
+import type { Locale } from '#lib/i18n/locale.ts';
 export * from '@spellbook/contracts/profile-card.ts';
 import {
 	PROFILE_KPIS,
@@ -6,26 +7,33 @@ import {
 } from '@spellbook/contracts/profile-card.ts';
 import type { ProfileTotals } from '@spellbook/contracts/profile.ts';
 
-const number = new Intl.NumberFormat('en');
-
-export function profileKpiValue(key: string, totals: ProfileTotals | null): string | undefined {
+export function profileKpiValue(
+	key: string,
+	totals: ProfileTotals | null,
+	locale: Locale = 'en'
+): string | undefined {
 	const kpi = PROFILE_KPIS.find((entry) => entry.key === key);
 	if (!kpi) return undefined;
-	return totals ? number.format(totals[kpi.metric]) : 'unavailable';
+	return totals ? new Intl.NumberFormat(locale).format(totals[kpi.metric]) : 'unavailable';
 }
 
-export function resolveProfileText(text: string, totals: ProfileTotals | null): string {
+export function resolveProfileText(
+	text: string,
+	totals: ProfileTotals | null,
+	locale: Locale = 'en'
+): string {
 	return text.replace(
 		/\{([^{}]+)\}/g,
-		(token, key: string) => profileKpiValue(key, totals) ?? token
+		(token, key: string) => profileKpiValue(key, totals, locale) ?? token
 	);
 }
 
 export function profileTextSegments(
 	text: string,
-	totals: ProfileTotals | null
+	totals: ProfileTotals | null,
+	locale: Locale = 'en'
 ): Array<{ type: 'text' | 'mana'; value: string }> {
-	return resolveProfileText(text, totals)
+	return resolveProfileText(text, totals, locale)
 		.split(/(\{[^{}]+\})/g)
 		.filter(Boolean)
 		.map((value) => {

@@ -1,3 +1,5 @@
+import { localizeMessage } from '#lib/i18n/presentation.ts';
+import { translate } from '#lib/i18n/messages.ts';
 import { fail, isRedirect, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { application } from '#lib/server/composition.ts';
@@ -48,7 +50,7 @@ export const actions = {
 		} catch (cause) {
 			if (cause instanceof ValidationError)
 				return fail(cause instanceof RequestConflictError ? 409 : 400, {
-					message: cause.message,
+					message: localizeMessage(locals.locale, cause.message),
 					text,
 					requestId,
 					name,
@@ -59,7 +61,10 @@ export const actions = {
 			if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 				throw redirect(303, '/auth/login?returnTo=/mtg/decks/import');
 			return fail(503, {
-				message: 'The import could not be confirmed. Retry with the same content.',
+				message: translate(
+					locals.locale,
+					'notice.The.import.could.not.be.confirmed.Retry.with.the.same.content'
+				),
 				retryCommit: committing,
 				text,
 				requestId,

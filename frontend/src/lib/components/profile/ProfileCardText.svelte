@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import ManaCost from '#lib/components/cards/ManaCost.svelte';
 	import { profileTextSegments } from '#lib/profile/card.ts';
 	import type { ProfileTotals } from '#lib/profile/types.ts';
 	let { text, totals }: { text: string; totals: ProfileTotals | null } = $props();
-	let segments = $derived(profileTextSegments(text, totals));
+	let segments = $derived(profileTextSegments(text, totals, language.locale));
 </script>
 
 <div class="profile-card-text">

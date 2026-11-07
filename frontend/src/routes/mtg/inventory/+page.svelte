@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
@@ -138,23 +140,38 @@
 	let emptyAction = $state<HTMLAnchorElement | null>(null);
 	let removalReturnTarget = $state<HTMLElement | null>(null);
 	let rowMenuRefs = $state<Record<string, HTMLButtonElement | null>>({});
-	const addedDate = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
-	const columns: Array<{ column: Exclude<InventoryColumn, 'newest'>; label: string }> = [
-		{ column: 'name', label: 'Card' },
-		{ column: 'set', label: 'Set' },
-		{ column: 'finish', label: 'Finish' },
-		{ column: 'condition', label: 'Condition' },
-		{ column: 'quantity', label: 'Quantity' }
-	];
-	const conditionOptions = [
-		{ value: 'all', label: 'All' },
-		...inventoryConditions.map((value) => ({ value, label: value }))
-	];
-	const finishOptions = [
-		{ value: 'all', label: 'All' },
-		{ value: 'nonfoil', label: 'Nonfoil' },
-		{ value: 'foil', label: 'Foil' }
-	];
+	const addedDate = $derived(
+		new Intl.DateTimeFormat(language.locale, { dateStyle: 'medium', timeZone: 'UTC' })
+	);
+	const columns: Array<{ column: Exclude<InventoryColumn, 'newest'>; label: string }> = $derived([
+		{ column: 'name', label: language.t('ui.Card') },
+		{ column: 'set', label: language.t('ui.Set') },
+		{ column: 'finish', label: language.t('ui.Finish') },
+		{ column: 'condition', label: language.t('ui.Condition') },
+		{ column: 'quantity', label: language.t('ui.Quantity') }
+	]);
+	const conditionOptions = $derived([
+		{ value: 'all', label: language.t('ui.All') },
+		...inventoryConditions.map((value) => ({
+			value,
+			label: language.t(
+				(
+					{
+						NM: 'ui.Near.Mint',
+						LP: 'ui.Lightly.Played',
+						MP: 'ui.Moderately.Played',
+						HP: 'ui.Heavily.Played',
+						DMG: 'ui.Damaged'
+					} as const
+				)[value as 'NM']
+			)
+		}))
+	]);
+	const finishOptions = $derived([
+		{ value: 'all', label: language.t('ui.All') },
+		{ value: 'nonfoil', label: language.t('notice.Nonfoil') },
+		{ value: 'foil', label: language.t('notice.Foil') }
+	]);
 	let hydrated = $state(false),
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null),
@@ -173,11 +190,11 @@
 			});
 			if (response.status === 401) {
 				if (publication() && account === page.data.user?.accountId) workspaceSavedState.expire();
-				throw new Error('Sign in again to load inventory.');
+				throw new Error(language.t('ui.Sign.in.again.to.load.inventory'));
 			}
 			const result = await response.json();
 			if (!response.ok && result.kind !== 'RevisionChanged')
-				throw new Error(result.message ?? 'Could not load inventory. Try again.');
+				throw new Error(result.message ?? language.t('ui.Could.not.load.inventory.Try.again'));
 			return result;
 		},
 		() => windowVersion++,
@@ -379,7 +396,10 @@
 			await restoreNativeOffset(next.offset);
 		} catch (cause) {
 			if (!controller.signal.aborted)
-				mutationError = cause instanceof Error ? cause.message : 'Could not load this page.';
+				mutationError =
+					cause instanceof Error
+						? language.message(cause.message)
+						: language.t('ui.Could.not.load.this.page');
 		} finally {
 			if (pageController === controller) pageController = null;
 		}
@@ -448,7 +468,10 @@
 					await goto(href, { replace: typing, reset: false, shallow: true });
 				} catch (cause) {
 					if (!controller.signal.aborted)
-						mutationError = cause instanceof Error ? cause.message : 'Could not apply filters.';
+						mutationError =
+							cause instanceof Error
+								? language.message(cause.message)
+								: language.t('ui.Could.not.apply.filters');
 				}
 			})();
 		}, 200);
@@ -585,11 +608,11 @@
 					);
 					if (response.status === 401 && leaseCurrent()) {
 						workspaceSavedState.expire();
-						throw Error('Authentication required.');
+						throw Error(language.t('ui.Authentication.required'));
 					}
 					const result = await response.json();
 					if (!response.ok && result.kind !== 'RevisionChanged')
-						throw Error('Could not restore the inventory position.');
+						throw Error(language.t('ui.Could.not.restore.the.inventory.position'));
 					return result;
 				},
 				controller.signal,
@@ -629,7 +652,9 @@
 		} catch (cause) {
 			if (!controller.signal.aborted)
 				mutationError =
-					cause instanceof Error ? cause.message : 'Could not restore the inventory position.';
+					cause instanceof Error
+						? language.message(cause.message)
+						: language.t('ui.Could.not.restore.the.inventory.position');
 			return false;
 		} finally {
 			if (anchorController === controller) {
@@ -653,7 +678,9 @@
 			void refreshTargets().catch((cause) => {
 				if (workspaceSavedState.isActive(windowAccount))
 					mutationError =
-						cause instanceof Error ? cause.message : 'Saved entry details are unavailable.';
+						cause instanceof Error
+							? language.message(cause.message)
+							: language.t('ui.Saved.entry.details.are.unavailable');
 			});
 		});
 	});
@@ -791,7 +818,9 @@
 	let setOptions = $derived(
 		[...new Set([...currentWindow.sets.map((set) => set.code), ...selectedSets])]
 			.map((value) => ({ value, label: setName(value) }))
-			.sort((a, b) => a.label.localeCompare(b.label) || a.value.localeCompare(b.value))
+			.sort(
+				(a, b) => a.label.localeCompare(b.label, language.locale) || a.value.localeCompare(b.value)
+			)
 	);
 	let visibleSets = $derived(
 		setOptions.filter((option) =>
@@ -1021,8 +1050,10 @@
 						removeId = null;
 					}
 					status = removing
-						? `${card?.name ?? 'Entry'} removed.`
-						: `${card?.name ?? 'Quantity'} saved.`;
+						? language.t('message.p0.removed', { p0: String(card?.name ?? language.t('ui.Entry')) })
+						: language.t('message.p0.saved', {
+								p0: String(card?.name ?? language.t('ui.Quantity'))
+							});
 				} else if (result.type === 'redirect') {
 					await update();
 				} else {
@@ -1032,13 +1063,13 @@
 					mutationError =
 						result.type === 'failure' && typeof result.data?.message === 'string'
 							? result.data.message
-							: 'Could not save this change. Try again.';
+							: language.t('ui.Could.not.save.this.change.Try.again');
 					status = '';
 					if (removing) await refreshTargets();
 				}
 			} catch {
 				if (!currentAttempt()) return;
-				mutationError = 'Could not refresh inventory. Reload before trying again.';
+				mutationError = language.t('ui.Could.not.refresh.inventory.Reload.before.trying.again');
 				status = '';
 			} finally {
 				write?.complete();
@@ -1050,20 +1081,21 @@
 
 {#snippet addIcon()}<PlusIcon />{/snippet}
 
-<svelte:head><title>Inventory | Spellbook</title></svelte:head>
+<svelte:head><title>{language.t('ui.Inventory.Spellbook')}</title></svelte:head>
 
 {#if privateCleared}<div class="workspace-container">
 		<SavedStateStatus resource={inventorySubscription} />
-		<p>Sign in again to load Inventory.</p>
+		<p>{language.t('ui.Sign.in.again.to.load.Inventory')}</p>
 	</div>{:else}
 	<div class="inventory-page workspace-container">
 		<SavedStateStatus resource={inventorySubscription} />
 		{#if notesRecovery}
 			<section aria-labelledby="notes-recovery-title" class="inspector-form">
-				<h2 id="notes-recovery-title">Your unsaved Notes</h2>
-				<p role="alert">{form?.message}</p>
+				<h2 id="notes-recovery-title">{language.t('ui.Your.unsaved.Notes')}</h2>
+				<p role="alert">{language.message(form?.message)}</p>
 				{#if latestNotes}<p>
-						Latest saved Notes: {latestNotes.notes || '(empty)'}
+						{language.t('ui.Latest.saved.Notes')}
+						{latestNotes.notes || '(empty)'}
 					</p>{/if}
 				<form method="POST" action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}>
 					<input type="hidden" name="entryId" value={notesRecovery.entryId} />
@@ -1074,7 +1106,7 @@
 						name="notesOriginal"
 						value={notesRecovery.notesOriginal}
 					/><input type="hidden" name="quantityBase" value={notesRecovery.quantityBase} />
-					<label for="recovered-quantity">Owned quantity</label><input
+					<label for="recovered-quantity">{language.t('ui.Owned.quantity')}</label><input
 						id="recovered-quantity"
 						name="quantity"
 						type="number"
@@ -1082,27 +1114,28 @@
 						step="1"
 						value={notesRecovery.quantity}
 					/>
-					<label for="recovered-notes">Notes draft</label><textarea
+					<label for="recovered-notes">{language.t('ui.Notes.draft')}</label><textarea
 						id="recovered-notes"
 						name="notes">{notesRecovery.notes}</textarea
 					>
 					{#if latestNotes}<button
 							class="btn btn-primary"
 							name="rebaseNotesRevision"
-							value={latestNotes.notesRevision}>Save my draft against the latest revision</button
-						>{:else}<button class="btn btn-primary">Retry Save</button>{/if}
+							value={latestNotes.notesRevision}
+							>{language.t('ui.Save.my.draft.against.the.latest.revision')}</button
+						>{:else}<button class="btn btn-primary">{language.t('ui.Retry.Save')}</button>{/if}
 				</form>
 			</section>
 		{/if}
 
 		{#if currentWindow.query.view === 'groups'}<noscript
 				><section aria-labelledby="native-groups-title">
-					<h2 id="native-groups-title">Manage Boxes</h2>
+					<h2 id="native-groups-title">{language.t('ui.Manage.Boxes')}</h2>
 					<form method="POST" action={inventoryAction('createGroup', effectiveInventoryUrl(page))}>
 						<input type="hidden" name="requestId" value={data.requestId} /><label
-							for="native-group-name">New box name</label
+							for="native-group-name">{language.t('ui.New.box.name')}</label
 						><input id="native-group-name" name="name" required maxlength="128" /><button
-							class="btn btn-primary"><PlusIcon />Create box</button
+							class="btn btn-primary"><PlusIcon />{language.t('ui.Create.box')}</button
 						>
 					</form>
 					{#each currentWindow.groupPage as group}<form
@@ -1113,13 +1146,15 @@
 								type="hidden"
 								name="groupId"
 								value={group.id}
-							/><label for={`native-group-${group.id}`}>Rename {group.name}</label><input
+							/><label for={`native-group-${group.id}`}
+								>{language.t('ui.Rename')} {group.name}</label
+							><input
 								id={`native-group-${group.id}`}
 								name="name"
 								value={group.name}
 								required
 								maxlength="128"
-							/><button class="btn btn-secondary">Save name</button>
+							/><button class="btn btn-secondary">{language.t('ui.Save.name')}</button>
 						</form>
 						<form
 							method="POST"
@@ -1130,82 +1165,126 @@
 								name="groupId"
 								value={group.id}
 							/><label
-								><input type="checkbox" name="confirmDeleteGroup" value="yes" required /> Delete {group.name}
-								and its memberships, keeping every owned card.</label
-							><button class="btn btn-secondary">Delete box</button>
+								><input type="checkbox" name="confirmDeleteGroup" value="yes" required />
+								{language.t('ui.Delete')}
+								{group.name}
+								{language.t('ui.and.its.memberships.keeping.every.owned.card')}</label
+							><button class="btn btn-secondary">{language.t('ui.Delete.box')}</button>
 						</form>{/each}
 				</section></noscript
 			>{/if}
 
-		<WorkspaceHeader title="Inventory">
+		<WorkspaceHeader title={language.t('ui.Inventory')}>
 			{#snippet metadata()}<p class="inventory-totals">
-					<strong>{currentWindow.totals.copyCount.toLocaleString()}</strong> cards <span>·</span>
-					<strong>{currentWindow.totals.canonicalCardCount.toLocaleString()}</strong>
-					card names <span>·</span> <strong>{currentWindow.totals.setCount}</strong> sets
+					<strong>{currentWindow.totals.copyCount.toLocaleString(language.locale)}</strong>
+					{language.t('ui.cards')}
+					<span>·</span>
+					<strong>{currentWindow.totals.canonicalCardCount.toLocaleString(language.locale)}</strong>
+					{language.t('ui.card.names')} <span>·</span>
+					<strong>{currentWindow.totals.setCount}</strong>
+					{language.t('ui.sets')}
 				</p>{/snippet}
 			{#snippet actions()}{#if groupDirectory}<Button
-						onclick={(event) => editGroup(null, event.currentTarget)}><PlusIcon />New box</Button
+						onclick={(event) => editGroup(null, event.currentTarget)}
+						><PlusIcon />{language.t('ui.New.box')}</Button
 					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
-						>Assign cards</Button
-					>{:else}<Button href="/mtg/search" onclick={openSearch}><PlusIcon />Add cards</Button
+						>{language.t('ui.Assign.cards')}</Button
+					>{:else}<Button href="/mtg/search" onclick={openSearch}
+						><PlusIcon />{language.t('ui.Add.cards')}</Button
 					>{/if}{/snippet}
 		</WorkspaceHeader>
 		<noscript
-			><form method="GET" class="native-inventory-filters" aria-label="Inventory filters">
+			><form
+				method="GET"
+				class="native-inventory-filters"
+				aria-label={language.t('ui.Inventory.filters')}
+			>
 				<input type="hidden" name="pageSize" value={String(browse.pageSize)} /><input
 					type="hidden"
 					name="page"
 					value="1"
 				/>
 				<label
-					>Search<input class="input" type="search" name="q" value={data.window.query.q} /></label
+					>{language.t('ui.Search')}<input
+						class="input"
+						type="search"
+						name="q"
+						value={data.window.query.q}
+					/></label
 				><label
-					>Sets<select class="input" name="set" multiple
+					>{language.t('ui.Sets')}<select class="input" name="set" multiple
 						>{#each data.window.sets as set}<option
 								value={set.code}
 								selected={data.window.query.sets.includes(set.code)}>{set.name}</option
 							>{/each}</select
 					></label
 				><label
-					>Finish<select class="input" name="finish"
+					>{language.t('ui.Finish')}<select class="input" name="finish"
 						>{#each finishOptions as option}<option
 								value={option.value}
 								selected={data.window.query.finish === option.value}>{option.label}</option
 							>{/each}</select
 					></label
 				><label
-					>Condition<select class="input" name="condition"
+					>{language.t('ui.Condition')}<select class="input" name="condition"
 						>{#each conditionOptions as option}<option
 								value={option.value}
 								selected={data.window.query.condition === option.value}>{option.label}</option
 							>{/each}</select
 					></label
 				><label
-					>Sort<select class="input" name="sort"
+					>{language.t('ui.Sort')}<select class="input" name="sort"
 						>{#each ['name', 'set', 'newest'] as value}<option
 								{value}
-								selected={data.window.query.sort === value}>{value}</option
+								selected={data.window.query.sort === value}
+								>{language.t(
+									(
+										{
+											name: 'ui.Name',
+											set: 'ui.Set',
+											newest: 'ui.Newest',
+											finish: 'ui.Finish',
+											condition: 'ui.Condition',
+											quantity: 'ui.Quantity'
+										} as const
+									)[value as 'name']
+								)}</option
 							>{/each}</select
 					></label
 				><label
-					>Direction<select class="input" name="dir"
-						><option value="asc" selected={data.window.query.dir === 'asc'}>Ascending</option
-						><option value="desc" selected={data.window.query.dir === 'desc'}>Descending</option
+					>{language.t('ui.Direction')}<select class="input" name="dir"
+						><option value="asc" selected={data.window.query.dir === 'asc'}
+							>{language.t('ui.Ascending')}</option
+						><option value="desc" selected={data.window.query.dir === 'desc'}
+							>{language.t('ui.Descending')}</option
 						></select
 					></label
 				><label
-					>Variant<select class="input" name="variant"
-						><option value="">None</option
+					>{language.t('ui.Variant')}<select class="input" name="variant"
+						><option value="">{language.t('ui.None')}</option
 						>{#each ['finish', 'condition', 'quantity'] as value}<option
 								{value}
-								selected={data.window.query.variant === value}>{value}</option
+								selected={data.window.query.variant === value}
+								>{language.t(
+									(
+										{
+											name: 'ui.Name',
+											set: 'ui.Set',
+											newest: 'ui.Newest',
+											finish: 'ui.Finish',
+											condition: 'ui.Condition',
+											quantity: 'ui.Quantity'
+										} as const
+									)[value as 'name']
+								)}</option
 							>{/each}</select
 					></label
 				><label
-					>Variant direction<select class="input" name="variantDir"
-						><option value="asc" selected={data.window.query.variantDir === 'asc'}>Ascending</option
+					>{language.t('ui.Variant.direction')}<select class="input" name="variantDir"
+						><option value="asc" selected={data.window.query.variantDir === 'asc'}
+							>{language.t('ui.Ascending')}</option
 						><option value="desc" selected={data.window.query.variantDir === 'desc'}
-							>Descending</option
+							>{language.t('ui.Descending')}</option
 						></select
 					></label
 				><input
@@ -1216,25 +1295,27 @@
 						type="hidden"
 						name="group"
 						value={data.window.query.group}
-					/>{/if}<Button type="submit">Apply filters</Button>
+					/>{/if}<Button type="submit">{language.t('ui.Apply.filters')}</Button>
 			</form></noscript
 		>
-		<nav class="inventory-views" aria-label="Inventory views">
+		<nav class="inventory-views" aria-label={language.t('ui.Inventory.views')}>
 			<a
 				href={viewHref('cards')}
 				class:active={!(currentWindow.query.view === 'groups')}
-				aria-current={!(currentWindow.query.view === 'groups') ? 'page' : undefined}>Cards</a
+				aria-current={!(currentWindow.query.view === 'groups') ? 'page' : undefined}
+				>{language.t('ui.Cards')}</a
 			><a
 				bind:this={groupLink}
 				href={viewHref('groups')}
 				class:active={currentWindow.query.view === 'groups'}
-				aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}>Boxes</a
+				aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}
+				>{language.t('ui.Boxes')}</a
 			>
 		</nav>
 		{#if selectedGroup}<div class="selected-group">
-				<a href={viewHref('groups')}>All boxes</a><span aria-hidden="true">/</span><strong
-					>{selectedGroup.name}</strong
-				>
+				<a href={viewHref('groups')}>{language.t('ui.All.boxes')}</a><span aria-hidden="true"
+					>/</span
+				><strong>{selectedGroup.name}</strong>
 			</div>{/if}
 		{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
 				{mutationError || form?.message}
@@ -1259,9 +1340,9 @@
 				/>{/key}
 		{:else if currentWindow.totals.entryCount === 0}
 			<div class="empty-state">
-				<p>No cards yet.</p>
+				<p>{language.t('ui.No.cards.yet')}</p>
 				<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
-					>Find your first card</a
+					>{language.t('ui.Find.your.first.card')}</a
 				>
 			</div>
 		{:else}
@@ -1278,14 +1359,14 @@
 					><input
 						type="search"
 						bind:this={searchInput}
-						aria-label="Search inventory"
+						aria-label={language.t('ui.Search.inventory')}
 						onkeydown={(event) => {
 							if (event.key !== 'Enter') return;
 							event.preventDefault();
 							void navigatePage(nativeUrl(requestQuery()));
 						}}
 						bind:value={query}
-						placeholder="Search inventory"
+						placeholder={language.t('ui.Search.inventory')}
 						class="input"
 					/>
 				</div>
@@ -1297,11 +1378,11 @@
 				>
 					<div class="filter-fields">
 						<div class="set-filter-heading">
-							<label class="label" for="inventory-set-search">Sets</label><button
+							<label class="label" for="inventory-set-search">{language.t('ui.Sets')}</label><button
 								type="button"
 								class="filter-reset"
 								disabled={selectedSets.length === 0}
-								onclick={() => (selectedSets = [])}>Clear</button
+								onclick={() => (selectedSets = [])}>{language.t('ui.Clear')}</button
 							>
 						</div>
 						<input
@@ -1310,7 +1391,7 @@
 							id="inventory-set-search"
 							type="search"
 							class="input"
-							placeholder="Find a set by name or code"
+							placeholder={language.t('ui.Find.a.set.by.name.or.code')}
 						/>
 						<div class="set-options">
 							{#each visibleSets as option (option.value)}
@@ -1321,22 +1402,25 @@
 										onchange={() => toggleSet(option.value)}
 									/><span>{option.label}</span><small>{option.value.toUpperCase()}</small></label
 								>
-							{:else}<p class="no-sets">No sets match this search.</p>{/each}
+							{:else}<p class="no-sets">{language.t('ui.No.sets.match.this.search')}</p>{/each}
 						</div>
 						<div class="variant-filters">
 							<div>
-								<label class="label" for="inventory-finish-filter">Finish</label><Select
+								<label class="label" for="inventory-finish-filter">{language.t('ui.Finish')}</label
+								><Select
 									id="inventory-finish-filter"
-									label="Filter by finish"
+									label={language.t('ui.Filter.by.finish')}
 									bind:triggerRef={finishTrigger}
 									bind:value={selectedFinish}
 									options={finishOptions}
 								/>
 							</div>
 							<div>
-								<label class="label" for="inventory-condition-filter">Condition</label><Select
+								<label class="label" for="inventory-condition-filter"
+									>{language.t('ui.Condition')}</label
+								><Select
 									id="inventory-condition-filter"
-									label="Filter by condition"
+									label={language.t('ui.Filter.by.condition')}
 									bind:triggerRef={conditionTrigger}
 									bind:value={selectedCondition}
 									options={conditionOptions}
@@ -1346,48 +1430,48 @@
 					</div>
 				</FilterPopover>
 				<ActionMenu
-					label="Sort inventory"
+					label={language.t('ui.Sort.inventory')}
 					variant="toolbar"
 					items={[
 						{
-							label: 'Card name: A to Z',
+							label: language.t('ui.Card.name.A.to.Z'),
 							onSelect: () => (order = nextInventoryOrder(order, 'name', 'asc'))
 						},
 						{
-							label: 'Card name: Z to A',
+							label: language.t('ui.Card.name.Z.to.A'),
 							onSelect: () => (order = nextInventoryOrder(order, 'name', 'desc'))
 						},
 						{
-							label: 'Set: A to Z',
+							label: language.t('ui.Set.A.to.Z'),
 							onSelect: () => (order = nextInventoryOrder(order, 'set', 'asc'))
 						},
 						{
-							label: 'Set: Z to A',
+							label: language.t('ui.Set.Z.to.A'),
 							onSelect: () => (order = nextInventoryOrder(order, 'set', 'desc'))
 						},
 						{
-							label: 'Newest first',
+							label: language.t('ui.Newest.first'),
 							onSelect: () => (order = nextInventoryOrder(order, 'newest'))
 						},
 						{
 							label:
 								columnDirection('finish') === 'asc'
-									? 'Finish: foil first'
-									: 'Finish: nonfoil first',
+									? language.t('ui.Finish.foil.first')
+									: language.t('ui.Finish.nonfoil.first'),
 							onSelect: () => (order = nextInventoryOrder(order, 'finish'))
 						},
 						{
 							label:
 								columnDirection('condition') === 'asc'
-									? 'Condition: worst first'
-									: 'Condition: best first',
+									? language.t('ui.Condition.worst.first')
+									: language.t('ui.Condition.best.first'),
 							onSelect: () => (order = nextInventoryOrder(order, 'condition'))
 						},
 						{
 							label:
 								columnDirection('quantity') === 'asc'
-									? 'Quantity: most first'
-									: 'Quantity: fewest first',
+									? language.t('ui.Quantity.most.first')
+									: language.t('ui.Quantity.fewest.first'),
 							onSelect: () => (order = nextInventoryOrder(order, 'quantity'))
 						}
 					]}
@@ -1401,12 +1485,13 @@
 							stroke="currentColor"
 							stroke-width="1.6"
 							stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
-						>Sort{/snippet}
+						>{language.t('ui.Sort')}{/snippet}
 				</ActionMenu>
 				<p class="inventory-result-count">
 					{currentWindow.matching.entryCount}
 					{currentWindow.matching.entryCount === 1 ? 'entry' : 'entries'} <span>·</span>
-					{matchingQuantity} cards
+					{matchingQuantity}
+					{language.t('ui.cards')}
 				</p>
 			</div>
 			{#if hasFilters}
@@ -1417,11 +1502,14 @@
 								type="button"
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('set', event)}
-								aria-label={`Edit set filter ${setName(code)}`}>Set: {setName(code)}</button
+								aria-label={language.t('message.Edit.set.filter.p0', { p0: String(setName(code)) })}
+								>{language.t('ui.Set')} {setName(code)}</button
 							><button
 								type="button"
 								class="filter-chip-remove"
-								aria-label={`Clear set filter ${setName(code)}`}
+								aria-label={language.t('message.Clear.set.filter.p0', {
+									p0: String(setName(code))
+								})}
 								onclick={() => (selectedSets = selectedSets.filter((value) => value !== code))}
 								>×</button
 							>
@@ -1432,11 +1520,16 @@
 								type="button"
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('finish', event)}
-								>Finish: {selectedFinish === 'foil' ? 'Foil' : 'Nonfoil'}</button
+								>{language.t('ui.Finish')}
+								{selectedFinish === 'foil'
+									? language.t('notice.Foil')
+									: language.t('notice.Nonfoil')}</button
 							><button
 								type="button"
 								class="filter-chip-remove"
-								aria-label={`Clear finish filter ${selectedFinish}`}
+								aria-label={language.t('message.Clear.finish.filter.p0', {
+									p0: String(selectedFinish)
+								})}
 								onclick={() => (selectedFinish = 'all')}>×</button
 							>
 						</div>{/if}
@@ -1445,15 +1538,19 @@
 								type="button"
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('condition', event)}
-								>Condition: {selectedCondition}</button
+								>{language.t('ui.Condition')} {selectedCondition}</button
 							><button
 								type="button"
 								class="filter-chip-remove"
-								aria-label={`Clear condition filter ${selectedCondition}`}
+								aria-label={language.t('message.Clear.condition.filter.p0', {
+									p0: String(selectedCondition)
+								})}
 								onclick={() => (selectedCondition = 'all')}>×</button
 							>
 						</div>{/if}
-					<button type="button" class="clear-filters" onclick={clearFilters}>Clear filters</button>
+					<button type="button" class="clear-filters" onclick={clearFilters}
+						>{language.t('ui.Clear.filters')}</button
+					>
 				</div>
 			{/if}
 			<span class="sr-only" role="status">{status}</span>
@@ -1462,25 +1559,34 @@
 					<p>
 						{setName(singleSet)} <span>·</span>
 						{setCatalogTotal !== null && setCatalogTotal > 0
-							? `${ownedInSet} of ${setCatalogTotal} card names owned`
-							: `${ownedInSet} card names owned`}
-						{#if setProgressLoading}<span>·</span> Loading set total…{:else if setCatalogTotal === null || setCatalogTotal === 0}<span
-								>·</span
-							> Set total unavailable{/if}
+							? language.t('message.p0.of.p1.card.names.owned', {
+									p0: String(ownedInSet),
+									p1: String(setCatalogTotal)
+								})
+							: language.t('message.p0.card.names.owned', { p0: String(ownedInSet) })}
+						{#if setProgressLoading}<span>·</span>
+							{language.t(
+								'ui.Loading.set.total'
+							)}{:else if setCatalogTotal === null || setCatalogTotal === 0}<span>·</span>
+							{language.t('ui.Set.total.unavailable')}{/if}
 					</p>
 					{#if setCatalogTotal !== null && setCatalogTotal > 0}<progress
 							value={Math.min(ownedInSet, setCatalogTotal)}
 							max={setCatalogTotal}
-							aria-label={`${setName(singleSet)} set completion`}
+							aria-label={language.t('message.p0.set.completion', {
+								p0: String(setName(singleSet))
+							})}
 						></progress>{/if}
 				</div>
 			{/if}
-			<h2 class="sr-only" bind:this={resultsHeading} tabindex="-1">Inventory results</h2>
+			<h2 class="sr-only" bind:this={resultsHeading} tabindex="-1">
+				{language.t('ui.Inventory.results')}
+			</h2>
 			<p class="sr-only" id="inventory-order" role="status">{sortDescription}</p>
 			<div
 				class="inventory-columns"
 				role="group"
-				aria-label="Inventory column sorting"
+				aria-label={language.t('ui.Inventory.column.sorting')}
 				aria-describedby="inventory-order"
 			>
 				{#each columns as { column, label }}
@@ -1492,9 +1598,12 @@
 								(column === 'name' && order.base === 'newest')}
 							aria-pressed={columnDirection(column) !== null ||
 								(column === 'name' && order.base === 'newest')}
-							aria-label={`Sort by ${label.toLowerCase()} ${columnDirection(column) === 'asc' ? 'descending' : 'ascending'}`}
+							aria-label={language.t('message.Sort.by.p0.p1', {
+								p0: String(label.toLowerCase()),
+								p1: String(columnDirection(column) === 'asc' ? 'descending' : 'ascending')
+							})}
 							onclick={() => (order = nextInventoryOrder(order, column))}
-							>{column === 'name' && order.base === 'newest' ? 'Newest' : label}<span
+							>{column === 'name' && order.base === 'newest' ? language.t('ui.Newest') : label}<span
 								class="sort-direction"
 								aria-hidden="true">{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
 							></button
@@ -1506,11 +1615,11 @@
 			{#if currentWindow.matching.entryCount === 0}<div class="empty-state">
 					<p>
 						{data.selectedGroupId && !hasFilters
-							? 'No cards in this box yet. Assign cards from their row menu in Cards.'
-							: 'No cards match these filters.'}
+							? language.t('ui.No.cards.in.this.box.yet.Assign.cards.from.their.row.menu.in.Cards')
+							: language.t('ui.No.cards.match.these.filters')}
 					</p>
 					{#if hasFilters}<button class="btn btn-secondary" onclick={clearFilters}
-							>Clear filters</button
+							>{language.t('ui.Clear.filters')}</button
 						>{/if}
 				</div>
 			{:else}
@@ -1525,7 +1634,12 @@
 							<button
 								class="card-identity"
 								onclick={(event) => openInspection(card.id, 'details', event.currentTarget)}
-								aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+								aria-label={language.t('message.Inspect.p0.p1.p2.p3', {
+									p0: String(card.name),
+									p1: String(card.setCode.toUpperCase()),
+									p2: String(card.finish),
+									p3: String(card.condition)
+								})}
 								aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
 									? `inventory-new-${card.id}`
 									: undefined}
@@ -1535,10 +1649,15 @@
 										>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
 												class="new-entry"
 												id={`inventory-new-${card.id}`}
-												title={`Added ${addedDate.format(card.createdAt)} UTC. New until the end of this UTC date.`}
-												>New<span class="sr-only"
-													>, entry added {addedDate.format(card.createdAt)} UTC, marked new until the
-													end of this UTC date</span
+												title={language.t(
+													'message.Added.p0.UTC.New.until.the.end.of.this.UTC.date',
+													{ p0: String(addedDate.format(card.createdAt)) }
+												)}
+												>{language.t('ui.New')}<span class="sr-only"
+													>{language.t(
+														'sentence.entry.added.p0.UTC.marked.new.until.the.end.of.this.UTC.date',
+														{ p0: String(addedDate.format(card.createdAt)) }
+													)}</span
 												></span
 											>{/if}</span
 									>{#if groupNames}<span class="entry-groups" title={groupNames}>{groupNames}</span
@@ -1553,18 +1672,25 @@
 							>
 							<noscript
 								><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}
-									>Details</a
+									>{language.t('ui.Details')}</a
 								></noscript
 							>
 						</div>
 						<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
 							class="row-metadata">{@render metadata('finish', card.finish)}</span
 						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
-						<span class="owned-quantity" aria-label={`${card.quantity} owned copies`}
+						<span
+							class="owned-quantity"
+							aria-label={language.t('message.p0.owned.copies', { p0: String(card.quantity) })}
 							>{card.quantity}</span
 						>
 						<ActionMenu
-							label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+							label={language.t('message.Actions.for.p0.p1.p2.p3', {
+								p0: String(card.name),
+								p1: String(card.setCode.toUpperCase()),
+								p2: String(card.finish),
+								p3: String(card.condition)
+							})}
 							iconOnly
 							class="entry-menu"
 							bind:triggerRef={
@@ -1580,25 +1706,25 @@
 							}}
 							items={[
 								{
-									label: 'Edit',
+									label: language.t('ui.Edit'),
 									disabled: pendingId !== null,
 									onSelect: () =>
 										openInspection(card.id, 'edit', rowMenuRefs[card.id] ?? searchInput)
 								},
 								{
-									label: 'Add another printing',
+									label: language.t('ui.Add.another.printing'),
 									icon: addIcon,
 									disabled: pendingId !== null,
 									onSelect: () =>
 										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
 								},
 								{
-									label: 'Boxes',
+									label: language.t('ui.Boxes'),
 									disabled: pendingId !== null,
 									onSelect: () => assignGroups(card.id)
 								},
 								{
-									label: 'Remove',
+									label: language.t('ui.Remove'),
 									destructive: true,
 									disabled: pendingId !== null,
 									onSelect: () => openRemoval(card.id)
@@ -1608,7 +1734,7 @@
 					</div>{/snippet}
 				{#if hydrated}{#if visitedSpan.start > 0}<button
 							class="btn btn-secondary"
-							onclick={() => window.loadEarlier()}>Load earlier entries</button
+							onclick={() => window.loadEarlier()}>{language.t('ui.Load.earlier.entries')}</button
 						>{/if}<VirtualInventoryList
 						bind:this={virtualList}
 						total={currentWindow.matching.entryCount}
@@ -1622,14 +1748,19 @@
 						onRange={(start, end, reveal) => lazyRange(start, end, false, reveal)}
 					>
 						{#snippet row(entry: InventoryEntry)}{@render entryRow(asLegacy(entry))}{/snippet}
-					</VirtualInventoryList>{:else}<ul class="inventory-list" aria-label="Inventory entries">
+					</VirtualInventoryList>{:else}<ul
+						class="inventory-list"
+						aria-label={language.t('ui.Inventory.entries')}
+					>
 						{#each nativeCards as card (card.id)}<li>
 								{@render entryRow(card)}
 							</li>{/each}
 					</ul>{/if}
 			{/if}
 		{/if}
-		{#if requestedServerQuery}<p role="status">Loading the selected inventory page.</p>{/if}
+		{#if requestedServerQuery}<p role="status">
+				{language.t('ui.Loading.the.selected.inventory.page')}
+			</p>{/if}
 		<NativeRangeNavigation
 			state={browse}
 			total={groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount}
@@ -1653,13 +1784,13 @@
 			data-inventory-pinned-ssr-entries={metrics.pinnedSSREntries}
 		></div>
 		{#if hydrated && window.error}<p role="alert">
-				{window.error}<Button
+				{language.message(window.error)}<Button
 					variant="secondary"
 					onclick={() =>
 						window.plan(
 							virtualList?.anchor().index ?? currentWindow.query.offset,
 							(virtualList?.anchor().index ?? currentWindow.query.offset) + browse.limit
-						)}>Try again</Button
+						)}>{language.t('ui.Try.again')}</Button
 				>
 			</p>{/if}
 	</div>
@@ -1680,8 +1811,11 @@
 		/>{/if}
 	<ConfirmationDialog
 		open={deletingGroup !== null}
-		title="Delete this box?"
-		description={`Delete ${deletingGroup?.name ?? ''}? Your cards stay in inventory; only this box's assignments are removed.`}
+		title={language.t('ui.Delete.this.box')}
+		description={language.t(
+			'message.Delete.p0.Your.cards.stay.in.inventory.only.this.box.s.assignments.are.removed',
+			{ p0: String(deletingGroup?.name ?? '') }
+		)}
 		pending={groupDeletion.pending}
 		error={groupDeletion.error}
 		onCancel={() => (deletingGroup = null)}
@@ -1696,19 +1830,34 @@
 			<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
 				class="btn btn-destructive"
 				disabled={groupDeletion.pending}
-				type="submit">{groupDeletion.pending ? 'Deleting...' : 'Delete box'}</button
+				type="submit">{groupDeletion.pending ? 'Deleting...' : language.t('ui.Delete.box')}</button
 			>
 		</form>
 	</ConfirmationDialog>
 
 	<ConfirmationDialog
 		open={removeId !== null}
-		title="Remove this entry?"
+		title={language.t('ui.Remove.this.entry')}
 		description={removing
-			? `This removes ${removing.quantity > 1 ? 'all ' : ''}${removing.quantity} ${removing.quantity === 1 ? 'copy' : 'copies'} of ${removing.name} (${removing.setCode.toUpperCase()}, ${removing.finish === 'foil' ? 'Foil' : 'Nonfoil'}, ${removing.condition}) from your inventory. It cannot be undone.`
+			? language.t(
+					'message.This.removes.p0.p1.p2.of.p3.p4.p5.p6.from.your.inventory.It.cannot.be.undone',
+					{
+						p0: String(removing.quantity > 1 ? 'all ' : ''),
+						p1: String(removing.quantity),
+						p2: String(
+							removing.quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')
+						),
+						p3: String(removing.name),
+						p4: String(removing.setCode.toUpperCase()),
+						p5: String(
+							removing.finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')
+						),
+						p6: String(removing.condition)
+					}
+				)
 			: ''}
 		pending={pendingId !== null}
-		error={mutationError}
+		error={language.message(mutationError)}
 		onCancel={cancelRemoval}
 		onCloseAutoFocus={returnFromRemoval}
 	>
@@ -1724,7 +1873,7 @@
 				value={removing?.quantity ?? 0}
 			/>
 			<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
-				>{pendingId === removeId ? 'Removing…' : 'Remove'}</button
+				>{pendingId === removeId ? 'Removing…' : language.t('ui.Remove')}</button
 			>
 		</form>
 	</ConfirmationDialog>
@@ -1751,27 +1900,27 @@
 			}}
 		/>
 		{#snippet inspectionActions(activeCard: CardDocument)}
-			<nav aria-label="Card task" class="inspection-tasks">
+			<nav aria-label={language.t('ui.Card.task')} class="inspection-tasks">
 				<Button
 					variant="secondary"
 					disabled={pendingId !== null || addingPending}
 					onclick={() => {
 						if (inspection) inspection.mode = 'details';
-					}}>Details</Button
+					}}>{language.t('ui.Details')}</Button
 				>
 				<Button
 					variant="secondary"
 					disabled={pendingId !== null || addingPending || targetGone}
 					onclick={() => {
 						if (inspection) inspection.mode = 'edit';
-					}}>Edit owned entry</Button
+					}}>{language.t('ui.Edit.owned.entry')}</Button
 				>
 				<Button
 					variant="secondary"
 					disabled={pendingId !== null || addingPending}
 					onclick={() => {
 						if (inspection) inspection.mode = 'add';
-					}}><PlusIcon />Add another printing</Button
+					}}><PlusIcon />{language.t('ui.Add.another.printing')}</Button
 				>
 			</nav>
 			{#if inspection?.mode === 'add'}
@@ -1792,16 +1941,21 @@
 			{/if}
 			{#if inspection?.mode === 'edit'}{@render editEntryActions(activeCard)}
 			{:else if inspection?.mode === 'details'}<p>
-					{inspected?.quantity ?? quantityBase} owned copies · {inspected?.finish ?? ''} · {inspected?.condition ??
-						''}
+					{language.t('sentence.p0.owned.copies.p1.p2', {
+						p0: String(inspected?.quantity ?? quantityBase),
+						p1: String(inspected?.finish ?? ''),
+						p2: String(inspected?.condition ?? '')
+					})}
 				</p>
 				{#if notesDraft !== notesOriginal || quantityDraft !== quantityBase}<p>
-						Unsaved entry edits retained.
+						{language.t('ui.Unsaved.entry.edits.retained')}
 					</p>{/if}{#if inspected?.notes}<p>{inspected.notes}</p>{/if}{/if}
 		{/snippet}
 		{#snippet editEntryActions(activeCard: CardDocument)}
-			{#if targetGone}<p role="alert">This entry was removed. Your unsaved notes are retained.</p>
-				<label class="label" for="removed-notes">Unsaved Notes</label><textarea
+			{#if targetGone}<p role="alert">
+					{language.t('ui.This.entry.was.removed.Your.unsaved.notes.are.retained')}
+				</p>
+				<label class="label" for="removed-notes">{language.t('ui.Unsaved.Notes')}</label><textarea
 					id="removed-notes"
 					class="input"
 					bind:value={notesDraft}
@@ -1821,10 +1975,13 @@
 					/>
 					<input type="hidden" name="entryId" value={inspected.id} />
 					<p>
-						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
+						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil'
+							? language.t('notice.Foil')
+							: language.t('notice.Nonfoil')} · {inspected.condition}
 					</p>
 					{#if notesConflict}<p role="alert">
-							Latest saved Notes: {notesConflict.notes || '(empty)'}
+							{language.t('ui.Latest.saved.Notes')}
+							{notesConflict.notes || '(empty)'}
 						</p>
 						<button
 							type="button"
@@ -1832,9 +1989,10 @@
 							onclick={() => {
 								notesBase = notesConflict!.notesRevision;
 								notesConflict = null;
-							}}>Use latest revision with my draft</button
+							}}>{language.t('ui.Use.latest.revision.with.my.draft')}</button
 						>{/if}
-					<label class="label" for="inventory-quantity">Owned quantity</label><input
+					<label class="label" for="inventory-quantity">{language.t('ui.Owned.quantity')}</label
+					><input
 						class="input"
 						id="inventory-quantity"
 						name="quantity"
@@ -1844,7 +2002,7 @@
 						required
 						bind:value={quantityDraft}
 						oninput={() => (draftDirty = true)}
-					/><label class="label" for="inventory-notes">Notes</label><textarea
+					/><label class="label" for="inventory-notes">{language.t('ui.Notes')}</label><textarea
 						class="input"
 						id="inventory-notes"
 						name="notes"
@@ -1854,17 +2012,17 @@
 						type="submit"
 						class="btn btn-primary"
 						disabled={pendingId !== null || targetGone}
-						>{pendingId === inspected.id ? 'Saving…' : 'Save'}</button
-					>{#if mutationError}<p class="mutation-error" role="alert">{mutationError}</p>{:else}<p
-							class="text-sm text-text-muted"
-							role="status"
-						>
+						>{pendingId === inspected.id ? 'Saving…' : language.t('ui.Save')}</button
+					>{#if mutationError}<p class="mutation-error" role="alert">
+							{language.message(mutationError)}
+						</p>{:else}<p class="text-sm text-text-muted" role="status">
 							{status}
 						</p>{/if}
 				</form>
 			{:else}<a
 					class="btn btn-secondary"
-					href={`/mtg/search?q=${encodeURIComponent(activeCard.name)}`}>Find this card in Search</a
+					href={`/mtg/search?q=${encodeURIComponent(activeCard.name)}`}
+					>{language.t('ui.Find.this.card.in.Search')}</a
 				>{/if}
 		{/snippet}
 	{/if}
@@ -1875,7 +2033,7 @@
 		class="metadata-link"
 		href={metadataHref(kind, value)}
 		onclick={(event) => filterMetadata(event, kind, value)}
-		aria-label={`Filter by ${kind} ${value}`}
+		aria-label={language.t('message.Filter.by.p0.p1', { p0: String(kind), p1: String(value) })}
 	>
 		<span
 			class="metadata-frame"
@@ -1886,8 +2044,8 @@
 				? value.toUpperCase()
 				: kind === 'finish'
 					? value === 'foil'
-						? 'Foil'
-						: 'Nonfoil'
+						? language.t('notice.Foil')
+						: language.t('notice.Nonfoil')
 					: value}</span
 		>
 	</a>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { DeckCard, DeckAvailability } from '@spellbook/contracts/decks.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { SubmitFunction } from '$app/forms';
@@ -39,7 +41,10 @@
 				: cards.every((card) => documents[card.catalogCardId]?.card_types.includes(group))
 					? cardTypeSymbol(group)
 					: undefined}
-			<section class="card-group" aria-label={`${group} cards`}>
+			<section
+				class="card-group"
+				aria-label={language.t('message.p0.cards', { p0: String(group) })}
+			>
 				{#if showGroupHeadings}<h2
 						class="role-heading"
 						class:commander-role={cards.every((card) => card.role === 'commander')}
@@ -54,17 +59,17 @@
 						{@const owned = availability[card.id]}
 						{@const document = documents[card.catalogCardId] ?? storedCardDocument(card)}
 						{@const ownership = !owned
-							? 'Availability unavailable'
+							? language.t('ui.Availability.unavailable')
 							: owned.missing
-								? `${owned.missing} missing`
+								? language.t('message.p0.missing', { p0: String(owned.missing) })
 								: owned.alternate
-									? `${owned.alternate} alternate`
-									: 'Owned'}
+									? language.t('message.p0.alternate', { p0: String(owned.alternate) })
+									: language.t('ui.Owned')}
 						<div class="deck-row" class:commander-entry={card.role === 'commander'}>
 							<button
 								class="entry-art"
 								onclick={() => onInspect(document, card)}
-								aria-label={`Inspect ${card.name}`}
+								aria-label={language.t('message.Inspect.p0', { p0: String(card.name) })}
 							>
 								{#if card.imageUri}<img
 										src={card.imageUri}
@@ -83,8 +88,12 @@
 									class="stack-quantity"
 									class:warning={!!owned?.missing}
 									class:alternate={!!owned?.alternate && !owned?.missing}
-									title={`${card.quantity} required · ${ownership}`}
-									aria-label={`${card.quantity} copies`}>{card.quantity}</span
+									title={language.t('message.p0.required.p1', {
+										p0: String(card.quantity),
+										p1: String(ownership)
+									})}
+									aria-label={language.t('message.p0.copies', { p0: String(card.quantity) })}
+									>{card.quantity}</span
 								>{/if}
 							<div class="entry-controls">
 								<QuantityControl
@@ -114,7 +123,10 @@
 									class:warning={!!owned?.missing}
 									class:alternate={!!owned?.alternate && !owned?.missing}
 									onclick={() => onInspect(document, card)}
-									aria-label={`Inspect ownership of ${card.name}: ${ownership}`}
+									aria-label={language.t('message.Inspect.ownership.of.p0.p1', {
+										p0: String(card.name),
+										p1: String(ownership)
+									})}
 									title={ownership}
 								>
 									<span class="ownership-mark" aria-hidden="true"

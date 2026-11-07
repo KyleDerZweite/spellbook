@@ -1,3 +1,4 @@
+import { translate } from '#lib/i18n/messages.ts';
 import { normalizeContactEmail } from '@spellbook/contracts/profile.ts';
 import { fail, redirect } from '@sveltejs/kit';
 import { isAvatarId } from '#lib/profile/avatars.ts';
@@ -23,11 +24,14 @@ export const actions: Actions = {
 			const value = form.get('email');
 			const email = normalizeContactEmail(value);
 			if (email === null) {
-				errors.email = 'Enter a valid email address, or leave it empty.';
+				errors.email = translate(
+					locals.locale,
+					'notice.Enter.a.valid.email.address.or.leave.it.empty'
+				);
 				return fail(400, {
 					intent,
 					success: false,
-					message: 'Check the email address and try again.',
+					message: translate(locals.locale, 'notice.Check.the.email.address.and.try.again'),
 					errors,
 					email: typeof value === 'string' ? value : ''
 				});
@@ -36,7 +40,7 @@ export const actions: Actions = {
 			return {
 				intent,
 				success: true,
-				message: 'Email saved.',
+				message: translate(locals.locale, 'notice.Email.saved'),
 				savedEmail: locals.user.email,
 				errors
 			};
@@ -44,21 +48,26 @@ export const actions: Actions = {
 		if (intent === 'avatar') {
 			const avatarId = form.get('avatarId');
 			if (!isAvatarId(avatarId)) {
-				errors.avatarId = 'Choose an avatar from the collection.';
+				errors.avatarId = translate(locals.locale, 'notice.Choose.an.avatar.from.the.collection');
 				return fail(400, {
 					intent,
 					success: false,
-					message: 'Choose an avatar from the collection.',
+					message: translate(locals.locale, 'notice.Choose.an.avatar.from.the.collection'),
 					errors,
 					avatarId: typeof avatarId === 'string' ? avatarId : ''
 				});
 			}
 			locals.user = (await application.profile.patch(locals.user, { avatarId })).user;
-			return { intent, success: true, message: 'Avatar saved.', errors };
+			return {
+				intent,
+				success: true,
+				message: translate(locals.locale, 'notice.Avatar.saved'),
+				errors
+			};
 		}
 		return fail(400, {
 			success: false,
-			message: 'Choose the preference to save.',
+			message: translate(locals.locale, 'notice.Choose.the.preference.to.save'),
 			errors
 		});
 	}

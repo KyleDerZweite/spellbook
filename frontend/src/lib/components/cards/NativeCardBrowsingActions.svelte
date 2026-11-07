@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { InventoryAcknowledgement } from '@spellbook/contracts/inventory.ts';
@@ -70,12 +72,15 @@
 </script>
 
 {#if signedIn}
-	{#if receipt}<p role="status" class="text-sm text-text-secondary">Deck addition confirmed.</p>
+	{#if receipt}<p role="status" class="text-sm text-text-secondary">
+			{language.t('ui.Deck.addition.confirmed')}
+		</p>
 		<a class="btn btn-secondary" href={`/mtg/decks?deck=${encodeURIComponent(receipt.deckId)}`}
-			>View Deck</a
+			>{language.t('ui.View.Deck')}</a
 		>{/if}
 	{#if choiceReadError}<p role="alert" class="text-sm text-error">
-			{choiceReadError} Refresh the Deck choices before a new addition.
+			{choiceReadError}
+			{language.t('ui.Refresh.the.Deck.choices.before.a.new.addition')}
 		</p>{/if}
 	{#if selectedPrinting}
 		<form method="GET" action="/mtg/search" class="native-actions">
@@ -96,7 +101,7 @@
 						name={'inventoryRetry' + key[0].toUpperCase() + key.slice(1)}
 						value={Reflect.get(inventorySubmitted, key)}
 					/>{/each}{/if}
-			<label class="label" for={`${id}-query`}>Find a Deck</label><input
+			<label class="label" for={`${id}-query`}>{language.t('ui.Find.a.Deck')}</label><input
 				class="input"
 				id={`${id}-query`}
 				name="deckQuery"
@@ -104,18 +109,18 @@
 				maxlength="200"
 				type="search"
 			/>
-			<button class="btn btn-secondary">Find Decks</button>
+			<button class="btn btn-secondary">{language.t('ui.Find.Decks')}</button>
 			<div class="flex flex-wrap gap-2">
 				<button
 					class="btn btn-secondary"
 					name="deckOffset"
 					value={Math.max(0, choiceOffset - 20)}
-					disabled={!choiceOffset}>Previous Decks</button
+					disabled={!choiceOffset}>{language.t('ui.Previous.Decks')}</button
 				><button
 					class="btn btn-secondary"
 					name="deckOffset"
 					value={choices?.nextOffset ?? 0}
-					disabled={choices?.nextOffset == null}>Next Decks</button
+					disabled={choices?.nextOffset == null}>{language.t('ui.Next.Decks')}</button
 				>
 			</div>
 		</form>
@@ -138,11 +143,11 @@
 						name={'deckRetry' + key[0].toUpperCase() + key.slice(1)}
 						value={Reflect.get(submitted, key)}
 					/>{/each}{/if}
-			<label class="label" for={`${id}-deck`}>Deck</label><Select
+			<label class="label" for={`${id}-deck`}>{language.t('ui.Deck')}</label><Select
 				native
 				id={`${id}-deck`}
 				name="deckId"
-				label="Deck"
+				label={language.t('ui.Deck')}
 				value={selectedId}
 				{options}
 				required
@@ -150,17 +155,17 @@
 			/>
 			<div class="fields">
 				<div>
-					<label class="label" for={`${id}-section`}>Section</label><Select
+					<label class="label" for={`${id}-section`}>{language.t('ui.Section')}</label><Select
 						native
 						id={`${id}-section`}
 						name="role"
-						label="Section"
+						label={language.t('ui.Section')}
 						value={submitted?.role ?? 'main'}
 						options={DECK_ROLES}
 					/>
 				</div>
 				<div>
-					<label class="label" for={`${id}-quantity`}>Quantity</label><input
+					<label class="label" for={`${id}-quantity`}>{language.t('ui.Quantity')}</label><input
 						class="input"
 						id={`${id}-quantity`}
 						type="number"
@@ -175,12 +180,13 @@
 			</div>
 			<button class="btn btn-primary" disabled={!!choiceReadError || !choices}
 				><PlusIcon />{submitted && !receipt
-					? 'Add with current Deck details'
-					: 'Add to Deck'}</button
+					? language.t('ui.Add.with.current.Deck.details')
+					: language.t('ui.Add.to.Deck')}</button
 			>
 		</form>
 	{:else}<p role="alert" class="text-sm text-text-secondary">
-			{printingReadError ?? 'Printing evidence could not be loaded. Refresh before a new addition.'}
+			{printingReadError ??
+				language.t('ui.Printing.evidence.could.not.be.loaded.Refresh.before.a.new.addition')}
 		</p>{/if}
 	{#if result?.action === 'addToDeck' && result.message}<p role="alert" class="text-sm text-error">
 			{result.message}
@@ -196,14 +202,18 @@
 					{value}
 				/>{/each}
 			<p class="text-sm text-text-secondary">
-				Original submitted addition: {submitted.quantity} of {submitted.catalogCardId} to {submitted.deckId},
-				{submitted.role}.
+				{language.t('sentence.Original.submitted.addition.p0.of.p1.to.p2.p3', {
+					p0: String(submitted.quantity),
+					p1: String(submitted.catalogCardId),
+					p2: String(submitted.deckId),
+					p3: String(submitted.role)
+				})}
 			</p>
-			<button class="btn btn-secondary">Retry original Deck addition</button>
+			<button class="btn btn-secondary">{language.t('ui.Retry.original.Deck.addition')}</button>
 		</form>{/if}
 	<div class="secondary-add">
 		{#if inventoryReceipt}<p role="status" class="text-sm text-text-secondary">
-				Inventory addition confirmed.
+				{language.t('ui.Inventory.addition.confirmed')}
 			</p>{/if}
 		{#if selectedPrinting}
 			<form
@@ -229,7 +239,8 @@
 							name={'inventoryRetry' + key[0].toUpperCase() + key.slice(1)}
 							value={Reflect.get(inventorySubmitted, key)}
 						/>{/each}{/if}
-				<label class="label" for={`${id}-inventory-quantity`}>Quantity</label><input
+				<label class="label" for={`${id}-inventory-quantity`}>{language.t('ui.Quantity')}</label
+				><input
 					class="input"
 					id={`${id}-inventory-quantity`}
 					type="number"
@@ -242,31 +253,48 @@
 				/>
 				<div class="fields">
 					<div>
-						<label class="label" for={`${id}-finish`}>Finish</label><Select
+						<label class="label" for={`${id}-finish`}>{language.t('ui.Finish')}</label><Select
 							native
 							id={`${id}-finish`}
-							label="Finish"
+							label={language.t('ui.Finish')}
 							name="finish"
 							value={inventorySubmitted?.finish ??
 								(selectedPrinting.is_nonfoil_available ? 'nonfoil' : 'foil')}
 							options={[
 								{
 									value: 'nonfoil',
-									label: 'Nonfoil',
+									label: language.t('notice.Nonfoil'),
 									disabled: !selectedPrinting.is_nonfoil_available
 								},
-								{ value: 'foil', label: 'Foil', disabled: !selectedPrinting.is_foil_available }
+								{
+									value: 'foil',
+									label: language.t('notice.Foil'),
+									disabled: !selectedPrinting.is_foil_available
+								}
 							]}
 						/>
 					</div>
 					<div>
-						<label class="label" for={`${id}-condition`}>Condition</label><Select
+						<label class="label" for={`${id}-condition`}>{language.t('ui.Condition')}</label><Select
 							native
 							id={`${id}-condition`}
 							name="condition"
-							label="Condition"
+							label={language.t('ui.Condition')}
 							value={inventorySubmitted?.condition ?? 'NM'}
-							options={['NM', 'LP', 'MP', 'HP', 'DMG'].map((value) => ({ value, label: value }))}
+							options={['NM', 'LP', 'MP', 'HP', 'DMG'].map((value) => ({
+								value,
+								label: language.t(
+									(
+										{
+											NM: 'ui.Near.Mint',
+											LP: 'ui.Lightly.Played',
+											MP: 'ui.Moderately.Played',
+											HP: 'ui.Heavily.Played',
+											DMG: 'ui.Damaged'
+										} as const
+									)[value as 'NM']
+								)
+							}))}
 						/>
 					</div>
 				</div>
@@ -274,8 +302,8 @@
 					class="btn btn-secondary text-sm"
 					disabled={!selectedPrinting.is_nonfoil_available && !selectedPrinting.is_foil_available}
 					><PlusIcon />{inventorySubmitted && !inventoryReceipt
-						? 'Add with current Inventory details'
-						: 'Add to Inventory'}</button
+						? language.t('ui.Add.with.current.Inventory.details')
+						: language.t('ui.Add.to.Inventory')}</button
 				>
 			</form>
 		{/if}
@@ -300,14 +328,19 @@
 						{value}
 					/>{/each}
 				<p class="text-sm text-text-secondary">
-					Original submitted Inventory addition: {inventorySubmitted.quantity}, {inventorySubmitted.finish},
-					{inventorySubmitted.condition}.
+					{language.t('sentence.Original.submitted.Inventory.addition.p0.p1.p2', {
+						p0: String(inventorySubmitted.quantity),
+						p1: String(inventorySubmitted.finish),
+						p2: String(inventorySubmitted.condition)
+					})}
 				</p>
-				<button class="btn btn-secondary">Retry original Inventory addition</button>
+				<button class="btn btn-secondary"
+					>{language.t('ui.Retry.original.Inventory.addition')}</button
+				>
 			</form>{/if}
 	</div>
 {:else}<a class="btn btn-primary" href={cardSignInHref(canonicalSearchHref, selectedPrinting?.id)}
-		>Sign in to add cards</a
+		>{language.t('ui.Sign.in.to.add.cards')}</a
 	>{/if}
 
 <style>

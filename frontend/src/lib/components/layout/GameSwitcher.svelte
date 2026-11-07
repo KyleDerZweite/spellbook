@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { goto } from '$app/navigation';
 	import { activeGameState, AVAILABLE_GAMES } from '#lib/state/activeGame.svelte.ts';
 	import TooltipButton from '#lib/components/ui/tooltip/TooltipButton.svelte';
@@ -18,8 +20,8 @@
 </script>
 
 <TooltipButton
-	label="Game: Magic: The Gathering"
-	tooltip="Magic: The Gathering · Only available game"
+	label={language.t('ui.Game.Magic.The.Gathering')}
+	tooltip={language.t('ui.Magic.The.Gathering.Only.available.game')}
 	bind:open
 	keepOpenOnClick
 	onclick={cycleGame}

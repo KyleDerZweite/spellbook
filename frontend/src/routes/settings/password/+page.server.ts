@@ -1,3 +1,4 @@
+import { translate } from '#lib/i18n/messages.ts';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { demoMode } from '#lib/server/auth/demo.ts';
@@ -28,7 +29,10 @@ export const actions: Actions = {
 		const errors: PasswordFormFailure['errors'] = {};
 		return {
 			success: true,
-			message: 'Password changed. Your other sessions were signed out.',
+			message: translate(
+				event.locals.locale,
+				'notice.Password.changed.Your.other.sessions.were.signed.out'
+			),
 			errors
 		};
 	}

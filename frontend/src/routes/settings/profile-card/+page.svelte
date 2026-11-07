@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { reconcileProfileCardDraft } from '#lib/profile/saved.ts';
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
@@ -114,7 +116,7 @@
 </script>
 
 <svelte:head
-	><title>Profile Card | Spellbook</title><meta
+	><title>{language.t('ui.Profile.Card.Spellbook')}</title><meta
 		name="robots"
 		content="noindex, nofollow"
 	/></svelte:head
@@ -125,9 +127,11 @@
 			role="status"
 			class="text-sm text-text-secondary"
 		>
-			Saved changes synchronization is {savedProfile.status}.
+			{language.t('sentence.Saved.changes.synchronization.is.p0', {
+				p0: String(savedProfile.status)
+			})}
 		</p>{/if}
-	<div class="page-title"><h1>Profile Card</h1></div>
+	<div class="page-title"><h1>{language.t('ui.Profile.Card')}</h1></div>
 	<div class="settings-profile">
 		<div bind:this={preview} class="settings-preview" class:sticky-preview={canStick}>
 			<ProfileCard
@@ -137,7 +141,10 @@
 				totals={saved.totals}
 				definition={card}
 			/>
-			<p class="preview-status">Private profile card · {isSaved ? 'Saved' : 'Unsaved changes'}</p>
+			<p class="preview-status">
+				{language.t('ui.Private.profile.card')}
+				{isSaved ? language.t('ui.Saved') : language.t('ui.Unsaved.changes')}
+			</p>
 			{#if saved.statsError}<p role="status" class="text-sm text-text-secondary">
 					{saved.statsError}
 				</p>{/if}
@@ -162,7 +169,8 @@
 				return async ({ result, update }) => {
 					try {
 						if (write && !write.current()) return;
-						if (result.type === 'error') saveError = 'Could not save your card. Try again.';
+						if (result.type === 'error')
+							saveError = language.t('ui.Could.not.save.your.card.Try.again');
 						else {
 							await update({ reset: false, refreshAll: false, navigate: false });
 							if (write && !write.current()) return;
@@ -212,7 +220,7 @@
 			/>
 			<div class="settings-save">
 				<button class="btn btn-primary" disabled={pending}
-					>{pending ? 'Saving...' : 'Save card'}</button
+					>{pending ? language.t('ui.Saving') : language.t('ui.Save.card')}</button
 				>
 				<div
 					id="profile-status"
@@ -220,9 +228,9 @@
 					aria-atomic="true"
 					class="text-sm text-text-secondary"
 				>
-					{#if saveError}<span class="text-error">{saveError}</span
+					{#if saveError}<span class="text-error">{language.message(saveError)}</span
 						>{:else if form?.message && (!form.success || isSaved)}<span
-							class:text-error={!form.success}>{form.message}</span
+							class:text-error={!form.success}>{language.message(form.message)}</span
 						>{/if}
 				</div>
 			</div>

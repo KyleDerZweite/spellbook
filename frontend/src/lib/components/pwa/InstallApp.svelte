@@ -1,19 +1,23 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { pwaState } from '#lib/pwa/state.svelte.ts';
 	let message = $state('');
 	async function install() {
 		const result = await pwaState.install();
 		message =
 			result === 'accepted'
-				? 'Installation requested. Open Spellbook from your home screen or app launcher when ready.'
+				? language.t(
+						'ui.Installation.requested.Open.Spellbook.from.your.home.screen.or.app.launcher.when.ready'
+					)
 				: result === 'dismissed'
-					? 'Installation cancelled. You can still use Spellbook in this browser.'
-					: 'Use your browser menu to install Spellbook if supported.';
+					? language.t('ui.Installation.cancelled.You.can.still.use.Spellbook.in.this.browser')
+					: language.t('ui.Use.your.browser.menu.to.install.Spellbook.if.supported');
 	}
 </script>
 
 {#if pwaState.standalone}
-	<p>Spellbook is running as an installed app.</p>
+	<p>{language.t('ui.Spellbook.is.running.as.an.installed.app')}</p>
 {:else}
 	<div class="install-app">
 		{#if pwaState.canInstall}
@@ -23,19 +27,28 @@
 				disabled={pwaState.installing}
 				onclick={install}
 			>
-				Install Spellbook
+				{language.t('ui.Install.Spellbook')}
 			</button>
 		{/if}
 		<details>
-			<summary>How to install Spellbook</summary>
-			<p>In Chrome or Edge, open the browser menu and choose Install app or Add to home screen.</p>
-			<p>On iPhone or iPad, open this site in Safari, tap Share, then Add to Home Screen.</p>
+			<summary>{language.t('ui.How.to.install.Spellbook')}</summary>
 			<p>
-				If no install option appears, keep using Spellbook in your browser. Installation needs HTTPS
-				outside localhost.
+				{language.t(
+					'ui.In.Chrome.or.Edge.open.the.browser.menu.and.choose.Install.app.or.Add.to.home.screen'
+				)}
+			</p>
+			<p>
+				{language.t(
+					'ui.On.iPhone.or.iPad.open.this.site.in.Safari.tap.Share.then.Add.to.Home.Screen'
+				)}
+			</p>
+			<p>
+				{language.t(
+					'ui.If.no.install.option.appears.keep.using.Spellbook.in.your.browser.Installation.needs.HTTPS.outside.localhost'
+				)}
 			</p>
 		</details>
-		<p>Spellbook needs an internet connection for account data and scanning.</p>
+		<p>{language.t('ui.Spellbook.needs.an.internet.connection.for.account.data.and.scanning')}</p>
 		<p role="status">{message}</p>
 	</div>
 {/if}

@@ -1,32 +1,39 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import type { PageProps } from './$types';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	let { data }: PageProps = $props();
-	const sections = [
+	const sections = $derived([
 		{ role: 'commander', label: 'Commander' },
 		{ role: 'main', label: 'Main Deck' },
-		{ role: 'sideboard', label: 'Sideboard' },
-		{ role: 'companion', label: 'Companion' }
-	];
+		{ role: 'sideboard', label: language.t('ui.Sideboard') },
+		{ role: 'companion', label: language.t('ui.Companion') }
+	]);
 </script>
 
 <svelte:head
-	><title>Print {data.deck.name} | Spellbook</title><meta
+	><title>{language.t('ui.Print')} {data.deck.name} | Spellbook</title><meta
 		name="robots"
 		content="noindex"
 	/></svelte:head
 >
 <article class="deck-print workspace-container">
 	<div class="print-actions">
-		<Button onclick={() => window.print()}>Print deck</Button><Button
+		<Button onclick={() => window.print()}>{language.t('ui.Print.deck')}</Button><Button
 			href={`/mtg/decks?deck=${data.deck.id}`}
-			variant="secondary">Back to deck</Button
+			variant="secondary">{language.t('ui.Back.to.deck')}</Button
 		>
-		<p>Use your browser's print command to print or save as PDF.</p>
+		<p>{language.t('ui.Use.your.browser.s.print.command.to.print.or.save.as.PDF')}</p>
 	</div>
 	<header>
 		<h1>{data.deck.name}</h1>
-		<p>{data.deck.format} · {data.cards.reduce((sum, card) => sum + card.quantity, 0)} cards</p>
+		<p>
+			{language.t('sentence.p0.p1.cards', {
+				p0: String(data.deck.format),
+				p1: String(data.cards.reduce((sum, card) => sum + card.quantity, 0))
+			})}
+		</p>
 	</header>
 	{#if data.deck.description}<p class="description">{data.deck.description}</p>{/if}
 	{#each sections as section}
@@ -35,7 +42,10 @@
 			<h2>{section.label} · {cards.reduce((sum, card) => sum + card.quantity, 0)}</h2>
 			{#if cards.length}<table>
 					<thead
-						><tr><th scope="col">Quantity</th><th scope="col">Card</th><th scope="col">Set</th></tr
+						><tr
+							><th scope="col">{language.t('ui.Quantity')}</th><th scope="col"
+								>{language.t('ui.Card')}</th
+							><th scope="col">{language.t('ui.Set')}</th></tr
 						></thead
 					><tbody
 						>{#each cards as card}<tr
@@ -43,24 +53,27 @@
 								></tr
 							>{/each}</tbody
 					>
-				</table>{:else}<p>No cards.</p>{/if}
+				</table>{:else}<p>{language.t('ui.No.cards')}</p>{/if}
 		</section>
 	{/each}
 	<section class="tokens" aria-labelledby="tokens-title">
-		<h2 id="tokens-title">Related tokens</h2>
-		<p>References only. Tokens are not included in the Deck's card totals.</p>
+		<h2 id="tokens-title">{language.t('ui.Related.tokens')}</h2>
+		<p>{language.t('ui.References.only.Tokens.are.not.included.in.the.Deck.s.card.totals')}</p>
 		{#if data.relatedTokens.items.length}<ul>
 				{#each data.relatedTokens.items as token}<li>
 						{token.name} · {token.setCode.toUpperCase()}
 						{token.collectorNumber}
 					</li>{/each}
-			</ul>{:else}<p>No resolved Token references.</p>{/if}
+			</ul>{:else}<p>{language.t('ui.No.resolved.Token.references')}</p>{/if}
 		{#if data.relatedTokens.status !== 'available'}<p>
-				Some Token references are unavailable.
+				{language.t('ui.Some.Token.references.are.unavailable')}
 			</p>{/if}
 		{#if data.relatedTokens.unresolved.length}<ul>
 				{#each data.relatedTokens.unresolved as token}<li>
-						{token.name}, unavailable Printing {token.catalogCardId}
+						{language.t('sentence.p0.unavailable.Printing.p1', {
+							p0: String(token.name),
+							p1: String(token.catalogCardId)
+						})}
 					</li>{/each}
 			</ul>{/if}
 	</section>

@@ -1,3 +1,4 @@
+import { localizeMessage } from '#lib/i18n/presentation.ts';
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import type { AuthSession, AuthUser } from '@spellbook/contracts/auth.ts';
 import { requireSameOrigin, sanitizeReturnTo } from './local';
@@ -28,9 +29,22 @@ export async function submitCredentialForm<Success, Failure>(
 	path: WebFormPath
 ) {
 	try {
-		return await event.locals.api.form<Success, Failure>(path, event.request);
+		const result = await event.locals.api.form<Success, Failure>(path, event.request);
+		if (!result.ok && result.data && typeof result.data === 'object') {
+			const data = result.data as Record<string, unknown>;
+			if (typeof data.message === 'string')
+				data.message = localizeMessage(event.locals.locale, data.message);
+			if (data.errors && typeof data.errors === 'object') {
+				for (const [field, value] of Object.entries(data.errors)) {
+					if (typeof value === 'string')
+						Reflect.set(data.errors, field, localizeMessage(event.locals.locale, value));
+				}
+			}
+		}
+		return result;
 	} catch (cause) {
-		if (cause instanceof RemoteError) error(cause.status, cause.message);
+		if (cause instanceof RemoteError)
+			error(cause.status, localizeMessage(event.locals.locale, cause.message));
 		throw cause;
 	}
 }

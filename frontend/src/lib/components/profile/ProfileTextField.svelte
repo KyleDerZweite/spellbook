@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { useLanguage } from '#lib/i18n/context.ts';
+	const language = useLanguage();
 	import { tick } from 'svelte';
 	import KpiInsert from './KpiInsert.svelte';
 	import {
@@ -37,9 +39,9 @@
 	);
 	let limitError = $derived(
 		value.length > limit
-			? `Use at most ${limit} characters.`
+			? language.t('message.Use.at.most.p0.characters', { p0: String(limit) })
 			: lineLimit && value.split('\n').length > lineLimit
-				? `Use at most ${lineLimit} lines.`
+				? language.t('message.Use.at.most.p0.lines', { p0: String(lineLimit) })
 				: undefined
 	);
 	let input = $state<HTMLInputElement | HTMLTextAreaElement>();
@@ -52,7 +54,9 @@
 			key
 		);
 		if (result.text.length > limit) {
-			insertError = `Not enough space for this KPI. The limit is ${limit} characters.`;
+			insertError = language.t('message.Not.enough.space.for.this.KPI.The.limit.is.p0.characters', {
+				p0: String(limit)
+			});
 			await tick();
 			input.focus();
 			return;
@@ -104,8 +108,8 @@
 		/>{/if}
 	<div class="field-guidance">
 		<p id={`card-${name}-help`} class="field-help">
-			{#if help}{help}{:else}Optional · supports live KPIs{/if}{#if lineLimit}
-				Up to {lineLimit} lines.{/if}
+			{#if help}{help}{:else}{language.t('ui.Optional.supports.live.KPIs')}{/if}{#if lineLimit}
+				{language.t('message.Use.at.most.p0.lines', { p0: String(lineLimit) })}{/if}
 		</p>
 		<span class="field-count">{value.length}/{limit}</span>
 	</div>
