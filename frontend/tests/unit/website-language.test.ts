@@ -76,8 +76,10 @@ it('renders German SSR controls in request context without translating card-lang
 	expect(german.body).toContain('Anzahl 2 Karten');
 	expect(german.body).toContain('Nächste 200 Ergebnisse');
 	expect(german.body).toContain('language=en');
+	expect(german.body).toContain('Scanne den QR-Code');
 	expect(english.body).toContain('Quantity 2 cards');
 	expect(english.body).toContain('Next 200 results');
+	expect(english.body).toContain('Scan the QR code shown on the device');
 });
 
 it('supports an enhanced cookie-only update without navigating or submitting page writes', async () => {

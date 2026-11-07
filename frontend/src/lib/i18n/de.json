@@ -1205,5 +1205,8 @@
 	"profile.powerHelp": "Zahl, *, X oder KPI. Fülle beide Felder aus oder lasse beide leer.",
 	"deck.import.add.one": "Alle {count} Karte hinzufügen",
 	"deck.import.add.other": "Alle {count} Karten hinzufügen",
-	"ui.Saving": "Wird gespeichert..."
+	"ui.Saving": "Wird gespeichert...",
+	"qr.approval": "{device} als {username} anmelden?",
+	"qr.target.browser": "Einen anderen Browser",
+	"qr.target.device": "Ein Gerät"
 }

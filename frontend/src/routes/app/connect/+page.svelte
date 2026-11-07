@@ -1,16 +1,16 @@
 <script lang="ts">
+	import type { MessageKey } from '#lib/i18n/messages.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import { goto } from '$app/navigation';
 	import { parseQrAuthorizationInput } from '#lib/auth/qr-code.ts';
 	import QrScanner from '#lib/components/auth/QrScanner.svelte';
-	let message = $state('');
+	let message = $state<MessageKey>();
 	function scan(value: string) {
 		const code = parseQrAuthorizationInput(value, window.location.origin);
 		if (!code) {
-			message = language.t(
-				'ui.Use.a.Spellbook.sign.in.QR.code.from.this.service.Links.to.other.sites.are.not.accepted'
-			);
+			message =
+				'ui.Use.a.Spellbook.sign.in.QR.code.from.this.service.Links.to.other.sites.are.not.accepted';
 			return;
 		}
 		void goto(`/auth/approve?code=${encodeURIComponent(code)}`);
@@ -33,7 +33,7 @@
 			)}
 		</p>
 	</header>
-	{#if message}<p role="alert" class="text-error">{message}</p>{/if}
+	{#if message}<p role="alert" class="text-error">{language.t(message)}</p>{/if}
 	<QrScanner onScan={scan} />
 	<a href="/app" class="btn btn-secondary">{language.t('ui.Back.to.app')}</a>
 </div>

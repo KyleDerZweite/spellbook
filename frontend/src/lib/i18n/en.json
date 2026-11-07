@@ -1205,5 +1205,8 @@
 	"profile.powerHelp": "Number, *, X or KPI. Fill both or leave both empty.",
 	"deck.import.add.one": "Add all {count} card",
 	"deck.import.add.other": "Add all {count} cards",
-	"ui.Saving": "Saving..."
+	"ui.Saving": "Saving...",
+	"qr.approval": "Sign in to {device} as {username}?",
+	"qr.target.browser": "another browser",
+	"qr.target.device": "a device"
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { MessageKey } from '#lib/i18n/messages.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import { onMount, onDestroy } from 'svelte';
@@ -7,8 +8,8 @@
 	let { onScan }: { onScan: (value: string) => void } = $props();
 	let video: HTMLVideoElement | undefined = $state();
 	let active = $state(false);
-	let message = $state(
-		language.t('ui.Scan.the.QR.code.shown.on.the.device.you.want.to.sign.in.to')
+	let message = $state<MessageKey>(
+		'ui.Scan.the.QR.code.shown.on.the.device.you.want.to.sign.in.to'
 	);
 	let manual = $state('');
 	let controls: IScannerControls | undefined;
@@ -37,13 +38,12 @@
 	async function start() {
 		stop();
 		if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-			message = language.t(
-				'ui.Camera.scanning.needs.HTTPS.and.camera.access.You.can.paste.the.sign.in.link.below'
-			);
+			message =
+				'ui.Camera.scanning.needs.HTTPS.and.camera.access.You.can.paste.the.sign.in.link.below';
 			return;
 		}
 		active = true;
-		message = language.t('ui.Point.your.camera.at.the.sign.in.QR.code');
+		message = 'ui.Point.your.camera.at.the.sign.in.QR.code';
 		const current = generation;
 		try {
 			const { BrowserQRCodeReader } = await import('@zxing/browser');
@@ -66,7 +66,7 @@
 				if (result) {
 					void stopScanner(running);
 					stop();
-					message = language.t('ui.Code.found.Review.the.sign.in.request.before.approving');
+					message = 'ui.Code.found.Review.the.sign.in.request.before.approving';
 					onScan(result.getText());
 				}
 			});
@@ -75,9 +75,8 @@
 		} catch {
 			if (current !== generation) return;
 			stop();
-			message = language.t(
-				'ui.Unable.to.open.the.camera.Check.camera.permission.or.paste.the.sign.in.link.below'
-			);
+			message =
+				'ui.Unable.to.open.the.camera.Check.camera.permission.or.paste.the.sign.in.link.below';
 		}
 	}
 
@@ -85,7 +84,7 @@
 		const pause = () => {
 			if (document.hidden && active) {
 				stop();
-				message = language.t('ui.Camera.paused.Start.scanning.when.you.return');
+				message = 'ui.Camera.paused.Start.scanning.when.you.return';
 			}
 		};
 		document.addEventListener('visibilitychange', pause);
@@ -95,7 +94,7 @@
 </script>
 
 <section class="space-y-4" aria-label={language.t('ui.Sign.in.QR.scanner')}>
-	<p class="text-sm text-text-secondary" role="status">{message}</p>
+	<p class="text-sm text-text-secondary" role="status">{language.t(message)}</p>
 	<video
 		bind:this={video}
 		class="aspect-square w-full rounded-xl border border-border bg-black object-cover"

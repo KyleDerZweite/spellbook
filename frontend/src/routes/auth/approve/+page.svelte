@@ -21,10 +21,10 @@
 		{#if form?.message}<p role="alert" class="text-error">{language.message(form.message)}</p>{/if}
 		{#if request.status === 'pending'}
 			<p>
-				{language.t('ui.Sign.in.to')}
-				{request.kind === 'browser' ? 'another browser' : 'a device'}
-				{language.t('ui.as')}
-				<strong>{data.reviewedUsername}</strong>?
+				{language.t('qr.approval', {
+					device: language.t(request.kind === 'browser' ? 'qr.target.browser' : 'qr.target.device'),
+					username: data.reviewedUsername
+				})}
 			</p>
 			<p class="text-sm text-text-secondary">
 				{language.t(

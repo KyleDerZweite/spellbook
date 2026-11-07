@@ -97,6 +97,19 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.match(html, /Approve sign-in/);
 				assert.match(html, /Only approve a code you just scanned/);
 				assert.match(html, new RegExp(approver.user.username));
+				const visible = (html: string) => html.replace(/<!--.*?-->/gs, '').replace(/\s+/g, ' ');
+				assert.ok(
+					visible(html).includes(`Sign in to another browser as ${approver.user.username}?`)
+				);
+				const german = await request(path, undefined, {
+					cookie: `${headers.cookie}; website-language=de`
+				});
+				assert.equal(german.status, 200);
+				assert.ok(
+					visible(await german.text()).includes(
+						`Einen anderen Browser als ${approver.user.username} anmelden?`
+					)
+				);
 				const review = reviewMarker(html);
 				assert.equal(
 					(

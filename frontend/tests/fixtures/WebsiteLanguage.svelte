@@ -1,4 +1,5 @@
 <script lang="ts">
+	import QrScanner from '../../src/lib/components/auth/QrScanner.svelte';
 	import { provideLanguage } from '../../src/lib/i18n/context.ts';
 	import type { Locale } from '../../src/lib/i18n/locale.ts';
 	import NativeRangeNavigation from '../../src/lib/components/ui/pagination/NativeRangeNavigation.svelte';
@@ -13,3 +14,5 @@
 	total={600}
 	canonicalURL={new URL('https://example.test/mtg/search?q=Island&language=en')}
 />
+
+<QrScanner onScan={() => {}} />

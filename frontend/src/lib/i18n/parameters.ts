@@ -1,4 +1,5 @@
 export interface MessageParameters {
+	'qr.approval': { device: string | number; username: string | number };
 	'deck.import.add.one': { count: string | number };
 	'deck.import.add.other': { count: string | number };
 	'validation.characters': { count: string | number };
