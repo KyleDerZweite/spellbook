@@ -26,6 +26,15 @@
    Correct failures before concluding; report skipped checks and unavailable evidence.
 4. Before preparing a PR, follow [contribution disclosure](CONTRIBUTING.md#pull-request-expectations) for actual AI assistance, review, validation and contributor responsibility.
 
+## Development startup
+
+Requests to start "dev" or "development" mean the Development Compose stack.
+Use `pnpm dev` and follow [Development startup](docs/operations/deployment.md#stable-server-site-and-optional-development).
+With a root `.env`, use configured Development and its Newt tunnel.
+Without `.env`, use the isolated localhost mode with a loopback frontend port and no Newt.
+Use native processes or Vite only when explicitly requested.
+Keep Demo and production separate, and preserve existing processes and data.
+
 ## Task-specific references
 
 - Before strategic decisions or resuming strategic work, read the [historical wiki index](docs/wiki/index.md) and relevant pages, then follow its query and ingestion rules.

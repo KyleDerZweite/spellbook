@@ -1,4 +1,4 @@
-# Hosted Demo stack. Development overrides its credentials in compose.development.yml.
+# Hosted Demo stack. Development has its own standalone compose.development.yml.
 services:
   postgres:
     image: docker.io/postgres:18.6-bookworm

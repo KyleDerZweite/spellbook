@@ -1,0 +1,24 @@
+# Configured Development ingress. No application host port is published.
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?Set DEV_POSTGRES_PASSWORD for Development}
+  api:
+    environment:
+      APP_ORIGIN: ${DEV_APP_ORIGIN:?Set DEV_APP_ORIGIN for Development}
+  frontend:
+    build:
+      args:
+        APP_ORIGIN: ${DEV_APP_ORIGIN:?Set DEV_APP_ORIGIN for Development}
+    environment:
+      APP_ORIGIN: ${DEV_APP_ORIGIN:?Set DEV_APP_ORIGIN for Development}
+  newt:
+    image: docker.io/fosrl/newt:1.18.1
+    profiles: [tunnel]
+    restart: unless-stopped
+    environment:
+      PANGOLIN_ENDPOINT: ${DEV_PANGOLIN_ENDPOINT:?Set DEV_PANGOLIN_ENDPOINT for Development}
+      NEWT_ID: ${DEV_NEWT_ID:?Set DEV_NEWT_ID for Development}
+      NEWT_SECRET: ${DEV_NEWT_SECRET:?Set DEV_NEWT_SECRET for Development}
+    depends_on:
+      - frontend
