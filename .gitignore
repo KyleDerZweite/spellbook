@@ -6,6 +6,7 @@
 .env.staging
 
 # Development Tools
+/.agents/
 .vscode/
 .idea/
 *.swp
