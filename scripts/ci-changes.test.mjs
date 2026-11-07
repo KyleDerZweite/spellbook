@@ -568,7 +568,7 @@ test('state worker and Core/SQL changes select the packaged state consumer', () 
 });
 
 test('default Compose uses Python API, migrator and sole state scheduler ownership', () => {
-	const source = readFileSync(new URL('../compose.prod.yml', import.meta.url), 'utf8');
+	const source = readFileSync(new URL('../compose.yml', import.meta.url), 'utf8');
 	assert.match(source, /api:\n\s+build:\n\s+context: \.\n\s+dockerfile: backend\/api\/Dockerfile/);
 	assert.match(
 		source,

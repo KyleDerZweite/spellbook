@@ -1,9 +1,9 @@
 # PostgreSQL 17 to 18 upgrade
 
 - Status: Canonical
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-07
 - Source of Truth: compose configuration, PostgreSQL tools, disposable migration rehearsal
-- Update Triggers: Compose Demo and production entrypoints, independent API/web ownership and relocated code references, PostgreSQL major versions, database volume layout, ownership or role changes, migration commands
+- Update Triggers: three-file Compose selection and immutable hosted images, Compose Demo and production entrypoints, independent API/web ownership and relocated code references, PostgreSQL major versions, database volume layout, ownership or role changes, migration commands
 - Related Docs: [Deployment](./deployment.md), [Postgres architecture](../architecture/postgres.md), [Local authentication](./local-auth.md), [Operations](./README.md)
 
 The stack now uses PostgreSQL 18.6 with `postgres18_data` mounted at `/var/lib/postgresql`.
@@ -22,13 +22,14 @@ Pause public ingress at the reverse proxy or tunnel until verification completes
 Pause all application writers, including external database clients:
 
 ```sh
-podman-compose -p spellbook -f compose.prod.yml stop frontend worker scan-worker
+pnpm compose production stop frontend api state-worker worker scan-worker
 podman ps --format '{{.ID}} {{.Names}} {{.Image}}'
 ```
 
-The command above names the historical single-application services.
-For an independent-runtime deployment, also stop `api` before dumping; it owns application writes and runners.
-Keep it stopped through restore and migration.
+Use the historical deployment command when stopping an old checkout that predates the hosted launcher.
+Keep API and State stopped through restore and migration.
+For the updated checkout, configure `PROD_IMAGE_REVISION` and prepare its immutable local images with `pnpm compose production build` before the database-only startup.
+The [deployment owner](./deployment.md#demo-deployment) defines selected-image validation; `up postgres` starts only the database.
 
 Record the observed PostgreSQL 17 container, original data volume, configured database name, and database owner.
 Replace the example values below with those observations.
@@ -53,7 +54,7 @@ Preserve custom database roles and grants separately if the deployment has them;
 Stop PostgreSQL, then update the application checkout and deployment configuration:
 
 ```sh
-podman-compose -p spellbook -f compose.prod.yml stop postgres
+pnpm compose production stop postgres
 ```
 
 Do not run `down -v` or remove `postgres_data`.
@@ -64,7 +65,7 @@ Start only PostgreSQL from the updated configuration.
 This creates the separate PostgreSQL 18 volume:
 
 ```sh
-podman-compose -p spellbook -f compose.prod.yml up -d postgres
+pnpm compose production up postgres
 podman ps --format '{{.ID}} {{.Names}} {{.Image}} {{.Status}}'
 ```
 
@@ -83,8 +84,8 @@ Investigate before retrying; do not start API writers or web ingress against a p
 Compare restored table counts and migration history with the source, then run application migrations:
 
 ```sh
-podman-compose -p spellbook -f compose.prod.yml run --build --rm db-migrate
-podman-compose -p spellbook -f compose.prod.yml up --build -d
+pnpm compose production run db-migrate
+pnpm compose production up
 ```
 
 Verify local login, preserved inventory and decks, account isolation, and scan history before reopening external writers.

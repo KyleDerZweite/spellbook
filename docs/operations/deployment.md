@@ -1,86 +1,199 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-06
+- Last Reviewed: 2026-11-07
 - Source of Truth: repo config
-- Update Triggers: environment isolation and Catalog-preserving private Demo reset, one root environment with Production/Demo/Development key namespaces, stable server site and separate environment-configured Development, container-only ingress without published host ports, single private Demo environment, built public Demo Compose, Compose Demo and production entrypoints, managed Category removal, static Demo valuation in API and State, shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
-- Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers:
+  - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
+  - Compose services, independent images, startup commands and graceful shutdown.
+  - Stable server ingress, Development tunnels, loopback ports and origin builds.
+  - Database migration ownership, retained data, recovery and operator commands.
+  - Catalog publication, Demo bundles, private reset and source refresh.
+  - Scan storage, worker ownership, value-history scheduling and reporting configuration.
+  - Authentication, QR sessions, PWA operation and current runtime acceptance.
+- Related Docs:
+  - [Postgres](../architecture/postgres.md)
+  - [Operations](./README.md)
+  - [Local authentication](./local-auth.md)
+  - [System overview](../architecture/system-overview.md)
+  - [Private instance template](./private-instance-template.md)
+  - [GitHub automation](./github-automation.md)
+  - [PostgreSQL upgrade](./postgres-upgrade.md)
+  - [Catalog](../architecture/catalog.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
 
-The Demo and production service definitions are [`compose.dev.yml`](../../compose.dev.yml) and [`compose.prod.yml`](../../compose.prod.yml).
-Keep live domains, account details, and secret references in private operator notes.
+The repository has exactly three Compose files.
+[`compose.yml`](../../compose.yml) is standalone self-hosting without configuration.
+[`compose.dev.yml`](../../compose.dev.yml) is configured private Development with Newt.
+[`compose.prod.yml`](../../compose.prod.yml) contains hosted Production, Demo and the independent stable connector.
+There are no Compose overlays or generated image YAML files.
+Keep live domains, account details and secret references in private operator notes.
 
-The unmerged candidate uses the Python API image and an explicit one-shot `spellbook-migrate` service.
-API, Catalog and State wait for successful migration; Scan remains an independent service.
+API, Catalog and State wait for successful one-shot migration; Scan remains independent.
 State is the sole scheduled ValueHistory owner.
 API performs synchronous effects and enqueues work but starts no schedulers.
-Source activation does not authorize a production cutover or retire the retained Node rollback artifact.
+Configuration changes do not authorize deployment, a database reset or retirement of a retained rollback artifact.
+
+## Standalone self-hosting
+
+With Podman and podman-compose installed, run from a checkout without creating `.env`:
+
+```sh
+podman-compose -f compose.yml up --build -d
+```
+
+Open `http://localhost:3000` and register a normal account.
+Only frontend publishes a host port, bound to `127.0.0.1`.
+API shares frontend's network namespace and binds to loopback; PostgreSQL and workers publish no ports.
+PostgreSQL uses trust authentication inside the private application network.
+API and Scan share local artifact storage.
+No Newt, provider credentials, S3 service or Demo account is required.
+Startup runs migrations without Demo seeding.
+The database starts empty; the opt-in Catalog worker imports public data separately:
+
+```sh
+podman-compose -f compose.yml --profile catalog run --rm worker
+podman-compose -f compose.yml down
+```
+
+Stopping without `--volumes` retains data.
+For a different port with direct Compose, set both `LOCAL_PORT` and `LOCAL_APP_ORIGIN` to matching values before building.
+Standalone optional keys are listed in [`.env.example`](../../.env.example); the defaults need none of them.
 
 ## Demo deployment
 
-Keep exactly one private root `.env` per checkout and use [`.env.example`](../../.env.example) as the key inventory.
-Restrict `.env` to mode 600 and keep it outside Git.
-Container configuration reads `PROD_*`, `DEMO_*` and `DEV_*` keys; native process configuration retains its unprefixed variables.
-Compose maps each environment's keys to the application's existing runtime variable names.
+Keep exactly one private root `.env` per configured checkout, restricted to mode 600 and outside Git.
+[`.env.example`](../../.env.example) inventories `PROD_*`, `DEMO_*` and `DEV_*` source keys.
+Native commands retain unprefixed variables.
+The [hosted launcher](../../scripts/compose.mjs) maps only the selected environment to internal `HOSTED_*` interpolation variables in memory.
+Do not configure these internal variables directly.
 Changing key names does not rotate existing database credentials.
 
-`compose.dev.yml` owns the hosted Demo with production image entrypoints, without source mounts or reload servers.
-Configure `DEMO_APP_ORIGIN`, `DEMO_POSTGRES_DB`, `DEMO_POSTGRES_USER` and a private `DEMO_POSTGRES_PASSWORD`.
-The database name must end in `_demo` or `_design`; the default is `spellbook_demo`.
-Start the stable server connector and attach Demo to its ingress network as described below.
-Startup migrates and seeds the bundled Demo before API and State start.
-API, web and State enable Demo mode; the live Catalog worker is omitted.
-API and Scan share local Scan storage, so no S3 service or credentials are required.
-All visitors share the mutable `demo` account; registration remains disabled.
-Re-running the seed preserves private Demo edits unless an explicit reset is requested.
-Demo prices are static examples; card images still use remote Scryfall URLs.
+Demo uses production image entrypoints without source mounts or reload servers.
+Set `DEMO_APP_ORIGIN`, `DEMO_POSTGRES_PASSWORD`, `DEMO_FRONTEND_ALIAS` and `DEMO_IMAGE_REVISION`.
+`DEMO_POSTGRES_DB` defaults to `spellbook_demo` and must end in `_demo` or `_design`.
+Startup migrates and seeds the bundled searchable Catalog before API and State start.
+Demo enables the shared `demo` account and static example prices; registration remains disabled.
+Seeding preserves private edits and an existing active Catalog publication.
+API and Scan share local storage, without S3 credentials.
+The live Catalog worker is opt-in.
+Card images still use remote Scryfall URLs.
 
-No service publishes host ports, including host loopback.
-The API remains private to the frontend network namespace.
-Verify login, Search, Inventory, Decks and long-lived API streams through the public origin before declaring a deployment complete.
-Use an operator-owned user service for reboot startup; container restart policies alone do not establish host boot integration.
-Changing an origin requires rebuilding web and restarting API with the same origin.
-Stop a stack with the same Compose options and `down`, without `--volumes`, to retain data.
+Hosted commands select an explicit full Git revision through `DEMO_IMAGE_REVISION`, `PROD_IMAGE_REVISION` or `--revision FULL_SHA`.
+Each first-party image is `localhost/spellbook-demo-<service>:git-<first-12-characters>` or `localhost/spellbook-production-<service>:git-<first-12-characters>`.
+The service names include `db-migrate`, `api`, `frontend`, `state-worker`, `scan-worker` and `worker`.
+This retains the existing Demo tag convention.
+`build` requires a clean checkout at that exact revision and refuses to overwrite any existing selected tag.
+It checks the source again after building.
+A failed or interrupted build requires operator inspection of partial tags before retrying.
+`up` requires all six selected local images, uses `--no-build` and recreates services, including the one-shot migrator.
+First-party images use `pull_policy: never`; rollout never falls back to a generated name or `latest`.
+`run` also requires the selected local images and does not start dependencies.
+Use it only against an already prepared database and completed migration.
+Config output can contain secrets; keep real output in protected operator tooling, outside logs.
+
+From a clean selected checkout, set the matching revision in private `.env`, then use:
+
+```sh
+pnpm compose demo build
+pnpm compose demo up
+pnpm compose demo down
+```
+
+An existing complete set of immutable local images can be selected without rebuilding, including during recovery.
+An origin change requires a new image revision and an origin-matched frontend build.
+No hosted application service publishes host ports.
+Verify login, Search, Inventory, Decks and long-lived streams through the public origin after an authorized rollout.
+User services own reboot startup; container restart policies alone do not establish it.
 
 ## Stable server site and optional Development
 
-`compose.site.yml` reads `PROD_PANGOLIN_ENDPOINT`, `PROD_NEWT_ID`, `PROD_NEWT_SECRET` and `PROD_INGRESS_NETWORK` from the same root `.env`.
-This independent server connector serves hosted Demo and the later production instance.
-Start it before Demo:
+The connector uses `PROD_PANGOLIN_ENDPOINT`, `PROD_NEWT_ID`, `PROD_NEWT_SECRET` and `PROD_INGRESS_NETWORK`.
+It requires no application database, origin or image revision.
+Its independent project remains `spellbook-site`, with service `newt` and only the `site` profile.
+An explicit site command starts no applications.
+The shared ingress network is external in all three hosted modes, so stopping a project retains it.
+On a new server, create the configured network once before starting the connector.
+For the default inventory value, the commands are:
 
 ```sh
-podman-compose --env-file .env -p spellbook-site -f compose.site.yml up -d
-podman-compose --env-file .env -p spellbook-demo -f compose.dev.yml -f compose.ingress.yml up --build -d
+podman network create spellbook-prod-ingress
+pnpm compose site up
+pnpm compose demo up
 ```
 
-The Demo overlay reads `DEMO_FRONTEND_ALIAS` and the server's `PROD_INGRESS_NETWORK`.
-Only frontend and its shared API namespace join ingress; PostgreSQL and workers retain the private application network.
-Newt joins only ingress.
-Keep the regular production stack stopped until its separate activation is selected.
-Production uses `PROD_APP_ORIGIN`, `PROD_POSTGRES_*` and `PROD_S3_*` through `compose.prod.yml`.
-Its optional `compose.production-ingress.yml` overlay uses `PROD_FRONTEND_ALIAS` on the same stable server network.
-Production and Demo retain separate projects, databases, volumes and frontend aliases.
+Reuse an existing network instead of creating or replacing it.
+Frontend and its shared API namespace join both the application network and ingress.
+PostgreSQL and workers stay on the application network; Newt joins only ingress.
+Keep `DEMO_FRONTEND_ALIAS` and `PROD_FRONTEND_ALIAS` unique and preserve existing Pangolin target aliases.
+Demo remains project `spellbook-demo`; Production remains project `spellbook`.
+Production uses normal accounts, `PROD_*` storage configuration and the scheduled Catalog worker.
+S3 is its default storage driver; local storage can be explicitly selected.
+Production remains stopped until its separate activation is authorized.
+Use `pnpm compose production build` and `pnpm compose production up` only for that selected rollout.
 
-Development is a separate persistent testing environment selected with `compose.development.yml`.
-The override maps `DEV_APP_ORIGIN` and `DEV_POSTGRES_*` into its own database and application services.
-Its optional tunnel uses `DEV_PANGOLIN_ENDPOINT`, `DEV_NEWT_ID` and `DEV_NEWT_SECRET` from the same `.env`.
-Use the distinct `spellbook-dev` project:
+Development is a separate persistent environment with normal accounts.
+Requests to start "dev" mean Development Compose.
+Native processes and Vite require an explicit request.
 
 ```sh
-podman-compose --env-file .env -p spellbook-dev -f compose.dev.yml -f compose.development.yml --profile tunnel up --build -d
-podman-compose --env-file .env -p spellbook-dev -f compose.dev.yml -f compose.development.yml --profile tunnel down
+pnpm dev
+pnpm dev:stop
 ```
 
-The `down` command retains its named volumes.
-Development uses the same application images with normal account behavior and its own site, without publishing a reload server or host port.
-Keep its connector active on only one selected device at a time.
-A device with a suitable container runtime can run the same checkout and private root `.env`; devices without one can use the remote coding host.
-Preserve device-specific native settings when synchronizing deployment credentials between checkouts.
-Do not create additional role-specific environment files.
+The [Development launcher](../../scripts/dev.mjs) selects the file from the presence of root `.env`.
+Without `.env`, it uses `compose.yml`, project `spellbook-dev-local` and database `spellbook_dev`.
+Open `http://localhost:3000`; `DEV_LOCAL_PORT=5192 pnpm dev` selects a different loopback port and matching build/API origin.
+With `.env`, it uses `compose.dev.yml`, project `spellbook-dev` and its private Newt connector.
+Set `DEV_APP_ORIGIN`, `DEV_POSTGRES_PASSWORD`, `DEV_PANGOLIN_ENDPOINT`, `DEV_NEWT_ID` and `DEV_NEWT_SECRET`.
+Missing keys fail configuration rather than selecting another mode.
+Configured Development publishes no host port and defaults to database `spellbook_dev`.
+Both modes run migration without Demo seed and keep Catalog opt-in.
+Keep `.env` available for `pnpm dev:stop` so it selects the same project.
 
+All application modes retain volume keys `postgres18_data`, `demo_scans` and `worker_data` where used.
+Project names provide separate persistent identities, including `spellbook-demo_postgres18_data` and `spellbook-demo_demo_scans`.
+The historical `demo_scans` key also remains in Development and standalone configuration to preserve existing data.
+Changing files or modes does not transfer data.
+Never use `down --volumes` during this configuration cutover.
+Keep the Development connector active on only one selected device at a time.
+
+After an authorized startup, verify `/openapi.json`, normal registration/login or Demo login, the selected origin and retained data.
+Resolved Compose configuration alone does not establish runtime health.
 Configure Pangolin resources with maintenance enabled and type `automatic`.
-A target HTTP check for `/openapi.json` expecting status 200 checks frontend forwarding to API.
-Keep automatic maintenance enabled during normal operation; Pangolin shows maintenance when no healthy target is available and resumes the application when health returns.
-A deliberately disabled production resource stays disabled.
+Use an HTTP target check for `/openapi.json` expecting 200 to check frontend forwarding to API.
+Keep automatic maintenance enabled during normal operation; deliberately disabled Production stays disabled.
+
+### Operator cutover from overlays
+
+The repository replacement does not update an existing server's user units or updater.
+Before its next source update, pause the Demo update timer and wait for the current update operation and shared backup lock to settle.
+Inspect the existing `spellbook-site.service`, `spellbook-demo.service`, update service/timer, receipt and generated image override in private operator storage.
+Preserve their source revision, actual image IDs, project names, volume names, ingress network and aliases.
+Do not stop containers merely to change configuration references.
+
+Update the connector unit to run `pnpm compose site up` and `pnpm compose site down` from its existing checkout.
+Update the Demo unit to use `pnpm compose demo up` and `pnpm compose demo down` with the selected `DEMO_IMAGE_REVISION`.
+Preserve unit dependencies, working directory, runtime path and graceful shutdown behavior.
+The site unit must never enable the application or Catalog profiles.
+The external network already exists on an established server; retain it unchanged.
+
+Replace the updater's old file list and generated candidate/current/previous image YAML writes with explicit launcher calls.
+After the existing clean-main, expected-remote, newest successful push-CI and fast-forward checks, capture the full selected SHA.
+Run `pnpm compose demo build --revision FULL_SHA` only for new images; adopt existing tags without rebuilding.
+Read selected configuration privately through `pnpm compose demo config --revision FULL_SHA` when the updater needs database/origin metadata.
+Retain its host/update locks, pre-update database export, failure receipt, previous revision and public publication checks.
+Before restarting the Demo unit, atomically select the new full `DEMO_IMAGE_REVISION` in the existing protected `.env` without rewriting other values or file permissions.
+A failure must retain its failure latch and previous revision; recovery selects the previous existing immutable images without rebuilding.
+Retire generated image YAML only after all unit/updater readers have migrated and its revision/image information is retained in the existing receipt.
+Do not leave a compatibility overlay or fall back to the old Compose names.
+
+Reload the user manager after editing units, then perform the separately authorized rollout.
+Verify actual image IDs for every running application and the completed `db-migrate` container against the selected tags.
+Check public API health, authenticated Demo login/read/logout, unchanged Catalog/Price publication pointers and retained database/Scan volumes.
+Confirm the connector still has the same project, ingress network and target aliases, with Production and Development still stopped.
+Only then resume the update timer.
+These are outstanding operator dependencies, not operations performed by this repository change.
 
 ## Prepare a shared UI development session
 
@@ -246,7 +359,7 @@ API/State image contexts are the repository root; Catalog/Scan retain package-ro
 | `api`          | Python HTTP authentication, use cases, database and resource lifetime |
 | `state-worker` | Scheduled ValueHistory jobs                                           |
 | `scan-worker`  | Scan API scaffold that returns no matches                             |
-| `newt`         | Optional Pangolin tunnel, enabled by the `tunnel` profile             |
+| `newt`         | Independent site connector or configured Development tunnel           |
 
 `postgres` has a compose health check.
 `db-migrate` waits for healthy Postgres, and the API, State and Catalog workers wait for successful migration completion.
@@ -255,7 +368,7 @@ Other dependencies require service startup, not readiness.
 The catalog worker also retries database schema readiness with backoff.
 No vector database is required.
 
-On a new deployment, `podman-compose -p spellbook -f compose.prod.yml up --build -d` runs migrations and starts the catalog worker.
+After building the selected clean revision, `pnpm compose production up` runs migrations and starts the Catalog worker.
 The worker immediately imports the configured Scryfall bulk source into PostgreSQL, then repeats on the configured interval, daily by default.
 Scryfall does not require an application credential.
 Operators do not import the shared catalog for individual accounts.
@@ -265,12 +378,13 @@ The worker has no HTTP readiness or import-status endpoint.
 
 Production Compose runs migrations before starting Catalog.
 The Demo Compose stack seeds missing Demo data and exposes a separate opt-in Catalog worker.
-Development overrides migration startup to omit Demo seeding.
+The standalone Development migrator omits Demo seeding.
 Explicit [Demo setup](./local-auth.md#demo-mode) publishes the versioned searchable English bundle without a Scryfall download.
 Its private Precon starter remains separate; [Demo setup](./local-auth.md#demo-mode) owns the selected composition and guarded replacement of the previous fixture.
 Neither workflow downloads Catalog card image files.
 
-Neither Compose stack publishes host ports.
+Hosted and configured Development stacks publish no host ports.
+Standalone publishes frontend only on loopback.
 Web listens on container port 3000 and Newt reaches `frontend:3000` through the private Compose network.
 The API shares the frontend network namespace and binds only `127.0.0.1:3001`; it has no published port.
 Web forwards `/api/*` and `/openapi.json` to it.
@@ -283,22 +397,23 @@ The new `postgres18_data` volume is initially empty; the original `postgres_data
 1. Copy `.env.example` to a private `.env` and replace the `PROD_POSTGRES_*` database credentials.
 2. Set `PROD_APP_ORIGIN` to the externally reachable application origin.
 3. Configure scan storage as described below.
-4. Run `podman-compose -p spellbook -f compose.prod.yml up --build -d` for the base stack.
+4. Select `PROD_IMAGE_REVISION`, build with `pnpm compose production build`, then run `pnpm compose production up`.
 5. Inspect migration and worker logs, then register a local account.
    Enroll existing accounts using [local authentication operations](./local-auth.md).
 
-Use the independent `compose.site.yml` connector and `compose.production-ingress.yml` overlay for production ingress.
-They read `PROD_*` from the same `.env`; Development owns its separate optional tunnel.
+Use `pnpm compose site up` for the independent stable connector and the configured external ingress network.
+Development owns its separate Newt connector.
 The tunnel transports requests; local authentication owns login.
 
 ## Configuration
 
-The table lists runtime/native variable names. Container Compose files read their `PROD_*`, `DEMO_*` or `DEV_*` source keys from the single `.env` and map them to these runtime names.
+The table lists runtime/native variable names. Configured launchers and Compose files read their `PROD_*`, `DEMO_*` or `DEV_*` source keys from the single `.env` and map them to these runtime names.
 For native Vite on localhost, override `DEV_APP_ORIGIN` with the local origin rather than the hosted Development origin.
 
 | Variable                                            | Meaning                                                                                                                                                   |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DEV_APP_ORIGIN`                                    | Local Vite form origin; defaults to `http://localhost:5173`, independently of the production build origin                                                 |
+| `DEV_APP_ORIGIN`                                    | Configured Development origin. The no-.env launcher sets the local origin; explicitly requested native Vite defaults to `http://localhost:5173`.          |
+| `DEV_LOCAL_PORT`                                    | Local Development frontend port, default `3000`. Set it in the shell when no root `.env` exists.                                                          |
 | `APP_ORIGIN`                                        | Public Origin compiled into web and supplied to API at runtime for Origin checks, QR URLs and secure cookies                                              |
 | `API_INTERNAL_URL`                                  | Web-only private API destination; Compose uses `http://127.0.0.1:3001`                                                                                    |
 | `API_HOST`, `API_PORT`                              | API listener, default `127.0.0.1:3001`; keep private                                                                                                      |
@@ -324,11 +439,12 @@ For native Vite on localhost, override `DEV_APP_ORIGIN` with the local origin ra
 Native Python commands do not implicitly load `.env`.
 From `backend/workers/catalog/` or `backend/workers/scan/`, use `uv run --env-file ../../../.env` before the existing command when its configuration should come from that file.
 Production Compose constructs internal database URLs from `PROD_POSTGRES_*` and sets `DEMO_MODE=false`.
-Demo Compose uses `DEMO_*`; its Development override uses `DEV_*`. Demo sets `DEMO_MODE=true`; Development sets it to `false` and runs migrations without Demo seeding.
+Demo uses `DEMO_*`; configured Development uses `DEV_*`; standalone uses optional `LOCAL_*` keys.
+Demo sets `DEMO_MODE=true`; Development sets it to `false` and runs migrations without Demo seeding.
 
 For production Compose, set `PROD_APP_ORIGIN`; for Demo use `DEMO_APP_ORIGIN`, and for Development use `DEV_APP_ORIGIN`.
 Native commands continue to accept `APP_ORIGIN`.
-Changing an origin requires `podman-compose -p spellbook -f compose.prod.yml build frontend` and recreation of frontend and API with the same public Origin.
+Changing an origin requires a new clean image revision, `pnpm compose production build` and `pnpm compose production up` with that revision and the same public Origin.
 The backend/migrator build is origin-independent.
 Updating runtime variables alone does not change SvelteKit 3's compiled origin.
 
@@ -496,8 +612,8 @@ Reserve `manual` for the one-shot command below; the service restart policy woul
 To rerun synchronization once, stop the scheduled worker and run:
 
 ```sh
-podman-compose -p spellbook -f compose.prod.yml stop worker
-podman-compose -p spellbook -f compose.prod.yml run --rm -e SYNC_INTERVAL=manual worker
+pnpm compose production stop worker
+PROD_SYNC_INTERVAL=manual pnpm compose production run worker
 ```
 
 An unchanged, already-published snapshot is skipped.
@@ -514,12 +630,12 @@ COMMIT;
 
 This invalidates the publication marker without removing the readable generation.
 A failed rebuild leaves that catalog available.
-Confirm the new publication and restart the scheduled worker with `podman-compose -p spellbook -f compose.prod.yml up -d worker`.
+Confirm the new publication and restart the scheduled worker with `pnpm compose production up worker`.
 
 To restore the previous retained Catalog/Price pair, stop the Worker and run:
 
 ```sh
-podman-compose -p spellbook -f compose.prod.yml run --rm --entrypoint python worker -c 'import os; from worker.catalog import CatalogPublisher; CatalogPublisher(os.environ["DATABASE_URL"]).restore_previous()'
+pnpm compose production run worker uv run --no-sync python -c 'import os; from worker.catalog import CatalogPublisher; CatalogPublisher(os.environ["DATABASE_URL"]).restore_previous()'
 ```
 
 The command verifies a retained recorded pair and swaps both pointers under the publisher lock in one transaction.
@@ -583,18 +699,21 @@ Saved observations retain their own timezone and UTC boundaries after configurat
 [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns lease, observation window and closure rules.
 
 The Demo launcher uses static example references and seeded illustrative history rather than live price publication.
-Normal development starts the configured Catalog/Price worker; `SYNC_INTERVAL=manual` still attempts its initial refresh.
+The explicitly requested native process launcher starts the configured Catalog/Price worker; `SYNC_INTERVAL=manual` still attempts its initial refresh.
 A running capture timer does not establish provider refresh or known-price coverage.
 Operator refresh, actual midnight observation, deployment and owner acceptance require separate evidence.
 The remaining integration verification is tracked with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
 
 ## Environment update and reset interface
 
-Use one ignored root `.env` per checkout with `PROD_*`, `DEMO_*` and `DEV_*` source keys.
+Configured environments use one ignored root `.env` per checkout with `PROD_*`, `DEMO_*` and `DEV_*` source keys.
 Compose constructs internal URLs exclusively from the selected environment keys.
-Production uses `compose.prod.yml`; Demo uses `compose.dev.yml`; Development adds `compose.development.yml` with a distinct project name.
+Production, Demo and the stable connector use `compose.prod.yml` through their explicit launcher mode.
+Configured Development uses `compose.dev.yml`; no-configuration self-hosting uses `compose.yml`.
 Development defaults to `spellbook_dev`, without the disposable reset suffix.
-No host ports or additional private environment files are required.
+Hosted environments publish no host ports.
+Local Development publishes its frontend on loopback and needs no `.env`.
+No additional private environment files are required.
 Build web with the selected environment's origin before recreation.
 Migration is ledger-idempotent; Demo seed preserves existing private state and active public publications.
 See the [reviewed private reset contract](./local-auth.md#reviewed-environment-and-private-reset-contract).
@@ -606,18 +725,19 @@ This repository change does not install that automation or select a registry.
 For a full public Demo Catalog refresh, run the existing one-shot Worker:
 
 ```sh
-podman-compose -p spellbook-demo -f compose.dev.yml --profile catalog run --rm worker
+pnpm compose demo run worker
 ```
 
 It uses `all_cards` and the existing transactional Catalog/Price publisher.
-For Development, add `-f compose.development.yml` and use project `spellbook-dev`.
+For Development, use `compose.dev.yml` with private `.env`, or `compose.yml` without `.env`.
+Use project `spellbook-dev-local` without `.env`, or `spellbook-dev` with the configured `.env`.
 The one-shot Worker is outside ordinary startup; schedule refresh separately from private reset.
 Never download bulk data or card images into Git.
 
 For an explicitly disposable Demo target, stop API and State writers, then run:
 
 ```sh
-podman-compose -p spellbook-demo -f compose.dev.yml run --rm -e DEMO_RESET_DISPOSABLE=true db-migrate /app/backend/api/.venv/bin/spellbook-demo-seed --reset-users
+pnpm compose demo run db-migrate env DEMO_RESET_DISPOSABLE=true /app/backend/api/.venv/bin/spellbook-demo-seed --reset-users
 ```
 
 Resume writers after successful completion and verify a fresh `demo/demo` login.

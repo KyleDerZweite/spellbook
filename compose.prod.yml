@@ -1,19 +1,20 @@
-# Keep persistent state on named volumes for cross-runtime compatibility.
-# This avoids most SELinux relabel issues on Fedora while remaining portable to Ubuntu.
+# Hosted Production, Demo and independent site connector. Select with scripts/compose.mjs.
+# HOSTED_* is internal launcher output, not private configuration.
 services:
   postgres:
     image: docker.io/postgres:18.6-bookworm
+    profiles: [application]
     environment:
-      POSTGRES_DB: ${PROD_POSTGRES_DB:-spellbook}
-      POSTGRES_USER: ${PROD_POSTGRES_USER:-spellbook}
-      POSTGRES_PASSWORD: ${PROD_POSTGRES_PASSWORD:?Set a private production database password}
+      POSTGRES_DB: ${HOSTED_POSTGRES_DB:-spellbook}
+      POSTGRES_USER: ${HOSTED_POSTGRES_USER:-spellbook}
+      POSTGRES_PASSWORD: ${HOSTED_POSTGRES_PASSWORD:-}
     volumes:
       - postgres18_data:/var/lib/postgresql
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          'pg_isready -U ${PROD_POSTGRES_USER:-spellbook} -d ${PROD_POSTGRES_DB:-spellbook}'
+          'pg_isready -U ${HOSTED_POSTGRES_USER:-spellbook} -d ${HOSTED_POSTGRES_DB:-spellbook}'
         ]
       interval: 5s
       timeout: 5s
@@ -24,9 +25,16 @@ services:
     build:
       context: .
       dockerfile: backend/api/Dockerfile
-    command: ['/app/backend/api/.venv/bin/spellbook-migrate']
+    command:
+      - /bin/sh
+      - -ec
+      - /app/backend/api/.venv/bin/spellbook-migrate; if [ "$$DEMO_MODE" = true ]; then /app/backend/api/.venv/bin/spellbook-demo-seed; fi
+    image: ${HOSTED_DB_MIGRATE_IMAGE:-localhost/spellbook-unselected-db-migrate:unselected}
+    pull_policy: never
+    profiles: [application]
     environment:
-      DATABASE_URL: postgres://${PROD_POSTGRES_USER:-spellbook}:${PROD_POSTGRES_PASSWORD:?Set a private production database password}@postgres:5432/${PROD_POSTGRES_DB:-spellbook}
+      DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
+      DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,64 +43,79 @@ services:
   worker:
     build:
       context: ./backend/workers/catalog
+    image: ${HOSTED_WORKER_IMAGE:-localhost/spellbook-unselected-worker:unselected}
+    pull_policy: never
+    profiles: [catalog]
     environment:
-      DATABASE_URL: postgres://${PROD_POSTGRES_USER:-spellbook}:${PROD_POSTGRES_PASSWORD:?Set a private production database password}@postgres:5432/${PROD_POSTGRES_DB:-spellbook}
-      CATALOG_SOURCE: ${CATALOG_SOURCE:-all_cards}
-      SYNC_INTERVAL: ${SYNC_INTERVAL:-daily}
-      CARDMARKET_PRICES_ENABLED: ${CARDMARKET_PRICES_ENABLED:-false}
-      MTGJSON_PRICES_ENABLED: ${MTGJSON_PRICES_ENABLED:-false}
-      PRICE_COMPRESSED_BYTES: ${PRICE_COMPRESSED_BYTES:-536870912}
-      PRICE_DECOMPRESSED_BYTES: ${PRICE_DECOMPRESSED_BYTES:-8589934592}
-      PRICE_RECORD_BYTES: ${PRICE_RECORD_BYTES:-2097152}
-      PRICE_PROGRESS_SECONDS: ${PRICE_PROGRESS_SECONDS:-30}
-      PRICE_CONNECT_SECONDS: ${PRICE_CONNECT_SECONDS:-10}
-      PRICE_DOWNLOAD_SECONDS: ${PRICE_DOWNLOAD_SECONDS:-600}
-      PRICE_PARSE_SECONDS: ${PRICE_PARSE_SECONDS:-600}
-      PRICE_PUBLICATION_SECONDS: ${PRICE_PUBLICATION_SECONDS:-600}
-      PRICE_IMPORT_SECONDS: ${PRICE_IMPORT_SECONDS:-1800}
-      PRICE_STAGING_BYTES: ${PRICE_STAGING_BYTES:-12884901888}
+      DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
+      CATALOG_SOURCE: ${HOSTED_CATALOG_SOURCE:-all_cards}
+      SYNC_INTERVAL: ${HOSTED_SYNC_INTERVAL:-daily}
+      CARDMARKET_PRICES_ENABLED: ${HOSTED_CARDMARKET_PRICES_ENABLED:-false}
+      MTGJSON_PRICES_ENABLED: ${HOSTED_MTGJSON_PRICES_ENABLED:-false}
+      PRICE_COMPRESSED_BYTES: ${HOSTED_PRICE_COMPRESSED_BYTES:-536870912}
+      PRICE_DECOMPRESSED_BYTES: ${HOSTED_PRICE_DECOMPRESSED_BYTES:-8589934592}
+      PRICE_RECORD_BYTES: ${HOSTED_PRICE_RECORD_BYTES:-2097152}
+      PRICE_PROGRESS_SECONDS: ${HOSTED_PRICE_PROGRESS_SECONDS:-30}
+      PRICE_CONNECT_SECONDS: ${HOSTED_PRICE_CONNECT_SECONDS:-10}
+      PRICE_DOWNLOAD_SECONDS: ${HOSTED_PRICE_DOWNLOAD_SECONDS:-600}
+      PRICE_PARSE_SECONDS: ${HOSTED_PRICE_PARSE_SECONDS:-600}
+      PRICE_PUBLICATION_SECONDS: ${HOSTED_PRICE_PUBLICATION_SECONDS:-600}
+      PRICE_IMPORT_SECONDS: ${HOSTED_PRICE_IMPORT_SECONDS:-1800}
+      PRICE_STAGING_BYTES: ${HOSTED_PRICE_STAGING_BYTES:-12884901888}
       WORKER_DATA_DIR: /app/data
     volumes:
       - worker_data:/app/data
     depends_on:
       db-migrate:
         condition: service_completed_successfully
-    restart: unless-stopped
+    restart: ${HOSTED_WORKER_RESTART:-unless-stopped}
 
   scan-worker:
     build:
       context: ./backend/workers/scan
+    volumes:
+      - demo_scans:/app/storage/scans
+    image: ${HOSTED_SCAN_WORKER_IMAGE:-localhost/spellbook-unselected-scan-worker:unselected}
+    pull_policy: never
+    profiles: [application]
     environment:
-      SCAN_STORAGE_DRIVER: ${PROD_SCAN_STORAGE_DRIVER:-s3}
-      S3_ENDPOINT: ${PROD_S3_ENDPOINT}
-      S3_REGION: ${PROD_S3_REGION:-us-east-1}
-      S3_BUCKET: ${PROD_S3_BUCKET:-spellbook-scans}
-      S3_ACCESS_KEY_ID: ${PROD_S3_ACCESS_KEY_ID}
-      S3_SECRET_ACCESS_KEY: ${PROD_S3_SECRET_ACCESS_KEY}
-      S3_FORCE_PATH_STYLE: ${PROD_S3_FORCE_PATH_STYLE:-true}
+      SCAN_STORAGE_DRIVER: ${HOSTED_SCAN_STORAGE_DRIVER:-s3}
+      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
+      S3_ENDPOINT: ${HOSTED_S3_ENDPOINT}
+      S3_REGION: ${HOSTED_S3_REGION:-us-east-1}
+      S3_BUCKET: ${HOSTED_S3_BUCKET:-spellbook-scans}
+      S3_ACCESS_KEY_ID: ${HOSTED_S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${HOSTED_S3_SECRET_ACCESS_KEY}
+      S3_FORCE_PATH_STYLE: ${HOSTED_S3_FORCE_PATH_STYLE:-true}
     restart: unless-stopped
 
   api:
     build:
       context: .
       dockerfile: backend/api/Dockerfile
+    volumes:
+      - demo_scans:/app/storage/scans
     # Share loopback with web, so private API traffic needs no published port or LAN listener.
     network_mode: service:frontend
+    image: ${HOSTED_API_IMAGE:-localhost/spellbook-unselected-api:unselected}
+    pull_policy: never
+    profiles: [application]
     environment:
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_TRUSTED_PROXY_ADDRESSES: 127.0.0.1,::1
-      APP_ORIGIN: ${PROD_APP_ORIGIN}
-      DEMO_MODE: 'false'
-      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
-      DATABASE_URL: postgres://${PROD_POSTGRES_USER:-spellbook}:${PROD_POSTGRES_PASSWORD:?Set a private production database password}@postgres:5432/${PROD_POSTGRES_DB:-spellbook}
-      SCAN_STORAGE_DRIVER: ${PROD_SCAN_STORAGE_DRIVER:-s3}
-      S3_ENDPOINT: ${PROD_S3_ENDPOINT}
-      S3_REGION: ${PROD_S3_REGION:-us-east-1}
-      S3_BUCKET: ${PROD_S3_BUCKET:-spellbook-scans}
-      S3_ACCESS_KEY_ID: ${PROD_S3_ACCESS_KEY_ID}
-      S3_SECRET_ACCESS_KEY: ${PROD_S3_SECRET_ACCESS_KEY}
-      S3_FORCE_PATH_STYLE: ${PROD_S3_FORCE_PATH_STYLE:-true}
+      APP_ORIGIN: ${HOSTED_APP_ORIGIN}
+      DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
+      VALUE_HISTORY_TIMEZONE: ${HOSTED_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
+      SCAN_STORAGE_DRIVER: ${HOSTED_SCAN_STORAGE_DRIVER:-s3}
+      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
+      S3_ENDPOINT: ${HOSTED_S3_ENDPOINT}
+      S3_REGION: ${HOSTED_S3_REGION:-us-east-1}
+      S3_BUCKET: ${HOSTED_S3_BUCKET:-spellbook-scans}
+      S3_ACCESS_KEY_ID: ${HOSTED_S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${HOSTED_S3_SECRET_ACCESS_KEY}
+      S3_FORCE_PATH_STYLE: ${HOSTED_S3_FORCE_PATH_STYLE:-true}
       SCAN_WORKER_URL: http://scan-worker:8080
     depends_on:
       db-migrate:
@@ -105,33 +128,63 @@ services:
     build:
       context: .
       dockerfile: backend/workers/state/Dockerfile
+    image: ${HOSTED_STATE_WORKER_IMAGE:-localhost/spellbook-unselected-state-worker:unselected}
+    pull_policy: never
+    profiles: [application]
     environment:
-      DEMO_MODE: 'false'
-      DATABASE_URL: postgres://${PROD_POSTGRES_USER:-spellbook}:${PROD_POSTGRES_PASSWORD:?Set a private production database password}@postgres:5432/${PROD_POSTGRES_DB:-spellbook}
-      VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
-      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
+      DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
+      VALUE_HISTORY_ENABLED: ${HOSTED_VALUE_HISTORY_ENABLED:-true}
+      VALUE_HISTORY_TIMEZONE: ${HOSTED_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
     depends_on:
       db-migrate:
         condition: service_completed_successfully
     restart: unless-stopped
 
   frontend:
+    networks:
+      default: {}
+      ingress:
+        aliases:
+          - ${HOSTED_FRONTEND_ALIAS:-unselected-web}
     build:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        APP_ORIGIN: ${PROD_APP_ORIGIN}
+        APP_ORIGIN: ${HOSTED_APP_ORIGIN}
+    image: ${HOSTED_FRONTEND_IMAGE:-localhost/spellbook-unselected-frontend:unselected}
+    pull_policy: never
+    profiles: [application]
     environment:
       HOST: 0.0.0.0
       PORT: 3000
-      APP_ORIGIN: ${PROD_APP_ORIGIN}
-      DEMO_MODE: 'false'
+      APP_ORIGIN: ${HOSTED_APP_ORIGIN}
+      DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
       API_INTERNAL_URL: http://127.0.0.1:3001
-      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
-      XFF_DEPTH: ${XFF_DEPTH:-1}
-      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-12M}
+      ADDRESS_HEADER: ${HOSTED_ADDRESS_HEADER:-}
+      XFF_DEPTH: ${HOSTED_XFF_DEPTH:-1}
+      BODY_SIZE_LIMIT: ${HOSTED_BODY_SIZE_LIMIT:-12M}
     restart: unless-stopped
 
+  newt:
+    image: docker.io/fosrl/newt:1.18.1
+    profiles: [site]
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      PANGOLIN_ENDPOINT: ${HOSTED_PANGOLIN_ENDPOINT:-}
+      NEWT_ID: ${HOSTED_NEWT_ID:-}
+      NEWT_SECRET: ${HOSTED_NEWT_SECRET:-}
+    networks:
+      - ingress
+
+networks:
+  default: {}
+  ingress:
+    name: ${HOSTED_INGRESS_NETWORK:-spellbook-prod-ingress}
+    external: true
+
 volumes:
+  demo_scans:
   postgres18_data:
   worker_data:

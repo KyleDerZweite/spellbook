@@ -1,17 +1,17 @@
-# Hosted Demo stack. Development overrides its credentials in compose.development.yml.
+# Configured private Development. Use pnpm dev with the root .env.
 services:
   postgres:
     image: docker.io/postgres:18.6-bookworm
     environment:
-      POSTGRES_DB: ${DEMO_POSTGRES_DB:-spellbook_demo}
-      POSTGRES_USER: ${DEMO_POSTGRES_USER:-spellbook}
-      POSTGRES_PASSWORD: ${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-spellbook_dev}
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-spellbook}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?Set DEV_POSTGRES_PASSWORD for Development}
     volumes:
       - postgres18_data:/var/lib/postgresql
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${DEMO_POSTGRES_USER:-spellbook} -d ${DEMO_POSTGRES_DB:-spellbook_demo}
+        - pg_isready -U ${DEV_POSTGRES_USER:-spellbook} -d ${DEV_POSTGRES_DB:-spellbook_dev}
       interval: 5s
       timeout: 5s
       retries: 12
@@ -20,12 +20,9 @@ services:
     build:
       context: .
       dockerfile: backend/api/Dockerfile
-    command:
-      - /bin/sh
-      - -c
-      - /app/backend/api/.venv/bin/spellbook-migrate && /app/backend/api/.venv/bin/spellbook-demo-seed
+    command: ['/app/backend/api/.venv/bin/spellbook-migrate']
     environment:
-      DATABASE_URL: postgres://${DEMO_POSTGRES_USER:-spellbook}:${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${DEMO_POSTGRES_DB:-spellbook_demo}
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set DEV_POSTGRES_PASSWORD for Development}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,7 +32,7 @@ services:
       context: ./backend/workers/catalog
     profiles: [catalog]
     environment:
-      DATABASE_URL: postgres://${DEMO_POSTGRES_USER:-spellbook}:${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${DEMO_POSTGRES_DB:-spellbook_demo}
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set DEV_POSTGRES_PASSWORD for Development}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
       CATALOG_SOURCE: all_cards
       SYNC_INTERVAL: manual
       WORKER_DATA_DIR: /app/data
@@ -63,10 +60,10 @@ services:
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_TRUSTED_PROXY_ADDRESSES: 127.0.0.1,::1
-      APP_ORIGIN: ${DEMO_APP_ORIGIN}
-      DEMO_MODE: 'true'
-      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
-      DATABASE_URL: postgres://${DEMO_POSTGRES_USER:-spellbook}:${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${DEMO_POSTGRES_DB:-spellbook_demo}
+      APP_ORIGIN: ${DEV_APP_ORIGIN:?Set DEV_APP_ORIGIN for Development}
+      DEMO_MODE: 'false'
+      VALUE_HISTORY_TIMEZONE: ${DEV_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set DEV_POSTGRES_PASSWORD for Development}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
       SCAN_STORAGE_DRIVER: local
       SCAN_WORKER_URL: http://scan-worker:8080
       SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
@@ -83,10 +80,10 @@ services:
       context: .
       dockerfile: backend/workers/state/Dockerfile
     environment:
-      DEMO_MODE: 'true'
-      DATABASE_URL: postgres://${DEMO_POSTGRES_USER:-spellbook}:${DEMO_POSTGRES_PASSWORD:?Set a private demo database password}@postgres:5432/${DEMO_POSTGRES_DB:-spellbook_demo}
-      VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
-      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      DEMO_MODE: 'false'
+      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set DEV_POSTGRES_PASSWORD for Development}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
+      VALUE_HISTORY_ENABLED: ${DEV_VALUE_HISTORY_ENABLED:-true}
+      VALUE_HISTORY_TIMEZONE: ${DEV_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
     depends_on:
       db-migrate:
         condition: service_completed_successfully
@@ -96,17 +93,27 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        APP_ORIGIN: ${DEMO_APP_ORIGIN}
+        APP_ORIGIN: ${DEV_APP_ORIGIN:?Set DEV_APP_ORIGIN for Development}
     environment:
       HOST: 0.0.0.0
       PORT: 3000
-      APP_ORIGIN: ${DEMO_APP_ORIGIN}
-      DEMO_MODE: 'true'
+      APP_ORIGIN: ${DEV_APP_ORIGIN:?Set DEV_APP_ORIGIN for Development}
+      DEMO_MODE: 'false'
       API_INTERNAL_URL: http://127.0.0.1:3001
-      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
-      XFF_DEPTH: ${XFF_DEPTH:-1}
-      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-12M}
+      ADDRESS_HEADER: ${DEV_ADDRESS_HEADER:-}
+      XFF_DEPTH: ${DEV_XFF_DEPTH:-1}
+      BODY_SIZE_LIMIT: ${DEV_BODY_SIZE_LIMIT:-12M}
     restart: unless-stopped
+
+  newt:
+    image: docker.io/fosrl/newt:1.18.1
+    restart: unless-stopped
+    environment:
+      PANGOLIN_ENDPOINT: ${DEV_PANGOLIN_ENDPOINT:?Set DEV_PANGOLIN_ENDPOINT for Development}
+      NEWT_ID: ${DEV_NEWT_ID:?Set DEV_NEWT_ID for Development}
+      NEWT_SECRET: ${DEV_NEWT_SECRET:?Set DEV_NEWT_SECRET for Development}
+    depends_on:
+      - frontend
 
 volumes:
   postgres18_data: null

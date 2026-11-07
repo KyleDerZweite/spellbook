@@ -26,6 +26,17 @@
    Correct failures before concluding; report skipped checks and unavailable evidence.
 4. Before preparing a PR, follow [contribution disclosure](CONTRIBUTING.md#pull-request-expectations) for actual AI assistance, review, validation and contributor responsibility.
 
+## Development startup
+
+Requests to start "dev" or "development" mean the Development Compose stack.
+Use `pnpm dev` and follow [Development startup](docs/operations/deployment.md#stable-server-site-and-optional-development).
+With a root `.env`, use `compose.dev.yml` for configured Development and its Newt tunnel.
+Without `.env`, use `compose.yml` in the isolated localhost project with a loopback frontend port and no Newt.
+`compose.prod.yml` owns hosted Demo, Production and the independent stable connector.
+Use the explicit hosted launcher mode and selected immutable image revision; do not create overlays or rebuild during rollout.
+Use native processes or Vite only when explicitly requested.
+Keep Demo and production separate, and preserve existing processes and data.
+
 ## Task-specific references
 
 - Before strategic decisions or resuming strategic work, read the [historical wiki index](docs/wiki/index.md) and relevant pages, then follow its query and ingestion rules.
