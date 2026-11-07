@@ -30,8 +30,10 @@
 
 Requests to start "dev" or "development" mean the Development Compose stack.
 Use `pnpm dev` and follow [Development startup](docs/operations/deployment.md#stable-server-site-and-optional-development).
-With a root `.env`, use configured Development and its Newt tunnel.
-Without `.env`, use the isolated localhost mode with a loopback frontend port and no Newt.
+With a root `.env`, use `compose.dev.yml` for configured Development and its Newt tunnel.
+Without `.env`, use `compose.yml` in the isolated localhost project with a loopback frontend port and no Newt.
+`compose.prod.yml` owns hosted Demo, Production and the independent stable connector.
+Use the explicit hosted launcher mode and selected immutable image revision; do not create overlays or rebuild during rollout.
 Use native processes or Vite only when explicitly requested.
 Keep Demo and production separate, and preserve existing processes and data.
 

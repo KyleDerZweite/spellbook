@@ -1,17 +1,17 @@
-# Standalone Development stack. Add the local or tunnel overlay through pnpm dev.
+# Standalone self-hosting. No .env, tunnel or provider credentials required.
 services:
   postgres:
     image: docker.io/postgres:18.6-bookworm
     environment:
-      POSTGRES_DB: ${DEV_POSTGRES_DB:-spellbook_dev}
-      POSTGRES_USER: ${DEV_POSTGRES_USER:-spellbook}
-      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:-}
+      POSTGRES_DB: ${LOCAL_POSTGRES_DB:-spellbook}
+      POSTGRES_USER: ${LOCAL_POSTGRES_USER:-spellbook}
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres18_data:/var/lib/postgresql
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${DEV_POSTGRES_USER:-spellbook} -d ${DEV_POSTGRES_DB:-spellbook_dev}
+        - pg_isready -U ${LOCAL_POSTGRES_USER:-spellbook} -d ${LOCAL_POSTGRES_DB:-spellbook}
       interval: 5s
       timeout: 5s
       retries: 12
@@ -22,7 +22,7 @@ services:
       dockerfile: backend/api/Dockerfile
     command: ['/app/backend/api/.venv/bin/spellbook-migrate']
     environment:
-      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:-}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
+      DATABASE_URL: postgres://${LOCAL_POSTGRES_USER:-spellbook}:@postgres:5432/${LOCAL_POSTGRES_DB:-spellbook}
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,7 +32,7 @@ services:
       context: ./backend/workers/catalog
     profiles: [catalog]
     environment:
-      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:-}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
+      DATABASE_URL: postgres://${LOCAL_POSTGRES_USER:-spellbook}:@postgres:5432/${LOCAL_POSTGRES_DB:-spellbook}
       CATALOG_SOURCE: all_cards
       SYNC_INTERVAL: manual
       WORKER_DATA_DIR: /app/data
@@ -60,10 +60,10 @@ services:
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_TRUSTED_PROXY_ADDRESSES: 127.0.0.1,::1
-      APP_ORIGIN: ${DEV_APP_ORIGIN:-http://localhost:3000}
+      APP_ORIGIN: ${LOCAL_APP_ORIGIN:-http://localhost:3000}
       DEMO_MODE: 'false'
-      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
-      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:-}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
+      VALUE_HISTORY_TIMEZONE: ${LOCAL_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      DATABASE_URL: postgres://${LOCAL_POSTGRES_USER:-spellbook}:@postgres:5432/${LOCAL_POSTGRES_DB:-spellbook}
       SCAN_STORAGE_DRIVER: local
       SCAN_WORKER_URL: http://scan-worker:8080
       SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
@@ -81,28 +81,30 @@ services:
       dockerfile: backend/workers/state/Dockerfile
     environment:
       DEMO_MODE: 'false'
-      DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:-}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
-      VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
-      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      DATABASE_URL: postgres://${LOCAL_POSTGRES_USER:-spellbook}:@postgres:5432/${LOCAL_POSTGRES_DB:-spellbook}
+      VALUE_HISTORY_ENABLED: ${LOCAL_VALUE_HISTORY_ENABLED:-true}
+      VALUE_HISTORY_TIMEZONE: ${LOCAL_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
     depends_on:
       db-migrate:
         condition: service_completed_successfully
     restart: unless-stopped
   frontend:
+    ports:
+      - '127.0.0.1:${LOCAL_PORT:-3000}:3000'
     build:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        APP_ORIGIN: ${DEV_APP_ORIGIN:-http://localhost:3000}
+        APP_ORIGIN: ${LOCAL_APP_ORIGIN:-http://localhost:3000}
     environment:
       HOST: 0.0.0.0
       PORT: 3000
-      APP_ORIGIN: ${DEV_APP_ORIGIN:-http://localhost:3000}
+      APP_ORIGIN: ${LOCAL_APP_ORIGIN:-http://localhost:3000}
       DEMO_MODE: 'false'
       API_INTERNAL_URL: http://127.0.0.1:3001
-      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
-      XFF_DEPTH: ${XFF_DEPTH:-1}
-      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-12M}
+      ADDRESS_HEADER: ${LOCAL_ADDRESS_HEADER:-}
+      XFF_DEPTH: ${LOCAL_XFF_DEPTH:-1}
+      BODY_SIZE_LIMIT: ${LOCAL_BODY_SIZE_LIMIT:-12M}
     restart: unless-stopped
 
 volumes:

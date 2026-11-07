@@ -1,8 +1,0 @@
-# No-.env Development mode. PostgreSQL stays inside the private Compose network.
-services:
-  postgres:
-    environment:
-      POSTGRES_HOST_AUTH_METHOD: trust
-  frontend:
-    ports:
-      - '127.0.0.1:${DEV_LOCAL_PORT:-3000}:3000'

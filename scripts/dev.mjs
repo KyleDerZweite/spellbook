@@ -13,13 +13,12 @@ export function developmentPlan(configured, environment, action = 'up') {
 		const port = env.DEV_LOCAL_PORT || '3000';
 		if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535)
 			throw new Error('DEV_LOCAL_PORT must be a TCP port between 1 and 65535.');
-		env.DEV_LOCAL_PORT = String(Number(port));
-		env.DEV_APP_ORIGIN = new URL(`http://localhost:${env.DEV_LOCAL_PORT}`).origin;
+		env.LOCAL_PORT = String(Number(port));
+		env.LOCAL_APP_ORIGIN = new URL(`http://localhost:${env.LOCAL_PORT}`).origin;
+		env.LOCAL_POSTGRES_DB = 'spellbook_dev';
 	}
 	args.push('-p', configured ? 'spellbook-dev' : 'spellbook-dev-local');
-	args.push('-f', 'compose.development.yml');
-	args.push('-f', configured ? 'compose.development-tunnel.yml' : 'compose.development-local.yml');
-	if (configured) args.push('--profile', 'tunnel');
+	args.push('-f', configured ? 'compose.dev.yml' : 'compose.yml');
 	args.push(...(action === 'up' ? ['up', '--build', '-d'] : ['down']));
 	return { args, env };
 }

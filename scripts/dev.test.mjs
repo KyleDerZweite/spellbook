@@ -21,15 +21,13 @@ test('no-.env startup selects isolated Development, localhost and no tunnel', ()
 		'-p',
 		'spellbook-dev-local',
 		'-f',
-		'compose.development.yml',
-		'-f',
-		'compose.development-local.yml',
+		'compose.yml',
 		'up',
 		'--build',
 		'-d'
 	]);
-	assert.equal(plan.env.DEV_APP_ORIGIN, 'http://localhost:3000');
-	assert.equal(plan.env.DEV_LOCAL_PORT, '3000');
+	assert.equal(plan.env.LOCAL_APP_ORIGIN, 'http://localhost:3000');
+	assert.equal(plan.env.LOCAL_PORT, '3000');
 	assert.equal(inherited.DEV_APP_ORIGIN, 'https://another.example.test');
 });
 
@@ -41,11 +39,7 @@ test('configured Development uses its private .env and tunnel without the Demo s
 		'-p',
 		'spellbook-dev',
 		'-f',
-		'compose.development.yml',
-		'-f',
-		'compose.development-tunnel.yml',
-		'--profile',
-		'tunnel',
+		'compose.dev.yml',
 		'up',
 		'--build',
 		'-d'
@@ -55,13 +49,13 @@ test('configured Development uses its private .env and tunnel without the Demo s
 });
 
 test('local port overrides keep frontend publication and canonical Origin aligned', () => {
-	assert.equal(developmentPlan(false, { DEV_LOCAL_PORT: '05192' }).env.DEV_LOCAL_PORT, '5192');
+	assert.equal(developmentPlan(false, { DEV_LOCAL_PORT: '05192' }).env.LOCAL_PORT, '5192');
 	assert.equal(
-		developmentPlan(false, { DEV_LOCAL_PORT: '5192' }).env.DEV_APP_ORIGIN,
+		developmentPlan(false, { DEV_LOCAL_PORT: '5192' }).env.LOCAL_APP_ORIGIN,
 		'http://localhost:5192'
 	);
 	assert.equal(
-		developmentPlan(false, { DEV_LOCAL_PORT: '80' }).env.DEV_APP_ORIGIN,
+		developmentPlan(false, { DEV_LOCAL_PORT: '80' }).env.LOCAL_APP_ORIGIN,
 		'http://localhost'
 	);
 	for (const port of ['0', '65536', 'invalid', '3000/path'])
@@ -91,7 +85,7 @@ test('CLI detects .env and invokes only the selected Compose command', async () 
 			join(directory, 'bin/podman-compose'),
 			`#!/usr/bin/env node
 import { writeFileSync } from 'node:fs';
-writeFileSync(process.env.DEV_TEST_RECORD, JSON.stringify({ args: process.argv.slice(2), origin: process.env.DEV_APP_ORIGIN, cwd: process.cwd() }));
+writeFileSync(process.env.DEV_TEST_RECORD, JSON.stringify({ args: process.argv.slice(2), origin: process.env.LOCAL_APP_ORIGIN, cwd: process.cwd() }));
 process.exit(Number(process.env.DEV_TEST_STATUS || 0));
 `,
 			{ mode: 0o755 }
@@ -108,7 +102,7 @@ process.exit(Number(process.env.DEV_TEST_STATUS || 0));
 			});
 		assert.equal(run().status, 0);
 		let called = JSON.parse(await readFile(record, 'utf8'));
-		assert.ok(called.args.includes('compose.development-local.yml'));
+		assert.ok(called.args.includes('compose.yml'));
 		assert.equal(called.cwd, directory);
 		assert.equal(called.origin, 'http://localhost:3000');
 		await writeFile(
@@ -119,7 +113,7 @@ process.exit(Number(process.env.DEV_TEST_STATUS || 0));
 		);
 		assert.equal(run().status, 0);
 		called = JSON.parse(await readFile(record, 'utf8'));
-		assert.ok(called.args.includes('compose.development-tunnel.yml'));
+		assert.ok(called.args.includes('compose.dev.yml'));
 		// Compose reads its .env itself; the launcher does not override its interpolation.
 		assert.equal(called.origin, undefined);
 		assert.deepEqual(called.args.slice(0, 2), ['--env-file', '.env']);

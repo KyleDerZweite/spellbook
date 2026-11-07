@@ -15,9 +15,13 @@ Android implementation and verification are in progress under the [independent a
 No production recognizer is implemented.
 [The recognition decision](docs/decisions/0023-local-recognition-in-scanner-clients.md) distinguishes that direction from the current upload/review workflow.
 
+Run `podman-compose -f compose.yml up --build -d` for standalone self-hosting at `http://localhost:3000`, without `.env` or a tunnel.
+Register a normal account; the Catalog worker remains opt-in.
 Configured deployments use one private root `.env` per checkout, with separate `PROD_*`, `DEMO_*` and `DEV_*` keys from `.env.example`.
-Start the server connector with `podman-compose --env-file .env -p spellbook-site -f compose.site.yml up -d`.
-Start hosted Demo with `podman-compose --env-file .env -p spellbook-demo -f compose.dev.yml -f compose.ingress.yml up --build -d`.
+Use `compose.dev.yml` for configured Development and `compose.prod.yml` for hosted Demo, Production and the independent connector.
+After preparing the external ingress network, start the connector with `pnpm compose site up`.
+Select the full `DEMO_IMAGE_REVISION`, build it from a clean checkout with `pnpm compose demo build`, then start it with `pnpm compose demo up`.
+Hosted rollout requires the selected immutable local images and never rebuilds them.
 The Demo uses its own database and local Scan storage.
 Its seed bootstraps the bundled Catalog only when no active Catalog exists, preserving subsequent full imports and private edits on restart.
 Use the opt-in [Catalog worker](docs/operations/deployment.md#environment-update-and-reset-interface) to import Scryfall `all_cards`, including German and English Printings.
