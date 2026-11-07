@@ -34,8 +34,12 @@
 </script>
 
 <svelte:window
+	onpointerdown={(event) => {
+		if (menu.open && event.target instanceof Node && !menu.contains(event.target))
+			menu.open = false;
+	}}
 	onkeydown={(event) => {
-		if (event.key === 'Escape') {
+		if (event.key === 'Escape' && menu.open) {
 			menu.open = false;
 			menu.querySelector('summary')?.focus();
 		}
