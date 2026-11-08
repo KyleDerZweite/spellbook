@@ -1,14 +1,15 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-07
+- Last Reviewed: 2026-11-08
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
   - Compose services, independent images, startup commands and graceful shutdown.
   - Stable server ingress, Development tunnels, loopback ports and origin builds.
   - Database migration ownership, retained data, recovery and operator commands.
-  - Automatic Demo update eligibility, documentation-only restarts and proposed workflow improvements.
+  - Automatic Demo update eligibility, completion evidence, documentation-only restarts and proposed workflow improvements.
+  - One-time migration of installations still using Compose overlays.
   - Catalog publication, Demo bundles, private reset and source refresh.
   - Scan storage, worker ownership, value-history scheduling and reporting configuration.
   - Authentication, QR sessions, PWA operation and current runtime acceptance.
@@ -174,6 +175,20 @@ Updating a checkout alone does not establish which revision is running; use the 
 Private ignored skill edits alone do not create a new Git revision.
 Keep the updater's implementation, target binding and access details in protected operator storage.
 
+An authorized Demo update is complete only when all of the following evidence agrees on the full selected SHA:
+
+- Source synchronization has passed the existing clean-main, expected-remote and fast-forward checks, and the checkout is at the selected SHA.
+- The selected SHA's latest push-CI attempt has succeeded under the existing [CI coverage](./github-automation.md#ci-coverage) rules.
+  An older successful attempt does not establish eligibility after a newer failed or pending attempt.
+- The existing deployment receipt records successful deployment of that SHA, with no active failure latch.
+- Actual image IDs for every running application and the completed `db-migrate` container match the selected immutable images, and the public `/openapi.json` health check returns 200.
+- The existing [Demo deployment verification](#demo-deployment) passes through the public origin, including authenticated Demo login/read/logout and long-lived streams, with Catalog/Price publication pointers and retained database/Scan volumes preserved.
+
+Use the existing protected updater and receipt procedures to collect this evidence.
+Report source synchronization and CI success separately from deployment completion.
+A busy update or backup lock means the update is pending.
+Unavailable remote evidence leaves deployment verification blocked and the rollout unverified; neither state establishes successful deployment.
+
 The following workflow improvements are proposals, not implemented behavior:
 
 - Define the Development acceptance checks that must pass before selecting a deployment revision, using the existing verification workflow.
@@ -185,6 +200,9 @@ Keep source synchronization, CI success, deployment verification and recovery ev
 These proposals do not authorize changes to the running updater, automatic recovery or removal of retained data.
 
 ### Operator cutover from overlays
+
+This is a one-time migration only for installations whose units or updater still use the old Compose overlays or generated image YAML.
+Ordinary updates after that migration follow [Demo deployment](#demo-deployment) and the [automatic update completion criteria](#automatic-demo-updates); they do not repeat this cutover.
 
 The repository replacement does not update an existing server's user units or updater.
 Before its next source update, pause the Demo update timer and wait for the current update operation and shared backup lock to settle.
@@ -213,7 +231,7 @@ Verify actual image IDs for every running application and the completed `db-migr
 Check public API health, authenticated Demo login/read/logout, unchanged Catalog/Price publication pointers and retained database/Scan volumes.
 Confirm the connector still has the same project, ingress network and target aliases, with Production and Development still stopped.
 Only then resume the update timer.
-These are outstanding operator dependencies, not operations performed by this repository change.
+For installations still using overlays, these are migration dependencies; this document does not establish that a target has completed them.
 
 ## Prepare a shared UI development session
 
