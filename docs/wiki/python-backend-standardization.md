@@ -1,9 +1,9 @@
 # Python-Backend gezielt standardisieren
 
 - Status: Historical
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-11-09
 - Source of Truth: datierte Nutzerentscheidungen, verlinkte Audits und Reviews sowie immutable Codebelege bis `KyleDerZweite/spellbook@214137ec7f790a328659edf5eb84c1dc879d5121`
-- Update Triggers: akzeptierte Retro-Maßnahmen und implementierte Diagnose-/Testaufrufe, präzise Quellenpositionen, native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Bestätigung, vorerst kein ML-Panel und Voice-to-Text-Korrektur
+- Update Triggers: delivered base-port closure with ongoing owner testing, akzeptierte Retro-Maßnahmen und implementierte Diagnose-/Testaufrufe, präzise Quellenpositionen, native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Bestätigung, vorerst kein ML-Panel und Voice-to-Text-Korrektur
 - Related Docs: [Index](./index.md), [Datenbankoptionen](./database-options.md), [Prioritäten](./priorities.md), [Python-Vertrag](../architecture/python-backend-migration.md), [Verification](../operations/github-automation.md)
 
 ## Bestätigung vom 2026-10-25
@@ -164,3 +164,13 @@ Der [Design-Review](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f
 Die [Wiki-Pflege](./wiki-maintenance.md#akzeptierte-pflegepräzisierung-vom-2026-10-25) beschreibt die ausgewählte Themenbündelung.
 Neue Laufzeitprüfungen dieser Änderungen und finale Integration bleiben bei Root; [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) besitzt deren genaue Commands, Ergebnisse, fehlende Target-Evidenz und aktuellen Merge-Status.
 Die älteren Runtime-Pässe oben belegen keinen neuen CI-, PostgreSQL- oder Browserlauf.
+
+## Base-port closure decision on 2026-11-09
+
+On 2026-11-09 Kyle selected closing delivered Python base-port work in epic #245 and its native sub-issues while owner testing continues along the way.
+This supersedes the obsolete requirement to keep delivered implementation open for owner testing of an unmerged candidate.
+[PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) already merged the source; the [migration contract](../architecture/python-backend-migration.md) remains the functional owner.
+This decision claims no new target acceptance, deployment or passed unavailable checks.
+Live S3/provider runs, natural daily value observation and physical Android/Keystore evidence remain unverified in the recorded migration evidence.
+Production cutover and productive migrator rollout remain separately authorized operational work in [#265](https://github.com/KyleDerZweite/spellbook/issues/265) and [#266](https://github.com/KyleDerZweite/spellbook/issues/266).
+Source: [Owner decision](t3-thread://v2/f585cbc1-cdb3-43db-bd4b-fbeb5353dd3d/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 123, ItemID `turn-item:message:4336e373-4549-4182-89c6-1d1cf3cc7f25`.

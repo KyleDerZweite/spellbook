@@ -3,7 +3,7 @@
 - Status: Historical
 - Last Reviewed: 2026-11-09
 - Source of Truth: datierte Quellen in den verlinkten Themenseiten
-- Update Triggers: isolated slice coordination preference, akzeptierte Retro-Maßnahmen, Themenbündelung und präzise Quellenpositionen, dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich, Python-/PostgreSQL-Bestätigung, native FastAPI-Freigabe, Pre-release-Verzicht, Admin-Bestätigung und vorerst kein ML-Panel, Voice-to-Text-Präferenz, Admin-/ML-Neubewertung und native Implementierungs-/Runtime-Evidenz
+- Update Triggers: delivered base-port closure with ongoing owner testing, isolated slice coordination preference, akzeptierte Retro-Maßnahmen, Themenbündelung und präzise Quellenpositionen, dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich, Python-/PostgreSQL-Bestätigung, native FastAPI-Freigabe, Pre-release-Verzicht, Admin-Bestätigung und vorerst kein ML-Panel, Voice-to-Text-Präferenz, Admin-/ML-Neubewertung und native Implementierungs-/Runtime-Evidenz
 - Related Docs: [Dokumentationsindex](../README.md), [Agent-Anweisungen](../../AGENTS.md)
 
 Am 2026-10-24 beauftragte Kyle diese historische Sammlung unter `docs/wiki/`.
@@ -23,6 +23,7 @@ Vor strategischen Entscheidungen und Wiederaufnahme den Index und relevante Seit
 - [Interface-Entfernung](./interface-removal.md): Sofortiger Ersatz alter Interfaces, erweiterter Pre-release-Verzicht und getrennte Production-Autorität.
 - [Datenbankoptionen](./database-options.md): SQLite-/Turso-Historie, theoretische Wechselmotive, Gesamtbackend-Vergleich und spätere Bestätigung von Python und PostgreSQL.
 - [Python-Backend standardisieren](./python-backend-standardization.md): Nativer FastAPI-/Pydantic-Stand bei B388, bestandener HTTP-Neulauf bei AD5, bestätigte Admin-Absicht ohne vorerst geplantes ML-Panel und ausgewählte Retro-Maßnahmen mit Implementierungsbelegen.
+  The [2026-11-09 closure decision](./python-backend-standardization.md#base-port-closure-decision-on-2026-11-09) separates delivered base-port completion from ongoing owner testing and production operations.
 
 ## Tooling und Prüfungen
 
