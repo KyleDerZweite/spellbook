@@ -1,3 +1,5 @@
+import { translate } from '../i18n/messages.ts';
+import type { Locale } from '../i18n/locale.ts';
 import type { InventoryCard } from '#lib/types/legacy.ts';
 
 export type InventoryDirection = 'asc' | 'desc';
@@ -113,15 +115,15 @@ export function orderInventory<T extends InventoryViewEntry>(
 	});
 }
 
-export function describeInventoryOrder(order: InventoryOrder): string {
-	if (order.base === 'newest') return 'Sorted by entry creation date, newest first.';
-	const direction = (value: InventoryDirection) => (value === 'asc' ? 'ascending' : 'descending');
-	const variant = order.variant
-		? `${order.variant.column} ${direction(order.variant.direction)}, then `
-		: '';
-	return order.base === 'set'
-		? `Grouped by set ${direction(order.direction)}, then ${variant}card name ascending.`
-		: `Sorted by ${variant}card name ${direction(order.direction)}, then set ascending.`;
+export function describeInventoryOrder(order: InventoryOrder, locale: Locale): string {
+	if (order.base === 'newest') return translate(locale, 'inventory.order.newest');
+	const direction = translate(locale, `inventory.direction.${order.direction}`);
+	if (!order.variant) return translate(locale, `inventory.order.${order.base}`, { direction });
+	return translate(locale, `inventory.order.${order.base}.variant`, {
+		direction,
+		column: translate(locale, `inventory.column.${order.variant.column}`),
+		variantDirection: translate(locale, `inventory.direction.${order.variant.direction}`)
+	});
 }
 
 export function isNewInventoryEntry(createdAt: Date, asOf: Date): boolean {
