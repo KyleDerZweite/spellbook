@@ -205,7 +205,7 @@ export function assertInventoryOperation(value: unknown): InventoryBulkOperation
 		quantity:
 			op === 'decrement'
 				? assertPositiveQuantity(value.quantity)
-				: assertFiniteQuantity(value.quantity),
+				: normalizeQuantity(value.quantity),
 		...(notes === undefined ? {} : { notes })
 	};
 }
@@ -243,7 +243,7 @@ export function assertDeckOperation(value: unknown): DeckBulkOperation {
 		quantity:
 			op === 'decrement'
 				? assertPositiveQuantity(value.quantity)
-				: assertFiniteQuantity(value.quantity)
+				: normalizeQuantity(value.quantity)
 	};
 }
 
@@ -289,10 +289,6 @@ function assertPositiveQuantity(value: unknown): number {
 		throw new ValidationError('Quantity must be greater than 0');
 	}
 	return quantity;
-}
-
-function assertFiniteQuantity(value: unknown): number {
-	return normalizeQuantity(value);
 }
 
 function assertEntryTarget(target: unknown): string {
