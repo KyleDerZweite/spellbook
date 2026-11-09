@@ -1,9 +1,9 @@
 # Python backend migration contract
 
 - Status: Source merged through PR 276; owner acceptance and production operations remain separate
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-09
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: Compose Demo and production entrypoints, managed Category removal, merged PR 276 and local tracker reconciliation, accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: delivered base-port closure with ongoing owner testing, Compose Demo and production entrypoints, managed Category removal, merged PR 276 and local tracker reconciliation, accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -24,6 +24,8 @@ Historical Node parsing, serialization and error-body quirks are not acceptance 
 The Python implementation merged into `main` through [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) on 2026-10-25 at `b7b5c5a50f2d8b5212a23fe248369ebdccedd89b`.
 Kyle authorized commit and merge after verification on 2026-10-25; the [dated acceptance record](../wiki/python-backend-standardization.md#ausgewählte-retro-maßnahmen-und-implementierung-vom-2026-10-25) supersedes the earlier instruction to leave the artifact unmerged.
 Use the PR for current merge status and owner acceptance.
+Kyle's [2026-11-09 decision](../wiki/python-backend-standardization.md#base-port-closure-decision-on-2026-11-09) closes delivered base-port implementation while owner testing continues along the way.
+Closure does not establish unavailable target acceptance or authorize production operations.
 Authorized source work includes Python migrator preparation/rehearsal, Python default activation and removal of the replaced TypeScript server and obsolete server tests after their functional coverage transfers.
 Keep the Svelte/TypeScript frontend and Android, updating affected callers and shared contracts with interface changes.
 Schema changes may require reset/reimport; retain SQL needed for fresh installation.
