@@ -1491,8 +1491,9 @@
 					{language.t(`entries.${language.plural(currentWindow.matching.entryCount)}`, {
 						count: language.number(currentWindow.matching.entryCount)
 					})} <span>·</span>
-					{matchingQuantity}
-					{language.t('ui.cards')}
+					{language.t(`cards.${language.plural(matchingQuantity)}`, {
+						count: language.number(matchingQuantity)
+					})}
 				</p>
 			</div>
 			{#if hasFilters}

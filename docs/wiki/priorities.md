@@ -34,4 +34,4 @@ Quelle: [Zustimmung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-5
 
 On 2026-11-09 Kyle selected isolated slice PRs for small existing unblocked closeouts, using GPT-6.1-Sol medium subagents.
 Blocked issues and new tasks remain excluded.
-Source: [Coordination decision](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046).
+Source: [Coordination decision](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 0.
