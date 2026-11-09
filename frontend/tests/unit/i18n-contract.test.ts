@@ -4,8 +4,22 @@ import ts from 'typescript';
 import en from '../../src/lib/i18n/en.json';
 import { validateDictionaries } from '../../src/lib/i18n/messages.ts';
 import { localizeMessage } from '../../src/lib/i18n/presentation.ts';
+import {
+	CARD_TYPES,
+	filterOptionLabel,
+	LEGALITY_FORMATS,
+	MANA_COLORS,
+	RARITIES
+} from '../../src/lib/search/filter-options.ts';
 
 describe('translation contract', () => {
+	it('translates shared Catalog options and preserves format names', () => {
+		expect(filterOptionLabel(MANA_COLORS[0], 'en')).toBe('White');
+		expect(filterOptionLabel(MANA_COLORS[0], 'de')).toBe('Weiß');
+		expect(filterOptionLabel(RARITIES[0], 'de')).toBe('Häufig');
+		expect(filterOptionLabel(CARD_TYPES[0], 'de')).toBe('Kreatur');
+		expect(filterOptionLabel(LEGALITY_FORMATS[0], 'de')).toBe('Standard');
+	});
 	it('keeps dictionary parameters and TypeScript declarations identical', () => {
 		validateDictionaries();
 		const source = ts.createSourceFile(

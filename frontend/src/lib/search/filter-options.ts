@@ -103,5 +103,5 @@ export function filterOptionLabel(
 	option: { label: string; labelKey?: MessageKey },
 	locale: Locale
 ): string {
-	return option.labelKey ? filterOptionLabel(option, locale) : option.label;
+	return option.labelKey ? translate(locale, option.labelKey) : option.label;
 }
