@@ -90,9 +90,6 @@ def _query_number(value: str) -> int:
 def inventory_query_from_url(request: Request) -> InventoryQuery:
     params = request.query_params
 
-    def scalar(key: str) -> str | None:
-        return params.getlist(key)[-1] if key in params else None
-
     input: dict[str, object] = {}
     for key in (
         "q",
@@ -105,17 +102,17 @@ def inventory_query_from_url(request: Request) -> InventoryQuery:
         "view",
         "group",
     ):
-        value = scalar(key)
+        value = params.get(key)
         if value is not None and (not (key == "variant" and value == "")):
             input[key] = value
     input["sets"] = params.getlist("set")
     if "page" in params:
-        page = _query_number(cast(str, scalar("page")))
+        page = _query_number(cast(str, params.get("page")))
         if not math.isfinite(page) or page != int(page) or page < 1 or (page > 9007199254740991):
             raise ValidationError("page must be a positive integer")
         input["offset"] = (page - 1) * 50
     for key in ("offset", "limit"):
-        value = scalar(key)
+        value = params.get(key)
         if value is not None:
             input[key] = _query_number(value)
     return normalize_inventory_query(input)
@@ -210,15 +207,12 @@ def create_inventory_routes(auth: SessionAuth, inventory: Inventory, origin: str
     ) -> Response:
         query = request.query_params
 
-        def scalar(key: str, fallback: str) -> str:
-            return query.getlist(key)[-1] if key in query else fallback
-
         result = await inventory.page(
             actor,
             {
                 "view": "groups",
-                "offset": _query_number(scalar("offset", "0")),
-                "limit": _query_number(scalar("limit", "50")),
+                "offset": _query_number(query.get("offset", "0")),
+                "limit": _query_number(query.get("limit", "50")),
             },
         )
         if result["kind"] != "Page":
