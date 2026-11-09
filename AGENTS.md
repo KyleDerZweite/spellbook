@@ -2,6 +2,7 @@
 
 ## Constraints
 
+- Prioritize Simplicity, then Maintainability, then Features, preserving agreed scope and long-term needs.
 - Keep changes within the requested scope and preserve project structure, naming and architectural boundaries.
 - Keep code typed, modular and minimal.
   Apply KISS, YAGNI, DRY, SOLID and Separation of Concerns; avoid broad refactors during feature work.
