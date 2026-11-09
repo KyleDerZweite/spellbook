@@ -1,3 +1,4 @@
+import { createLanguage } from '../../src/lib/i18n/context.ts';
 import { describe, expect, it } from 'vitest';
 import {
 	describeInventoryOrder,
@@ -151,7 +152,9 @@ describe('inventory column ordering', () => {
 			entry('newer', { createdAt: new Date('2026-10-06') })
 		];
 		expect(orderInventory(dated, newest).map((card) => card.id)).toEqual(['newer', 'older']);
-		expect(describeInventoryOrder(newest)).toBe('Sorted by entry creation date, newest first.');
+		expect(describeInventoryOrder(newest, 'en')).toBe(
+			'Sorted by entry creation date, newest first.'
+		);
 		expect(nextInventoryOrder(newest, 'name')).toEqual(initial);
 		expect(nextInventoryOrder(newest, 'set')).toEqual({
 			base: 'set',
@@ -174,11 +177,14 @@ describe('inventory column ordering', () => {
 		expect(result[0]).toBe(first);
 	});
 	it('describes partition priority and name direction for accessible status', () => {
-		expect(describeInventoryOrder(nextInventoryOrder(initial, 'finish'))).toBe(
+		expect(describeInventoryOrder(nextInventoryOrder(initial, 'finish'), 'en')).toBe(
 			'Sorted by finish ascending, then card name ascending, then set ascending.'
 		);
 		expect(
-			describeInventoryOrder(nextInventoryOrder(nextInventoryOrder(initial, 'set'), 'condition'))
+			describeInventoryOrder(
+				nextInventoryOrder(nextInventoryOrder(initial, 'set'), 'condition'),
+				'en'
+			)
 		).toBe('Grouped by set ascending, then condition ascending, then card name ascending.');
 	});
 });
@@ -244,5 +250,69 @@ describe('new inventory entry badges', () => {
 		expect(isNewInventoryEntry(new Date('2026-10-06T12:00:01Z'), now)).toBe(false);
 		expect(isNewInventoryEntry(new Date('invalid'), now)).toBe(false);
 		expect(isNewInventoryEntry(now, new Date('invalid'))).toBe(false);
+	});
+});
+
+describe('localized Inventory presentation', () => {
+	it('switches complete announcements without changing active domain sorting', () => {
+		let locale: 'en' | 'de' = 'en';
+		const language = createLanguage(() => locale);
+		for (const base of ['name', 'set', 'newest'] as const) {
+			for (const direction of ['asc', 'desc'] as const) {
+				for (const column of [null, 'finish', 'condition', 'quantity'] as const) {
+					for (const variantDirection of ['asc', 'desc'] as const) {
+						const order: InventoryOrder = {
+							base,
+							direction,
+							variant: column ? { column, direction: variantDirection } : null
+						};
+						const before = structuredClone(order);
+						const sorted = orderInventory(cards, order).map((card) => card.id);
+						locale = 'en';
+						const english = describeInventoryOrder(order, language.locale);
+						locale = 'de';
+						const german = describeInventoryOrder(order, language.locale);
+						expect(german).not.toMatch(
+							/ascending|descending|Sorted|Grouped|finish|condition|quantity/
+						);
+						expect(german).not.toContain('{');
+						if (base !== 'newest')
+							expect(german).toContain(direction === 'asc' ? 'aufsteigend' : 'absteigend');
+						expect(german).not.toBe(english);
+						expect(order).toEqual(before);
+						expect(orderInventory(cards, order).map((card) => card.id)).toEqual(sorted);
+						locale = 'en';
+						expect(describeInventoryOrder(order, language.locale)).toBe(english);
+					}
+				}
+			}
+		}
+	});
+	it('uses singular, plural and localized numbers and sort directions in both languages', () => {
+		for (const locale of ['en', 'de'] as const) {
+			const language = createLanguage(() => locale);
+			for (const count of [0, 1, 2, 1000]) {
+				expect(
+					language.t(`entries.${language.plural(count)}`, { count: language.number(count) })
+				).toBe(
+					`${language.number(count)} ${locale === 'en' ? (count === 1 ? 'entry' : 'entries') : count === 1 ? 'Eintrag' : 'Einträge'}`
+				);
+			}
+			for (const direction of ['asc', 'desc'] as const) {
+				const label = language.t('message.Sort.by.p0.p1', {
+					p0: language.t('ui.Quantity'),
+					p1: language.t(`inventory.direction.${direction}`)
+				});
+				expect(label).toContain(
+					locale === 'en'
+						? direction === 'asc'
+							? 'ascending'
+							: 'descending'
+						: direction === 'asc'
+							? 'aufsteigend'
+							: 'absteigend'
+				);
+			}
+		}
 	});
 });
