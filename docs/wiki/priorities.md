@@ -1,9 +1,9 @@
 # Prioritäten und Zusammenarbeit
 
 - Status: Historical
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-11-09
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
+- Update Triggers: isolated slice coordination preference, akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
 - Related Docs: [Index](./index.md), [Wiki-Pflege](./wiki-maintenance.md), [Interface-Entfernung](./interface-removal.md), [Datenbankoptionen](./database-options.md), [Admin-Klarstellung](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25)
 
 Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features.
@@ -29,3 +29,9 @@ Quelle: [Nutzerpräferenz im Strategiedialog](t3-thread://v1/6a511157-806c-4627-
 Am 2026-10-25 bestätigte Kyle die sofortige Aufnahme von Erkenntnissen mit gebündelter Formatierung, Integration und Commit pro Thema.
 Die [Wiki-Pflege](./wiki-maintenance.md#akzeptierte-pflegepräzisierung-vom-2026-10-25) beschreibt den Ablauf und die präziseren Quellenangaben.
 Quelle: [Zustimmung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3859, ItemID `turn-item:message:9a5d5a04-14a9-49ed-b27a-1a51c27e0c2e`, zu den Empfehlungen an Position 3854.
+
+## Isolated slice PRs selected on 2026-11-09
+
+On 2026-11-09 Kyle selected isolated slice PRs for small existing unblocked closeouts, using GPT-6.1-Sol medium subagents.
+Blocked issues and new tasks remain excluded.
+Source: [Coordination decision](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046).

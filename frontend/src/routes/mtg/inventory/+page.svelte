@@ -838,7 +838,7 @@
 		selectedSets.length > 0 || selectedFinish !== 'all' || selectedCondition !== 'all'
 	);
 	let listCards = $derived(inventoryCards);
-	let sortDescription = $derived(describeInventoryOrder(order));
+	let sortDescription = $derived(describeInventoryOrder(order, language.locale));
 	$effect(() => {
 		const anchor = data.viewedAt.getTime();
 		const started = Date.now();
@@ -1488,8 +1488,9 @@
 						>{language.t('ui.Sort')}{/snippet}
 				</ActionMenu>
 				<p class="inventory-result-count">
-					{currentWindow.matching.entryCount}
-					{currentWindow.matching.entryCount === 1 ? 'entry' : 'entries'} <span>·</span>
+					{language.t(`entries.${language.plural(currentWindow.matching.entryCount)}`, {
+						count: language.number(currentWindow.matching.entryCount)
+					})} <span>·</span>
 					{matchingQuantity}
 					{language.t('ui.cards')}
 				</p>
@@ -1599,8 +1600,12 @@
 							aria-pressed={columnDirection(column) !== null ||
 								(column === 'name' && order.base === 'newest')}
 							aria-label={language.t('message.Sort.by.p0.p1', {
-								p0: String(label.toLowerCase()),
-								p1: String(columnDirection(column) === 'asc' ? 'descending' : 'ascending')
+								p0: label,
+								p1: language.t(
+									columnDirection(column) === 'asc'
+										? 'inventory.direction.desc'
+										: 'inventory.direction.asc'
+								)
 							})}
 							onclick={() => (order = nextInventoryOrder(order, column))}
 							>{column === 'name' && order.base === 'newest' ? language.t('ui.Newest') : label}<span

@@ -1208,5 +1208,17 @@
 	"ui.Saving": "Saving...",
 	"qr.approval": "Sign in to {device} as {username}?",
 	"qr.target.browser": "another browser",
-	"qr.target.device": "a device"
+	"qr.target.device": "a device",
+	"entries.one": "{count} entry",
+	"entries.other": "{count} entries",
+	"inventory.direction.asc": "ascending",
+	"inventory.direction.desc": "descending",
+	"inventory.order.newest": "Sorted by entry creation date, newest first.",
+	"inventory.order.set": "Grouped by set {direction}, then card name ascending.",
+	"inventory.order.name": "Sorted by card name {direction}, then set ascending.",
+	"inventory.order.set.variant": "Grouped by set {direction}, then {column} {variantDirection}, then card name ascending.",
+	"inventory.order.name.variant": "Sorted by {column} {variantDirection}, then card name {direction}, then set ascending.",
+	"inventory.column.finish": "finish",
+	"inventory.column.condition": "condition",
+	"inventory.column.quantity": "quantity"
 }

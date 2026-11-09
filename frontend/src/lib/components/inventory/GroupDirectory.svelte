@@ -266,9 +266,11 @@
 					>
 					<span
 						><strong>{group.name}</strong><small
-							>{group.quantity.toLocaleString(language.locale)}
-							{group.quantity === 1 ? 'card' : 'cards'} · {group.entryCount}
-							{group.entryCount === 1 ? 'entry' : 'entries'}</small
+							>{language.t(`cards.${language.plural(group.quantity)}`, {
+								count: language.number(group.quantity)
+							})} · {language.t(`entries.${language.plural(group.entryCount)}`, {
+								count: language.number(group.entryCount)
+							})}</small
 						></span
 					>
 				</a>
