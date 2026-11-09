@@ -24,6 +24,7 @@
 	import { nativeFeedbackRange } from '#lib/search/native-panel.ts';
 	import {
 		getActiveFilters,
+		filterOptionLabel,
 		MANA_COLORS,
 		RARITIES,
 		CARD_TYPES,
@@ -369,7 +370,7 @@
 										name={group.name}
 										value={option.id}
 										checked={group.selected?.some((value) => value === option.id)}
-									/>{language.message(option.label)}</label
+									/>{filterOptionLabel(option, language.locale)}</label
 								>{/each}
 						</fieldset>
 					{/each}

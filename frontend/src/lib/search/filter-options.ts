@@ -4,32 +4,42 @@ import { printingLanguageOptions, DEFAULT_SEARCH_LANGUAGES } from './languages.t
 import type { CardType, LegalityFormat, ManaColor, Rarity } from './types.ts';
 import type { SearchFilterState } from './filters.svelte.ts';
 
-export const MANA_COLORS: { id: ManaColor; label: string; msClass: string }[] = [
-	{ id: 'W', label: 'White', msClass: 'ms-w' },
-	{ id: 'U', label: 'Blue', msClass: 'ms-u' },
-	{ id: 'B', label: 'Black', msClass: 'ms-b' },
-	{ id: 'R', label: 'Red', msClass: 'ms-r' },
-	{ id: 'G', label: 'Green', msClass: 'ms-g' },
-	{ id: 'C', label: 'Colorless', msClass: 'ms-c' }
+export const MANA_COLORS: {
+	id: ManaColor;
+	label: string;
+	labelKey: MessageKey;
+	msClass: string;
+}[] = [
+	{ id: 'W', label: 'White', labelKey: 'color.White', msClass: 'ms-w' },
+	{ id: 'U', label: 'Blue', labelKey: 'color.Blue', msClass: 'ms-u' },
+	{ id: 'B', label: 'Black', labelKey: 'color.Black', msClass: 'ms-b' },
+	{ id: 'R', label: 'Red', labelKey: 'color.Red', msClass: 'ms-r' },
+	{ id: 'G', label: 'Green', labelKey: 'color.Green', msClass: 'ms-g' },
+	{ id: 'C', label: 'Colorless', labelKey: 'color.Colorless', msClass: 'ms-c' }
 ];
 
-export const RARITIES: { id: Rarity; label: string; color: string }[] = [
-	{ id: 'common', label: 'Common', color: 'var(--color-rarity-common)' },
-	{ id: 'uncommon', label: 'Uncommon', color: 'var(--color-rarity-uncommon)' },
-	{ id: 'rare', label: 'Rare', color: 'var(--color-rarity-rare)' },
-	{ id: 'mythic', label: 'Mythic', color: 'var(--color-rarity-mythic)' }
+export const RARITIES: { id: Rarity; label: string; labelKey: MessageKey; color: string }[] = [
+	{ id: 'common', label: 'Common', labelKey: 'rarity.common', color: 'var(--color-rarity-common)' },
+	{
+		id: 'uncommon',
+		label: 'Uncommon',
+		labelKey: 'rarity.uncommon',
+		color: 'var(--color-rarity-uncommon)'
+	},
+	{ id: 'rare', label: 'Rare', labelKey: 'rarity.rare', color: 'var(--color-rarity-rare)' },
+	{ id: 'mythic', label: 'Mythic', labelKey: 'rarity.mythic', color: 'var(--color-rarity-mythic)' }
 ];
 
-export const CARD_TYPES: { id: CardType; label: string }[] = [
-	{ id: 'Creature', label: 'Creature' },
-	{ id: 'Instant', label: 'Instant' },
-	{ id: 'Sorcery', label: 'Sorcery' },
-	{ id: 'Enchantment', label: 'Enchantment' },
-	{ id: 'Artifact', label: 'Artifact' },
-	{ id: 'Planeswalker', label: 'Planeswalker' },
-	{ id: 'Land', label: 'Land' },
-	{ id: 'Battle', label: 'Battle' },
-	{ id: 'Kindred', label: 'Kindred' }
+export const CARD_TYPES: { id: CardType; label: string; labelKey: MessageKey }[] = [
+	{ id: 'Creature', label: 'Creature', labelKey: 'type.Creature' },
+	{ id: 'Instant', label: 'Instant', labelKey: 'type.Instant' },
+	{ id: 'Sorcery', label: 'Sorcery', labelKey: 'type.Sorcery' },
+	{ id: 'Enchantment', label: 'Enchantment', labelKey: 'type.Enchantment' },
+	{ id: 'Artifact', label: 'Artifact', labelKey: 'type.Artifact' },
+	{ id: 'Planeswalker', label: 'Planeswalker', labelKey: 'type.Planeswalker' },
+	{ id: 'Land', label: 'Land', labelKey: 'type.Land' },
+	{ id: 'Battle', label: 'Battle', labelKey: 'type.Battle' },
+	{ id: 'Kindred', label: 'Kindred', labelKey: 'type.Kindred' }
 ];
 
 export const LEGALITY_FORMATS: { id: LegalityFormat; label: string }[] = [
@@ -66,25 +76,32 @@ export function getActiveFilters(filters: SearchFilterState, locale: Locale = 'e
 			: []),
 		...MANA_COLORS.filter((option) => filters.selectedColors.has(option.id)).map((option) => ({
 			key: `color-${option.id}`,
-			label: `${translate(locale, `color.${option.label}` as MessageKey)} ${filters.colorNot.has(option.id) ? 'NOT' : filters.colorAll.has(option.id) ? 'AND' : 'OR'}`,
+			label: `${filterOptionLabel(option, locale)} ${filters.colorNot.has(option.id) ? 'NOT' : filters.colorAll.has(option.id) ? 'AND' : 'OR'}`,
 			remove: () => filters.removeColor(option.id)
 		})),
 		...RARITIES.filter((option) => filters.selectedRarities.has(option.id)).map((option) => ({
 			key: `rarity-${option.id}`,
-			label: translate(locale, `rarity.${option.id}` as MessageKey),
+			label: filterOptionLabel(option, locale),
 			remove: () => filters.toggleRarity(option.id)
 		})),
 		...CARD_TYPES.filter((option) => filters.selectedTypes.has(option.id)).map((option) => ({
 			key: `type-${option.id}`,
-			label: translate(locale, `type.${option.id}` as MessageKey),
+			label: filterOptionLabel(option, locale),
 			remove: () => filters.toggleType(option.id)
 		})),
 		...LEGALITY_FORMATS.filter((option) => filters.selectedLegalities.has(option.id)).map(
 			(option) => ({
 				key: `legality-${option.id}`,
-				label: option.label,
+				label: filterOptionLabel(option, locale),
 				remove: () => filters.toggleLegality(option.id)
 			})
 		)
 	];
+}
+
+export function filterOptionLabel(
+	option: { label: string; labelKey?: MessageKey },
+	locale: Locale
+): string {
+	return option.labelKey ? filterOptionLabel(option, locale) : option.label;
 }
