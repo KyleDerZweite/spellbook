@@ -3,10 +3,11 @@
 - Status: Historical
 - Last Reviewed: 2026-11-09
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: isolated slice coordination preference, akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
+- Update Triggers: explicit priority correction of 2026-11-09, isolated slice coordination preference, akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
 - Related Docs: [Index](./index.md), [Wiki-Pflege](./wiki-maintenance.md), [Interface-Entfernung](./interface-removal.md), [Datenbankoptionen](./database-options.md), [Admin-Klarstellung](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25)
 
 Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features.
+The ordering above is superseded by the [2026-11-09 priority decision](#priority-order-selected-on-2026-11-09).
 Er beauftragte Root als DRI mit der Koordination von Background-Main-Agents und knapper Kommunikation über Context Pointers.
 Environment-Verbesserungen sollten konkrete Reibung beheben; einmalige Workarounds waren unerwünscht.
 Quelle: [Strategiedialog vom 2026-10-24](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
@@ -35,3 +36,9 @@ Quelle: [Zustimmung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-5
 On 2026-11-09 Kyle selected isolated slice PRs for small existing unblocked closeouts, using GPT-6.1-Sol medium subagents.
 Blocked issues and new tasks remain excluded.
 Source: [Coordination decision](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 0.
+
+## Priority order selected on 2026-11-09
+
+On 2026-11-09 Kyle selected Simplicity, then Maintainability, then Features for Spellbook, superseding the 2026-10-24 ordering above.
+Prefer the smallest complete solution and simplify where possible, preserving agreed scope and long-term development needs.
+Source: [Priority correction](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 197, ItemID `turn-item:message:8e739bf9-9e9c-405a-8259-3dd4b0e9b238`.
