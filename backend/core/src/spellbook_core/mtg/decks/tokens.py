@@ -13,14 +13,11 @@ def related_tokens(cards: list[DeckCard], facts: dict[str, TokenFacts]) -> Docum
         if metadata is None:
             unavailable.add(card["id"])
             continue
-        for token in metadata["items"]:
-            identity = token["catalogCardId"]
-            item = items.setdefault(identity, {**token, "sourceEntryIds": []})
-            item["sourceEntryIds"].append(card["id"])
-        for token in metadata["unresolved"]:
-            identity = token["catalogCardId"]
-            item = unresolved.setdefault(identity, {**token, "sourceEntryIds": []})
-            item["sourceEntryIds"].append(card["id"])
+        for field, destination in (("items", items), ("unresolved", unresolved)):
+            for token in metadata[field]:
+                identity = token["catalogCardId"]
+                item = destination.setdefault(identity, {**token, "sourceEntryIds": []})
+                item["sourceEntryIds"].append(card["id"])
     for identity in items.keys() & unresolved.keys():
         items[identity]["sourceEntryIds"].extend(unresolved.pop(identity)["sourceEntryIds"])
     for item in [*items.values(), *unresolved.values()]:
