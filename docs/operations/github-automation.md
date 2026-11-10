@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-07
+- Last Reviewed: 2026-11-10
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: three-file Compose config and hosted image selection tests, managed Category removal, manual global-search evaluation runner and captured evidence, upstream hosted-generation recheck and existing evidence-manifest owner, hosted updater Python patch limitation and manual frozen dependency refresh, bounded uv updater compatibility, uv-aware dependency automation and bounded maintenance evidence, frozen package test refresh, bounded safe diagnostics and focused shutdown ordering, native listener lifecycle assertions and evidence ownership, native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: reusable Demo browser smoke and preflight, built-Origin validation before HTTP startup, SavedState derived-subscription check, bounded delegated verification, three-file Compose config and hosted image selection tests, managed Category removal, manual global-search evaluation runner and captured evidence, upstream hosted-generation recheck and existing evidence-manifest owner, hosted updater Python patch limitation and manual frozen dependency refresh, bounded uv updater compatibility, uv-aware dependency automation and bounded maintenance evidence, frozen package test refresh, bounded safe diagnostics and focused shutdown ordering, native listener lifecycle assertions and evidence ownership, native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -30,7 +30,7 @@ APP_ORIGIN=http://127.0.0.1:5191 pnpm build
 `setup:python` installs the current packages and local Core dependency as wheels with frozen dependencies.
 Rerun it after source changes before testing installed entrypoints.
 `lint` runs the complete Prettier check only.
-`check:boundaries` scans source import directions; `test:tooling` runs its forbidden-import fixtures.
+`check:boundaries` scans source import directions and rejects SavedState subscriptions inside reactive derived calculations; `test:tooling` runs its negative fixtures.
 `pnpm --dir frontend check` runs frontend TypeScript/Svelte checks without the root `check` command's Python Mypy checks.
 Python package checks remain independent below.
 `build` produces Python Core/API/State distributions and the origin-matched Svelte artifact, including client leakage and PWA checks.
@@ -73,6 +73,9 @@ A missing optional guard is unexecuted evidence, not a database pass.
 Tests verify free ports before starting children or publishing fixtures.
 The [runtime fixture](../../frontend/tests/http-runtime.ts) launches the installed `backend/api/.venv/bin/spellbook-api` directly, with no Node API fallback, and built web independently.
 Only API receives database/storage credentials.
+Before starting either child for the default built entrypoint, the fixture checks that `build/adapter-node.js` exports the exact requested public Origin.
+A missing or mismatched build must be rebuilt with matching `APP_ORIGIN`; runtime configuration cannot repair it.
+Custom process fixtures retain their separate entrypoints without requiring a web build.
 Direct API, same-origin proxy, SSR/native actions, original receipts and account isolation retain separate assertions.
 
 The [raw-header regression](../../frontend/tests/remote-proxy-headers-http.test.mjs) uses the built Web handler, standalone production entrypoint and a local mock upstream without a database.
@@ -414,6 +417,9 @@ The normal [Web proxy](../../frontend/src/lib/server/remote/proxy.ts) emits `pro
 These diagnostics exclude raw output, request data, headers, bodies, tokens, queries, stacks and error messages.
 
 Give child tasks the accepted outcome, responsibilities, interfaces, dependencies, unresolved objections and exact workspace/revision.
+Bound each assignment by concrete paths and acceptance cases before implementation, rather than an unrestricted area-wide survey.
+A completion report accounts for every assigned path and case; partial coverage remains explicitly incomplete.
+Root integrates sequentially and owns verification of the combined artifact.
 Link required canonical owners and request concise findings with evidence references instead of repeating the full parent context.
 
 ## Browser verification and evidence
@@ -422,6 +428,45 @@ For UI changes, exercise the affected workflows against the [interface acceptanc
 Use representative account data, narrow and desktop viewports, keyboard input, and error states.
 Component tests and production builds do not establish correct focus, touch interaction, contrast, or composed page behavior.
 Asset changes also follow the specific [brand verification rules](../reference/website-icons.md).
+
+### Fast checks and actual Demo journeys
+
+Keep inexpensive deterministic checks in automatic CI for types, dependency directions, domain contracts and failure paths.
+Remove a test only when its responsibility is obsolete or another check already establishes the same behavior; moving a failing test to manual execution does not fix it.
+Browser checks cover actual rendering, interaction, hydration and retained UI state.
+Agents inspect the resulting screenshots and exercise the workflows affected by the change; a passing browser assertion does not establish visual quality.
+Use targeted automated browser journeys alongside those checks, rather than repeating the whole domain test suite through the UI.
+
+The [Demo smoke runner](../../scripts/browser-smoke.py) attaches to an already running, explicitly owned loopback Demo with populated Catalog and Inventory.
+It neither starts processes nor installs tools, seeds or resets data, or changes Inventory and Deck contents.
+Use the existing [HTTP fixture](../../frontend/tests/http-runtime.ts) and guarded Demo setup when preparing that target; Development startup retains its separate Compose command and data.
+The runner requires an already available Python Playwright environment and Chromium, with an optional explicit existing browser executable.
+It verifies the artifact's build Origin and actual Demo sign-in before counting any journey as passed.
+Missing tools, unavailable data, failed authentication and assertions produce a nonzero exit status.
+
+Run readiness once before assigning parallel UI checks to that target:
+
+```sh
+pnpm test:browser --origin http://127.0.0.1:5194 --browser-executable /usr/bin/google-chrome --preflight-only
+```
+
+Then run the complete focused smoke with the same target:
+
+```sh
+pnpm test:browser --origin http://127.0.0.1:5194 --browser-executable /usr/bin/google-chrome
+```
+
+`--build-dir` selects another explicitly attributed web build, and `--output` selects an isolated report/screenshot directory.
+Defaults are `frontend/build` and `.local/browser-smoke` in the runner's checkout.
+The report attributes the check checkout separately from the target; checking a local revision does not prove the running server uses it.
+The runtime owner hands off the verified source/build location, Origin, owned process identifiers and readiness result; consumers recheck ownership before restarting anything.
+Reuse a working browser connection and the supported fallback allowed by the current harness instead of repeating failed bootstrap attempts in each agent.
+
+The full smoke covers EN/DE Search filters and color expressions, mobile controls, authenticated Card Inspector state/focus, and actual native form submission.
+It uses fresh browser contexts, retains no login state and closes its own browser.
+The JSON report and screenshots are local evidence for these named cases, not a complete application acceptance manifest.
+This opt-in runner does not add a browser dependency to the application or an automatic CI job.
+Keep physical-device, provider, scale and owner acceptance evidence separate.
 
 For Inventory measurement regression, evaluate the contents of [inventory-measurement.browser.js](../../frontend/tests/fixtures/inventory-measurement.browser.js) in the native browser on the actual signed-in `/mtg/inventory` route with a nonempty disposable fixture.
 Use the retained portable fixture procedure above for 50k evidence.

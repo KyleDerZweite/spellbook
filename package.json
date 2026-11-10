@@ -14,6 +14,7 @@
 		"test:search-evaluation": "uvx --from uv==0.12.23 uv run --project backend/core --no-sync python -m unittest discover -s scripts/search-evaluation -p test_*.py",
 		"check:boundaries": "node scripts/check-boundaries.mjs",
 		"test:boundaries": "node --test scripts/check-boundaries.test.mjs",
+		"test:browser": "python scripts/browser-smoke.py",
 		"lint": "pnpm --dir frontend lint",
 		"build": "uvx --from uv==0.12.23 uv build --project backend/core && uvx --from uv==0.12.23 uv build --project backend/api && uvx --from uv==0.12.23 uv build --project backend/workers/state && pnpm --dir frontend build",
 		"check:client": "node scripts/check-client.mjs",
