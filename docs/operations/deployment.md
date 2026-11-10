@@ -115,7 +115,7 @@ hosted modes, so stopping a project retains it. On a new server, create the conf
 before starting the connector. For the default inventory value, the commands are:
 
 ```sh
-podman network create spellbook-prod-ingress
+podman network create --opt isolate=true spellbook-prod-ingress
 pnpm compose site up
 pnpm compose demo up
 ```
@@ -123,11 +123,25 @@ pnpm compose demo up
 Reuse an existing network instead of creating or replacing it. Frontend and its shared API namespace
 join both the application network and ingress. PostgreSQL and workers stay on the application
 network; Newt joins only ingress. Keep `DEMO_FRONTEND_ALIAS` and `PROD_FRONTEND_ALIAS` unique and
-preserve existing Pangolin target aliases. Demo remains project `spellbook-demo`; Production remains
-project `spellbook`. Production uses normal accounts, `PROD_*` storage configuration and the
-scheduled Catalog worker. Scan uploads use the shared local volume by default. S3 is optional and
-requires an explicit `PROD_SCAN_STORAGE_DRIVER=s3` selection and bucket configuration. Production
-remains stopped until its separate activation is authorized. Use `pnpm compose production build` and
+preserve existing Pangolin target aliases. Both project-local application bridges and the shared
+Ingress bridge must enable Netavark `isolate=true`. Different bridge names alone do not prevent
+cross-network connections on Podman. The option blocks traffic between bridges that both enable it;
+same-bridge frontend communication remains intentional. PostgreSQL and workers stay on their project
+bridge, and API continues to listen on frontend loopback. No application host ports are published.
+Keep outbound access for Catalog and optional S3. This is the selected Podman deployment policy, not
+a Docker bridge-driver option.
+
+Existing networks require a coordinated, volume-preserving recreation to apply driver options. Stop
+only the selected application stacks and their connector gracefully under the update and backup
+locks. Preserve project names, ingress aliases, subnets and all volumes. Verify actual cross-stack
+TCP denial and working same-stack reads, Scan and Catalog access before resuming updates. Never use
+`down --volumes` for this operation.
+
+Demo remains project `spellbook-demo`; Production remains project `spellbook`. Production uses
+normal accounts, `PROD_*` storage configuration and the scheduled Catalog worker. Scan uploads use
+the shared local volume by default. S3 is optional and requires an explicit
+`PROD_SCAN_STORAGE_DRIVER=s3` selection and bucket configuration. Production remains stopped until
+its separate activation is authorized. Use `pnpm compose production build` and
 `pnpm compose production up` only for that selected rollout.
 
 Development is a separate persistent environment with normal accounts. Requests to start "dev" mean

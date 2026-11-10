@@ -179,7 +179,9 @@ services:
       - ingress
 
 networks:
-  default: {}
+  default:
+    driver_opts:
+      isolate: 'true'
   ingress:
     name: ${HOSTED_INGRESS_NETWORK:-spellbook-prod-ingress}
     external: true

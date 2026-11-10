@@ -166,6 +166,7 @@ test('hosted Demo config preserves services, immutable tags, private volumes and
 	assert.deepEqual(model.services.frontend.networks.ingress.aliases, ['spellbook-demo-web']);
 	assert.equal(model.networks.ingress.name, 'spellbook-prod-ingress');
 	assert.equal(model.networks.ingress.external, true);
+	assert.equal(model.networks.default.driver_opts.isolate, 'true');
 	assert.deepEqual(model.services.api.volumes, ['demo_scans:/app/storage/scans']);
 });
 
@@ -174,6 +175,7 @@ test('production retains normal accounts, shared local Scan storage and schedule
 	const model = config(plan.args, plan.env);
 	noPorts(model);
 	assert.equal(plan.args[3], 'spellbook');
+	assert.equal(model.networks.default.driver_opts.isolate, 'true');
 	assert.equal(model.services.newt, undefined);
 	assert.equal(model.services.api.environment.DEMO_MODE, 'false');
 	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, 'local');
