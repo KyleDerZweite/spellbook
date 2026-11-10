@@ -1220,5 +1220,7 @@
 	"inventory.order.name.variant": "Sorted by {column} {variantDirection}, then card name {direction}, then set ascending.",
 	"inventory.column.finish": "finish",
 	"inventory.column.condition": "condition",
-	"inventory.column.quantity": "quantity"
+	"inventory.column.quantity": "quantity",
+	"search.color.any": "Any color",
+	"search.color.anyIdentity": "Any color identity"
 }

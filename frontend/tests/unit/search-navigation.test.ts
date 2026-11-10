@@ -2,9 +2,26 @@ import { describe, expect, it, vi } from 'vitest';
 import { isPrimaryClick, parseSearchUrl, searchHref } from '../../src/lib/search/navigation.ts';
 import { pendingOverlayBack } from '../../src/lib/search/history.ts';
 import { SearchSession } from '../../src/lib/search/session.svelte.ts';
+import { SearchFilterState } from '../../src/lib/search/filters.svelte.ts';
 
 const origin = 'https://spellbook.test';
 describe('Search navigation', () => {
+	it('counts selected predicates without constructing unused chip models', () => {
+		const filters = new SearchFilterState();
+		expect(filters.activeCount).toBe(0);
+		expect(filters.hasFilters).toBe(false);
+		filters.setLanguages([]);
+		expect(filters.activeCount).toBe(1);
+		expect(filters.hasFilters).toBe(true);
+		filters.clear();
+		filters.toggleRarity('rare');
+		filters.toggleType('Creature');
+		filters.toggleLegality('modern');
+		filters.toggleColor('R');
+		expect(filters.activeCount).toBe(4);
+		filters.toggleColor('U');
+		expect(filters.activeCount).toBe(8);
+	});
 	it('restores exact AND combinations from native URLs and browser history', () => {
 		for (const field of ['color', 'identity'] as const) {
 			const parsed = parseSearchUrl(

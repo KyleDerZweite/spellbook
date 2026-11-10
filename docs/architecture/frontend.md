@@ -945,8 +945,8 @@ Language state belongs to SearchSession and its normalized cache context, includ
 Web implements website localization with bundled [English](../../frontend/src/lib/i18n/en.json) and [German](../../frontend/src/lib/i18n/de.json) JSON dictionaries.
 The dictionaries have identical typed keys and interpolation parameters, full messages and explicit plural variants.
 UI language is independent of Catalog Printing language filters, provider text and user-entered content.
-The [Catalog filter options module](../../frontend/src/lib/search/filter-options.ts) owns the typed translation keys and label lookup used by native controls, enhanced controls, accessible Color labels and active chips.
-Domain filter values and the English Color-expression syntax remain independent of website labels.
+The [Catalog filter options module](../../frontend/src/lib/search/filter-options.ts) owns the typed translation keys and label lookup used by native controls, enhanced controls, accessible Color labels and Color-expression presentation.
+Color expressions localize their full Color names while preserving domain filter values, WUBRG abbreviations and logical operators.
 The [presentation adapter](../../frontend/src/lib/i18n/presentation.ts) translates known complete API messages.
 It preserves unknown API details, provider text and user-entered content.
 
