@@ -3,7 +3,7 @@ import pg from 'pg';
 import { ensureDeckCatalogFixture } from './deck-catalog-fixture.ts';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, writeFile, access, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, access, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -71,6 +71,49 @@ test('web environment excludes database, worker, storage and inherited proxy aut
 test('web environment defaults to a Scan-sized transport body limit', () => {
 	assert.deepEqual(webTestEnvironment({}), { BODY_SIZE_LIMIT: '12M' });
 	assert.deepEqual(webTestEnvironment({ BODY_SIZE_LIMIT: '' }), { BODY_SIZE_LIMIT: '12M' });
+});
+
+test('built application validates artifact Origin before either child starts', async () => {
+	const fixture = await readFile(
+		new URL('./fixtures/http-runtime-child.mjs', import.meta.url),
+		'utf8'
+	);
+	for (const buildOrigin of [null, 'undefined', JSON.stringify('http://wrong.test'), 'correct']) {
+		const folder = await mkdtemp(join(tmpdir(), 'spellbook-build-origin-'));
+		const origin = await unusedOrigin();
+		const apiOrigin = await unusedOrigin();
+		const marker = join(folder, 'spawned');
+		let application: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
+		try {
+			await mkdir(join(folder, 'build'));
+			await writeFile(join(folder, 'package.json'), '{"type":"module"}');
+			const child = `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(marker)},'spawned');\n${fixture}`;
+			await writeFile(join(folder, 'build/index.js'), child);
+			await writeFile(join(folder, 'api.mjs'), child);
+			if (buildOrigin !== null)
+				await writeFile(
+					join(folder, 'build/adapter-node.js'),
+					`export const origin = ${buildOrigin === 'correct' ? JSON.stringify(origin) : buildOrigin};`
+				);
+			const start = () =>
+				startHttpApplication(origin, pathToFileURL(folder + '/'), undefined, {
+					apiOrigin,
+					apiEntrypoint: join(folder, 'api.mjs')
+				});
+			if (buildOrigin === 'correct') {
+				application = await start();
+				assert.equal((await fetch(origin)).status, 200);
+			} else {
+				await assert.rejects(async () => {
+					application = await start();
+				}, /rebuild.*APP_ORIGIN/i);
+				await assert.rejects(access(marker), { code: 'ENOENT' });
+			}
+		} finally {
+			if (application) await stopHttpApplication(application);
+			await rm(folder, { recursive: true, force: true });
+		}
+	}
 });
 
 test('application owns separate API/web children and gives only API private configuration', async () => {
