@@ -218,7 +218,9 @@ test('derived calculations reject workspace subscriptions, including imported al
 					imports: { '#lib/*': './src/lib/*' }
 				}),
 				'frontend/src/lib/saved-state/workspace.svelte.ts': '',
-				'frontend/src/page.svelte': `<script lang="ts">
+				'frontend/src/page.svelte': `<p>🧙</p>
+<script module>const icon = '🧙';</script>
+<script lang="ts">
 import { workspaceSavedState, workspaceSavedState as saved } from '#lib/saved-state/workspace.svelte.ts';
 const result = ${expression};
 </script>`
@@ -228,7 +230,7 @@ const result = ${expression};
 				assert.equal(errors.length, 1);
 				assert.equal(errors[0].rule, 'derived-workspace-subscription');
 				assert.match(errors[0].message, /state_unsafe_mutation/);
-				assert.match(errors[0].message, /frontend\/src\/page.svelte:\d+:\d+/);
+				assert.match(errors[0].message, /frontend\/src\/page.svelte:5:\d+/);
 			}
 		);
 });

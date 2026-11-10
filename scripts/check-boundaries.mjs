@@ -25,7 +25,8 @@ function importEdges(text, path, errors = [], file = path) {
 		const characters = [...text.replace(/[^\n]/g, ' ')];
 		for (const match of original.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)) {
 			const start = match.index + match[0].indexOf('>') + 1;
-			characters.splice(start, match[1].length, ...match[1]);
+			for (let index = 0; index < match[1].length; index++)
+				characters[start + index] = match[1][index];
 		}
 		text = characters.join('');
 	}
