@@ -270,6 +270,7 @@ Mounted components clear private state on terminal expiry and require the matchi
 
 CardDeckAdd starts with no selected Deck.
 Its searchable summary picker uses the bounded Deck-choice use case with 20-result pages, a separate selected-owned lookup and one serialized SavedState read resource.
+The component registers that resource once during initialization and disposes it on destruction, outside reactive derived calculations.
 Query, page, account, draft owner and response-body leases guard publication.
 It never loads Deck Composition or Inventory Availability.
 Section and Quantity are explicit controls.
