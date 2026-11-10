@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ValidationError } from '../../src/lib/server/mtg/validation';
+import { ValidationError } from '@spellbook/contracts/validation.ts';
 
 const mocks = vi.hoisted(() => ({
 	page: vi.fn(),

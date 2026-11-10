@@ -2,7 +2,7 @@ import { translate } from '#lib/i18n/messages.ts';
 import { localizeMessage } from '#lib/i18n/presentation.ts';
 import { fail, redirect, type Action } from '@sveltejs/kit';
 import { application } from '#lib/server/composition.ts';
-import { ValidationError } from '#lib/server/mtg/validation.ts';
+import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { DeckNotFoundError } from '#lib/server/data/decks.ts';
 import { readNativeAdditionDrafts, sameAddition } from '#lib/cards/addition-drafts.ts';

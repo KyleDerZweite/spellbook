@@ -25,7 +25,7 @@ import {
 import { application } from '#lib/server/composition.ts';
 import { getPrintings } from '#lib/server/catalog/search.ts';
 import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
-import { ValidationError } from '#lib/server/mtg/validation.ts';
+import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import type { CardDocument } from '#lib/search/types.ts';
