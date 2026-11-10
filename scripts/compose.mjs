@@ -69,7 +69,7 @@ export function hostedPlan(mode, action, configuration, environment = {}, revisi
 		env.HOSTED_DEMO_MODE = String(mode === 'demo');
 		env.HOSTED_POSTGRES_DB ||= mode === 'demo' ? 'spellbook_demo' : 'spellbook';
 		env.HOSTED_POSTGRES_USER ||= 'spellbook';
-		env.HOSTED_SCAN_STORAGE_DRIVER ||= mode === 'demo' ? 'local' : 's3';
+		env.HOSTED_SCAN_STORAGE_DRIVER ||= 'local';
 		if (mode === 'demo') {
 			if (!/_(demo|design)$/.test(env.HOSTED_POSTGRES_DB))
 				throw new Error('DEMO_POSTGRES_DB must end in _demo or _design.');

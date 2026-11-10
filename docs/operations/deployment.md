@@ -115,7 +115,7 @@ hosted modes, so stopping a project retains it. On a new server, create the conf
 before starting the connector. For the default inventory value, the commands are:
 
 ```sh
-podman network create spellbook-prod-ingress
+podman network create --opt isolate=true spellbook-prod-ingress
 pnpm compose site up
 pnpm compose demo up
 ```
@@ -123,11 +123,26 @@ pnpm compose demo up
 Reuse an existing network instead of creating or replacing it. Frontend and its shared API namespace
 join both the application network and ingress. PostgreSQL and workers stay on the application
 network; Newt joins only ingress. Keep `DEMO_FRONTEND_ALIAS` and `PROD_FRONTEND_ALIAS` unique and
-preserve existing Pangolin target aliases. Demo remains project `spellbook-demo`; Production remains
-project `spellbook`. Production uses normal accounts, `PROD_*` storage configuration and the
-scheduled Catalog worker. S3 is its default storage driver; local storage can be explicitly
-selected. Production remains stopped until its separate activation is authorized. Use
-`pnpm compose production build` and `pnpm compose production up` only for that selected rollout.
+preserve existing Pangolin target aliases. Both project-local application bridges and the shared
+Ingress bridge must enable Netavark `isolate=true`. Different bridge names alone do not prevent
+cross-network connections on Podman. The option blocks traffic between bridges that both enable it;
+same-bridge frontend communication remains intentional. PostgreSQL and workers stay on their project
+bridge, and API continues to listen on frontend loopback. No application host ports are published.
+Keep outbound access for Catalog and optional S3. This is the selected Podman deployment policy, not
+a Docker bridge-driver option.
+
+Existing networks require a coordinated, volume-preserving recreation to apply driver options. Stop
+only the selected application stacks and their connector gracefully under the update and backup
+locks. Preserve project names, ingress aliases, subnets and all volumes. Verify actual cross-stack
+TCP denial and working same-stack reads, Scan and Catalog access before resuming updates. Never use
+`down --volumes` for this operation.
+
+Demo remains project `spellbook-demo`; Production remains project `spellbook`. Production uses
+normal accounts, `PROD_*` storage configuration and the scheduled Catalog worker. Scan uploads use
+the shared local volume by default. S3 is optional and requires an explicit
+`PROD_SCAN_STORAGE_DRIVER=s3` selection and bucket configuration. Production remains stopped until
+its separate activation is authorized. Use `pnpm compose production build` and
+`pnpm compose production up` only for that selected rollout.
 
 Development is a separate persistent environment with normal accounts. Requests to start "dev" mean
 Development Compose. Native processes and Vite require an explicit request.
@@ -161,6 +176,20 @@ target check for `/openapi.json` expecting 200 to check frontend forwarding to A
 maintenance enabled during normal operation; deliberately disabled Production stays disabled.
 
 ### Automatic Demo updates
+
+The same protected updater can enroll an explicitly authorized Production installation with its own
+target binding, deployment receipt, database export, service and timer. Demo and Production share
+the update and host-backup locks. Each environment independently selects the latest successful main
+push CI. Production uses internal application health and an external Pangolin SSO redirect check; it
+must not make its schema public or use Demo credentials. Its scheduled Catalog worker can
+legitimately advance public publication pointers. Keep automatic maintenance and SSO policy intact.
+Local Scan volumes remain separate by Compose project and survive updates.
+
+An SSO redirect and healthy application or target checks do not prove that the tunnel forwards
+requests. Verify the actual gateway-to-application route after activation or target changes,
+including `/` and `/openapi.json`, while preserving SSO. A missing internal tunnel listener can
+return 502 after authentication even when direct application and target health checks pass. Internal
+tunnel ports are not published application host ports. Do not disable SSO to test routing.
 
 The private Demo updater selects a new `main` revision after its newest push-CI attempt succeeds. As
 verified on 2026-11-07, it does not filter revisions by changed paths. Documentation, `.gitignore`
@@ -498,7 +527,7 @@ hosted Development origin.
 | `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                                                            |
 | `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                                                              |
 | `SCAN_WORKER_URL`                                   | API-only internal scan-worker URL; Compose uses `http://scan-worker:8080`                                                                                 |
-| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in production or `local` in development                                                                                      |
+| `SCAN_STORAGE_DRIVER`                               | API and Scan worker default to `local`; `s3` is an explicit optional selection                                                                            |
 | `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                                                           |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | API/Scan-worker S3-compatible endpoint, region and bucket; never web configuration                                                                        |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | API/Scan-worker S3-compatible credentials                                                                                                                 |
@@ -588,15 +617,20 @@ PostgreSQL 18 uses the new named volume at `/var/lib/postgresql`, with database 
 `/var/lib/postgresql/18/docker`. The [database upgrade procedure](./postgres-upgrade.md) owns
 migration, verification, and rollback for existing PostgreSQL 17 installations.
 
-Development shares the `demo_scans` volume between API and Scan worker. For production S3 storage,
-provision the bucket and configure its lifecycle policy. Scan upload bytes remain outside Postgres;
-PostgreSQL stores their account and review metadata. The backend Scan application owns storage and
-worker calls; the Python host injects existing configuration. Failed uploads remove only confirmed
-unattached objects. If COMMIT outcome cannot be established, retain the object for operator
-inspection rather than risking deletion of a committed artifact. Cleanup logs contain no object keys
-or credentials. Real S3-compatible bucket evidence must be obtained separately. These user-uploaded
-images are separate from catalog card image URLs and tracked landing-page images. Recognition and
-normalized-image generation are not implemented.
+Standalone, Development, Demo and Production share their project-scoped `demo_scans` volume between
+API and Scan worker. Local Scan storage is the default and needs no separate storage service. Keep
+this volume and PostgreSQL backups together when moving or restoring an installation. Container
+recreation retains the volume; removing volumes deletes uploaded files. A filesystem copy of a live
+PostgreSQL data directory alone does not establish a consistent database backup. Use `pg_dump` and
+verify restoration separately. For optional S3 storage, provision the bucket and configure its
+lifecycle policy. Scan upload bytes remain outside Postgres; PostgreSQL stores their account and
+review metadata. The backend Scan application owns storage and worker calls; the Python host injects
+existing configuration. Failed uploads remove only confirmed unattached objects. If COMMIT outcome
+cannot be established, retain the object for operator inspection rather than risking deletion of a
+committed artifact. Cleanup logs contain no object keys or credentials. Real S3-compatible bucket
+evidence must be obtained separately. These user-uploaded images are separate from catalog card
+image URLs and tracked landing-page images. Recognition and normalized-image generation are not
+implemented.
 
 `worker_data` persists `state.json` across container recreation. See
 [worker operations and limits](../architecture/worker.md). On SELinux hosts, named volumes avoid
