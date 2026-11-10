@@ -32,6 +32,8 @@ jobs:
         with:
           node-version-file: frontend/.node-version
           package-manager-cache: false
+      - run: node --test scripts/docs.test.mjs
+      - run: node scripts/docs.mjs --check
       - run: node --test scripts/ci-changes.test.mjs
       - name: Select affected suites
         id: scope
