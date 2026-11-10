@@ -12,7 +12,10 @@
   - supersession
   - related document changes
 - Supersedes: [ADR-0002](./0002-android-first-mobile-and-server-side-scan.md)
-- Partially Superseded By: [ADR-0023](./0023-local-recognition-in-scanner-clients.md) for future capture and recognition placement; [ADR-0024](./0024-independent-applications.md) for independent Android delivery; [ADR-0029](./0029-remove-replaced-interfaces.md) for removal of old mobile API hooks
+- Partially Superseded By: [ADR-0023](./0023-local-recognition-in-scanner-clients.md) for future
+  capture and recognition placement; [ADR-0024](./0024-independent-applications.md) for independent
+  Android delivery; [ADR-0029](./0029-remove-replaced-interfaces.md) for removal of old mobile API
+  hooks
 - Related Docs:
   - [System Overview](../architecture/system-overview.md)
   - [Mobile And Scan Architecture](../architecture/mobile-and-scan.md)
@@ -25,40 +28,45 @@
 
 ## Current applicability
 
-On 2026-10-19, the maintainer rejected PWA-first as the next phone-app planning default and selected a separate Android application against the shared backend.
-[ADR-0023's dated clarification](./0023-local-recognition-in-scanner-clients.md#independent-android-design-clarification-2026-10-19) records that scope.
-The historical single-client and capability-gap guardrails below do not prohibit this selected client direction.
-[ADR-0024](./0024-independent-applications.md) selects Kotlin/Compose and the independent runtime contract.
-This supersedes the future single-client/native exclusion in this record; the existing PWA remains available.
-[ADR-0028](./0028-versioned-game-api.md) and [ADR-0029](./0029-remove-replaced-interfaces.md) supersede retention of the old mobile API hooks below.
-Only current canonical API paths remain.
-The historical Decision below records the earlier choice.
+On 2026-10-19, the maintainer rejected PWA-first as the next phone-app planning default and selected
+a separate Android application against the shared backend.
+[ADR-0023's dated clarification](./0023-local-recognition-in-scanner-clients.md#independent-android-design-clarification-2026-10-19)
+records that scope. The historical single-client and capability-gap guardrails below do not prohibit
+this selected client direction. [ADR-0024](./0024-independent-applications.md) selects
+Kotlin/Compose and the independent runtime contract. This supersedes the future single-client/native
+exclusion in this record; the existing PWA remains available.
+[ADR-0028](./0028-versioned-game-api.md) and [ADR-0029](./0029-remove-replaced-interfaces.md)
+supersede retention of the old mobile API hooks below. Only current canonical API paths remain. The
+historical Decision below records the earlier choice.
 
-On 2026-10-07, [ADR-0023](./0023-local-recognition-in-scanner-clients.md) replaces the fixed capture/recognition allocation below with a local-recognition direction and an open client responsibility review.
-The historical Decision section remains a record of the earlier choice, not an active server-inference requirement.
-MTG card camera capture and recognition runtimes remain open.
-Existing website upload/review behavior remains implemented.
-The 2026-10-16 install/QR delivery selects a shared SvelteKit PWA; it does not implement MTG recognition.
+On 2026-10-07, [ADR-0023](./0023-local-recognition-in-scanner-clients.md) replaces the fixed
+capture/recognition allocation below with a local-recognition direction and an open client
+responsibility review. The historical Decision section remains a record of the earlier choice, not
+an active server-inference requirement. MTG card camera capture and recognition runtimes remain
+open. Existing website upload/review behavior remains implemented. The 2026-10-16 install/QR
+delivery selects a shared SvelteKit PWA; it does not implement MTG recognition.
 
-SvelteKit remains the implemented web and mobile-web client.
-On 2026-10-06, the maintainer selected API preparation now and a separate app delivery later, reopening the exclusive single-client restriction below.
-That earlier deferral is narrowed by the accepted 2026-10-16 same-origin SvelteKit PWA/QR delivery.
-Separate native packaging remains unselected.
-The [system overview](../architecture/system-overview.md#accepted-boundary-redesign) links the accepted module contract.
-Q56 accepted backend/API preparation while keeping separate app delivery and technology selection for a later pass.
-This does not restore the removed Android prototype or claim an implemented native client.
+SvelteKit remains the implemented web and mobile-web client. On 2026-10-06, the maintainer selected
+API preparation now and a separate app delivery later, reopening the exclusive single-client
+restriction below. That earlier deferral is narrowed by the accepted 2026-10-16 same-origin
+SvelteKit PWA/QR delivery. Separate native packaging remains unselected. The
+[system overview](../architecture/system-overview.md#accepted-boundary-redesign) links the accepted
+module contract. Q56 accepted backend/API preparation while keeping separate app delivery and
+technology selection for a later pass. This does not restore the removed Android prototype or claim
+an implemented native client.
 
 [ADR-0010](./0010-postgres-catalog.md) replaces the historical MeiliSearch catalog with PostgreSQL.
-[ADR-0009](./0009-local-authentication.md) replaces the OIDC authentication choice.
-The manifest and public-only service worker are integrated.
-The accepted delivery adds QR camera scanning and explicit account authorization.
-Page/navigation integration and browser/Android acceptance remain pending on 2026-10-17; card camera capture and production recognition are not implemented.
-Unused vector infrastructure has been removed.
-See [mobile and scan](../architecture/mobile-and-scan.md) for implementation status.
+[ADR-0009](./0009-local-authentication.md) replaces the OIDC authentication choice. The manifest and
+public-only service worker are integrated. The accepted delivery adds QR camera scanning and
+explicit account authorization. Page/navigation integration and browser/Android acceptance remain
+pending on 2026-10-17; card camera capture and production recognition are not implemented. Unused
+vector infrastructure has been removed. See [mobile and scan](../architecture/mobile-and-scan.md)
+for implementation status.
 
 ## Context
 
-ADR-0002 committed to a thin native Android client built in Kotlin and Jetpack Compose, with a dedicated mobile API under `/api/mobile/v1/...` and a separate native Zitadel client.
+ADR-0002 committed to a thin native Android client built in Kotlin and Jetpack Compose, with a
+dedicated mobile API under `/api/mobile/v1/...` and a separate native Zitadel client.
 
 In practice, the Android shell that was built:
 
@@ -66,10 +74,12 @@ In practice, the Android shell that was built:
 - only implemented a CameraX preview for scan capture
 - was never released and was not on a path to parity with the SvelteKit web product
 
-The existing SvelteKit frontend already implements search, inventory, and decks against the base app persistence layer and MeiliSearch.
-The scan pipeline (configurable artifact storage, scan-worker, vector index) is server-side and does not require a native client.
+The existing SvelteKit frontend already implements search, inventory, and decks against the base app
+persistence layer and MeiliSearch. The scan pipeline (configurable artifact storage, scan-worker,
+vector index) is server-side and does not require a native client.
 
-Continuing the native-first direction would require rewriting the web product's feature surface a second time in Compose without a capability gap that justifies it.
+Continuing the native-first direction would require rewriting the web product's feature surface a
+second time in Compose without a capability gap that justifies it.
 
 ## Decision
 
@@ -84,18 +94,21 @@ The implementation constraints are:
 - scans remain stored server-side
 - scan recognition remains server-side
 - review-first inventory mutation remains mandatory
-- the `/api/mobile/v1/...` surface and bearer-token validation are retained as optional future hooks (for example, a Capacitor wrapper) but are not required for the PWA client
+- the `/api/mobile/v1/...` surface and bearer-token validation are retained as optional future hooks
+  (for example, a Capacitor wrapper) but are not required for the PWA client
 - the native Android Kotlin and Jetpack Compose source tree is removed
 
 The backend pieces introduced by ADR-0002 are preserved:
 
-- configurable artifact storage for original uploads and normalized crops, with local filesystem storage for development and S3-compatible storage for production
+- configurable artifact storage for original uploads and normalized crops, with local filesystem
+  storage for development and S3-compatible storage for production
 - the `scan-worker` service
 - the vector index service
 - database tables for scan session and review workflow state
 - idempotent batch inventory mutation
 
-The scan pipeline remains hybrid: image embeddings for retrieval, OCR for deterministic clues, metadata reranking against the MTG catalog, human review before inventory mutation.
+The scan pipeline remains hybrid: image embeddings for retrieval, OCR for deterministic clues,
+metadata reranking against the MTG catalog, human review before inventory mutation.
 
 ## Consequences
 
@@ -111,7 +124,8 @@ The scan pipeline remains hybrid: image embeddings for retrieval, OCR for determ
 ### Negative
 
 - iOS PWA support is weaker than Android (no background sync, limited push, stricter storage quotas)
-- deep native capabilities (BLE, background workers, rich push) are not available without wrapping later
+- deep native capabilities (BLE, background workers, rich push) are not available without wrapping
+  later
 - discoverability through app stores is lost unless a Capacitor wrap or TWA is added later
 
 ### Guardrails
@@ -120,4 +134,5 @@ The scan pipeline remains hybrid: image embeddings for retrieval, OCR for determ
 - do not auto-add scan results directly to inventory
 - do not store binary image blobs in the application database
 - do not require PWA install for any core feature; install must stay an enhancement
-- if a native wrap becomes necessary, prefer wrapping the PWA (for example with Capacitor) over a second-codebase rewrite
+- if a native wrap becomes necessary, prefer wrapping the PWA (for example with Capacitor) over a
+  second-codebase rewrite

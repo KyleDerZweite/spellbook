@@ -34,10 +34,10 @@ export function checkText(text, width = 100) {
 		if (fence || /^(?: {4}|\t|\s{0,3}#{1,6}\s)/.test(line) || /^\s*\|.*\|\s*$/.test(line)) continue;
 		if (line.length <= width) continue;
 		// Replace only indivisible tokens. Surrounding prose still has to fit.
-		const reduced = line.replace(
-			/(`+)[^`\n]+\1|\[[^\]\n]*\]\([^\s)]+\)|https?:\/\/[^\s<>]+/g,
-			(token) => (token.length > width ? 'TOKEN' : token)
-		);
+		const tokens = /(`+)[^`\n]+\1|\[[^\]\n]*\]\([^\s)]+\)|https?:\/\/[^\s<>]+/g;
+		if ([...line.matchAll(tokens)].length === 1 && /^[\s,.;:!?]*$/.test(line.replace(tokens, '')))
+			continue;
+		const reduced = line.replace(tokens, (token) => (token.length > width ? 'TOKEN' : token));
 		if (reduced.length > width) failures.push({ line: index + 1, length: line.length });
 	}
 	return failures;

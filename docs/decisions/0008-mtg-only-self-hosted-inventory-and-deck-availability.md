@@ -15,21 +15,26 @@
 ## Current applicability
 
 The 2026-10-03 product scope adds interactive deck construction alongside inventory availability.
-The builder uses existing deck ownership and card-role data rather than adding social sharing, marketplace, or simulation services.
-The [specification](../product/specification.md) and [design direction](../product/ui-design-direction.md) own implemented behavior and further deferred UI scope.
+The builder uses existing deck ownership and card-role data rather than adding social sharing,
+marketplace, or simulation services. The [specification](../product/specification.md) and
+[design direction](../product/ui-design-direction.md) own implemented behavior and further deferred
+UI scope.
 
 ## Context
 
-The MTG application market already has mature closed-source tools for broad consumer workflows, including collection management, scanning, deckbuilding, pricing, trading, rules, and simulation.
+The MTG application market already has mature closed-source tools for broad consumer workflows,
+including collection management, scanning, deckbuilding, pricing, trading, rules, and simulation.
 
-Trying to compete as another general MTG companion app would create scope creep and weak positioning.
-The credible niche for Spellbook is narrower:
+Trying to compete as another general MTG companion app would create scope creep and weak
+positioning. The credible niche for Spellbook is narrower:
 
 ```text
 open-source, self-hosted, automation-friendly MTG inventory and deck availability
 ```
 
-Spellbook should focus on the workflows where self-hosting and data ownership matter: reliable inventory, physical card location, imports, exports, deck availability, reviewable scan/import commits, and stable automation APIs.
+Spellbook should focus on the workflows where self-hosting and data ownership matter: reliable
+inventory, physical card location, imports, exports, deck availability, reviewable scan/import
+commits, and stable automation APIs.
 
 ## Decision
 
@@ -58,17 +63,19 @@ The product will not prioritize:
 - full gameplay simulation
 - native mobile apps before the PWA and APIs are stable
 
-Existing game-aware schema fields and route shapes may remain where already implemented.
-New work should not add abstraction layers for hypothetical future games.
+Existing game-aware schema fields and route shapes may remain where already implemented. New work
+should not add abstraction layers for hypothetical future games.
 
 ## Consequences
 
-Product docs, frontend redesign, backend naming, and future implementation planning should describe Spellbook as an MTG application, not as a multi-TCG platform.
+Product docs, frontend redesign, backend naming, and future implementation planning should describe
+Spellbook as an MTG application, not as a multi-TCG platform.
 
-The frontend redesign should be delayed until the functional workflow is settled.
-Visual work should center on search, inventory, deck availability, imports, scan review, and export workflows.
+The frontend redesign should be delayed until the functional workflow is settled. Visual work should
+center on search, inventory, deck availability, imports, scan review, and export workflows.
 
-Reusable code should start as internal MTG-specific core logic.
-A public library should only be considered after multiple real consumers need it.
+Reusable code should start as internal MTG-specific core logic. A public library should only be
+considered after multiple real consumers need it.
 
-Non-MTG support remains possible in the long term, but it is not part of current requirements and should not shape near-term code.
+Non-MTG support remains possible in the long term, but it is not part of current requirements and
+should not shape near-term code.

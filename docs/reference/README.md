@@ -15,12 +15,14 @@
   - [Mana Font](./fonts/mana.md)
   - [Docs Index](../README.md)
 
-Reference documents describe selected dependencies, asset requirements, vendor guidance, evaluated external projects and upstream source investigations.
-The product specification and architecture documents own implemented behavior.
+Reference documents describe selected dependencies, asset requirements, vendor guidance, evaluated
+external projects and upstream source investigations. The product specification and architecture
+documents own implemented behavior.
 
 ## Files
 
-- [Optional MTG project references](./mtg-projects.md), non-authoritative examples for specific questions.
+- [Optional MTG project references](./mtg-projects.md), non-authoritative examples for specific
+  questions.
 - [Bits UI](./bits-ui.md)
 - [Mana font](./fonts/mana.md)
 - [Selected UI components](./ui-libraries.md)

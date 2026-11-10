@@ -1,8 +1,8 @@
 # Scan worker
 
-Independent HTTP scaffold with its own lock, environment, image and process.
-The ASGI entrypoint remains `scan_worker.main:app`; responses remain `no_match` with `stub-v1`.
-Recognition and local recognition are unchanged.
+Independent HTTP scaffold with its own lock, environment, image and process. The ASGI entrypoint
+remains `scan_worker.main:app`; responses remain `no_match` with `stub-v1`. Recognition and local
+recognition are unchanged.
 
 From the repository root, using Python 3.14.8 and uv 0.12.23:
 
@@ -12,13 +12,13 @@ uvx --from uv==0.12.23 uv run --project backend/workers/scan --no-sync uvicorn s
 podman build -t spellbook-scan-worker backend/workers/scan
 ```
 
-Use an explicit task-owned loopback port for local verification.
-The Demo Compose stack starts the Scan scaffold alongside Python API, State and web.
-It owns and gracefully stops its Scan child.
+Use an explicit task-owned loopback port for local verification. The Demo Compose stack starts the
+Scan scaffold alongside Python API, State and web. It owns and gracefully stops its Scan child.
 Compose retains the `scan-worker` service, internal port 8080 and existing storage configuration.
-The Scan process uses no database connection.
-Native commands do not load the root `.env` automatically.
+The Scan process uses no database connection. Native commands do not load the root `.env`
+automatically.
 
-[Scan architecture](../../../docs/architecture/mobile-and-scan.md) owns the request protocol and artifact lifecycle.
-[Deployment](../../../docs/operations/deployment.md) owns runtime configuration and storage.
-[Verification](../../../docs/operations/github-automation.md) owns package checks and the manually invoked `test:scan` suite.
+[Scan architecture](../../../docs/architecture/mobile-and-scan.md) owns the request protocol and
+artifact lifecycle. [Deployment](../../../docs/operations/deployment.md) owns runtime configuration
+and storage. [Verification](../../../docs/operations/github-automation.md) owns package checks and
+the manually invoked `test:scan` suite.

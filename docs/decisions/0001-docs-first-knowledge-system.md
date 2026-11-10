@@ -16,7 +16,8 @@
 
 ## Context
 
-Spellbook accumulated a growing pile of markdown files, but not yet enough durable knowledge to justify a separate repo-local wiki or a heavier LLM-managed knowledge pipeline.
+Spellbook accumulated a growing pile of markdown files, but not yet enough durable knowledge to
+justify a separate repo-local wiki or a heavier LLM-managed knowledge pipeline.
 
 The project needs:
 

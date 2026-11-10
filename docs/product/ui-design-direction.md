@@ -2,7 +2,8 @@
 
 - Status: Canonical
 - Last Reviewed: 2026-11-03
-- Source of Truth: accepted product requirements, application components, selected logo and component choices
+- Source of Truth: accepted product requirements, application components, selected logo and
+  component choices
 - Update Triggers:
   - Dashboard hierarchy, metric links, daily History previews, charts and real-data references
   - Deck Builder, type sections, related Tokens, portable exchange and price presentation
@@ -28,119 +29,142 @@
   - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
   - [Value tracking](./value-tracking.md)
 
-Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
-Public search, owned Inventory and Deck editing support this focus.
-Scan upload/review remains retained compatibility behavior with its presentation paused.
-Card artwork and working content establish the visual identity.
-Neutral dark and light surfaces, restrained blue primary controls, colored navigation icons, and separate display and monospace interface fonts support that content.
-Kyle reaffirmed on 2026-10-29 that workspace UI should prefer visual state indicators and fewer subheadings or explanatory sentences.
-Keep functional field labels and accessible names, and use concise contextual tooltips when the visual state needs a name.
-Do not repeat control mechanics as visible helper prose or add another explanatory row when geometry can communicate the state.
-[ADR-0011](../decisions/0011-collector-workspace-design.md) records the decision.
+Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building
+decks from that collection. Public search, owned Inventory and Deck editing support this focus. Scan
+upload/review remains retained compatibility behavior with its presentation paused. Card artwork and
+working content establish the visual identity. Neutral dark and light surfaces, restrained blue
+primary controls, colored navigation icons, and separate display and monospace interface fonts
+support that content. Kyle reaffirmed on 2026-10-29 that workspace UI should prefer visual state
+indicators and fewer subheadings or explanatory sentences. Keep functional field labels and
+accessible names, and use concise contextual tooltips when the visual state needs a name. Do not
+repeat control mechanics as visible helper prose or add another explanatory row when geometry can
+communicate the state. [ADR-0011](../decisions/0011-collector-workspace-design.md) records the
+decision.
 
-Kyle accepted the current Home and Settings design on 2026-10-06.
-Use these areas as references for the remaining workspaces.
-A subsequent targeted follow-up replaces the profile-card frame with the regular transparent assets loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) and supplies a clearer Demo card.
-Home and the remaining Settings layout retain their accepted design.
+Kyle accepted the current Home and Settings design on 2026-10-06. Use these areas as references for
+the remaining workspaces. A subsequent targeted follow-up replaces the profile-card frame with the
+regular transparent assets loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) and supplies
+a clearer Demo card. Home and the remaining Settings layout retain their accepted design.
 
 ## Current refinement direction
 
-On 2026-10-19, Kyle rejected the PWA-first research recommendation and requested a new Spellbook Figma workspace covering the website and an independent Android app, plus a separate Cardstation file containing only a website design reference.
-[The design handoff](./mobile-app-exploration.md) owns the complete flow scaffold and Kotlin/Compose selection.
-Independent mobile UX is the design target; a failed browser benchmark is not required.
-The scaffold does not replace accepted website typography/design, remove the implemented PWA/QR delivery or establish native production acceptance.
-Native implementation follows the [independent applications contract](../architecture/independent-applications.md).
+On 2026-10-19, Kyle rejected the PWA-first research recommendation and requested a new Spellbook
+Figma workspace covering the website and an independent Android app, plus a separate Cardstation
+file containing only a website design reference. [The design handoff](./mobile-app-exploration.md)
+owns the complete flow scaffold and Kotlin/Compose selection. Independent mobile UX is the design
+target; a failed browser benchmark is not required. The scaffold does not replace accepted website
+typography/design, remove the implemented PWA/QR delivery or establish native production acceptance.
+Native implementation follows the
+[independent applications contract](../architecture/independent-applications.md).
 
-On 2026-10-19, Kyle selected a coherent Android app structure.
-Home, Search, Inventory and Decks remain the four main destinations.
-Use compact root toolbars with a direct Settings gear, small object titles, contextual actions and explicit task completion.
-Remove large app wordmarks and filled user-avatar controls.
-Home and Settings expose the same Cardstation area.
-Android system typography is the current mobile proposal; website typography remains unchanged.
-[The design handoff](./mobile-app-exploration.md) owns the complete clickable journeys, simulated Cardstation/capture boundaries and online-first implementation direction.
-The accepted Figma direction now feeds Kotlin/Compose implementation; native verification remains separate.
-The separate Cardstation reference file contains only the public Landing page.
+On 2026-10-19, Kyle selected a coherent Android app structure. Home, Search, Inventory and Decks
+remain the four main destinations. Use compact root toolbars with a direct Settings gear, small
+object titles, contextual actions and explicit task completion. Remove large app wordmarks and
+filled user-avatar controls. Home and Settings expose the same Cardstation area. Android system
+typography is the current mobile proposal; website typography remains unchanged.
+[The design handoff](./mobile-app-exploration.md) owns the complete clickable journeys, simulated
+Cardstation/capture boundaries and online-first implementation direction. The accepted Figma
+direction now feeds Kotlin/Compose implementation; native verification remains separate. The
+separate Cardstation reference file contains only the public Landing page.
 
-The Android refinement retains the website's distinct colored tab icons.
-Inventory uses compact Camera, Plus and Settings actions instead of a large Add-cards button; phone capture is reached from Inventory.
-Cardstation uses eight boxes around the central stack, with device name/ID, connection state and coarse box filters.
-Filter-Box previews and optional physical references are prototype proposals; [the handoff](./mobile-app-exploration.md#cardstation-boundary) records their boundaries.
+The Android refinement retains the website's distinct colored tab icons. Inventory uses compact
+Camera, Plus and Settings actions instead of a large Add-cards button; phone capture is reached from
+Inventory. Cardstation uses eight boxes around the central stack, with device name/ID, connection
+state and coarse box filters. Filter-Box previews and optional physical references are prototype
+proposals; [the handoff](./mobile-app-exploration.md#cardstation-boundary) records their boundaries.
 
-On 2026-10-19, Kyle selected only Discord's QR arrangement as a reference.
-Keep Spellbook's existing account layout, logo, spacing, equal desktop columns and separator.
-Center the QR code above its heading and concise status.
-Omit explanatory sign-in prose; retain recovery and copy-link controls.
-Narrow layouts stack the password form before QR sign-in.
-Keep the existing password and explicit approval flows.
-Registration and approval retain their narrow account layout.
+On 2026-10-19, Kyle selected only Discord's QR arrangement as a reference. Keep Spellbook's existing
+account layout, logo, spacing, equal desktop columns and separator. Center the QR code above its
+heading and concise status. Omit explanatory sign-in prose; retain recovery and copy-link controls.
+Narrow layouts stack the password form before QR sign-in. Keep the existing password and explicit
+approval flows. Registration and approval retain their narrow account layout.
 
-The maintainer resumed website UI refinement on 2026-10-29, using the public landing page as the visual reference.
-The initial implementation scope covers Dashboard composition, shared distribution and value-history charts, valuation panels and shared Search card tiles.
-Use flat neutral surfaces, generous separation between working areas, compact display headings and artwork with complete card frames.
-Charts use semantic accent colors, readable counts and shares, pointer/focus inspection and equivalent textual data.
-Comparison bars retain zero-based axes; personal value history uses the adaptive value range selected below.
-D3 owns scales and path construction; Svelte owns responsive SVG, focus, state and theme tokens.
-Keep native forms, account scoping, SavedState leases, bounded browsing and current mutation behavior.
-Do not invent price observations, connect gaps or convert unknown references into zero.
-The landing page remains the reference; further page-specific redesign and paused Scan presentation retain their existing scope.
+The maintainer resumed website UI refinement on 2026-10-29, using the public landing page as the
+visual reference. The initial implementation scope covers Dashboard composition, shared distribution
+and value-history charts, valuation panels and shared Search card tiles. Use flat neutral surfaces,
+generous separation between working areas, compact display headings and artwork with complete card
+frames. Charts use semantic accent colors, readable counts and shares, pointer/focus inspection and
+equivalent textual data. Comparison bars retain zero-based axes; personal value history uses the
+adaptive value range selected below. D3 owns scales and path construction; Svelte owns responsive
+SVG, focus, state and theme tokens. Keep native forms, account scoping, SavedState leases, bounded
+browsing and current mutation behavior. Do not invent price observations, connect gaps or convert
+unknown references into zero. The landing page remains the reference; further page-specific redesign
+and paused Scan presentation retain their existing scope.
 
-The Dashboard follow-up uses the maintainer-supplied [Figma Dashboard gallery](https://www.figma.com/templates/dashboard-designs/) as a composition reference, reviewed on 2026-10-29.
-The gallery previews for Simple dashboard mockup, Purity UI dashboard and Admin dashboard template demonstrate compact metric rows, a dominant analysis module and smaller supporting modules.
-Adapt those hierarchy and density patterns with Spellbook's existing fonts, semantic palette, navigation and native scrolling.
-Use three linked metric tiles: Total / Unique Cards, Sets and Decks.
-Render the total in primary text and the unique count in secondary text within the same tile.
-Combine the current Inventory estimate and its history, and keep Deck availability actionable beside it.
-Use the selected A+ composition below for Set, Finish, Condition and Deck charts.
-Present recent owned entries as a gallery of full card frames linked to their Inventory details.
-Compact valuation views disclose coverage, reporting-calendar and gap explanations through native details rather than repeating prose across the overview.
-No copied template assets, new theme system or new backend aggregates belong to this refinement.
-Kyle explicitly selected static Demo prices and an illustrative price history on 2026-10-29.
-This supersedes the synthetic-trend exclusion only for labelled Demo fixtures, while normal accounts retain observed market and holdings history.
-History uses one dominant chart with the latest priced day and exact change in covered value.
-Linked 30-day, 90-day and one-year ranges preserve identity filters and browser navigation.
-Custom calendar dates and the reverse-chronological exact-data table use native disclosure.
-Keep coverage, missing days and the reporting calendar visible without repeating capture mechanics throughout the page.
-Chart pointer/touch inspection and a native keyboard range share the same exact readout; gaps remain disconnected.
+The Dashboard follow-up uses the maintainer-supplied
+[Figma Dashboard gallery](https://www.figma.com/templates/dashboard-designs/) as a composition
+reference, reviewed on 2026-10-29. The gallery previews for Simple dashboard mockup, Purity UI
+dashboard and Admin dashboard template demonstrate compact metric rows, a dominant analysis module
+and smaller supporting modules. Adapt those hierarchy and density patterns with Spellbook's existing
+fonts, semantic palette, navigation and native scrolling. Use three linked metric tiles: Total /
+Unique Cards, Sets and Decks. Render the total in primary text and the unique count in secondary
+text within the same tile. Combine the current Inventory estimate and its history, and keep Deck
+availability actionable beside it. Use the selected A+ composition below for Set, Finish, Condition
+and Deck charts. Present recent owned entries as a gallery of full card frames linked to their
+Inventory details. Compact valuation views disclose coverage, reporting-calendar and gap
+explanations through native details rather than repeating prose across the overview. No copied
+template assets, new theme system or new backend aggregates belong to this refinement. Kyle
+explicitly selected static Demo prices and an illustrative price history on 2026-10-29. This
+supersedes the synthetic-trend exclusion only for labelled Demo fixtures, while normal accounts
+retain observed market and holdings history. History uses one dominant chart with the latest priced
+day and exact change in covered value. Linked 30-day, 90-day and one-year ranges preserve identity
+filters and browser navigation. Custom calendar dates and the reverse-chronological exact-data table
+use native disclosure. Keep coverage, missing days and the reporting calendar visible without
+repeating capture mechanics throughout the page. Chart pointer/touch inspection and a native
+keyboard range share the same exact readout; gaps remain disconnected.
 
-The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) owns its scope question and follow-up decisions.
+The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) owns its scope question
+and follow-up decisions.
 
-On 2026-10-06, Kyle selected Home, Search and Inventory as references for this refinement.
-Inventory is the starting point for shared Deck controls and layout.
-Align the deck library and editor, extracting shared buttons, workspace headers, quantity controls and dialogs where their responsibilities match.
-Other routes reuse these controls for the same tasks.
-Consolidate repeated controls and recurring page-action geometry through their existing component and token owners.
-Inventory's Add cards and the deck library's New deck must use a consistent primary-action treatment and alignment.
+On 2026-10-06, Kyle selected Home, Search and Inventory as references for this refinement. Inventory
+is the starting point for shared Deck controls and layout. Align the deck library and editor,
+extracting shared buttons, workspace headers, quantity controls and dialogs where their
+responsibilities match. Other routes reuse these controls for the same tasks. Consolidate repeated
+controls and recurring page-action geometry through their existing component and token owners.
+Inventory's Add cards and the deck library's New deck must use a consistent primary-action treatment
+and alignment.
 
-The selected action policy has four purposes: Primary for the page's main action, Secondary for other visible actions, Ghost for compact icon actions with background hover, and Destructive for deletion.
-Navigation and ordinary text links keep underline hover.
-Links retain navigation semantics; buttons and forms retain their actions, pending state, focus and keyboard behavior.
-Shared components and tokens own geometry and alignment.
-Route-specific styles must not create different geometry for the same shared control.
+The selected action policy has four purposes: Primary for the page's main action, Secondary for
+other visible actions, Ghost for compact icon actions with background hover, and Destructive for
+deletion. Navigation and ordinary text links keep underline hover. Links retain navigation
+semantics; buttons and forms retain their actions, pending state, focus and keyboard behavior.
+Shared components and tokens own geometry and alignment. Route-specific styles must not create
+different geometry for the same shared control.
 
-The following bounded-loading direction records the earlier contract; the selected replacement below changes its browser navigation and scroll ownership.
-On 2026-10-06, Kyle also requested lazy loading for Inventory and verification with thousands of entries.
-Inventory must use bounded result loading and virtualization, with complete-data filtering, sorting and counts rather than applying those operations only to a loaded page.
-[Application contract](../architecture/application-contract.md#inventory-query-contract) owns the accepted bounded query and window design.
-Group views, note drafts, focus and saved-change refreshes must remain usable as rows leave the viewport.
+The following bounded-loading direction records the earlier contract; the selected replacement below
+changes its browser navigation and scroll ownership. On 2026-10-06, Kyle also requested lazy loading
+for Inventory and verification with thousands of entries. Inventory must use bounded result loading
+and virtualization, with complete-data filtering, sorting and counts rather than applying those
+operations only to a loaded page.
+[Application contract](../architecture/application-contract.md#inventory-query-contract) owns the
+accepted bounded query and window design. Group views, note drafts, focus and saved-change refreshes
+must remain usable as rows leave the viewport.
 
-Q56 accepted the shared Button, WorkspaceHeader, QuantityControl, dialog and bounded loading contracts on 2026-10-06.
-[Application contract](../architecture/application-contract.md#frontend-state-and-shared-controls) owns their responsibilities and browser evidence.
-Inventory uses these shared controls and bounded loading, and Deck UI adoption is implemented.
-SavedState transport, the Profile consumer and mounted Inventory/Deck/Scan workspace consumers are implemented; rendered acceptance remains separate.
-The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
+Q56 accepted the shared Button, WorkspaceHeader, QuantityControl, dialog and bounded loading
+contracts on 2026-10-06.
+[Application contract](../architecture/application-contract.md#frontend-state-and-shared-controls)
+owns their responsibilities and browser evidence. Inventory uses these shared controls and bounded
+loading, and Deck UI adoption is implemented. SavedState transport, the Profile consumer and mounted
+Inventory/Deck/Scan workspace consumers are implemented; rendered acceptance remains separate. The
+maintainer also requested a review of all current docs and decisions; existing descriptions remain
+implementation evidence until a reviewed replacement or explicit supersession changes them.
 
 ## Mebius chart adaptation
 
-Kyle selected the [Mebius charts gallery](https://www.mebius.design/freebies/charts) as a visual reference on 2026-10-30.
-Adapt the gallery's rounded marks, generous plot space, restrained grids, clear selected values and coordinated legend emphasis through the existing Svelte/D3 chart owners.
-Keep Spellbook's fonts, neutral light/dark surfaces and semantic chart colors.
-Use flat fills, with no copied assets, template code, gradients, shadows on data marks or new dependencies.
-Kyle's subsequent 2026-10-30 feedback selects adaptive value axes, categorical Set composition, compact Deck availability and meaningful Stat-card trends.
-Kyle subsequently selected the A+ Dashboard prototype with the Alternatives/many-Sets scenario for implementation.
-The current follow-up uses four compact metric cards with History inside the Inventory value preview, larger Deck rings beside Commander previews, a solid Set Pie and a shared panel of independent Finish, Condition and Extra copies bars.
-Extra copies means physical copies beyond one copy per distinct Canonical Card, calculated as total minus names.
-Finish, Condition and Extra copies are independent compositions against the owned-copy total.
-The later daily metric-card contract below supersedes the earlier concept-only trend scope.
+Kyle selected the [Mebius charts gallery](https://www.mebius.design/freebies/charts) as a visual
+reference on 2026-10-30. Adapt the gallery's rounded marks, generous plot space, restrained grids,
+clear selected values and coordinated legend emphasis through the existing Svelte/D3 chart owners.
+Keep Spellbook's fonts, neutral light/dark surfaces and semantic chart colors. Use flat fills, with
+no copied assets, template code, gradients, shadows on data marks or new dependencies. Kyle's
+subsequent 2026-10-30 feedback selects adaptive value axes, categorical Set composition, compact
+Deck availability and meaningful Stat-card trends. Kyle subsequently selected the A+ Dashboard
+prototype with the Alternatives/many-Sets scenario for implementation. The current follow-up uses
+four compact metric cards with History inside the Inventory value preview, larger Deck rings beside
+Commander previews, a solid Set Pie and a shared panel of independent Finish, Condition and Extra
+copies bars. Extra copies means physical copies beyond one copy per distinct Canonical Card,
+calculated as total minus names. Finish, Condition and Extra copies are independent compositions
+against the owned-copy total. The later daily metric-card contract below supersedes the earlier
+concept-only trend scope.
 
 | Existing use                    | Mebius reference                        | Selected adaptation                                                                                                                                                                             |
 | ------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -149,164 +173,194 @@ The later daily metric-card contract below supersedes the earlier concept-only t
 | Dashboard Finish                | Portfolio Allocation                    | Separate proportional bars for Finish, Condition and Extra copies in one panel, with concise totals and inspectable segments. Keep zero quantities available in native data.                    |
 | Dashboard Deck availability     | Financial Breakdown, Category Breakdown | Large proportional rings with an owned/required readout beside Commander thumbnails and direct missing status. Inspect exact/alternate/missing segments on hover, focus and tap.                |
 
-This adapts visual ideas to existing tasks rather than adding finance widgets.
-Do not fabricate history, sales, budgets, targets or prior-period comparisons.
-Missing days and unknown-only observations still break value-history lines; known zero and partial coverage remain explicit.
-Keep public Printing price history distinct from personal holdings history.
+This adapts visual ideas to existing tasks rather than adding finance widgets. Do not fabricate
+history, sales, budgets, targets or prior-period comparisons. Missing days and unknown-only
+observations still break value-history lines; known zero and partial coverage remain explicit. Keep
+public Printing price history distinct from personal holdings history.
 
-Shared chart components own mark geometry and inspection; routes keep their existing data, navigation and SavedState responsibilities.
-Acceptance covers dark/light desktop and narrow Dashboard/History, pointer and keyboard inspection, synthesized touch, exact counts/amounts, zero/missing/unknown data, native tables and error/retry behavior.
-Compare rendered output with the selected source previews and record technical checks separately from Kyle's visual acceptance.
+Shared chart components own mark geometry and inspection; routes keep their existing data,
+navigation and SavedState responsibilities. Acceptance covers dark/light desktop and narrow
+Dashboard/History, pointer and keyboard inspection, synthesized touch, exact counts/amounts,
+zero/missing/unknown data, native tables and error/retry behavior. Compare rendered output with the
+selected source previews and record technical checks separately from Kyle's visual acceptance.
 
-The Dashboard response supplies at most two account-scoped stored Commander-role Printing previews per Deck, with Printing ID, name and image URI.
-These are previews, not a full Composition read, and do not silently substitute an unrelated card when no Commander exists.
-Shared ProportionChart owns D3 geometry and per-segment inspection for Pie, ring and bar presentations.
-Deck rows preserve exact/alternate/missing quantities, use a larger ring with an owned/required readout, and keep an empty Deck as a compact action without an invented chart.
-Set and Inventory breakdowns keep native exact-data disclosures; no permanent Set legend is rendered.
-The explicit native Demo scenario adds real Catalog-backed Inventory and Deck rows; it does not replace account reads with browser fixtures.
+The Dashboard response supplies at most two account-scoped stored Commander-role Printing previews
+per Deck, with Printing ID, name and image URI. These are previews, not a full Composition read, and
+do not silently substitute an unrelated card when no Commander exists. Shared ProportionChart owns
+D3 geometry and per-segment inspection for Pie, ring and bar presentations. Deck rows preserve
+exact/alternate/missing quantities, use a larger ring with an owned/required readout, and keep an
+empty Deck as a compact action without an invented chart. Set and Inventory breakdowns keep native
+exact-data disclosures; no permanent Set legend is rendered. The explicit native Demo scenario adds
+real Catalog-backed Inventory and Deck rows; it does not replace account reads with browser
+fixtures.
 
 ### Dashboard reference inputs
 
-The comparison prototypes are retired after selection of the regular Dashboard direction.
-Git retains the former implementations; the ordinary Dashboard is the current implementation.
-The saved source images remain unchanged: [Collection workbench](../../frontend/src/lib/components/dashboard/prototypes/references/collection-workbench.png), [Deck workbench](../../frontend/src/lib/components/dashboard/prototypes/references/deck-workbench.png), [Collection overview](../../frontend/src/lib/components/dashboard/prototypes/references/collection-overview.png) and [Dashboard grid](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-grid.png).
-Additional Dashboard search fields are excluded; meaningful filters may remain.
-Mana Font carries actual color, color-identity, rarity and primary-type semantics rather than decorating unrelated controls.
+The comparison prototypes are retired after selection of the regular Dashboard direction. Git
+retains the former implementations; the ordinary Dashboard is the current implementation. The saved
+source images remain unchanged:
+[Collection workbench](../../frontend/src/lib/components/dashboard/prototypes/references/collection-workbench.png),
+[Deck workbench](../../frontend/src/lib/components/dashboard/prototypes/references/deck-workbench.png),
+[Collection overview](../../frontend/src/lib/components/dashboard/prototypes/references/collection-overview.png)
+and
+[Dashboard grid](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-grid.png).
+Additional Dashboard search fields are excluded; meaningful filters may remain. Mana Font carries
+actual color, color-identity, rarity and primary-type semantics rather than decorating unrelated
+controls.
 
-The implementation contract extends the existing account-scoped Dashboard read rather than fetching the entire Inventory in the browser.
-Core owns quantity-weighted Catalog distributions in the same authenticated, read-only snapshot.
-An active-Printing join classifies each owned copy once by color, color identity, rarity and primary type.
-Color and identity buckets are White, Blue, Black, Red, Green, Multicolor, Colorless and Unknown.
-Primary types use Land, Creature, Instant, Sorcery, Enchantment, Artifact, Planeswalker, Battle, Other and Unknown, in that precedence order, so the Pie remains a composition of physical copies.
-The Catalog's card-type projection determines types; unmatched Printings remain Unknown.
-A Catalog read failure returns an unavailable breakdown rather than invented counts, while other Dashboard data remains usable.
-Actual Set names supplement existing stored Set-code counts, and no Set-completion percentage is invented.
+The implementation contract extends the existing account-scoped Dashboard read rather than fetching
+the entire Inventory in the browser. Core owns quantity-weighted Catalog distributions in the same
+authenticated, read-only snapshot. An active-Printing join classifies each owned copy once by color,
+color identity, rarity and primary type. Color and identity buckets are White, Blue, Black, Red,
+Green, Multicolor, Colorless and Unknown. Primary types use Land, Creature, Instant, Sorcery,
+Enchantment, Artifact, Planeswalker, Battle, Other and Unknown, in that precedence order, so the Pie
+remains a composition of physical copies. The Catalog's card-type projection determines types;
+unmatched Printings remain Unknown. A Catalog read failure returns an unavailable breakdown rather
+than invented counts, while other Dashboard data remains usable. Actual Set names supplement
+existing stored Set-code counts, and no Set-completion percentage is invented.
 
-Core also supplies at most eight missing and eight alternate Canonical Card requirement previews, with their actual stored Deck/Printing identities, artwork and existing exact/alternate/missing allocation.
-These lists reuse the Deck reader's ownership projection and exact-first allocation function and may overlap across Decks; they never claim distinct owned quantities.
-Frontend consumes this typed summary and existing shared charts, keeps titles, and links actual objects to their existing workspaces.
-Unknown, empty and unavailable states remain explicit.
-Root owns integration and acceptance against API totals, account isolation, missing Catalog data, quantity changes, dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal.
-The selected regular Dashboard consumes this read contract.
+Core also supplies at most eight missing and eight alternate Canonical Card requirement previews,
+with their actual stored Deck/Printing identities, artwork and existing exact/alternate/missing
+allocation. These lists reuse the Deck reader's ownership projection and exact-first allocation
+function and may overlap across Decks; they never claim distinct owned quantities. Frontend consumes
+this typed summary and existing shared charts, keeps titles, and links actual objects to their
+existing workspaces. Unknown, empty and unavailable states remain explicit. Root owns integration
+and acceptance against API totals, account isolation, missing Catalog data, quantity changes,
+dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal. The selected
+regular Dashboard consumes this read contract.
 
 ### Selected regular Dashboard reference
 
-On 2026-11-01 Kyle selected the supplied [Dashboard reference](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-reference.png) for the regular Dashboard, replacing the previous large Deck/Set composition.
-Keep the actual application shell, navigation, fonts and neutral page background.
-Keep four equal metric cards, followed by four aligned panels in this order: Card Types, Mana Color Identity, Collection by Set and Quick Actions.
-The next row uses two thirds of its width for a Your decks grid and one third for the Recent activity list.
-Deck tiles retain a leading name, genuine Commander frames and inspected exact/alternate/missing availability.
-Below 1150px these lower panels stack with Decks first.
-The Deck grid fits four narrow tiles when its content has room, falling back to three, two and one readable column as needed.
-Each tile keeps its name above the artwork and puts the format tag directly above the availability ring in the right-hand column.
-The ring sits lower beside a slightly enlarged genuine Commander frame; center counts fit wholly inside its hole.
-Long names reserve a consistent two-line heading area, wrap unbroken strings and retain their complete accessible link name and full-name inspection without expanding every tile.
-Exact, alternate and missing values remain available through chart inspection, without a persistent missing-count caption.
-Individual Deck tiles keep their quiet outlines and keyboard focus states.
-The large Dashboard metric and analysis boxes use card surfaces without visible outer lines; this shared treatment preserves their geometry and excludes nested Deck tiles and controls.
-The format tag includes the Mana Font Commander symbol when the actual format is Commander.
-Card-type labels in Dashboard charts, Search filters and Deck groups share the existing Mana Font type symbols.
-Set data retains real Set symbols rather than substituting unrelated decorative icons.
-Quick Actions links to existing Add cards, New deck, Scan cards and Box management workspaces, without creating a second search input.
-Deck previews use larger actual Commander artwork or an honest unavailable-art placeholder, a clear Deck title and compact exact/alternate/missing availability.
-The lower panels are 480px high on wide screens; the Deck list scrolls natively, and narrow screens show its natural height.
-At narrow widths all panels follow that same reading order.
-The follow-up removes decorative foreground icons from metric cards and panel headings.
-Use left-aligned figures, small charts at the right, quiet card surfaces and consistent panel heights.
-Adopt the supplied box interiors through subtle card-local neutral depth and faint product-relevant object artwork, without adding a page background or changing navigation.
-The Deck metric uses a thick stack of card backs, distinct from the individual cards on the Inventory metric.
-The Dashboard has no subtitle; Add actions share a decorative Plus icon and retain their text labels.
-Meaningful Set and mana symbols inside data visualizations remain.
-Chart marks use more saturated violet, card-type and MTG identity colors; light mode deepens them while page and card backgrounds remain neutral.
-Keep controls and borders quiet; do not copy the fantasy scenery, background washes or invented decorative imagery.
-The content can use a wider Dashboard-specific grid without changing shared workspace geometry.
+On 2026-11-01 Kyle selected the supplied
+[Dashboard reference](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-reference.png)
+for the regular Dashboard, replacing the previous large Deck/Set composition. Keep the actual
+application shell, navigation, fonts and neutral page background. Keep four equal metric cards,
+followed by four aligned panels in this order: Card Types, Mana Color Identity, Collection by Set
+and Quick Actions. The next row uses two thirds of its width for a Your decks grid and one third for
+the Recent activity list. Deck tiles retain a leading name, genuine Commander frames and inspected
+exact/alternate/missing availability. Below 1150px these lower panels stack with Decks first. The
+Deck grid fits four narrow tiles when its content has room, falling back to three, two and one
+readable column as needed. Each tile keeps its name above the artwork and puts the format tag
+directly above the availability ring in the right-hand column. The ring sits lower beside a slightly
+enlarged genuine Commander frame; center counts fit wholly inside its hole. Long names reserve a
+consistent two-line heading area, wrap unbroken strings and retain their complete accessible link
+name and full-name inspection without expanding every tile. Exact, alternate and missing values
+remain available through chart inspection, without a persistent missing-count caption. Individual
+Deck tiles keep their quiet outlines and keyboard focus states. The large Dashboard metric and
+analysis boxes use card surfaces without visible outer lines; this shared treatment preserves their
+geometry and excludes nested Deck tiles and controls. The format tag includes the Mana Font
+Commander symbol when the actual format is Commander. Card-type labels in Dashboard charts, Search
+filters and Deck groups share the existing Mana Font type symbols. Set data retains real Set symbols
+rather than substituting unrelated decorative icons. Quick Actions links to existing Add cards, New
+deck, Scan cards and Box management workspaces, without creating a second search input. Deck
+previews use larger actual Commander artwork or an honest unavailable-art placeholder, a clear Deck
+title and compact exact/alternate/missing availability. The lower panels are 480px high on wide
+screens; the Deck list scrolls natively, and narrow screens show its natural height. At narrow
+widths all panels follow that same reading order. The follow-up removes decorative foreground icons
+from metric cards and panel headings. Use left-aligned figures, small charts at the right, quiet
+card surfaces and consistent panel heights. Adopt the supplied box interiors through subtle
+card-local neutral depth and faint product-relevant object artwork, without adding a page background
+or changing navigation. The Deck metric uses a thick stack of card backs, distinct from the
+individual cards on the Inventory metric. The Dashboard has no subtitle; Add actions share a
+decorative Plus icon and retain their text labels. Meaningful Set and mana symbols inside data
+visualizations remain. Chart marks use more saturated violet, card-type and MTG identity colors;
+light mode deepens them while page and card backgrounds remain neutral. Keep controls and borders
+quiet; do not copy the fantasy scenery, background washes or invented decorative imagery. The
+content can use a wider Dashboard-specific grid without changing shared workspace geometry.
 
-All metrics and charts use the existing authenticated Dashboard summary.
-Recent activity presents actual recently edited holdings as Inventory updates with their stored timestamps, without pretending these are Scan/import/addition events or a complete event log.
-Set bars show actual owned quantities, not completion of an edition.
-Primary card types are mutually exclusive; mana color identity preserves the existing Multicolor, Colorless and Unknown buckets.
-No hardcoded reference counts, fake trends, inferred Deck history or new backend read is permitted.
-Deck availability is visible in the lower Deck panel, retaining actual exact, alternate and missing counts, Commander previews and Deck links.
-Its bounded list keeps all returned Decks reachable.
-The former lower disclosure and its Finish, Condition, Extra copies and Inventory data summary are removed from the regular Dashboard.
-The metric navigation and History dialog contract below remains unchanged.
-Acceptance compares the actual regular Dashboard at the reference's desktop size and smaller screens, including real data totals, gaps, keyboard/touch inspection, direct navigation and History focus handling.
+All metrics and charts use the existing authenticated Dashboard summary. Recent activity presents
+actual recently edited holdings as Inventory updates with their stored timestamps, without
+pretending these are Scan/import/addition events or a complete event log. Set bars show actual owned
+quantities, not completion of an edition. Primary card types are mutually exclusive; mana color
+identity preserves the existing Multicolor, Colorless and Unknown buckets. No hardcoded reference
+counts, fake trends, inferred Deck history or new backend read is permitted. Deck availability is
+visible in the lower Deck panel, retaining actual exact, alternate and missing counts, Commander
+previews and Deck links. Its bounded list keeps all returned Decks reachable. The former lower
+disclosure and its Finish, Condition, Extra copies and Inventory data summary are removed from the
+regular Dashboard. The metric navigation and History dialog contract below remains unchanged.
+Acceptance compares the actual regular Dashboard at the reference's desktop size and smaller
+screens, including real data totals, gaps, keyboard/touch inspection, direct navigation and History
+focus handling.
 
 ### Dashboard metrics and Inventory value preview
 
-The 2026-11-01 correction keeps four compact cards: Inventory value, Total / unique cards, Sets and Decks.
-Cards and Sets link directly to Inventory; Decks links directly to the Deck Library.
-Only Inventory value opens a History preview.
-Remove the standalone `/mtg/history` page and its navigation links rather than retaining redirects.
-The Inventory inspector retains identity-filtered personal history through the same preview.
+The 2026-11-01 correction keeps four compact cards: Inventory value, Total / unique cards, Sets and
+Decks. Cards and Sets link directly to Inventory; Decks links directly to the Deck Library. Only
+Inventory value opens a History preview. Remove the standalone `/mtg/history` page and its
+navigation links rather than retaining redirects. The Inventory inspector retains identity-filtered
+personal history through the same preview.
 
-The supplied compact metric reference replaces the full-width sparkline rows.
-Use a short label, current figure, a concise last-month comparison over 30 closed daily reporting dates and a small adjacent chart.
-The four metric cards are approximately 140px high on wide screens, with reduced padding and no clipped figures or trend labels.
-Their mini-charts follow the navigation colors from left to right: Dashboard violet for value, Search blue for cards, Inventory amber for Sets and Decks green for Deck count.
-Positive and negative change text retains its semantic green and red colors independently of each chart's series color.
-Counts use actual daily bars; value uses a restrained line with explicit gaps.
-Partial price coverage remains in the expanded details; the compact cards omit the visible Partial value and covered captions.
-Keep exact BigInt arithmetic, real captured observations and unknown legacy Deck counts.
+The supplied compact metric reference replaces the full-width sparkline rows. Use a short label,
+current figure, a concise last-month comparison over 30 closed daily reporting dates and a small
+adjacent chart. The four metric cards are approximately 140px high on wide screens, with reduced
+padding and no clipped figures or trend labels. Their mini-charts follow the navigation colors from
+left to right: Dashboard violet for value, Search blue for cards, Inventory amber for Sets and Decks
+green for Deck count. Positive and negative change text retains its semantic green and red colors
+independently of each chart's series color. Counts use actual daily bars; value uses a restrained
+line with explicit gaps. Partial price coverage remains in the expanded details; the compact cards
+omit the visible Partial value and covered captions. Keep exact BigInt arithmetic, real captured
+observations and unknown legacy Deck counts.
 
-Product: Spellbook manages an MTG player's owned cards and Decks.
-Character: calm, precise, collector-focused.
-World: card binders, Commander artwork and the tabletop.
-Moments: actual card artwork and the expanded Inventory value chart carry the detail.
-Signature: Mana Font symbols identify actual MTG concepts, with quiet shared chrome.
+Product: Spellbook manages an MTG player's owned cards and Decks. Character: calm, precise,
+collector-focused. World: card binders, Commander artwork and the tabletop. Moments: actual card
+artwork and the expanded Inventory value chart carry the detail. Signature: Mana Font symbols
+identify actual MTG concepts, with quiet shared chrome.
 
-The History dialog is wider, with a top-corner Close control and no footer navigation or Close button.
-It retains preset periods, visible custom dates, exact chart inspection, reporting coverage and error/retry handling.
-Shared valuation components own that preview and its SavedState lease; Dashboard owns metric presentation and navigation.
-The removed full-page view does not remove stored evidence or the authenticated History API.
-Without JavaScript, direct workspace links work and the History trigger is explicitly disabled.
+The History dialog is wider, with a top-corner Close control and no footer navigation or Close
+button. It retains preset periods, visible custom dates, exact chart inspection, reporting coverage
+and error/retry handling. Shared valuation components own that preview and its SavedState lease;
+Dashboard owns metric presentation and navigation. The removed full-page view does not remove stored
+evidence or the authenticated History API. Without JavaScript, direct workspace links work and the
+History trigger is explicitly disabled.
 
-Captured aggregate History points carry nullable totals for copies, distinct Canonical Cards, represented Sets and Deck count.
-Copies, names and Sets derive from saved holdings independently of price coverage.
-New Deck counts are captured atomically; earlier observations remain unknown and are never backfilled from current Decks.
-Core owns capture and aggregation; the existing authenticated History read supplies data.
-Acceptance covers actual periods, gaps, known zero, partial prices, unknown Deck counts, account isolation, direct navigation, keyboard/focus recovery and responsive previews.
+Captured aggregate History points carry nullable totals for copies, distinct Canonical Cards,
+represented Sets and Deck count. Copies, names and Sets derive from saved holdings independently of
+price coverage. New Deck counts are captured atomically; earlier observations remain unknown and are
+never backfilled from current Decks. Core owns capture and aggregation; the existing authenticated
+History read supplies data. Acceptance covers actual periods, gaps, known zero, partial prices,
+unknown Deck counts, account isolation, direct navigation, keyboard/focus recovery and responsive
+previews.
 
 ## Selected hybrid browsing and Card dialog
 
-Kyle confirmed continuous bounded Lazy browsing on 2026-10-07.
-Search and Inventory use this selected direction throughout full routes, the Search overlay and Inventory Boxes.
-Native host scrolling and contextual shared Card actions are implemented foundations.
-The API read maximum remains 500, with omitted-limit defaults preserved.
-Uniform Lazy browser-policy and caller integration are implemented.
-Pages now grow only across successfully revealed ranges; complete totals do not reserve scroll height.
-Direct deep links start at their addressed range, and Load earlier preserves the visible anchor.
-Local composed scale and rendered verification are recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
-Physical touch, true 200% zoom and deployment remain unverified.
-Owner UI judgment remains separate from these technical checks.
-[ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md) records the partial supersession; [Frontend](../architecture/frontend.md#selected-hybrid-browsing-contract) owns engineering responsibilities and acceptance gates.
+Kyle confirmed continuous bounded Lazy browsing on 2026-10-07. Search and Inventory use this
+selected direction throughout full routes, the Search overlay and Inventory Boxes. Native host
+scrolling and contextual shared Card actions are implemented foundations. The API read maximum
+remains 500, with omitted-limit defaults preserved. Uniform Lazy browser-policy and caller
+integration are implemented. Pages now grow only across successfully revealed ranges; complete
+totals do not reserve scroll height. Direct deep links start at their addressed range, and Load
+earlier preserves the visible anchor. Local composed scale and rendered verification are recorded
+with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192). Physical touch, true 200%
+zoom and deployment remain unverified. Owner UI judgment remains separate from these technical
+checks. [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md) records the
+partial supersession; [Frontend](../architecture/frontend.md#selected-hybrid-browsing-contract) owns
+engineering responsibilities and acceptance gates.
 
-Search and Inventory always use continuous Lazy loading with 200-entry transport ranges and bounded internal rendering.
-Enhanced browsing has no pagination controls or page-size selector.
-Filtering, sorting and counts cover the complete dataset.
-Native no-JavaScript use alone provides 200-entry Previous/Next links.
-Inventory table quantities are read-only; owned quantity changes occur through the entry's Details/Edit flow.
-Deck quantity controls retain their existing behavior.
+Search and Inventory always use continuous Lazy loading with 200-entry transport ranges and bounded
+internal rendering. Enhanced browsing has no pagination controls or page-size selector. Filtering,
+sorting and counts cover the complete dataset. Native no-JavaScript use alone provides 200-entry
+Previous/Next links. Inventory table quantities are read-only; owned quantity changes occur through
+the entry's Details/Edit flow. Deck quantity controls retain their existing behavior.
 
-`page` is a one-based logical 200-entry anchor range and `pageSize=lazy` records the continuous browsing policy.
-A missing or invalid `page` starts at range 1; a missing or unrecognized `pageSize` uses the Lazy policy.
-Legacy numeric page sizes normalize to the 200-entry range containing the original offset, preserving deep links.
-Query, filter, order and Inventory group changes reset to range 1 while preserving other supported query fields.
-Query typing replaces history; submitted searches and filter/order changes push one entry.
-Back/Forward restores the same query and logical position.
-Crossing ranges replaces the address without adding an entry for each scroll.
-Reload and direct anchors reach their range without loading preceding ranges.
-No-JavaScript navigation uses the same addresses with bounded 200-entry Previous/Next links.
+`page` is a one-based logical 200-entry anchor range and `pageSize=lazy` records the continuous
+browsing policy. A missing or invalid `page` starts at range 1; a missing or unrecognized `pageSize`
+uses the Lazy policy. Legacy numeric page sizes normalize to the 200-entry range containing the
+original offset, preserving deep links. Query, filter, order and Inventory group changes reset to
+range 1 while preserving other supported query fields. Query typing replaces history; submitted
+searches and filter/order changes push one entry. Back/Forward restores the same query and logical
+position. Crossing ranges replaces the address without adding an entry for each scroll. Reload and
+direct anchors reach their range without loading preceding ranges. No-JavaScript navigation uses the
+same addresses with bounded 200-entry Previous/Next links.
 
-Outside a modal, the native browser page owns vertical scrolling.
-Remove Shell's custom main scrollbar and separate Search/Inventory result or filter scrollers.
-An active modal uses the installed Bits standard body scroll lock and focus trap, with one native overflow viewport for long content.
-SearchOverlay retains its accepted modal and background-history behavior; its one modal viewport owns geometry, while the full Search route uses the window.
-There are no additional Inspector-column, result or list scrollers inside that viewport.
-Lazy may render a bounded virtual range internally, but measures the active window or modal viewport.
-Navbar controls remain usable outside the modal and after close.
-Closing restores the native window position and dialog return focus.
-Verify long content, mobile widths and zoom in rendered acceptance.
+Outside a modal, the native browser page owns vertical scrolling. Remove Shell's custom main
+scrollbar and separate Search/Inventory result or filter scrollers. An active modal uses the
+installed Bits standard body scroll lock and focus trap, with one native overflow viewport for long
+content. SearchOverlay retains its accepted modal and background-history behavior; its one modal
+viewport owns geometry, while the full Search route uses the window. There are no additional
+Inspector-column, result or list scrollers inside that viewport. Lazy may render a bounded virtual
+range internally, but measures the active window or modal viewport. Navbar controls remain usable
+outside the modal and after close. Closing restores the native window position and dialog return
+focus. Verify long content, mobile widths and zoom in rendered acceptance.
 
 | Context                    | Shared dialog task                                 | Action ownership                                                                                                           |
 | -------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -316,60 +370,67 @@ Verify long content, mobile widths and zoom in rendered acceptance.
 | Deck editor                | Details and contextual Deck addition/edit          | Existing Deck quantity, role and mutation behavior remain owned by the Deck caller.                                        |
 | Scan review                | Review recognition and confirm owned cards         | Accept to Inventory remains Primary and requires explicit review.                                                          |
 
-Use one context-aware Card dialog for Details, Inventory Edit and Add another printing.
-Preserve CardDetail's dialog lifecycle, CardInspector's printing/details content and CardQuickAdd's Inventory-add responsibility.
-A visible task transition chooses the appropriate editor and keeps its draft tied to the original target; unrelated actions do not become a set of independent feature flags.
-Browsing Add to deck first obtains an explicit owned Deck and role/quantity.
-No Deck is created or selected silently.
-Public details remain available without authentication; mutation entry requires sign-in with a safe return, never an anonymous save.
+Use one context-aware Card dialog for Details, Inventory Edit and Add another printing. Preserve
+CardDetail's dialog lifecycle, CardInspector's printing/details content and CardQuickAdd's
+Inventory-add responsibility. A visible task transition chooses the appropriate editor and keeps its
+draft tied to the original target; unrelated actions do not become a set of independent feature
+flags. Browsing Add to deck first obtains an explicit owned Deck and role/quantity. No Deck is
+created or selected silently. Public details remain available without authentication; mutation entry
+requires sign-in with a safe return, never an anonymous save.
 
-A successful zero-match read shows an empty state with its active filters and a clear/change-query action.
-Failed reads never substitute an empty result.
-A missing printing, deleted Inventory entry or deleted Deck is an unavailable target, not an empty success.
-Retain dirty controls and their original baselines, show the cause, and disable that target's save until usable evidence returns.
-Loading and failed reads have labeled pending/error states and scoped retry.
-A confirmed save receipt remains visible if the subsequent refresh fails.
-An uncertain save keeps its exact original retry intent separately from newer edits.
-Closing returns focus to the original card/row, or a surviving logical neighbor and then the results heading if the trigger was evicted or removed.
-Account replacement or terminal expiry clears protected dialog state.
-No new mutation or printing API is assumed by this selection.
+A successful zero-match read shows an empty state with its active filters and a clear/change-query
+action. Failed reads never substitute an empty result. A missing printing, deleted Inventory entry
+or deleted Deck is an unavailable target, not an empty success. Retain dirty controls and their
+original baselines, show the cause, and disable that target's save until usable evidence returns.
+Loading and failed reads have labeled pending/error states and scoped retry. A confirmed save
+receipt remains visible if the subsequent refresh fails. An uncertain save keeps its exact original
+retry intent separately from newer edits. Closing returns focus to the original card/row, or a
+surviving logical neighbor and then the results heading if the trigger was evicted or removed.
+Account replacement or terminal expiry clears protected dialog state. No new mutation or printing
+API is assumed by this selection.
 
 ## References and component choice
 
 [Archidekt](https://archidekt.com/) informs prominent discovery and artwork-led deck browsing.
-[Scryfall](https://scryfall.com/search?q=t%3Aelf&order=name) informs large, readable card images with a compact search toolbar.
-These screens were inspected during this design pass.
-A subsequent signed-in Archidekt review covered deck search and card inspection; Moxfield public deck review covered compact lists, alternate views, and analysis.
-These references informed compact deck rows, persistent discovery, and shared card inspection.
-Borrow task structure and information hierarchy, not branding, advertisements, or features absent from Spellbook.
-For each redesigned flow, inspect its entry point, errors, alternate paths, completion, and first useful task.
-Choose controls after understanding that sequence.
-[Clerk's combined sign-in flow](https://clerk.com/docs/nextjs/guides/development/custom-sign-in-or-up-page) and [WorkOS AuthKit](https://workos.com/docs/authkit/hosted-ui) inform the focused account form and in-form registration link.
-These are interaction references; Spellbook retains local authentication.
+[Scryfall](https://scryfall.com/search?q=t%3Aelf&order=name) informs large, readable card images
+with a compact search toolbar. These screens were inspected during this design pass. A subsequent
+signed-in Archidekt review covered deck search and card inspection; Moxfield public deck review
+covered compact lists, alternate views, and analysis. These references informed compact deck rows,
+persistent discovery, and shared card inspection. Borrow task structure and information hierarchy,
+not branding, advertisements, or features absent from Spellbook. For each redesigned flow, inspect
+its entry point, errors, alternate paths, completion, and first useful task. Choose controls after
+understanding that sequence.
+[Clerk's combined sign-in flow](https://clerk.com/docs/nextjs/guides/development/custom-sign-in-or-up-page)
+and [WorkOS AuthKit](https://workos.com/docs/authkit/hosted-ui) inform the focused account form and
+in-form registration link. These are interaction references; Spellbook retains local authentication.
 
-The search review on 2026-10-06 inspected Archidekt's landing input, card-search overlay, printing inspector and retained search on Back.
-[Moxfield card search](https://moxfield.com/search/cards?q=Lightning%20Bolt) separates its input from image/list controls; [Scryfall results](https://scryfall.com/search?q=Lightning+Bolt) keep the query, result count and display controls together.
-Their card details separate the image, rules text and printings.
-Spellbook adopts the compact search entry and smaller header symbols with preserved click targets.
-Its field searches cards only.
-Archidekt's deck/user scopes, reference prices and shopping actions do not establish Spellbook capabilities.
-Search now uses one large, opaque neutral desktop overlay and a full-height mobile dialog.
-The query, filters and count form a compact working toolbar without a repeated Search headline.
-Full view remains available.
-Card inspection stays inside that workspace with Back to results, preserving query, filters and result position.
-The shared inspector tabs remain unchanged.
-Clearer rules-text priority remains a proposal for a subsequent detail pass.
-Reference keyboard checks were incomplete because some preview commands failed.
+The search review on 2026-10-06 inspected Archidekt's landing input, card-search overlay, printing
+inspector and retained search on Back.
+[Moxfield card search](https://moxfield.com/search/cards?q=Lightning%20Bolt) separates its input
+from image/list controls; [Scryfall results](https://scryfall.com/search?q=Lightning+Bolt) keep the
+query, result count and display controls together. Their card details separate the image, rules text
+and printings. Spellbook adopts the compact search entry and smaller header symbols with preserved
+click targets. Its field searches cards only. Archidekt's deck/user scopes, reference prices and
+shopping actions do not establish Spellbook capabilities. Search now uses one large, opaque neutral
+desktop overlay and a full-height mobile dialog. The query, filters and count form a compact working
+toolbar without a repeated Search headline. Full view remains available. Card inspection stays
+inside that workspace with Back to results, preserving query, filters and result position. The
+shared inspector tabs remain unchanged. Clearer rules-text priority remains a proposal for a
+subsequent detail pass. Reference keyboard checks were incomplete because some preview commands
+failed.
 
-The inventory follow-up on 2026-10-06 inspected current Figma metadata and screenshots for [Employment Table](https://www.figma.com/design/skuhN43x3nK9fXxbMKo8IN/Dashboard-Flaws?node-id=2-2), [Dashboard Home](https://www.figma.com/design/qZZgkxf3zQojGhXIQho3Yj/Dashboard-UI?node-id=1-2) and its [Display popup](https://www.figma.com/design/qZZgkxf3zQojGhXIQho3Yj/Dashboard-UI?node-id=1-1202).
-The table and popup also had their design context inspected.
-These inform shared column axes, stable control positions and an explicit creation-date ordering.
-The inspected frames do not establish a row-removal workflow; its menu follows Kyle's instruction.
-Spellbook retains its own typography, tokens and shared components.
-Reference keyboard and responsive behavior were not verified.
+The inventory follow-up on 2026-10-06 inspected current Figma metadata and screenshots for
+[Employment Table](https://www.figma.com/design/skuhN43x3nK9fXxbMKo8IN/Dashboard-Flaws?node-id=2-2),
+[Dashboard Home](https://www.figma.com/design/qZZgkxf3zQojGhXIQho3Yj/Dashboard-UI?node-id=1-2) and
+its
+[Display popup](https://www.figma.com/design/qZZgkxf3zQojGhXIQho3Yj/Dashboard-UI?node-id=1-1202).
+The table and popup also had their design context inspected. These inform shared column axes, stable
+control positions and an explicit creation-date ordering. The inspected frames do not establish a
+row-removal workflow; its menu follows Kyle's instruction. Spellbook retains its own typography,
+tokens and shared components. Reference keyboard and responsive behavior were not verified.
 
-The inventory review on 2026-10-05 covered the following additional sources.
-Working flows inform task structure; public screenshots and marketing claims do not prove product behavior.
+The inventory review on 2026-10-05 covered the following additional sources. Working flows inform
+task structure; public screenshots and marketing claims do not prove product behavior.
 
 | Reference                                                                                                                              | Observed access                                                                                        | Useful pattern                                                                                        |
 | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
@@ -381,515 +442,552 @@ Working flows inform task structure; public screenshots and marketing claims do 
 | [Syncrostore](https://syncrostore.com/hobby-and-card-shop-pos/)                                                                        | Public intake screenshots; staff app unavailable                                                       | Different intake methods should converge on one confirmation flow                                     |
 | [SortSwift](https://www.sortswift.com/)                                                                                                | Verified free account, inventory, variant entry, import and scanner correction                         | Compact image/name/variant rows, adjacent quantities, visible active filters                          |
 
-TCG Sync and the supplied dashboard are excluded from further reference research and design decisions at the user's request on 2026-10-05.
-Existing captures remain a record of prior research.
-SortSwift's simpler scanner list is more relevant than its crowded desktop navigation.
-Physical locations remain future product work.
-Current import previews, bulk editing and market reference/history presentation follow their own Spellbook contracts.
-These references do not establish feature parity.
-Do not copy unsupported tools, seller metrics, or broad recognition-accuracy claims into Spellbook.
+TCG Sync and the supplied dashboard are excluded from further reference research and design
+decisions at the user's request on 2026-10-05. Existing captures remain a record of prior research.
+SortSwift's simpler scanner list is more relevant than its crowded desktop navigation. Physical
+locations remain future product work. Current import previews, bulk editing and market
+reference/history presentation follow their own Spellbook contracts. These references do not
+establish feature parity. Do not copy unsupported tools, seller metrics, or broad
+recognition-accuracy claims into Spellbook.
 
-The application uses Svelte, Tailwind, and Bits UI.
-Shared Select, ActionMenu and TooltipButton components own repeated selection, command-menu and tooltip behavior.
-Native inputs handle simple form entry; Bits Dialog handles focus and dismissal.
-The shared Button is adapted from shadcn-svelte.
-The [component guidance](../reference/ui-libraries.md) owns adopted files and maintenance rules.
+The application uses Svelte, Tailwind, and Bits UI. Shared Select, ActionMenu and TooltipButton
+components own repeated selection, command-menu and tooltip behavior. Native inputs handle simple
+form entry; Bits Dialog handles focus and dismissal. The shared Button is adapted from
+shadcn-svelte. The [component guidance](../reference/ui-libraries.md) owns adopted files and
+maintenance rules.
 
 ## Proposed global command menu
 
-On 2026-10-29, Kyle requested a separate power-user menu inspired by t3code, covering cards, Decks and Settings.
-The [source investigation](../reference/t3code-search.md) traces deterministic metadata ranking and indexed persisted-message retrieval, including older settled threads.
-The traced t3code search uses no embedding model or LLM.
-The [executed comparison](../integrations/search-evaluation.md) evaluates PostgreSQL lexical improvements, BM25, pgvector and local navigation separately.
-Its measured relevance, latency and operational limits do not select a production vector model or additional index.
-Kyle selected the following UI and context-result contract on 2026-10-30.
+On 2026-10-29, Kyle requested a separate power-user menu inspired by t3code, covering cards, Decks
+and Settings. The [source investigation](../reference/t3code-search.md) traces deterministic
+metadata ranking and indexed persisted-message retrieval, including older settled threads. The
+traced t3code search uses no embedding model or LLM. The
+[executed comparison](../integrations/search-evaluation.md) evaluates PostgreSQL lexical
+improvements, BM25, pgvector and local navigation separately. Its measured relevance, latency and
+operational limits do not select a production vector model or additional index. Kyle selected the
+following UI and context-result contract on 2026-10-30.
 
 ## Global power-user search implementation contract
 
-Kyle selected the T3 Code palette geometry and dark treatment on 2026-10-30.
-Use a near-black dialog, thin neutral border, compact sans-serif rows, muted outline icons, restrained selection and a bottom keyboard legend.
-Retain the shared Shell, Bits Dialog/Command behavior, theme tokens and accessible names; light mode remains readable.
-The screenshot is a visual reference, not permission to copy unrelated thread actions.
+Kyle selected the T3 Code palette geometry and dark treatment on 2026-10-30. Use a near-black
+dialog, thin neutral border, compact sans-serif rows, muted outline icons, restrained selection and
+a bottom keyboard legend. Retain the shared Shell, Bits Dialog/Command behavior, theme tokens and
+accessible names; light mode remains readable. The screenshot is a visual reference, not permission
+to copy unrelated thread actions.
 
-Ctrl/Cmd+K opens one global palette from the shared Shell, with no Account-menu item, launch button or second entry.
-Settings displays a read-only Power-user search binding.
-Ordinary Search links retain their existing card-search overlay/full-page behavior.
-The palette preserves existing pending-write navigation guards and respects modal/IME focus.
+Ctrl/Cmd+K opens one global palette from the shared Shell, with no Account-menu item, launch button
+or second entry. Settings displays a read-only Power-user search binding. Ordinary Search links
+retain their existing card-search overlay/full-page behavior. The palette preserves existing
+pending-write navigation guards and respects modal/IME focus.
 
-A matching Canonical Card appears independently in Card Search, Inventory and each matching Deck when that account has the corresponding records.
-Context identity includes the source and Deck, so deduplication never collapses those options into one card row.
-Rows show a source icon and context text, including Deck names and owned/Deck quantities.
-Card Search opens the canonical card's representative Printing in Search; Inventory opens its filtered owned view; Deck results open their actual Deck.
-Deck-name lookup and local bilingual Settings/page aliases participate in the same menu.
-Guests receive public Catalog/navigation results only.
+A matching Canonical Card appears independently in Card Search, Inventory and each matching Deck
+when that account has the corresponding records. Context identity includes the source and Deck, so
+deduplication never collapses those options into one card row. Rows show a source icon and context
+text, including Deck names and owned/Deck quantities. Card Search opens the canonical card's
+representative Printing in Search; Inventory opens its filtered owned view; Deck results open their
+actual Deck. Deck-name lookup and local bilingual Settings/page aliases participate in the same
+menu. Guests receive public Catalog/navigation results only.
 
-The API/Core owns bounded matching against the complete active Catalog and the authenticated account's Inventory and Decks.
-Private matching runs before per-source limits and does not depend on five public Catalog hits.
-Web owns static aliases, presentation and destination construction, and never imports database code.
-Use existing PostgreSQL FTS/pg_trgm capabilities without adopting the lab's disposable projection, vector model or BM25 extension.
-The dedicated global query does not replace ordinary Catalog search or its publication contract.
+The API/Core owns bounded matching against the complete active Catalog and the authenticated
+account's Inventory and Decks. Private matching runs before per-source limits and does not depend on
+five public Catalog hits. Web owns static aliases, presentation and destination construction, and
+never imports database code. Use existing PostgreSQL FTS/pg_trgm capabilities without adopting the
+lab's disposable projection, vector model or BM25 extension. The dedicated global query does not
+replace ordinary Catalog search or its publication contract.
 
-The dedicated read is GET `/api/v1/mtg/power-search?query=TEXT`, with at most 300 UTF-16 query units.
-Its shared DTO carries `query`, `accountId`, `generationId`, `cards`, `inventory` and `decks`.
-Catalog hits carry `kind=catalog`, `canonicalCardId`, `catalogCardId` and `name`.
-Inventory hits carry `kind=inventory`, `canonicalCardId`, `name` and `quantity`.
-Deck-name hits carry `kind=deck`, `deckId`, `name` and `format`.
-Deck-content hits carry `kind=deck-card`, `deckId`, `deckName`, `canonicalCardId`, `name` and `quantity`.
-Use five Catalog and five Inventory hits, and bounded Deck-name/content lists, preserving source identity and deterministic ranking.
-Local navigation appears immediately; database reads use a short debounce, cancellation and stale-response fencing.
-SavedState clears private results on expiry/sign-out/account replacement and invalidates open results after relevant Inventory/Deck changes.
-Read failures preserve local Settings/navigation matches and display an explicit unavailable state.
+The dedicated read is GET `/api/v1/mtg/power-search?query=TEXT`, with at most 300 UTF-16 query
+units. Its shared DTO carries `query`, `accountId`, `generationId`, `cards`, `inventory` and
+`decks`. Catalog hits carry `kind=catalog`, `canonicalCardId`, `catalogCardId` and `name`. Inventory
+hits carry `kind=inventory`, `canonicalCardId`, `name` and `quantity`. Deck-name hits carry
+`kind=deck`, `deckId`, `name` and `format`. Deck-content hits carry `kind=deck-card`, `deckId`,
+`deckName`, `canonicalCardId`, `name` and `quantity`. Use five Catalog and five Inventory hits, and
+bounded Deck-name/content lists, preserving source identity and deterministic ranking. Local
+navigation appears immediately; database reads use a short debounce, cancellation and stale-response
+fencing. SavedState clears private results on expiry/sign-out/account replacement and invalidates
+open results after relevant Inventory/Deck changes. Read failures preserve local Settings/navigation
+matches and display an explicit unavailable state.
 
-Acceptance requires the same real card to produce the three source options, real destination navigation, Deck-name and Settings lookup, a guest and two-account isolation test, expiry and held-response fencing, keyboard/focus/IME behavior and pending-write protection.
-Inspect rendered dark/light desktop and narrow layouts against the supplied reference and rerun the evaluation's existing acceptance checks where shared behavior changes.
-The lab remains an opt-in algorithm comparison; it does not establish private production authorization or human usability acceptance.
+Acceptance requires the same real card to produce the three source options, real destination
+navigation, Deck-name and Settings lookup, a guest and two-account isolation test, expiry and
+held-response fencing, keyboard/focus/IME behavior and pending-write protection. Inspect rendered
+dark/light desktop and narrow layouts against the supplied reference and rerun the evaluation's
+existing acceptance checks where shared behavior changes. The lab remains an opt-in algorithm
+comparison; it does not establish private production authorization or human usability acceptance.
 
 ## Selected brand artwork
 
-The user-supplied `logo.png` is the selected Spellbook artwork.
-Its derivatives supply navigation and installation icons.
-The public home page uses real card artwork.
-Retained booster-pack assets can support a deliberate composition but are not a required footer strip.
-Other TCGs appear only as decorative artwork with source provenance and visible credits; working inventory, catalog, and deck features remain MTG-only.
-The [brand asset reference](../reference/website-icons.md) owns source files, installed filenames, dimensions, and verification.
-Prior generated concepts are discarded; keep local exploration and provenance artifacts outside production assets.
+The user-supplied `logo.png` is the selected Spellbook artwork. Its derivatives supply navigation
+and installation icons. The public home page uses real card artwork. Retained booster-pack assets
+can support a deliberate composition but are not a required footer strip. Other TCGs appear only as
+decorative artwork with source provenance and visible credits; working inventory, catalog, and deck
+features remain MTG-only. The [brand asset reference](../reference/website-icons.md) owns source
+files, installed filenames, dimensions, and verification. Prior generated concepts are discarded;
+keep local exploration and provenance artifacts outside production assets.
 
-Shared semantic tokens carry the softer neutral surfaces and restrained blue primary actions through every workspace.
-A persistent icon control cycles through system, light, and dark modes in the single shared header.
-System is the initial preference and follows operating-system changes; explicit preferences persist across visits.
-Both palettes preserve readable text, control boundaries, and colored icon accents.
-Preserve the distinction between brand accents and MTG mana or rarity colors.
+Shared semantic tokens carry the softer neutral surfaces and restrained blue primary actions through
+every workspace. A persistent icon control cycles through system, light, and dark modes in the
+single shared header. System is the initial preference and follows operating-system changes;
+explicit preferences persist across visits. Both palettes preserve readable text, control
+boundaries, and colored icon accents. Preserve the distinction between brand accents and MTG mana or
+rarity colors.
 
 ## Workspace structure
 
-The full-width desktop header places the brand left, navigation in the center, and game, theme and account controls right.
-The first navigation item is Dashboard for signed-in users and Home for guests, followed by Search, Inventory and Decks.
-Scan entrypoints are paused.
-Inventory remains between Search and Decks; mobile navigation preserves the same order.
-The brand always links to the public root.
-After scrolling 160 pixels, desktop navigation collapses to labeled icons.
-Hover or keyboard focus restores labels; scrolling above 80 pixels restores the expanded state.
-Mobile navigation retains labels.
-Active navigation uses an underline without a filled highlight.
-The game icon before the theme control identifies Magic with its planeswalker symbol and a tooltip.
-Cycling remains inactive while MTG is the only implemented game.
-Game-specific pages use `/mtg/` with shared root tokens and components; their layout establishes game identity and unsupported stored selections reset to MTG.
-Below 1024 pixels, a keyboard-accessible dialog contains navigation.
-A signed-out Sign in action opens the account flow directly, and switching between Sign in and Sign up preserves the requested destination.
+The full-width desktop header places the brand left, navigation in the center, and game, theme and
+account controls right. The first navigation item is Dashboard for signed-in users and Home for
+guests, followed by Search, Inventory and Decks. Scan entrypoints are paused. Inventory remains
+between Search and Decks; mobile navigation preserves the same order. The brand always links to the
+public root. After scrolling 160 pixels, desktop navigation collapses to labeled icons. Hover or
+keyboard focus restores labels; scrolling above 80 pixels restores the expanded state. Mobile
+navigation retains labels. Active navigation uses an underline without a filled highlight. The game
+icon before the theme control identifies Magic with its planeswalker symbol and a tooltip. Cycling
+remains inactive while MTG is the only implemented game. Game-specific pages use `/mtg/` with shared
+root tokens and components; their layout establishes game identity and unsupported stored selections
+reset to MTG. Below 1024 pixels, a keyboard-accessible dialog contains navigation. A signed-out Sign
+in action opens the account flow directly, and switching between Sign in and Sign up preserves the
+requested destination.
 
 The signed-in desktop account trigger shows only the selected sprite, without a username or chevron.
-Its shared action menu shows the username, Settings and Sign out.
-The accepted PWA delivery replaces App coming soon with an App link to `/app` in this menu and mobile navigation.
-Below 1024 pixels, account identity and actions move into the existing navigation dialog, with no separate account trigger.
-Signed-out mobile users also find Sign in in this dialog.
-Header navigation symbols are 14 pixels, with an 18-pixel Home or Dashboard symbol.
-Utility symbols are 16 pixels.
-The brand uses a 36-pixel logo, and all header links and icon controls retain 44-pixel targets without extra utility gaps.
-The larger brand text keeps its selected display font.
-Settings offers six original local pixel sprites: Wizard, Knight, Ranger, Rogue, Dragon and Slime.
-Labeled radio choices show selection and keyboard focus; Save persists the preference.
-Profile photos and language preferences remain deferred, with no placeholder controls.
+Its shared action menu shows the username, Settings and Sign out. The accepted PWA delivery replaces
+App coming soon with an App link to `/app` in this menu and mobile navigation. Below 1024 pixels,
+account identity and actions move into the existing navigation dialog, with no separate account
+trigger. Signed-out mobile users also find Sign in in this dialog. Header navigation symbols are 14
+pixels, with an 18-pixel Home or Dashboard symbol. Utility symbols are 16 pixels. The brand uses a
+36-pixel logo, and all header links and icon controls retain 44-pixel targets without extra utility
+gaps. The larger brand text keeps its selected display font. Settings offers six original local
+pixel sprites: Wizard, Knight, Ranger, Rogue, Dragon and Slime. Labeled radio choices show selection
+and keyboard focus; Save persists the preference. Profile photos and language preferences remain
+deferred, with no placeholder controls.
 
-Public home addresses players who already own cards and remains the same at `/` for every session.
-A compact Search cards field is the primary action and opens the public catalog without an account.
-Enter and the submit button preserve the query; empty submission opens all cards.
-Browser Back restores the landing input.
-The English interface has no explanatory subtitle.
-The notice "Magic: The Gathering only for now." uses a neutral surface and gold planeswalker icon.
-A diagonal six-row, six-column background uses a bounded local pool of card fronts, packs and authentic Magic card backs.
-Ordinary tile selection samples 75% fronts, 15% packs and 10% backs across visits; these are probabilities rather than exact per-visit counts.
-Curated small angle variations retain the composition.
-One request seed keeps server rendering, hydration and modal-close behavior stable for the visit.
-Front and pack artwork includes Magic, Pokémon, Yu-Gi-Oh!
-and Digimon.
-These other games remain decorative.
-One Piece and Disney Lorcana artwork are excluded at the user's request.
-The `/fonts` page, numbered comparison routes and `review=landing` composition override are removed.
+Public home addresses players who already own cards and remains the same at `/` for every session. A
+compact Search cards field is the primary action and opens the public catalog without an account.
+Enter and the submit button preserve the query; empty submission opens all cards. Browser Back
+restores the landing input. The English interface has no explanatory subtitle. The notice "Magic:
+The Gathering only for now." uses a neutral surface and gold planeswalker icon. A diagonal six-row,
+six-column background uses a bounded local pool of card fronts, packs and authentic Magic card
+backs. Ordinary tile selection samples 75% fronts, 15% packs and 10% backs across visits; these are
+probabilities rather than exact per-visit counts. Curated small angle variations retain the
+composition. One request seed keeps server rendering, hydration and modal-close behavior stable for
+the visit. Front and pack artwork includes Magic, Pokémon, Yu-Gi-Oh! and Digimon. These other games
+remain decorative. One Piece and Disney Lorcana artwork are excluded at the user's request. The
+`/fonts` page, numbered comparison routes and `review=landing` composition override are removed.
 Portal, Stage, Cards, Cover, Panorama and the standalone Commander direction remain discarded.
-Background includes an interactive Commander deckbox.
-The landing has no App action; the accepted install/launch entry belongs to the existing account/mobile controls.
-Do not repeat the navigation brand as a large hero heading.
+Background includes an interactive Commander deckbox. The landing has no App action; the accepted
+install/launch entry belongs to the existing account/mobile controls. Do not repeat the navigation
+brand as a large hero heading.
 
-The previous three-row Elven council ownership example is removed.
-The Commander deckbox contains seven seated cards and one Commander in the front window.
-Selecting a seated card partially withdraws it within the same camera, orientation and scale; preserve the box's filled volume and wall occlusion.
-Hover, focus or tap selects cards directly.
-Arrow keys, Home and End support keyboard selection, and previous and next controls provide touch targets.
-There is no automatic cycling.
-The deck name, format, 100-card total, color identity and official Wizards source remain visible.
-Show the source once when its name also matches the creator.
-Card selection and Deck metadata use a soft translucent surface and light text shadow for readability over artwork.
-Upgrades Unleashed is the public example, with Chishiro and recognizable cards from the shipped Precon.
-Its two Mossfire Valley copies preserve the selected shipped baseline.
-The extra owned nonfoil Commander belongs only to Demo Inventory, not the public 100-card Deck example.
-The static public example does not imply visitor ownership, an account import or an internal public deck page.
-[Asset provenance](../reference/website-icons.md#card-showcase-assets) owns the source; [frontend architecture](../architecture/frontend.md) owns component responsibilities.
+The previous three-row Elven council ownership example is removed. The Commander deckbox contains
+seven seated cards and one Commander in the front window. Selecting a seated card partially
+withdraws it within the same camera, orientation and scale; preserve the box's filled volume and
+wall occlusion. Hover, focus or tap selects cards directly. Arrow keys, Home and End support
+keyboard selection, and previous and next controls provide touch targets. There is no automatic
+cycling. The deck name, format, 100-card total, color identity and official Wizards source remain
+visible. Show the source once when its name also matches the creator. Card selection and Deck
+metadata use a soft translucent surface and light text shadow for readability over artwork. Upgrades
+Unleashed is the public example, with Chishiro and recognizable cards from the shipped Precon. Its
+two Mossfire Valley copies preserve the selected shipped baseline. The extra owned nonfoil Commander
+belongs only to Demo Inventory, not the public 100-card Deck example. The static public example does
+not imply visitor ownership, an account import or an internal public deck page.
+[Asset provenance](../reference/website-icons.md#card-showcase-assets) owns the source;
+[frontend architecture](../architecture/frontend.md) owns component responsibilities.
 
-The private Dashboard at `/mtg/dashboard` follows the selected two-row card reference above.
-Four metrics lead into ranked Set bars, an exclusive card-type donut, mana-color identity bars and recent Inventory edits.
-The optional details disclosure retains per-Deck availability rings and Finish, Condition and Extra copies bars with native data.
-Scan entrypoints and pending-review presentation are paused; existing Search, Inventory and Deck workflow links remain.
-Empty and unavailable states remain explicit.
-[The product specification](./specification.md#dashboard) owns metric definitions and limits.
-Current market estimates and captured personal Inventory history are implemented with explicit coverage and dates.
-[Value tracking](./value-tracking.md) owns their presentation and evidence limits.
-Do not present synthetic trends as observed history.
+The private Dashboard at `/mtg/dashboard` follows the selected two-row card reference above. Four
+metrics lead into ranked Set bars, an exclusive card-type donut, mana-color identity bars and recent
+Inventory edits. The optional details disclosure retains per-Deck availability rings and Finish,
+Condition and Extra copies bars with native data. Scan entrypoints and pending-review presentation
+are paused; existing Search, Inventory and Deck workflow links remain. Empty and unavailable states
+remain explicit. [The product specification](./specification.md#dashboard) owns metric definitions
+and limits. Current market estimates and captured personal Inventory history are implemented with
+explicit coverage and dates. [Value tracking](./value-tracking.md) owns their presentation and
+evidence limits. Do not present synthetic trends as observed history.
 
-A future internal public example-deck page should show the complete sourced deck and retain a direct official-source link.
-This page is not implemented in this pass; current deck links open the official Wizards list.
+A future internal public example-deck page should show the complete sourced deck and retain a direct
+official-source link. This page is not implemented in this pass; current deck links open the
+official Wizards list.
 
-The user rejected the original website-card, artwork-panel and collection-comparison compositions on `/1`, `/2` and `/5`.
-On 2026-10-05, the replacement Editorial and Diptych directions were also rejected for weak structure, disconnected elements, and unnecessary copy.
-Do not revive them through minor cosmetic changes.
-The oversized flat card gallery, its visible scrollbar, and repeated oversized Spellbook headings were also rejected.
-The user later discarded the restored arc and `/3` entirely to focus on Background.
-Previously rejected AI artwork and the earlier card-hand concept remain excluded.
-Individual assets remain available when they serve a clear composition; their existence does not justify a decorative row.
+The user rejected the original website-card, artwork-panel and collection-comparison compositions on
+`/1`, `/2` and `/5`. On 2026-10-05, the replacement Editorial and Diptych directions were also
+rejected for weak structure, disconnected elements, and unnecessary copy. Do not revive them through
+minor cosmetic changes. The oversized flat card gallery, its visible scrollbar, and repeated
+oversized Spellbook headings were also rejected. The user later discarded the restored arc and `/3`
+entirely to focus on Background. Previously rejected AI artwork and the earlier card-hand concept
+remain excluded. Individual assets remain available when they serve a clear composition; their
+existence does not justify a decorative row.
 
-The user selected IBM Plex Mono as the global interface font on 2026-10-05.
-The user selected Marcellus for headings on 2026-10-06.
-This choice is provisional and may change only through an explicit user decision.
-Agents must not substitute another heading font autonomously.
-Sans-serif interface choices remain rejected.
-The user disqualified MPlantin, Cinzel, Cinzel Decorative, Uncial Antiqua, Newsreader, Alegreya, Literata, Forum, EB Garamond, Eczar and Almendra.
-Do not reintroduce those heading choices.
-Literata is also rejected for interface text.
-Keep decorative faces to short display text.
-The comparison page and font selectors are removed.
+The user selected IBM Plex Mono as the global interface font on 2026-10-05. The user selected
+Marcellus for headings on 2026-10-06. This choice is provisional and may change only through an
+explicit user decision. Agents must not substitute another heading font autonomously. Sans-serif
+interface choices remain rejected. The user disqualified MPlantin, Cinzel, Cinzel Decorative, Uncial
+Antiqua, Newsreader, Alegreya, Literata, Forum, EB Garamond, Eczar and Almendra. Do not reintroduce
+those heading choices. Literata is also rejected for interface text. Keep decorative faces to short
+display text. The comparison page and font selectors are removed.
 [Frontend architecture](../architecture/frontend.md) owns the current implementation.
 
-Authentication, public, working, legal and error pages use the same header, scrolling shell and footer.
-Logo, brand text, navigation, control sizes and header clearance remain consistent between routes.
-The Sign in entry uses the shared link style and current-page underline.
-Login and registration share a narrow, unboxed form frame with the selected 64-pixel logo and a functional heading.
-Desktop centers this form in the available content; mobile starts it below navigation.
-A shared Show/Hide password control retains the value and keyboard focus.
-Sign-in omits account-creation guidance; registration keeps username and password requirements.
-Login and registration default to Inventory while preserving a safe explicit requested destination.
-Empty workspaces offer their next action without a setup wizard.
-The footer centers legal links, authorship, licensing and concise artwork credits without a disclosure control or top divider.
-Search starts unfiltered and shows the full result total, readable card metadata and removable active filters.
-Its virtual grid loads the currently visible and adjacent result ranges rather than accumulating cards as the user scrolls.
+Authentication, public, working, legal and error pages use the same header, scrolling shell and
+footer. Logo, brand text, navigation, control sizes and header clearance remain consistent between
+routes. The Sign in entry uses the shared link style and current-page underline. Login and
+registration share a narrow, unboxed form frame with the selected 64-pixel logo and a functional
+heading. Desktop centers this form in the available content; mobile starts it below navigation. A
+shared Show/Hide password control retains the value and keyboard focus. Sign-in omits
+account-creation guidance; registration keeps username and password requirements. Login and
+registration default to Inventory while preserving a safe explicit requested destination. Empty
+workspaces offer their next action without a setup wizard. The footer centers legal links,
+authorship, licensing and concise artwork credits without a disclosure control or top divider.
+Search starts unfiltered and shows the full result total, readable card metadata and removable
+active filters. Its virtual grid loads the currently visible and adjacent result ranges rather than
+accumulating cards as the user scrolls.
 
-Search distinguishes loading, failed requests, no matches and an empty catalog.
-Retry preserves the query and filters.
-A filtered empty result offers Clear filters, including when the query is empty.
+Search distinguishes loading, failed requests, no matches and an empty catalog. Retry preserves the
+query and filters. A filtered empty result offers Clear filters, including when the query is empty.
 The inspector separates filtering available printings from choosing the finish of an owned copy.
-QuickAdd reports success or failure beside the form and retains its inputs; pending controls prevent repeated submission and dismissal.
+QuickAdd reports success or failure beside the form and retains its inputs; pending controls prevent
+repeated submission and dismissal.
 
 The Search sidebar has a fixed desktop width and shares the active native page or modal viewport.
-Expanding groups changes the page layout without adding a separate sidebar scrollbar.
-Six color controls remain in one row.
-Before two distinct colors are filtered, they cycle Off, OR, AND, NOT, then Off.
-Setting a second distinct color filter automatically assigns NOT to remaining WUBRG colors; those five controls then cycle OR, AND, NOT with no Off state.
-Colorless stays unchanged and remains manually selectable through Off, OR, AND and NOT.
-Clear filters resets this mode; removing an individual WUBRG color in the full mode assigns NOT, while removing Colorless clears it.
-URL parsing and native form submission apply the same completion, including when the two explicit filters are exclusions.
-Show OR with a single selection ring, AND with a double ring and NOT with a semantic exclusion stroke; unselected colors stay muted.
-Keep operator badges out of individual color buttons.
-A compact read-only pill beside the result count below the Search bar shows the active color expression, with normal wrapping and an accessible plain-language equivalent.
-The sidebar reserves no separate formula area, and unfiltered Search shows no formula pill.
-Narrow screens use WUBRGC abbreviations with the complete named expression in the tooltip and accessible text.
-State names and the next action remain available through accessible names and concise tooltips.
-The underlying OR colors form one group, combine with every AND color and exclude every NOT color.
-Place the native Color/Identity radios below the six color icons.
-Keep each glyph visually centered in the same circular control across Off, OR, AND and NOT states.
-The radios choose printed colors or color identity without clearing the selections.
-The default is Color.
-The browser sends the explicit OR/AND/NOT expression without an additional hidden palette restriction.
-Compound exactness follows from the automatically assigned NOT colors; a single-color AND expression tests presence.
-The formula, button states, URLs and actual request predicates must agree.
-Colorless matches an empty selected field.
-Native no-JavaScript Search exposes equivalent OR/AND/NOT checkboxes and the same field choice.
-Collapsed groups retain their selection count, and removal actions remove a color directly instead of advancing its cycle.
-Clear filters keeps a fixed position above the groups.
-Keep the formula in the existing result-count row; do not add another active-filter row above the results.
-Count, loading, retry and the formula share one reserved status row above the card grid.
-Scrolled artwork cannot appear behind it.
-Ordinary filter changes and range errors preserve that row's height; long expressions may wrap on constrained widths instead of obscuring results.
-[Catalog search behavior](../architecture/catalog.md#search-behavior) owns the boolean color and existing API palette semantics.
+Expanding groups changes the page layout without adding a separate sidebar scrollbar. Six color
+controls remain in one row. Before two distinct colors are filtered, they cycle Off, OR, AND, NOT,
+then Off. Setting a second distinct color filter automatically assigns NOT to remaining WUBRG
+colors; those five controls then cycle OR, AND, NOT with no Off state. Colorless stays unchanged and
+remains manually selectable through Off, OR, AND and NOT. Clear filters resets this mode; removing
+an individual WUBRG color in the full mode assigns NOT, while removing Colorless clears it. URL
+parsing and native form submission apply the same completion, including when the two explicit
+filters are exclusions. Show OR with a single selection ring, AND with a double ring and NOT with a
+semantic exclusion stroke; unselected colors stay muted. Keep operator badges out of individual
+color buttons. A compact read-only pill beside the result count below the Search bar shows the
+active color expression, with normal wrapping and an accessible plain-language equivalent. The
+sidebar reserves no separate formula area, and unfiltered Search shows no formula pill. Narrow
+screens use WUBRGC abbreviations with the complete named expression in the tooltip and accessible
+text. State names and the next action remain available through accessible names and concise
+tooltips. The underlying OR colors form one group, combine with every AND color and exclude every
+NOT color. Place the native Color/Identity radios below the six color icons. Keep each glyph
+visually centered in the same circular control across Off, OR, AND and NOT states. The radios choose
+printed colors or color identity without clearing the selections. The default is Color. The browser
+sends the explicit OR/AND/NOT expression without an additional hidden palette restriction. Compound
+exactness follows from the automatically assigned NOT colors; a single-color AND expression tests
+presence. The formula, button states, URLs and actual request predicates must agree. Colorless
+matches an empty selected field. Native no-JavaScript Search exposes equivalent OR/AND/NOT
+checkboxes and the same field choice. Collapsed groups retain their selection count, and removal
+actions remove a color directly instead of advancing its cycle. Clear filters keeps a fixed position
+above the groups. Keep the formula in the existing result-count row; do not add another
+active-filter row above the results. Count, loading, retry and the formula share one reserved status
+row above the card grid. Scrolled artwork cannot appear behind it. Ordinary filter changes and range
+errors preserve that row's height; long expressions may wrap on constrained widths instead of
+obscuring results. [Catalog search behavior](../architecture/catalog.md#search-behavior) owns the
+boolean color and existing API palette semantics.
 
 Inventory uses compact artwork rows with stored set, finish, condition and read-only quantity.
-Search, Filter, Sort and the matching entry/copy count share the toolbar.
-Column labels remain direct sorting controls.
-The shared filter popover contains searchable full set names with multiple selection, finish and condition.
-Active chips reopen the relevant control for editing; a separate clear button removes each value.
-New entries have a small New badge only on their displayed UTC creation date, excluding future or invalid timestamps.
-The badge expires when that day ends, including while Inventory remains open, without changing stored entry timestamps or ordering.
-The controls remain available on narrow screens and when filters match no entries.
+Search, Filter, Sort and the matching entry/copy count share the toolbar. Column labels remain
+direct sorting controls. The shared filter popover contains searchable full set names with multiple
+selection, finish and condition. Active chips reopen the relevant control for editing; a separate
+clear button removes each value. New entries have a small New badge only on their displayed UTC
+creation date, excluding future or invalid timestamps. The badge expires when that day ends,
+including while Inventory remains open, without changing stored entry timestamps or ordering. The
+controls remain available on narrow screens and when filters match no entries.
 [The specification](./specification.md#owned-inventory) owns ordering and filter semantics.
 
-Set, Finish and Condition use small, subtly filled badges.
-Set codes select a stable color from the existing semantic palette by code hash.
-This is a visual grouping convention, not rarity or completion.
-Nonfoil uses a muted fill and Foil uses violet.
-Conditions reuse Dashboard colors: NM success, LP info, MP warning, HP violet and DMG error.
-Text remains present so color is supplemental.
-Set ordering keeps entries contiguous without extra Set labels or separator rows.
-Sort arrows reserve space when inactive, keeping header labels aligned.
-Totals distinguish copies from card names.
-Selecting exactly one set reveals its owned-name progress; unavailable catalog totals remain explicit.
-Inventory table quantity is read-only.
-Details/Edit owns quantity and Notes changes with original baselines and retained drafts.
-Remove belongs to the row action menu and opens the shared confirmation dialog without changing row height.
-Other printing selections lead to Search rather than silently modifying the owned printing.
+Set, Finish and Condition use small, subtly filled badges. Set codes select a stable color from the
+existing semantic palette by code hash. This is a visual grouping convention, not rarity or
+completion. Nonfoil uses a muted fill and Foil uses violet. Conditions reuse Dashboard colors: NM
+success, LP info, MP warning, HP violet and DMG error. Text remains present so color is
+supplemental. Set ordering keeps entries contiguous without extra Set labels or separator rows. Sort
+arrows reserve space when inactive, keeping header labels aligned. Totals distinguish copies from
+card names. Selecting exactly one set reveals its owned-name progress; unavailable catalog totals
+remain explicit. Inventory table quantity is read-only. Details/Edit owns quantity and Notes changes
+with original baselines and retained drafts. Remove belongs to the row action menu and opens the
+shared confirmation dialog without changing row height. Other printing selections lead to Search
+rather than silently modifying the owned printing.
 
 The deck entry page presents an artwork-led library with full card frames and actual deck counts.
-Selecting a deck defaults to artwork-led Stacks; List retains compact grouped rows with direct quantity controls, mana costs, and ownership state.
-The 2026-10-31 refinement follows the maintainer's Moxfield/Archidekt direction and the actual [Archidekt Deckbuilder screenshot](https://archidekt.com/images/examples/deckbuilder.webp).
-Adapt the reference's readable title strips and card grouping within Spellbook's existing top navigation, neutral surfaces and chosen fonts.
-Stacks use native document columns and 40px title strips, with complete final card frames and full-card inspection on pointer hover or keyboard focus.
-Quantity and ownership controls appear on the raised card; touch opens the existing Card dialog with the same editing actions.
-Quantity markers occupy a separate rail so they do not obscure card titles.
-Without JavaScript the editor renders List with every native quantity form available.
-Mana Font group symbols describe actual types or the Commander role; alternate and missing markers preserve text and accessible names.
-A compact overview combines stored Commander artwork, actual Commander color identity, exact/alternate/missing Inventory matches and covered required/missing value estimates.
-Unknown availability remains explicit, and price coverage remains available through the shared native disclosure.
-Deck notes use a native disclosure, leaving the cards visible without removing editing controls or draft recovery.
-Main Deck entries group directly by their actual primary card types, with existing Mana Font symbols.
-Commander, Main Deck, Sideboard and Companion remain distinct Deck sections; Sideboard and Companion have their own headings and actual counts instead of appearing among the Main Deck type groups.
-The managed Category feature, Account Category Library, custom definitions, assignments, previews, source matchers and whole-deck jobs are removed from all clients and runtimes.
-Their routes and contracts are deleted without aliases, feature flags or compatibility adapters; current Deck mutation receipts, ownership, valuation and Inventory Boxes retain their separate responsibilities.
-Tokens form a derived reference appendix below the Deck, independent of Deck quantities and ownership; do not infer counts from rules text or add tokens to Main Deck requirements.
+Selecting a deck defaults to artwork-led Stacks; List retains compact grouped rows with direct
+quantity controls, mana costs, and ownership state. The 2026-10-31 refinement follows the
+maintainer's Moxfield/Archidekt direction and the actual
+[Archidekt Deckbuilder screenshot](https://archidekt.com/images/examples/deckbuilder.webp). Adapt
+the reference's readable title strips and card grouping within Spellbook's existing top navigation,
+neutral surfaces and chosen fonts. Stacks use native document columns and 40px title strips, with
+complete final card frames and full-card inspection on pointer hover or keyboard focus. Quantity and
+ownership controls appear on the raised card; touch opens the existing Card dialog with the same
+editing actions. Quantity markers occupy a separate rail so they do not obscure card titles. Without
+JavaScript the editor renders List with every native quantity form available. Mana Font group
+symbols describe actual types or the Commander role; alternate and missing markers preserve text and
+accessible names. A compact overview combines stored Commander artwork, actual Commander color
+identity, exact/alternate/missing Inventory matches and covered required/missing value estimates.
+Unknown availability remains explicit, and price coverage remains available through the shared
+native disclosure. Deck notes use a native disclosure, leaving the cards visible without removing
+editing controls or draft recovery. Main Deck entries group directly by their actual primary card
+types, with existing Mana Font symbols. Commander, Main Deck, Sideboard and Companion remain
+distinct Deck sections; Sideboard and Companion have their own headings and actual counts instead of
+appearing among the Main Deck type groups. The managed Category feature, Account Category Library,
+custom definitions, assignments, previews, source matchers and whole-deck jobs are removed from all
+clients and runtimes. Their routes and contracts are deleted without aliases, feature flags or
+compatibility adapters; current Deck mutation receipts, ownership, valuation and Inventory Boxes
+retain their separate responsibilities. Tokens form a derived reference appendix below the Deck,
+independent of Deck quantities and ownership; do not infer counts from rules text or add tokens to
+Main Deck requirements.
 
-Kyle's further feedback on 2026-10-31 selects softer shared graphite surfaces, cool gray text and restrained blue primary controls instead of near-black backgrounds and white buttons.
-Keep the existing logo, fonts, navigation and accessible text contrast; color belongs mainly to card artwork, meaningful Mana symbols and data series.
-The subsequent 2026-11-01 correction restores an artwork-led Deck Library grid.
-Use real framed card artwork with Deck name, format/count/edited metadata in responsive tiles.
-Deck Library tiles retain their quiet outlines, surfaces, hover and keyboard-focus states.
-The search toolbar retains Inventory-style Filter and Sort controls.
-Keep existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
-Mana charts and Dashboard share the semantic WUBRG chart palette in app.css.
-The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
-Deck estimates distinguish the whole Deck from its missing quantities and show the actual priced-copy coverage.
-Both use selected printing nonfoil EUR references, not the value of owned alternate printings, a lowest-price optimization or a checkout quote.
-Deck transfer supports Arena text, simple text, schema-defined CSV and versioned Spellbook JSON, plus a native browser print view.
-Import accepts pasted or uploaded data, keeps preview and explicit commit, and supports creating a complete new Deck as well as adding to an existing one.
-Spellbook JSON preserves Deck name, format, description, roles, quantities and exact available printing identities; account IDs, revisions, ownership and derived token references are not portable requirements.
-Unsupported versions, malformed records and unresolved printings remain visible and cannot silently drop entries from a whole-Deck import.
-Direct hosted-service link or share-ID ingestion remains outside the implemented exchange contract until the provider interface can be verified; exported file import does not fetch arbitrary user URLs.
-The 2026-11-03 primary-source comparison separates full-Deck prices from collection-excluded estimates, as described by [Archidekt's moderator](https://archidekt.com/forum/thread/2109653).
-Spellbook keeps its existing price providers and exact/alternate allocation; it does not promise Archidekt's shopping offers or cheapest-printing conversion.
-The inspected public Archidekt Deck endpoint is not a supported integration contract, and its [published terms](https://archidekt.com/terms) restrict automated requests.
-No supported Moxfield import interface or recipient-client roundtrip was verified, so exported files remain the supported transfer path.
-Arena's optional `About`/`Name` syntax follows [Wizards' published import example](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-announcements-february-19-2024).
-Mana charts use a dark graphite Black series, distinct from the neutral Colorless series in both themes.
-On wide screens Deck analysis stacks beneath Add cards in the right column, leaving the Deck cards first in the main column.
-On narrow screens that analysis remains visible below the Deck cards while the Add cards dialog retains the search workflow.
-Color identity is the default measure.
-The default analysis scope is Main plus Commander; Main, Sideboard, Companion and All sections remain explicit choices after hydration.
-Without JavaScript the default analysis and exact chart data remain readable, while the interactive measure selectors stay disabled.
-The mana-value curve excludes lands and calculates its average from resolved nonland copies only, retaining fractional values and grouping values of eight or more into 8+.
-Unavailable Catalog records and invalid mana values remain explicit unknown quantities and never become zero-mana cards.
-For double-faced cards the curve uses the front type line rather than the Catalog's combined type list, consistent with [front-face characteristics outside the stack and battlefield](https://magic.wizards.com/en/news/feature/spider-man-release-notes).
-Colors uses the Catalog's complete projected color evidence, including explicit colorless double-faced cards.
-Main Deck grouping uses the front type line; a land on the back face does not turn the front spell or artifact into a Land group.
-Reversible cards with independent faces remain Unknown while the flat Catalog contract cannot describe their individual characteristics.
-Statistics derive from the existing selected composition and Catalog documents, without further API requests or invented observations.
-List and Stacks share name, quantity, grouping, and missing-copy filters.
-Groups use card type or deck section, with the commander first.
-A sticky summary sits directly below navigation and exposes card count, missing-copy filtering, format checks, and save status.
-A compact header shows the deck name, format and an All decks link.
-Deck actions groups details, import, export, deletion and New deck in one shared menu.
-Removal offers undo.
-Desktop catalog search stays beside the deck and preserves its results and scroll position during mutations.
-The shared card inspector serves search, inventory, and decks; deck inspection exposes printing, quantity, section, and exact or alternate owned totals.
-Printing replacement commits removal and addition atomically and verifies the canonical identity.
+Kyle's further feedback on 2026-10-31 selects softer shared graphite surfaces, cool gray text and
+restrained blue primary controls instead of near-black backgrounds and white buttons. Keep the
+existing logo, fonts, navigation and accessible text contrast; color belongs mainly to card artwork,
+meaningful Mana symbols and data series. The subsequent 2026-11-01 correction restores an
+artwork-led Deck Library grid. Use real framed card artwork with Deck name, format/count/edited
+metadata in responsive tiles. Deck Library tiles retain their quiet outlines, surfaces, hover and
+keyboard-focus states. The search toolbar retains Inventory-style Filter and Sort controls. Keep
+existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
+Mana charts and Dashboard share the semantic WUBRG chart palette in app.css. The selected Deck shows
+quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless
+category. Deck estimates distinguish the whole Deck from its missing quantities and show the actual
+priced-copy coverage. Both use selected printing nonfoil EUR references, not the value of owned
+alternate printings, a lowest-price optimization or a checkout quote. Deck transfer supports Arena
+text, simple text, schema-defined CSV and versioned Spellbook JSON, plus a native browser print
+view. Import accepts pasted or uploaded data, keeps preview and explicit commit, and supports
+creating a complete new Deck as well as adding to an existing one. Spellbook JSON preserves Deck
+name, format, description, roles, quantities and exact available printing identities; account IDs,
+revisions, ownership and derived token references are not portable requirements. Unsupported
+versions, malformed records and unresolved printings remain visible and cannot silently drop entries
+from a whole-Deck import. Direct hosted-service link or share-ID ingestion remains outside the
+implemented exchange contract until the provider interface can be verified; exported file import
+does not fetch arbitrary user URLs. The 2026-11-03 primary-source comparison separates full-Deck
+prices from collection-excluded estimates, as described by
+[Archidekt's moderator](https://archidekt.com/forum/thread/2109653). Spellbook keeps its existing
+price providers and exact/alternate allocation; it does not promise Archidekt's shopping offers or
+cheapest-printing conversion. The inspected public Archidekt Deck endpoint is not a supported
+integration contract, and its [published terms](https://archidekt.com/terms) restrict automated
+requests. No supported Moxfield import interface or recipient-client roundtrip was verified, so
+exported files remain the supported transfer path. Arena's optional `About`/`Name` syntax follows
+[Wizards' published import example](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-announcements-february-19-2024).
+Mana charts use a dark graphite Black series, distinct from the neutral Colorless series in both
+themes. On wide screens Deck analysis stacks beneath Add cards in the right column, leaving the Deck
+cards first in the main column. On narrow screens that analysis remains visible below the Deck cards
+while the Add cards dialog retains the search workflow. Color identity is the default measure. The
+default analysis scope is Main plus Commander; Main, Sideboard, Companion and All sections remain
+explicit choices after hydration. Without JavaScript the default analysis and exact chart data
+remain readable, while the interactive measure selectors stay disabled. The mana-value curve
+excludes lands and calculates its average from resolved nonland copies only, retaining fractional
+values and grouping values of eight or more into 8+. Unavailable Catalog records and invalid mana
+values remain explicit unknown quantities and never become zero-mana cards. For double-faced cards
+the curve uses the front type line rather than the Catalog's combined type list, consistent with
+[front-face characteristics outside the stack and battlefield](https://magic.wizards.com/en/news/feature/spider-man-release-notes).
+Colors uses the Catalog's complete projected color evidence, including explicit colorless
+double-faced cards. Main Deck grouping uses the front type line; a land on the back face does not
+turn the front spell or artifact into a Land group. Reversible cards with independent faces remain
+Unknown while the flat Catalog contract cannot describe their individual characteristics. Statistics
+derive from the existing selected composition and Catalog documents, without further API requests or
+invented observations. List and Stacks share name, quantity, grouping, and missing-copy filters.
+Groups use card type or deck section, with the commander first. A sticky summary sits directly below
+navigation and exposes card count, missing-copy filtering, format checks, and save status. A compact
+header shows the deck name, format and an All decks link. Deck actions groups details, import,
+export, deletion and New deck in one shared menu. Removal offers undo. Desktop catalog search stays
+beside the deck and preserves its results and scroll position during mutations. The shared card
+inspector serves search, inventory, and decks; deck inspection exposes printing, quantity, section,
+and exact or alternate owned totals. Printing replacement commits removal and addition atomically
+and verifies the canonical identity.
 
-Inventory and Deck use the same WorkspaceHeader and Button.
-Deck retains QuantityControl for its editable quantities.
-Library New deck and Inventory Add cards are Primary actions with shared alignment and geometry.
-Secondary supports ordinary alternatives, Ghost supports compact utility actions, and Destructive identifies deletion.
-Navigation links keep underline hover; Ghost icons keep background hover.
-Deck uses shared FormDialog framing for create, details, import and contextual search, with a wider import presentation where needed.
-Delete uses ConfirmationDialog with initial Cancel focus and pending dismissal protection.
-The route retains its feature state and drafts.
-Native task links reach create, edit, import, delete and search forms without a click-only dialog.
-[Frontend architecture](../architecture/frontend.md#shared-deck-ui) owns component interfaces and native adaptation; rendered keyboard, mobile and focus acceptance remains a separate check.
+Inventory and Deck use the same WorkspaceHeader and Button. Deck retains QuantityControl for its
+editable quantities. Library New deck and Inventory Add cards are Primary actions with shared
+alignment and geometry. Secondary supports ordinary alternatives, Ghost supports compact utility
+actions, and Destructive identifies deletion. Navigation links keep underline hover; Ghost icons
+keep background hover. Deck uses shared FormDialog framing for create, details, import and
+contextual search, with a wider import presentation where needed. Delete uses ConfirmationDialog
+with initial Cancel focus and pending dismissal protection. The route retains its feature state and
+drafts. Native task links reach create, edit, import, delete and search forms without a click-only
+dialog. [Frontend architecture](../architecture/frontend.md#shared-deck-ui) owns component
+interfaces and native adaptation; rendered keyboard, mobile and focus acceptance remains a separate
+check.
 
-Inventory offers Cards and one additional Boxes view with named Inventory groups.
-Assignment uses the row action menu and a shared dialog.
-Group counts represent whole entries; groups do not create ownership or deck requirements.
-Reuse the existing compact rows when opening a group.
+Inventory offers Cards and one additional Boxes view with named Inventory groups. Assignment uses
+the row action menu and a shared dialog. Group counts represent whole entries; groups do not create
+ownership or deck requirements. Reuse the existing compact rows when opening a group.
 [Card grouping](./card-grouping.md) owns membership semantics and deferred scan integration.
 
-Settings separates Profile, Profile Card and Password through three direct route links.
-Center the bounded composition around the same horizontal center as the application header; retain the shared Shell, fonts and tokens.
-Profile shows account fields, a compact avatar with Edit avatar, and the saved card with Edit Card.
-Reveal sprite choices only inside the edit dialog.
-Cancel discards its draft; Save updates the account avatar without changing email, artwork or card fields.
+Settings separates Profile, Profile Card and Password through three direct route links. Center the
+bounded composition around the same horizontal center as the application header; retain the shared
+Shell, fonts and tokens. Profile shows account fields, a compact avatar with Edit avatar, and the
+saved card with Edit Card. Reveal sprite choices only inside the edit dialog. Cancel discards its
+draft; Save updates the account avatar without changing email, artwork or card fields.
 
-Profile Card provides the private regular MTG editor.
-The preview uses CardCraft's transparent standard frames, an optional legendary crown, complete artwork, name and mana cost, type line and a colored Mana Font generic rarity emblem, a continuous light text area, optional Power/Toughness and a dark account footer.
-The [asset reference](../reference/website-icons.md#profile-card-frames) owns the third-party frame provenance and its verification limits.
-Frame colors belong to the card illustration and stay consistent across app themes.
-Marcellus and IBM Plex Mono remain unchanged.
-Long valid names, type lines, rules and Power/Toughness grow their frame regions rather than being clipped; desktop preview sticks only when it fits the viewport, and mobile keeps the preview in normal flow.
-Name and mana cost lead the form, followed by frame, rarity, legendary styling, full-image artwork choices, type, rules, flavor and Power/Toughness.
-Field counters expose the shared content limits.
-Per-field shared menus insert live KPI placeholders at the selected text position and return focus there; Power/Toughness replace the whole card value.
-Keep only the actual black card edge and colored frame, without an additional outline or panel around them.
-Failed saves retain edits, show field errors and focus the first invalid field.
-Save card persists only the validated card template and artwork.
-Four generated illustrations form the shared artwork library in registration and the editor; existing accounts default to Grove.
-[The product specification](./specification.md#profile-card-editor) owns the fields, metric meanings and future limits.
-Rank, public sharing, exports, uploads, specialized formats and additional TCG templates remain deferred.
+Profile Card provides the private regular MTG editor. The preview uses CardCraft's transparent
+standard frames, an optional legendary crown, complete artwork, name and mana cost, type line and a
+colored Mana Font generic rarity emblem, a continuous light text area, optional Power/Toughness and
+a dark account footer. The [asset reference](../reference/website-icons.md#profile-card-frames) owns
+the third-party frame provenance and its verification limits. Frame colors belong to the card
+illustration and stay consistent across app themes. Marcellus and IBM Plex Mono remain unchanged.
+Long valid names, type lines, rules and Power/Toughness grow their frame regions rather than being
+clipped; desktop preview sticks only when it fits the viewport, and mobile keeps the preview in
+normal flow. Name and mana cost lead the form, followed by frame, rarity, legendary styling,
+full-image artwork choices, type, rules, flavor and Power/Toughness. Field counters expose the
+shared content limits. Per-field shared menus insert live KPI placeholders at the selected text
+position and return focus there; Power/Toughness replace the whole card value. Keep only the actual
+black card edge and colored frame, without an additional outline or panel around them. Failed saves
+retain edits, show field errors and focus the first invalid field. Save card persists only the
+validated card template and artwork. Four generated illustrations form the shared artwork library in
+registration and the editor; existing accounts default to Grove.
+[The product specification](./specification.md#profile-card-editor) owns the fields, metric meanings
+and future limits. Rank, public sharing, exports, uploads, specialized formats and additional TCG
+templates remain deferred.
 
-On narrow screens, Find cards opens a full-height search dialog with Back to deck.
-Desktop omits this duplicate trigger because catalog search is already visible.
-Search state survives closing the dialog.
-Keep required actions visible without horizontal page scrolling or hover.
-A menu may condense navigation, but it must retain accessible names and usable touch targets.
+On narrow screens, Find cards opens a full-height search dialog with Back to deck. Desktop omits
+this duplicate trigger because catalog search is already visible. Search state survives closing the
+dialog. Keep required actions visible without horizontal page scrolling or hover. A menu may
+condense navigation, but it must retain accessible names and usable touch targets.
 
 ## Workflow rules
 
-Search identifies canonical cards, and printing selection chooses the record added to inventory or a deck.
-Show the card name and relevant printing metadata before an add.
-Preserve the selected printing when changing the quantity, finish, or condition.
+Search identifies canonical cards, and printing selection chooses the record added to inventory or a
+deck. Show the card name and relevant printing metadata before an add. Preserve the selected
+printing when changing the quantity, finish, or condition.
 
-Inventory is the owned-card ledger and presents entries as a list.
-Stored ordering metadata does not establish a binder view or physical location.
-Do not show location filters or movement actions until physical locations exist.
+Inventory is the owned-card ledger and presents entries as a list. Stored ordering metadata does not
+establish a binder view or physical location. Do not show location filters or movement actions until
+physical locations exist.
 
-The deck editor groups entries by main deck, sideboard, commander, and companion.
-Quantity edits and role moves update deck requirements.
-Availability labels distinguish exact owned copies, alternate printings, and missing copies.
-They must not imply that inventory has been reserved across decks.
+The deck editor groups entries by main deck, sideboard, commander, and companion. Quantity edits and
+role moves update deck requirements. Availability labels distinguish exact owned copies, alternate
+printings, and missing copies. They must not imply that inventory has been reserved across decks.
 
-Import uses an explicit preview followed by commit.
-Editing the submitted text invalidates the preview.
-Unresolved and ambiguous lines stay readable, and the interface states what will remain uncommitted.
-Export returns the supported plain-text representation.
+Import uses an explicit preview followed by commit. Editing the submitted text invalidates the
+preview. Unresolved and ambiguous lines stay readable, and the interface states what will remain
+uncommitted. Export returns the supported plain-text representation.
 
-Scan presentation is paused and has no navigation, Inventory or Dashboard entrypoints.
-The retained `/mtg/scan` route puts photo upload and card review before session management.
-Recent sessions show status and date; an expandable recovery control accepts a session identifier.
-The workspace displays candidates, supports manual printing selection, and requires explicit inventory confirmation.
+Scan presentation is paused and has no navigation, Inventory or Dashboard entrypoints. The retained
+`/mtg/scan` route puts photo upload and card review before session management. Recent sessions show
+status and date; an expandable recovery control accepts a session identifier. The workspace displays
+candidates, supports manual printing selection, and requires explicit inventory confirmation.
 External recognition results remain reviewable evidence.
-[ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records the local-recognition direction.
-MTG card camera capture remains under review, and the phone app should offer the website's functions.
-The accepted PWA delivery adds authorization QR camera/manual input, explicit signed-in approval and installed narrow bottom navigation.
-It retains ordinary browser navigation and password sign-in.
-[Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns these interfaces and pending target acceptance.
-[Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns the open allocation and technology choices.
-The existing upload/review interface remains retained compatibility behavior.
+[ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records the local-recognition
+direction. MTG card camera capture remains under review, and the phone app should offer the
+website's functions. The accepted PWA delivery adds authorization QR camera/manual input, explicit
+signed-in approval and installed narrow bottom navigation. It retains ordinary browser navigation
+and password sign-in. [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns these
+interfaces and pending target acceptance.
+[Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns
+the open allocation and technology choices. The existing upload/review interface remains retained
+compatibility behavior.
 
 ## Visual and interaction rules
 
-Use the semantic palette in `frontend/src/app.css`.
-Marcellus supplies display text with a serif fallback.
-IBM Plex Mono supplies interface text with monospace fallbacks.
-Working screens use compact page titles and readable metadata.
-Omit decorative subtitles, eyebrow labels, and promotional section headings.
-Add a subsection heading only when it is necessary to distinguish working areas, such as the deck list and card catalog.
-Field labels and dialog titles remain explicit.
-The public home highlights the temporary Magic-only support limit; the artwork needs no decorative caption.
-Foreground card images keep their full frames; background card fields may crop cards at soft-faded edges.
-Artwork carries color while controls remain neutral.
-Borders group forms and editing sections rather than enclosing every label or statistic.
-The shared header and footer omit horizontal dividers.
-Scrolling content passes beneath a translucent workspace header with a short fading lower edge; navigation remains readable in both themes.
+Use the semantic palette in `frontend/src/app.css`. Marcellus supplies display text with a serif
+fallback. IBM Plex Mono supplies interface text with monospace fallbacks. Working screens use
+compact page titles and readable metadata. Omit decorative subtitles, eyebrow labels, and
+promotional section headings. Add a subsection heading only when it is necessary to distinguish
+working areas, such as the deck list and card catalog. Field labels and dialog titles remain
+explicit. The public home highlights the temporary Magic-only support limit; the artwork needs no
+decorative caption. Foreground card images keep their full frames; background card fields may crop
+cards at soft-faded edges. Artwork carries color while controls remain neutral. Borders group forms
+and editing sections rather than enclosing every label or statistic. The shared header and footer
+omit horizontal dividers. Scrolling content passes beneath a translucent workspace header with a
+short fading lower edge; navigation remains readable in both themes.
 
-Background uses a right-aligned diagonal field of mixed-game cards and packs with softly faded edges and intentional partial cards.
-Responsive tile sizes and a six-row, six-column field cover most of the hero.
-Desktop actions stay centered vertically on the left with the Commander deckbox in the lower-right corner.
-Mobile keeps actions before the right-aligned deckbox in normal page flow.
-Use the same Commander color token in the preview and deck editor.
-Shell uses the native browser window with a themed scrollbar and stable gutter.
-Search uses the native window or one whole-modal viewport.
-Inventory entries, Boxes and set choices use native page flow; enhanced Lazy owns bounded window geometry.
-[Selected UI components](../reference/ui-libraries.md) owns those retained controls and native input behavior.
-Reduced motion disables decorative transitions.
-Retain source provenance and visible artwork credits.
-Essential actions work without hover.
-Keep animation out of quantity editing and dense card comparison.
+Background uses a right-aligned diagonal field of mixed-game cards and packs with softly faded edges
+and intentional partial cards. Responsive tile sizes and a six-row, six-column field cover most of
+the hero. Desktop actions stay centered vertically on the left with the Commander deckbox in the
+lower-right corner. Mobile keeps actions before the right-aligned deckbox in normal page flow. Use
+the same Commander color token in the preview and deck editor. Shell uses the native browser window
+with a themed scrollbar and stable gutter. Search uses the native window or one whole-modal
+viewport. Inventory entries, Boxes and set choices use native page flow; enhanced Lazy owns bounded
+window geometry. [Selected UI components](../reference/ui-libraries.md) owns those retained controls
+and native input behavior. Reduced motion disables decorative transitions. Retain source provenance
+and visible artwork credits. Essential actions work without hover. Keep animation out of quantity
+editing and dense card comparison.
 
-The primary landing reference is a 1920 by 1080 viewport at normal browser zoom.
-Keep the hero and footer together without unnecessary vertical scrolling, and also check reduced browser height on that display.
-The composition uses the available viewport height and shared fluid outer width; 2560 by 1440 and narrow layouts remain responsive checks.
-Search, Inventory, Decks, Scan, Dashboard and Settings share one workspace width; the full-width header keeps navigation centered independently of its edge controls.
-Artwork and the deckbox grow within bounds while text retains readable sizes.
-Account for the actual footer height and allow natural scrolling when content needs more space.
-Do not fill excess space with headings, repeated artwork strips or unsupported product copy.
+The primary landing reference is a 1920 by 1080 viewport at normal browser zoom. Keep the hero and
+footer together without unnecessary vertical scrolling, and also check reduced browser height on
+that display. The composition uses the available viewport height and shared fluid outer width; 2560
+by 1440 and narrow layouts remain responsive checks. Search, Inventory, Decks, Scan, Dashboard and
+Settings share one workspace width; the full-width header keeps navigation centered independently of
+its edge controls. Artwork and the deckbox grow within bounds while text retains readable sizes.
+Account for the actual footer height and allow natural scrolling when content needs more space. Do
+not fill excess space with headings, repeated artwork strips or unsupported product copy.
 
-Reuse shared buttons, inputs, panels, dialogs, and loading indicators.
-Shared buttons use compact horizontal padding, 13-pixel interface text and medium weight; their existing control heights and focus targets remain usable.
-Avoid introducing a second theme or component system for one workflow.
-A component library supplies interaction mechanisms; application code still owns labels, composition, error states, and contrast.
+Reuse shared buttons, inputs, panels, dialogs, and loading indicators. Shared buttons use compact
+horizontal padding, 13-pixel interface text and medium weight; their existing control heights and
+focus targets remain usable. Avoid introducing a second theme or component system for one workflow.
+A component library supplies interaction mechanisms; application code still owns labels,
+composition, error states, and contrast.
 
-Keep visible focus, label all inputs, and provide accessible names for icon controls.
-Dialogs must have a title, support keyboard dismissal where appropriate, contain focus, and restore focus to a useful control.
-Account for touch interaction and reduced motion.
+Keep visible focus, label all inputs, and provide accessible names for icon controls. Dialogs must
+have a title, support keyboard dismissal where appropriate, contain focus, and restore focus to a
+useful control. Account for touch interaction and reduced motion.
 
-Every mutation needs pending, success, and failure feedback.
-Keep user input after a failed request so correction does not require re-entry.
-Require explicit confirmation for deleting a deck, while keeping ordinary quantity edits direct.
+Every mutation needs pending, success, and failure feedback. Keep user input after a failed request
+so correction does not require re-entry. Require explicit confirmation for deleting a deck, while
+keeping ordinary quantity edits direct.
 
-The [specification's acceptance criteria](./specification.md#interface-acceptance) define workflow requirements.
-The [verification workflow](../operations/github-automation.md#browser-verification-and-evidence) owns browser checks and evidence.
+The [specification's acceptance criteria](./specification.md#interface-acceptance) define workflow
+requirements. The
+[verification workflow](../operations/github-automation.md#browser-verification-and-evidence) owns
+browser checks and evidence.
 
 ## Reusable design rules
 
-- Inspect comparable working applications before choosing a layout.
-  Match the audience and task, then review the complete flow, including entry, alternate paths, errors, completion, and the first useful action.
-- Design working screens with real content before the landing page.
-  Let card artwork and useful data establish identity; keep backgrounds and controls neutral, with restrained icon and status accents.
-- Use spacing, alignment, and type to separate content first.
-  Add a border only when it clarifies a control, grouped task, or ambiguous boundary.
-  Do not automatically frame headers, footers, or every section.
-- Generalize a successful simplification across shared components after checking working screens and mobile layouts.
-  Preserve input boundaries, focus rings, error states, and distinctions that users need to act.
-- Keep utility content visually secondary.
-  Center the footer, use compact readable text and spacing, omit decorative dividers, and show concise credits directly.
-  Do not make secondary content quiet by making it illegible.
-- Remove unnecessary choices before a task.
-  Use one direct authentication entry, offer registration inside the account flow, preserve the destination, and lead new accounts to a useful first action.
+- Inspect comparable working applications before choosing a layout. Match the audience and task,
+  then review the complete flow, including entry, alternate paths, errors, completion, and the first
+  useful action.
+- Design working screens with real content before the landing page. Let card artwork and useful data
+  establish identity; keep backgrounds and controls neutral, with restrained icon and status
+  accents.
+- Use spacing, alignment, and type to separate content first. Add a border only when it clarifies a
+  control, grouped task, or ambiguous boundary. Do not automatically frame headers, footers, or
+  every section.
+- Generalize a successful simplification across shared components after checking working screens and
+  mobile layouts. Preserve input boundaries, focus rings, error states, and distinctions that users
+  need to act.
+- Keep utility content visually secondary. Center the footer, use compact readable text and spacing,
+  omit decorative dividers, and show concise credits directly. Do not make secondary content quiet
+  by making it illegible.
+- Remove unnecessary choices before a task. Use one direct authentication entry, offer registration
+  inside the account flow, preserve the destination, and lead new accounts to a useful first action.
   Add onboarding steps only for information the product actually needs.
-- Use dropdowns for genuine action groups or constrained navigation.
-  Do not hide a short static list or add a menu before an obvious primary task.
-- Reuse the shared component for each repeated interaction.
-  Keep labels, state and keyboard behavior consistent across Search, Decks, Inventory and Scan; do not copy a second select, card tile or menu implementation.
-- Highlight temporary capability limits when they affect expectations or decisions.
-  Remove the notice when the restriction no longer applies; do not imply a release date or promise unsupported features.
-- Use short, literal copy.
-  Omit subtitles, eyebrow labels, and section headings unless they are needed to distinguish tasks.
-  Preserve field labels, accessible names, required guidance, and factual artwork disclosures.
-- Indicate active navigation with an underline and accessible current-page state.
-  Reserve filled controls for actions and selections that need stronger emphasis.
-- Support light, dark, and system appearance through shared semantic tokens.
-  Keep a compact, accessible theme control available on every screen, persist the choice, apply it before paint, and check both palettes.
-- Center primary desktop navigation independently of unequal branding and account controls.
-  Adapt to a mobile menu before items collide.
-- Keep desktop account access to one recognizable avatar icon with an accessible name.
-  Place identity and account actions inside its menu; merge those actions into the existing mobile navigation menu.
-- Give motion a purpose and a reduced-motion version.
-  Keep decorative motion finite and outside dense editing tasks.
-- Review the result for task clarity and unnecessary visual weight, then verify narrow and wide layouts, keyboard access, errors, and successful completion.
-  A reference screenshot or clean build alone does not prove the flow works.
-- Inspect the actual scroll container and every sticky ancestor.
-  Use the shared header height once, and verify the top, middle and end of long pages in both palettes.
-- Keep active filters visible and removable beside results.
-  Distinguish empty inventory, no matching results and unavailable data.
-- Judge references by the task they support.
-  Borrow a successful inventory row or correction flow without copying unrelated seller navigation or visual styling.
-- Judge working layouts with a realistic 100-card deck, long names, multiple printings, and missing inventory.
-- Present a public deck example as a complete, verifiable deck with its commander, color identity, format and card stack.
-  Keep source attribution and a route to the full list.
-  Three ownership rows do not establish a deck composition.
-- Give each hero one clear composition.
-  Omit disconnected card or pack strips, repeated deck modules, and oversized Spellbook headings added only to fill space.
-  Preserve accepted composition traits when adjusting scale or interaction.
-- Design for viewport height as well as width.
-  Scale artwork and composition within bounds while keeping controls and reading widths usable.
-  Review large desktop, ultrawide, tall, short and mobile viewports in CSS pixels at normal browser zoom.
-  Check primary actions, footer spacing, card expansion and horizontal overflow in both themes; record the sizes actually checked.
-- Change the selected fonts only when the user requests it.
-  For an explicit typography review, compare heading and interface fonts separately.
-  Use serif or monospace interface choices; sans-serif interface fonts were rejected on 2026-10-05.
-  Preserve readable controls and metadata when a decorative heading face is selected.
+- Use dropdowns for genuine action groups or constrained navigation. Do not hide a short static list
+  or add a menu before an obvious primary task.
+- Reuse the shared component for each repeated interaction. Keep labels, state and keyboard behavior
+  consistent across Search, Decks, Inventory and Scan; do not copy a second select, card tile or
+  menu implementation.
+- Highlight temporary capability limits when they affect expectations or decisions. Remove the
+  notice when the restriction no longer applies; do not imply a release date or promise unsupported
+  features.
+- Use short, literal copy. Omit subtitles, eyebrow labels, and section headings unless they are
+  needed to distinguish tasks. Preserve field labels, accessible names, required guidance, and
+  factual artwork disclosures.
+- Indicate active navigation with an underline and accessible current-page state. Reserve filled
+  controls for actions and selections that need stronger emphasis.
+- Support light, dark, and system appearance through shared semantic tokens. Keep a compact,
+  accessible theme control available on every screen, persist the choice, apply it before paint, and
+  check both palettes.
+- Center primary desktop navigation independently of unequal branding and account controls. Adapt to
+  a mobile menu before items collide.
+- Keep desktop account access to one recognizable avatar icon with an accessible name. Place
+  identity and account actions inside its menu; merge those actions into the existing mobile
+  navigation menu.
+- Give motion a purpose and a reduced-motion version. Keep decorative motion finite and outside
+  dense editing tasks.
+- Review the result for task clarity and unnecessary visual weight, then verify narrow and wide
+  layouts, keyboard access, errors, and successful completion. A reference screenshot or clean build
+  alone does not prove the flow works.
+- Inspect the actual scroll container and every sticky ancestor. Use the shared header height once,
+  and verify the top, middle and end of long pages in both palettes.
+- Keep active filters visible and removable beside results. Distinguish empty inventory, no matching
+  results and unavailable data.
+- Judge references by the task they support. Borrow a successful inventory row or correction flow
+  without copying unrelated seller navigation or visual styling.
+- Judge working layouts with a realistic 100-card deck, long names, multiple printings, and missing
+  inventory.
+- Present a public deck example as a complete, verifiable deck with its commander, color identity,
+  format and card stack. Keep source attribution and a route to the full list. Three ownership rows
+  do not establish a deck composition.
+- Give each hero one clear composition. Omit disconnected card or pack strips, repeated deck
+  modules, and oversized Spellbook headings added only to fill space. Preserve accepted composition
+  traits when adjusting scale or interaction.
+- Design for viewport height as well as width. Scale artwork and composition within bounds while
+  keeping controls and reading widths usable. Review large desktop, ultrawide, tall, short and
+  mobile viewports in CSS pixels at normal browser zoom. Check primary actions, footer spacing, card
+  expansion and horizontal overflow in both themes; record the sizes actually checked.
+- Change the selected fonts only when the user requests it. For an explicit typography review,
+  compare heading and interface fonts separately. Use serif or monospace interface choices;
+  sans-serif interface fonts were rejected on 2026-10-05. Preserve readable controls and metadata
+  when a decorative heading face is selected.
 - Keep repeated actions direct and reveal occasional settings when an item is selected.
 - Preserve search, filters, and task context across inspection and editing.
-- Choose density for the task.
-  Deck editing needs more information per screen than the public introduction.
+- Choose density for the task. Deck editing needs more information per screen than the public
+  introduction.
 - Make summaries actionable when they represent a useful filter.
-- Collapse navigation labels only when accessible names, recognizable icons, and focus-based expansion preserve orientation.
+- Collapse navigation labels only when accessible names, recognizable icons, and focus-based
+  expansion preserve orientation.

@@ -26,26 +26,40 @@
   - [Dokumentationsindex](../README.md)
   - [Agent-Anweisungen](../../AGENTS.md)
 
-Am 2026-10-24 beauftragte Kyle diese historische Sammlung unter `docs/wiki/`.
-Quelle: [Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
-Für die aktuelle Systembeschreibung die [bestehenden Owners](../README.md) lesen; Implementierungsfragen an Code, Tests und Configuration prüfen.
-Vor strategischen Entscheidungen und Wiederaufnahme den Index und relevante Seiten lesen; danach betroffene Seiten und Index gemäß [Wiki-Pflege](./wiki-maintenance.md) fortschreiben.
+Am 2026-10-24 beauftragte Kyle diese historische Sammlung unter `docs/wiki/`. Quelle:
+[Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759). Für die aktuelle
+Systembeschreibung die [bestehenden Owners](../README.md) lesen; Implementierungsfragen an Code,
+Tests und Configuration prüfen. Vor strategischen Entscheidungen und Wiederaufnahme den Index und
+relevante Seiten lesen; danach betroffene Seiten und Index gemäß
+[Wiki-Pflege](./wiki-maintenance.md) fortschreiben.
 
 ## Orientierung und Pflege
 
 - [Index](./index.md): Einstieg und vollständiges Seitenverzeichnis.
-- [Wiki-Pflege](./wiki-maintenance.md): Ortswahl, Quellenregeln, Query, Ingest, akzeptierte Themenbündelung und präzise Quellenpositionen.
+- [Wiki-Pflege](./wiki-maintenance.md): Ortswahl, Quellenregeln, Query, Ingest, akzeptierte
+  Themenbündelung und präzise Quellenpositionen.
 
 ## Prioritäten und Entscheidungen
 
-- [Prioritäten und Zusammenarbeit](./priorities.md): Simplicity before Maintainability before Features as selected on 2026-11-09, isolated slice PR preference of 2026-11-09 and scoped integration pass of 2026-11-10, Context Pointers, Voice-to-Text-Präferenz, Themenbündelung und abgelöste Proof-Gates.
-- [Android zuerst](./mobile-direction.md): Bestätigte Plattformpriorität und getrennte Kotlin-Empfehlung.
-- [Interface-Entfernung](./interface-removal.md): Sofortiger Ersatz alter Interfaces, erweiterter Pre-release-Verzicht und getrennte Production-Autorität.
-- [Datenbankoptionen](./database-options.md): SQLite-/Turso-Historie, theoretische Wechselmotive, Gesamtbackend-Vergleich und spätere Bestätigung von Python und PostgreSQL.
-- [Python-Backend standardisieren](./python-backend-standardization.md): Nativer FastAPI-/Pydantic-Stand bei B388, bestandener HTTP-Neulauf bei AD5, bestätigte Admin-Absicht ohne vorerst geplantes ML-Panel und ausgewählte Retro-Maßnahmen mit Implementierungsbelegen.
-  The [2026-11-09 closure decision](./python-backend-standardization.md#base-port-closure-decision-on-2026-11-09) separates delivered base-port completion from ongoing owner testing and production operations.
+- [Prioritäten und Zusammenarbeit](./priorities.md): Simplicity before Maintainability before
+  Features as selected on 2026-11-09, isolated slice PR preference of 2026-11-09 and scoped
+  integration pass of 2026-11-10, Context Pointers, Voice-to-Text-Präferenz, Themenbündelung und
+  abgelöste Proof-Gates.
+- [Android zuerst](./mobile-direction.md): Bestätigte Plattformpriorität und getrennte
+  Kotlin-Empfehlung.
+- [Interface-Entfernung](./interface-removal.md): Sofortiger Ersatz alter Interfaces, erweiterter
+  Pre-release-Verzicht und getrennte Production-Autorität.
+- [Datenbankoptionen](./database-options.md): SQLite-/Turso-Historie, theoretische Wechselmotive,
+  Gesamtbackend-Vergleich und spätere Bestätigung von Python und PostgreSQL.
+- [Python-Backend standardisieren](./python-backend-standardization.md): Nativer
+  FastAPI-/Pydantic-Stand bei B388, bestandener HTTP-Neulauf bei AD5, bestätigte Admin-Absicht ohne
+  vorerst geplantes ML-Panel und ausgewählte Retro-Maßnahmen mit Implementierungsbelegen. The
+  [2026-11-09 closure decision](./python-backend-standardization.md#base-port-closure-decision-on-2026-11-09)
+  separates delivered base-port completion from ongoing owner testing and production operations.
 
 ## Tooling und Prüfungen
 
-- [uv statt vermutetem pip](./python-tooling.md): Datierter Audit und begrenzte Korrektur der Worker-Beispiele.
-- [CI-Vereinfachung](./ci-simplification.md): Entfernte Mehrfachprüfungen und ungemessene Zeitersparnis.
+- [uv statt vermutetem pip](./python-tooling.md): Datierter Audit und begrenzte Korrektur der
+  Worker-Beispiele.
+- [CI-Vereinfachung](./ci-simplification.md): Entfernte Mehrfachprüfungen und ungemessene
+  Zeitersparnis.

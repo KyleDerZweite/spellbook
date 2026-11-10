@@ -17,9 +17,10 @@
   - [Repository verification and GitHub automation](./github-automation.md)
   - [Docs index](../README.md)
 
-Use these documents to run Spellbook.
-Keep live instance values and secrets outside this repository.
-[Repository verification](./github-automation.md#python-api-and-core) owns Python functional checks under the [current migration contract](../architecture/python-backend-migration.md); strict P01 resource proof is retired and production operations remain separate.
+Use these documents to run Spellbook. Keep live instance values and secrets outside this repository.
+[Repository verification](./github-automation.md#python-api-and-core) owns Python functional checks
+under the [current migration contract](../architecture/python-backend-migration.md); strict P01
+resource proof is retired and production operations remain separate.
 
 - [Deployment](./deployment.md)
 - [Local authentication and account recovery](./local-auth.md)

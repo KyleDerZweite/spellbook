@@ -19,48 +19,65 @@
   - [Datenbankoptionen](./database-options.md)
   - [Admin-Klarstellung](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25)
 
-Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features.
-The ordering above is superseded by the [2026-11-09 priority decision](#priority-order-selected-on-2026-11-09).
-Er beauftragte Root als DRI mit der Koordination von Background-Main-Agents und knapper Kommunikation über Context Pointers.
-Environment-Verbesserungen sollten konkrete Reibung beheben; einmalige Workarounds waren unerwünscht.
-Quelle: [Strategiedialog vom 2026-10-24](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
-Für Modell- und Rollenregeln beim Wiedereinstieg [AGENTS.md](../../AGENTS.md) und die geltenden persönlichen Anweisungen lesen.
+Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features. The
+ordering above is superseded by the
+[2026-11-09 priority decision](#priority-order-selected-on-2026-11-09). Er beauftragte Root als DRI
+mit der Koordination von Background-Main-Agents und knapper Kommunikation über Context Pointers.
+Environment-Verbesserungen sollten konkrete Reibung beheben; einmalige Workarounds waren
+unerwünscht. Quelle:
+[Strategiedialog vom 2026-10-24](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759). Für Modell-
+und Rollenregeln beim Wiedereinstieg [AGENTS.md](../../AGENTS.md) und die geltenden persönlichen
+Anweisungen lesen.
 
-Am 2026-10-24 verwies der Stand `KyleDerZweite/spellbook@62c13b5c7a1c5a9a97f25f4e214271bea7ad4951` auf [ADR-0027](https://github.com/KyleDerZweite/spellbook/blob/62c13b5c7a1c5a9a97f25f4e214271bea7ad4951/docs/decisions/0027-python-functional-migration-acceptance.md) vom 2026-10-23.
-Diese Entscheidung hatte strikte Ressourcen-, Collector- und Linux/Kernel-Proofs als Implementierungsvoraussetzungen abgelöst.
-Die damaligen Proof-Gates dürfen aus historischen Verweisen nicht wieder als akzeptierte Anforderungen abgeleitet werden.
-Funktionale Korrektheit und separate Production-Autorität behielten ihre eigenen Verträge.
+Am 2026-10-24 verwies der Stand `KyleDerZweite/spellbook@62c13b5c7a1c5a9a97f25f4e214271bea7ad4951`
+auf
+[ADR-0027](https://github.com/KyleDerZweite/spellbook/blob/62c13b5c7a1c5a9a97f25f4e214271bea7ad4951/docs/decisions/0027-python-functional-migration-acceptance.md)
+vom 2026-10-23. Diese Entscheidung hatte strikte Ressourcen-, Collector- und Linux/Kernel-Proofs als
+Implementierungsvoraussetzungen abgelöst. Die damaligen Proof-Gates dürfen aus historischen
+Verweisen nicht wieder als akzeptierte Anforderungen abgeleitet werden. Funktionale Korrektheit und
+separate Production-Autorität behielten ihre eigenen Verträge.
 
 ## Voice-to-Text-Präferenz vom 2026-10-25
 
-Am 2026-10-25 bat Kyle darum, offensichtliche Voice-to-Text-Ungenauigkeiten aus dem Kontext zu interpretieren.
-Nur folgenreiche Mehrdeutigkeiten sollen Rückfragen auslösen; einzelne transkribierte Begriffe begründen keine neue Anforderung.
-Anlass war die [Admin-/ML-Korrektur](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25).
-Quelle: [Nutzerpräferenz im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3772.
+Am 2026-10-25 bat Kyle darum, offensichtliche Voice-to-Text-Ungenauigkeiten aus dem Kontext zu
+interpretieren. Nur folgenreiche Mehrdeutigkeiten sollen Rückfragen auslösen; einzelne
+transkribierte Begriffe begründen keine neue Anforderung. Anlass war die
+[Admin-/ML-Korrektur](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25).
+Quelle: [Nutzerpräferenz im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759),
+Position 3772.
 
 ## Themenbündelung vom 2026-10-25
 
-Am 2026-10-25 bestätigte Kyle die sofortige Aufnahme von Erkenntnissen mit gebündelter Formatierung, Integration und Commit pro Thema.
-Die [Wiki-Pflege](./wiki-maintenance.md#akzeptierte-pflegepräzisierung-vom-2026-10-25) beschreibt den Ablauf und die präziseren Quellenangaben.
-Quelle: [Zustimmung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3859, ItemID `turn-item:message:9a5d5a04-14a9-49ed-b27a-1a51c27e0c2e`, zu den Empfehlungen an Position 3854.
+Am 2026-10-25 bestätigte Kyle die sofortige Aufnahme von Erkenntnissen mit gebündelter Formatierung,
+Integration und Commit pro Thema. Die
+[Wiki-Pflege](./wiki-maintenance.md#akzeptierte-pflegepräzisierung-vom-2026-10-25) beschreibt den
+Ablauf und die präziseren Quellenangaben. Quelle:
+[Zustimmung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3859,
+ItemID `turn-item:message:9a5d5a04-14a9-49ed-b27a-1a51c27e0c2e`, zu den Empfehlungen an
+Position 3854.
 
 ## Isolated slice PRs selected on 2026-11-09
 
-On 2026-11-09 Kyle selected isolated slice PRs for small existing unblocked closeouts, using GPT-6.1-Sol medium subagents.
-Blocked issues and new tasks remain excluded.
-Source: [Coordination decision](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 0.
+On 2026-11-09 Kyle selected isolated slice PRs for small existing unblocked closeouts, using
+GPT-6.1-Sol medium subagents. Blocked issues and new tasks remain excluded. Source:
+[Coordination decision](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 0.
 
 ## Priority order selected on 2026-11-09
 
-On 2026-11-09 Kyle selected Simplicity, then Maintainability, then Features for Spellbook, superseding the 2026-10-24 ordering above.
-Prefer the smallest complete solution and simplify where possible, preserving agreed scope and long-term development needs.
-Source: [Priority correction](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 197, ItemID `turn-item:message:8e739bf9-9e9c-405a-8259-3dd4b0e9b238`.
+On 2026-11-09 Kyle selected Simplicity, then Maintainability, then Features for Spellbook,
+superseding the 2026-10-24 ordering above. Prefer the smallest complete solution and simplify where
+possible, preserving agreed scope and long-term development needs. Source:
+[Priority correction](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 197, ItemID
+`turn-item:message:8e739bf9-9e9c-405a-8259-3dd4b0e9b238`.
 
 ## Integration simplification pass selected on 2026-11-10
 
-On 2026-11-10 Kyle selected a codebase-wide simplification pass with GPT-6.1-Sol low agents and Simplicity before Maintainability before Features.
-For this pass, one integration branch collects isolated changes and the final pull request remains open without a merge to main.
-This delivery choice supersedes separate main-targeted slice PRs for this effort only.
-Kyle selected all technically decidable architecture candidates, including shared Catalog filter labels, without another candidate-choice gate.
-Live Demo journeys and visual regression checks take priority over additional tests; product, scope and workflow choices remain excluded.
-Source: [Simplification mandate](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 415, ItemID `turn-item:message:3e8d5de7-7386-4b26-88d8-8b2bed2b78a6`.
+On 2026-11-10 Kyle selected a codebase-wide simplification pass with GPT-6.1-Sol low agents and
+Simplicity before Maintainability before Features. For this pass, one integration branch collects
+isolated changes and the final pull request remains open without a merge to main. This delivery
+choice supersedes separate main-targeted slice PRs for this effort only. Kyle selected all
+technically decidable architecture candidates, including shared Catalog filter labels, without
+another candidate-choice gate. Live Demo journeys and visual regression checks take priority over
+additional tests; product, scope and workflow choices remain excluded. Source:
+[Simplification mandate](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 415, ItemID
+`turn-item:message:3e8d5de7-7386-4b26-88d8-8b2bed2b78a6`.

@@ -30,6 +30,9 @@ test('preserves atomic Markdown and checks prose around tokens', () => {
 		[]
 	);
 	assert.equal(checkText('words '.repeat(20) + link).length, 1);
+	const boundaryLink = '[reference](' + 'a'.repeat(87) + ')';
+	assert.equal(boundaryLink.length, 100);
+	assert.deepEqual(checkText(boundaryLink + ','), []);
 });
 test('discovers hidden and new Markdown, excludes ignored and deleted files', () => {
 	const directory = mkdtempSync(join(tmpdir(), 'docs-check-'));
