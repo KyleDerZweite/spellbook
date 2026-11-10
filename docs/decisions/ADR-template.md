@@ -3,7 +3,8 @@
 - Status: Proposed
 - Date: YYYY-MM-DD
 - Owners: name or team
-- Related Docs: [Docs Index](../README.md)
+- Related Docs:
+  - [Docs Index](../README.md)
 
 ## Context
 

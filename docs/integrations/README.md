@@ -3,33 +3,69 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: mixed
-- Update Triggers: managed Category removal, executed lexical/BM25/vector search comparison, PostgreSQL and semantic search evaluation, functional Python acceptance and current migration status, Python API/worker language selection and migration planning, external system contracts, integration scope, provider evaluations and scanner-platform research
-- Related Docs: [Market price research](./market-prices.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Backend language evaluation](./backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
+- Update Triggers:
+  - managed Category removal
+  - executed lexical/BM25/vector search comparison
+  - PostgreSQL and semantic search evaluation
+  - functional Python acceptance and current migration status
+  - Python API/worker language selection and migration planning
+  - external system contracts
+  - integration scope
+  - provider evaluations and scanner-platform research
+- Related Docs:
+  - [Market price research](./market-prices.md)
+  - [Realtime backend evaluation](./realtime-backends.md)
+  - [Proposed card robot](./card-robot.md)
+  - [Scanner platform evaluation](./scanner-platform-evaluation.md)
+  - [Worker](../architecture/worker.md)
+  - [Catalog](../architecture/catalog.md)
+  - [Docs index](../README.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [Backend language evaluation](./backend-language-evaluation.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
+  - [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
-[Backend language evaluation](./backend-language-evaluation.md) compares Go, Python, Rust and the current TypeScript API, with worker grouping and migration gates.
-[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers; the migration contract selects the stack and boundaries, with dormant foundations implemented and full functional migration pending.
-[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) removes strict performance/resource blockers; the [current contract](../architecture/python-backend-migration.md) owns delivery and acceptance.
+[Backend language evaluation](./backend-language-evaluation.md) compares Go, Python, Rust and the
+current TypeScript API, with worker grouping and migration gates.
+[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and
+workers; the migration contract selects the stack and boundaries, with dormant foundations
+implemented and full functional migration pending.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) removes strict
+performance/resource blockers; the [current contract](../architecture/python-backend-migration.md)
+owns delivery and acceptance.
 
-The [card robot proposal](./card-robot.md) owns the future phone/sorter integration, hardware concept, local fast/slow recognition, device-login concept and exploratory simulator.
-[ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local recognition, with public reference preparation proposed centrally.
-These decisions are not implemented hardware or phone-client support.
+The [card robot proposal](./card-robot.md) owns the future phone/sorter integration, hardware
+concept, local fast/slow recognition, device-login concept and exploratory simulator.
+[ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local recognition,
+with public reference preparation proposed centrally. These decisions are not implemented hardware
+or phone-client support.
 
-[Scanner platform evaluation](./scanner-platform-evaluation.md) is the research report on website/phone options, local recognition hosts, controller separation, OSS operation, self-hosting and hardware reproduction.
-Its recommendations and proposed experiments are decision support, not accepted implementation contracts.
+[Scanner platform evaluation](./scanner-platform-evaluation.md) is the research report on
+website/phone options, local recognition hosts, controller separation, OSS operation, self-hosting
+and hardware reproduction. Its recommendations and proposed experiments are decision support, not
+accepted implementation contracts.
 
-[Global search evaluation](./search-evaluation.md) records the executed eight-variant comparison of Autocomplete, lexical/BM25/vector retrieval, static navigation, Deck scope and keyboard usability.
-These remain proposals; [UI direction](../product/ui-design-direction.md#proposed-global-command-menu) owns the shortcut-only entry requirement.
+[Global search evaluation](./search-evaluation.md) records the executed eight-variant comparison of
+Autocomplete, lexical/BM25/vector retrieval, static navigation, Deck scope and keyboard usability.
+These remain proposals;
+[UI direction](../product/ui-design-direction.md#proposed-global-command-menu) owns the
+shortcut-only entry requirement.
 
-Scryfall ingestion belongs to the [worker architecture](../architecture/worker.md), and PostgreSQL catalog contracts belong to [catalog architecture](../architecture/catalog.md).
+Scryfall ingestion belongs to the [worker architecture](../architecture/worker.md), and PostgreSQL
+catalog contracts belong to [catalog architecture](../architecture/catalog.md).
 
-[Market price research](./market-prices.md) records implemented Scryfall baseline references and provider evaluation.
-[Value tracking](../product/value-tracking.md) owns current reference presentation and implemented value-only personal Inventory history.
-Scryfall EUR references and supplied product links are implemented.
-Optional Cardmarket and MTGJSON adapters and bounded public market history are implemented with explicit opt-ins.
-Acquisition-cost tracking is removed from scope.
-Marketplace account connections remain outside this pass; a sales/trading ledger is not implemented.
+[Market price research](./market-prices.md) records implemented Scryfall baseline references and
+provider evaluation. [Value tracking](../product/value-tracking.md) owns current reference
+presentation and implemented value-only personal Inventory history. Scryfall EUR references and
+supplied product links are implemented. Optional Cardmarket and MTGJSON adapters and bounded public
+market history are implemented with explicit opt-ins. Acquisition-cost tracking is removed from
+scope. Marketplace account connections remain outside this pass; a sales/trading ledger is not
+implemented.
 
-[Realtime backend evaluation](./realtime-backends.md) records dated Convex pricing, client and auth coupling, and the choice to retain PostgreSQL for the current pass.
-Q56 accepted PostgreSQL LISTEN/NOTIFY with account-scoped SSE; [application contract](../architecture/application-contract.md#saved-state-synchronization) owns the mechanisms.
-SavedState transport and Profile synchronization are implemented and verified.
-Mounted Profile/Dashboard/Inventory/Deck/Scan consumers are implemented; rendered workspace acceptance remains separate.
+[Realtime backend evaluation](./realtime-backends.md) records dated Convex pricing, client and auth
+coupling, and the choice to retain PostgreSQL for the current pass. Q56 accepted PostgreSQL
+LISTEN/NOTIFY with account-scoped SSE;
+[application contract](../architecture/application-contract.md#saved-state-synchronization) owns the
+mechanisms. SavedState transport and Profile synchronization are implemented and verified. Mounted
+Profile/Dashboard/Inventory/Deck/Scan consumers are implemented; rendered workspace acceptance
+remains separate.

@@ -205,3 +205,55 @@ test('contracts cannot import repository scripts and backend cannot import the f
 			)
 	);
 });
+
+test('derived calculations reject workspace subscriptions, including imported aliases', () => {
+	for (const expression of [
+		'$derived(workspaceSavedState.subscribe(() => descriptor))',
+		'$derived.by(() => { return workspaceSavedState.subscribe(() => descriptor); })',
+		'$derived.by(() => saved.subscribe(() => descriptor))'
+	])
+		fixture(
+			{
+				'frontend/package.json': JSON.stringify({
+					imports: { '#lib/*': './src/lib/*' }
+				}),
+				'frontend/src/lib/saved-state/workspace.svelte.ts': '',
+				'frontend/src/page.svelte': `<p>🧙</p>
+<script module>const icon = '🧙';</script>
+<script lang="ts">
+import { workspaceSavedState, workspaceSavedState as saved } from '#lib/saved-state/workspace.svelte.ts';
+const result = ${expression};
+</script>`
+			},
+			(root) => {
+				const errors = checkBoundaries(root);
+				assert.equal(errors.length, 1);
+				assert.equal(errors[0].rule, 'derived-workspace-subscription');
+				assert.match(errors[0].message, /state_unsafe_mutation/);
+				assert.match(errors[0].message, /frontend\/src\/page.svelte:5:\d+/);
+			}
+		);
+});
+
+test('initialization, effects, read-only derived state and deferred callbacks remain valid', () => {
+	fixture(
+		{
+			'frontend/package.json': JSON.stringify({
+				imports: { '#lib/*': './src/lib/*' }
+			}),
+			'frontend/src/lib/saved-state/workspace.svelte.ts': '',
+			'frontend/src/page.svelte': `<script lang="ts">
+import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+const subscription = workspaceSavedState.subscribe(() => descriptor);
+$effect(() => workspaceSavedState.subscribe(() => descriptor));
+const state = $derived(subscription.getState());
+const read = $derived.by(() => subscription.getState());
+const deferred = $derived(() => workspaceSavedState.subscribe(() => descriptor));
+const nested = $derived.by(() => () => workspaceSavedState.subscribe(() => descriptor));
+// $derived(workspaceSavedState.subscribe(() => descriptor))
+const text = '$derived(workspaceSavedState.subscribe())';
+</script>`
+		},
+		(root) => assert.deepEqual(checkBoundaries(root), [])
+	);
+});

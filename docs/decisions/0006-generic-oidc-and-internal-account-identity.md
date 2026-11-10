@@ -4,29 +4,41 @@
 - Date: 2026-05-17
 - Last Reviewed: 2026-10-03
 - Source of Truth: recorded decision
-- Update Triggers: decision applicability, supersession, related document changes
-- Related Docs: [Auth Architecture](../architecture/auth.md), [Postgres](../architecture/postgres.md), [Local authentication](../operations/local-auth.md), [Deployment](../operations/deployment.md)
+- Update Triggers:
+  - decision applicability
+  - supersession
+  - related document changes
+- Related Docs:
+  - [Auth Architecture](../architecture/auth.md)
+  - [Postgres](../architecture/postgres.md)
+  - [Local authentication](../operations/local-auth.md)
+  - [Deployment](../operations/deployment.md)
 
-This record describes the former OIDC design.
-[ADR-0009](./0009-local-authentication.md) replaces authentication while preserving internal account ownership.
+This record describes the former OIDC design. [ADR-0009](./0009-local-authentication.md) replaces
+authentication while preserving internal account ownership.
 
 ## Context
 
-Spellbook originally integrated directly with Zitadel.
-That worked for the current deployment, but it made the app shape depend on one identity provider and used the provider subject as the application ownership key.
+Spellbook originally integrated directly with Zitadel. That worked for the current deployment, but
+it made the app shape depend on one identity provider and used the provider subject as the
+application ownership key.
 
 That coupling creates two problems:
 
-- future operators may already use another OIDC provider such as Keycloak, Authentik, Authelia, WorkOS, Clerk, Google Workspace, or Microsoft Entra ID
-- changing providers can change external subject identifiers and break access to existing inventory, deck, and scan data
+- future operators may already use another OIDC provider such as Keycloak, Authentik, Authelia,
+  WorkOS, Clerk, Google Workspace, or Microsoft Entra ID
+- changing providers can change external subject identifiers and break access to existing inventory,
+  deck, and scan data
 
-Spellbook should stay simple and self-hostable without taking on local password-auth responsibilities before they are clearly needed.
+Spellbook should stay simple and self-hostable without taking on local password-auth
+responsibilities before they are clearly needed.
 
 ## Decision
 
 Spellbook uses generic OIDC as the canonical external auth contract.
 
-The implementation keeps the existing SvelteKit Authorization Code + PKCE flow and encrypted session cookie, but renames the provider boundary from Zitadel-specific code and env vars to generic OIDC.
+The implementation keeps the existing SvelteKit Authorization Code + PKCE flow and encrypted session
+cookie, but renames the provider boundary from Zitadel-specific code and env vars to generic OIDC.
 
 New deployments should configure:
 
@@ -41,8 +53,8 @@ Spellbook now stores provider identity separately from app ownership:
 - `user_profiles.account_id` is the internal Spellbook account key used by app data
 - `auth_identities` maps `provider_type + issuer + subject` to that internal account key
 
-Users are auto-provisioned on first successful OIDC login.
-Spellbook does not auto-link unrelated providers by email.
+Users are auto-provisioned on first successful OIDC login. Spellbook does not auto-link unrelated
+providers by email.
 
 ## Consequences
 
@@ -62,9 +74,12 @@ Spellbook does not auto-link unrelated providers by email.
 ### Neutral
 
 - the `account_id` column name remains in existing domain tables to avoid a broad schema rename
-- existing deployments that used the provider subject as `account_id` are linked on first login when the subject already exists as a local account id
+- existing deployments that used the provider subject as `account_id` are linked on first login when
+  the subject already exists as a local account id
 
 ## Follow-Up
 
-- consider built-in auth only if an external OIDC provider becomes too heavy for the target deployment model
-- if built-in auth is added, prefer a maintained auth library over hand-rolled password storage and recovery flows
+- consider built-in auth only if an external OIDC provider becomes too heavy for the target
+  deployment model
+- if built-in auth is added, prefer a maintained auth library over hand-rolled password storage and
+  recovery flows

@@ -19,14 +19,71 @@ function files(directory) {
 	});
 }
 
-function importEdges(text, path) {
-	if (path.endsWith('.svelte'))
-		text = [...text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)]
-			.map((match) => match[1])
-			.join('\n');
+function importEdges(text, path, errors = [], file = path) {
+	if (path.endsWith('.svelte')) {
+		const original = text;
+		const characters = [...text.replace(/[^\n]/g, ' ')];
+		for (const match of original.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)) {
+			const start = match.index + match[0].indexOf('>') + 1;
+			for (let index = 0; index < match[1].length; index++)
+				characters[start + index] = match[1][index];
+		}
+		text = characters.join('');
+	}
 	const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
 	const imports = [];
+	const bindings = new Set();
+	for (const node of source.statements) {
+		if (
+			!ts.isImportDeclaration(node) ||
+			node.importClause?.isTypeOnly ||
+			!ts.isStringLiteralLike(node.moduleSpecifier) ||
+			!/(^|\/)saved-state\/workspace\.svelte(?:\.ts)?$/.test(node.moduleSpecifier.text)
+		)
+			continue;
+		const named = node.importClause?.namedBindings;
+		if (named && ts.isNamedImports(named))
+			for (const binding of named.elements)
+				if (
+					!binding.isTypeOnly &&
+					(binding.propertyName ?? binding.name).text === 'workspaceSavedState'
+				)
+					bindings.add(binding.name.text);
+	}
+	function calculation(node) {
+		if (ts.isFunctionLike(node)) return;
+		if (
+			ts.isCallExpression(node) &&
+			ts.isPropertyAccessExpression(node.expression) &&
+			node.expression.name.text === 'subscribe' &&
+			ts.isIdentifier(node.expression.expression) &&
+			bindings.has(node.expression.expression.text)
+		) {
+			const { line, character } = source.getLineAndCharacterOfPosition(node.getStart(source));
+			errors.push({
+				rule: 'derived-workspace-subscription',
+				file,
+				message: `${file}:${line + 1}:${character + 1}: workspaceSavedState.subscribe() mutates reactive state inside $derived and can cause state_unsafe_mutation; subscribe during component initialization or an effect.`
+			});
+		}
+		ts.forEachChild(node, calculation);
+	}
+
 	function visit(node) {
+		if (ts.isCallExpression(node)) {
+			if (ts.isIdentifier(node.expression) && node.expression.text === '$derived')
+				node.arguments.forEach(calculation);
+			if (
+				ts.isPropertyAccessExpression(node.expression) &&
+				ts.isIdentifier(node.expression.expression) &&
+				node.expression.expression.text === '$derived' &&
+				node.expression.name.text === 'by'
+			) {
+				const callback = node.arguments[0];
+				if (callback && (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)))
+					calculation(callback.body);
+			}
+		}
 		if (
 			(ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
 			node.moduleSpecifier &&
@@ -97,7 +154,7 @@ export function checkBoundaries(root = repository) {
 			!file.includes('/lib/server/') &&
 			!/(\.server\.|\/\+server\.)/.test(file) &&
 			!file.endsWith('/app.d.ts');
-		for (const { specifier } of importEdges(readFileSync(path, 'utf8'), path)) {
+		for (const { specifier } of importEdges(readFileSync(path, 'utf8'), path, errors, file)) {
 			const host = {
 				...ts.sys,
 				fileExists: (file) =>
@@ -168,7 +225,7 @@ export function checkBoundaries(root = repository) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 	const errors = checkBoundaries();
 	for (const error of errors)
-		console.error(`${error.rule}: ${error.file} imports ${error.specifier}`);
+		console.error(error.message ?? `${error.rule}: ${error.file} imports ${error.specifier}`);
 	if (errors.length) process.exitCode = 1;
 	else console.log('Workspace dependency directions passed.');
 }
