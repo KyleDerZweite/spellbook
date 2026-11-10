@@ -97,10 +97,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         update { it.copy(authenticating = false) }
     }
     fun navigate(next: Route) {
-        if (route.screen == "auth" && next != route) {
-            sessionRequests.cancel()
-            update { it.copy(authenticating = false) }
-        }
+        if (route.screen == "auth" && next != route) cancelAuthentication()
         if (route.screen == "qr" && next != route) qr?.cancel()
         route = next
         update { it.copy(data = null, loading = false, error = null, authError = null) }
@@ -295,8 +292,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
     fun retryMutation() {
         val pending = state.value.draft.attempt ?: return
         val attempt = runCatching { pending.retryFor(backend, state.value.session?.user?.accountId ?: "") }.getOrNull() ?: return
-        if (attempt.confirmedReceipt != null || state.value.saving || !state.value.verified) return
-        if (attempt.backend != backend || attempt.accountId != state.value.session?.user?.accountId) return
+        if (state.value.saving || !state.value.verified) return
         val owner = epoch
         update { it.copy(saving = true, writeError = null) }
         mutation = scope().launch {

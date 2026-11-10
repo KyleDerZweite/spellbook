@@ -1220,5 +1220,7 @@
 	"inventory.order.name.variant": "Nach {column} {variantDirection}, dann nach Kartenname {direction}, dann nach Set aufsteigend sortiert.",
 	"inventory.column.finish": "Ausführung",
 	"inventory.column.condition": "Zustand",
-	"inventory.column.quantity": "Anzahl"
+	"inventory.column.quantity": "Anzahl",
+	"search.color.any": "Beliebige Farbe",
+	"search.color.anyIdentity": "Beliebige Farbidentität"
 }

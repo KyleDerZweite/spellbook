@@ -1,9 +1,9 @@
 # Prioritäten und Zusammenarbeit
 
 - Status: Historical
-- Last Reviewed: 2026-11-09
+- Last Reviewed: 2026-11-10
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: explicit priority correction of 2026-11-09, isolated slice coordination preference, akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
+- Update Triggers: scoped integration simplification pass of 2026-11-10, explicit priority correction of 2026-11-09, isolated slice coordination preference, akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
 - Related Docs: [Index](./index.md), [Wiki-Pflege](./wiki-maintenance.md), [Interface-Entfernung](./interface-removal.md), [Datenbankoptionen](./database-options.md), [Admin-Klarstellung](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25)
 
 Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features.
@@ -42,3 +42,12 @@ Source: [Coordination decision](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8
 On 2026-11-09 Kyle selected Simplicity, then Maintainability, then Features for Spellbook, superseding the 2026-10-24 ordering above.
 Prefer the smallest complete solution and simplify where possible, preserving agreed scope and long-term development needs.
 Source: [Priority correction](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 197, ItemID `turn-item:message:8e739bf9-9e9c-405a-8259-3dd4b0e9b238`.
+
+## Integration simplification pass selected on 2026-11-10
+
+On 2026-11-10 Kyle selected a codebase-wide simplification pass with GPT-6.1-Sol low agents and Simplicity before Maintainability before Features.
+For this pass, one integration branch collects isolated changes and the final pull request remains open without a merge to main.
+This delivery choice supersedes separate main-targeted slice PRs for this effort only.
+Kyle selected all technically decidable architecture candidates, including shared Catalog filter labels, without another candidate-choice gate.
+Live Demo journeys and visual regression checks take priority over additional tests; product, scope and workflow choices remain excluded.
+Source: [Simplification mandate](t3-thread://v1/46d5fcc9-3c0d-47d2-bfd1-746de36d8046), position 415, ItemID `turn-item:message:3e8d5de7-7386-4b26-88d8-8b2bed2b78a6`.

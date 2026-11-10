@@ -199,10 +199,8 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
 	try {
 		const [mode, action, ...rest] = process.argv.slice(2);
 		let revision;
-		const at = rest[0] === '--revision' ? 0 : -1;
-		if (at !== -1) {
-			revision = rest[at + 1];
-			rest.splice(at, 2);
+		if (rest[0] === '--revision') {
+			[, revision] = rest.splice(0, 2);
 			if (!revision) throw new Error(usage);
 		}
 		const configuration = {

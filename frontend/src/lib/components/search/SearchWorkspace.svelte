@@ -23,7 +23,7 @@
 	import { onMount, onDestroy, tick, untrack, type Snippet } from 'svelte';
 	import { nativeFeedbackRange } from '#lib/search/native-panel.ts';
 	import {
-		getActiveFilters,
+		filterOptionLabel,
 		MANA_COLORS,
 		RARITIES,
 		CARD_TYPES,
@@ -97,11 +97,11 @@
 	const colorMatch = $derived(input.filters.colorMatch);
 	const colorExpression = $derived(
 		colorMatch && (colorMatch.any.length || colorMatch.all.length || colorMatch.not?.length)
-			? formatColorExpression(colorMatch)
+			? formatColorExpression(colorMatch, false, language.locale)
 			: null
 	);
 	const compactColorExpression = $derived(
-		colorMatch ? formatColorExpression(colorMatch, true).visual : ''
+		colorMatch ? formatColorExpression(colorMatch, true, language.locale).visual : ''
 	);
 	const paging = $derived(input.pagination ?? searchPagination());
 	const snapshot = $derived(session.snapshot);
@@ -113,7 +113,7 @@
 	const loading = $derived(mounted ? snapshot.loading : false);
 	const error = $derived(mounted ? snapshot.error : serverError);
 	const browseMode = $derived(input.query.trim().length < 2);
-	const activeFilters = $derived(getActiveFilters(filters, language.locale));
+	const activeFilterCount = $derived(filters.activeCount);
 	const hasFilters = $derived(
 		mounted
 			? filters.hasFilters
@@ -326,9 +326,7 @@
 				onclick={() => (filtersOpen = !filtersOpen)}
 				aria-expanded={filtersOpen}
 				class="btn btn-secondary md:hidden"
-				>{language.t('ui.Filters')}{activeFilters.length
-					? ` (${activeFilters.length})`
-					: ''}</button
+				>{language.t('ui.Filters')}{activeFilterCount ? ` (${activeFilterCount})` : ''}</button
 			>
 		{:else}
 			<details class="w-full">
@@ -369,7 +367,7 @@
 										name={group.name}
 										value={option.id}
 										checked={group.selected?.some((value) => value === option.id)}
-									/>{language.message(option.label)}</label
+									/>{filterOptionLabel(option, language.locale)}</label
 								>{/each}
 						</fieldset>
 					{/each}

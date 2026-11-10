@@ -1,7 +1,7 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-11-07
+- Last Reviewed: 2026-11-10
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
 - Update Triggers:
   - Website shell and presentation:
@@ -11,6 +11,7 @@
     - PWA installation, updates, cache policy, QR presentation and camera cleanup.
     - Installed narrow navigation and runtime compatibility.
   - Search and Card inspection:
+    - Shared Catalog filter option labels for native controls, enhanced controls and chips.
     - Language filter placement, flags, multi-selection and result counts.
     - Color expressions, AND-only and NOT semantics, URL/session/cache ownership.
     - Printing deep links and opt-in shortcut-only search evaluation.
@@ -269,6 +270,7 @@ Mounted components clear private state on terminal expiry and require the matchi
 
 CardDeckAdd starts with no selected Deck.
 Its searchable summary picker uses the bounded Deck-choice use case with 20-result pages, a separate selected-owned lookup and one serialized SavedState read resource.
+The component registers that resource once during initialization and disposes it on destruction, outside reactive derived calculations.
 Query, page, account, draft owner and response-body leases guard publication.
 It never loads Deck Composition or Inventory Availability.
 Section and Quantity are explicit controls.
@@ -944,6 +946,8 @@ Language state belongs to SearchSession and its normalized cache context, includ
 Web implements website localization with bundled [English](../../frontend/src/lib/i18n/en.json) and [German](../../frontend/src/lib/i18n/de.json) JSON dictionaries.
 The dictionaries have identical typed keys and interpolation parameters, full messages and explicit plural variants.
 UI language is independent of Catalog Printing language filters, provider text and user-entered content.
+The [Catalog filter options module](../../frontend/src/lib/search/filter-options.ts) owns the typed translation keys and label lookup used by native controls, enhanced controls, accessible Color labels and Color-expression presentation.
+Color expressions localize their full Color names while preserving domain filter values, WUBRG abbreviations and logical operators.
 The [presentation adapter](../../frontend/src/lib/i18n/presentation.ts) translates known complete API messages.
 It preserves unknown API details, provider text and user-entered content.
 

@@ -16,7 +16,7 @@ import {
 	replaceInventoryGroupMemberships
 } from '#lib/server/data/inventory-groups.ts';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
-import { ValidationError } from '#lib/server/mtg/validation.ts';
+import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
 import { inventoryApplication } from '#lib/server/data/inventory-window.ts';
 
