@@ -3,8 +3,15 @@
 - Status: Accepted
 - Last Reviewed: 2026-11-02
 - Source of Truth: maintainer redesign request, application components
-- Update Triggers: managed Category removal, visual identity, navigation structure, frontend stack changes
-- Related Docs: [Design direction](../product/ui-design-direction.md), [Frontend](../architecture/frontend.md), [Decisions](./README.md)
+- Update Triggers:
+  - managed Category removal
+  - visual identity
+  - navigation structure
+  - frontend stack changes
+- Related Docs:
+  - [Design direction](../product/ui-design-direction.md)
+  - [Frontend](../architecture/frontend.md)
+  - [Decisions](./README.md)
 
 The maintainer requested a full replacement of the frontend design and permitted a stack change.
 The prior fixed visual direction no longer constrains this work.

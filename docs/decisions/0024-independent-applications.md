@@ -4,8 +4,22 @@
 - Date: 2026-10-19
 - Last Reviewed: 2026-10-24
 - Source of Truth: maintainer-selected implementation direction
-- Update Triggers: ADR-0029 immediate interface removal and current Python implementation, ADR-0028 route/module supersession, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
-- Related Docs: [Implementation contract](../architecture/independent-applications.md), [System overview](../architecture/system-overview.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](./0025-python-api-and-workers.md)
+- Update Triggers:
+  - ADR-0029 immediate interface removal and current Python implementation
+  - ADR-0028 route/module supersession
+  - Python API/worker language selection and migration planning
+  - independent API/web ownership and relocated code references
+  - runtime ownership
+  - Android stack
+  - HTTP compatibility
+  - deployment topology
+- Related Docs:
+  - [Implementation contract](../architecture/independent-applications.md)
+  - [System overview](../architecture/system-overview.md)
+  - [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md)
+  - [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
+  - [Backend language evaluation](../integrations/backend-language-evaluation.md)
+  - [Python direction](./0025-python-api-and-workers.md)
 
 The shared SvelteKit deployment already separates backend use cases from web presentation, but it cannot independently start the API or deliver the accepted native mobile experience.
 The maintainer selected independent applications in one monorepo and accepted Kotlin/Compose for Android.

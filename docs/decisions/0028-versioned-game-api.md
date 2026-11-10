@@ -6,8 +6,16 @@
 - Last Reviewed: 2026-10-25
 - Owners: Kyle
 - Source of Truth: Kyle's selected API direction on 2026-10-24
-- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 removal policy, API namespaces, game-specific module ownership and client migration
-- Related Docs: [Independent applications](../architecture/independent-applications.md), [Migration contract](../architecture/python-backend-migration.md), [Routes](../product/routing-and-games.md), [ADR-0027](./0027-python-functional-migration-acceptance.md)
+- Update Triggers:
+  - native FastAPI HTTP contract and pre-release receipt scope
+  - ADR-0029 removal policy
+  - API namespaces
+  - game-specific module ownership and client migration
+- Related Docs:
+  - [Independent applications](../architecture/independent-applications.md)
+  - [Migration contract](../architecture/python-backend-migration.md)
+  - [Routes](../product/routing-and-games.md)
+  - [ADR-0027](./0027-python-functional-migration-acceptance.md)
 
 Keep one Python API and shared authentication, account identity, database and HTTP infrastructure.
 Give game-specific operations canonical `/api/v1/{game}/...` routes and explicit game modules.

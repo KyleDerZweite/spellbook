@@ -3,8 +3,13 @@
 - Status: Research
 - Last Reviewed: 2026-10-29
 - Source of Truth: upstream source and executed pure-matcher probes
-- Update Triggers: upstream search changes, power-user search design review
-- Related Docs: [UI direction](../product/ui-design-direction.md#proposed-global-command-menu), [Catalog](../architecture/catalog.md#search-behavior), [Reference index](./README.md)
+- Update Triggers:
+  - upstream search changes
+  - power-user search design review
+- Related Docs:
+  - [UI direction](../product/ui-design-direction.md#proposed-global-command-menu)
+  - [Catalog](../architecture/catalog.md#search-behavior)
+  - [Reference index](./README.md)
 
 The inspected upstream snapshot is `pingdotgg/t3code@dd148481531a0a090780a2ade20588566db099a2`.
 This note records source analysis and pure-function checks, not running server, browser or latency evidence.

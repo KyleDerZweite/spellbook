@@ -3,8 +3,14 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-05
 - Source of Truth: vendor documentation
-- Update Triggers: Bits UI upgrades, documentation URL changes, component integration
-- Related Docs: [Reference](./README.md), [Selected UI components](./ui-libraries.md), [Frontend](../architecture/frontend.md)
+- Update Triggers:
+  - Bits UI upgrades
+  - documentation URL changes
+  - component integration
+- Related Docs:
+  - [Reference](./README.md)
+  - [Selected UI components](./ui-libraries.md)
+  - [Frontend](../architecture/frontend.md)
 
 > Bits UI is a headless component library for Svelte.
 

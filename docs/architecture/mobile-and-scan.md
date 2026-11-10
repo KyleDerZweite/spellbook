@@ -3,8 +3,34 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-03
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: portable Deck exchange and complete import rejection, managed Category removal, current-version Scan receipt replay and removal of historical compatibility promises, unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and current-version replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
+- Update Triggers:
+  - Client scope, parity, PWA delivery, QR authentication and independent Android design
+  - Versioned API ownership, Python runtime assembly, adapters and operator responsibilities
+  - Inventory and Deck bounded reads, revisions, availability and wire contracts
+  - Portable Deck exchange, complete import rejection and Deck choice reads
+  - Scan uploads, validation, limits, artifact storage and current-version receipt replay
+  - Recognition pipelines, fixtures, device limits, local recognition and computation-host
+    evaluation
+  - Public reference history, private value queries, source precision and calendar refresh
+  - Continuous Lazy browsing, dialogs and selected versus implemented read limits
+  - Paused Scan presentation and acceptance evidence, including retired resource gates
+- Related Docs:
+  - [Application contract](./application-contract.md)
+  - [Frontend](./frontend.md)
+  - [Android design handoff](../product/mobile-app-exploration.md)
+  - [Auth](./auth.md)
+  - [Postgres](./postgres.md)
+  - [Catalog](./catalog.md)
+  - [Domain model](../../GLOSSARY.md)
+  - [Deployment](../operations/deployment.md)
+  - [Proposed card robot](../integrations/card-robot.md)
+  - [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+  - [Independent applications](./independent-applications.md)
+  - [Worker](./worker.md)
+  - [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
+  - [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md)
+  - [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
 Its [manifest](../../frontend/static/manifest.webmanifest) launches `/app`; `frontend/src/app.html` links it.

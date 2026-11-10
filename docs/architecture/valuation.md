@@ -3,8 +3,29 @@
 - Status: Scryfall and optional provider references/public source history implemented; personal Inventory history and Dashboard/selected-Deck estimates implemented
 - Last Reviewed: 2026-10-31
 - Source of Truth: reference contracts, backend Valuation, Worker publication and accepted value-only scope
-- Update Triggers: daily Dashboard aggregate totals and nullable captured Deck count, explicit static Demo valuation and simplified History presentation, versioned MTG routes and module ownership, Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
-- Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
+- Update Triggers:
+  - daily Dashboard aggregate totals and nullable captured Deck count
+  - explicit static Demo valuation and simplified History presentation
+  - versioned MTG routes and module ownership
+  - Python source activation and server contraction
+  - separately packaged Python ValueHistory scheduler
+  - source publication
+  - mapping
+  - exact-decimal evaluation
+  - public history
+  - pruning
+  - private checkpoint persistence
+  - capture scheduling
+  - safe summary contracts and acceptance evidence
+- Related Docs:
+  - [Architecture](./README.md)
+  - [Value tracking](../product/value-tracking.md)
+  - [Market price research](../integrations/market-prices.md)
+  - [Application contract](./application-contract.md)
+  - [Postgres](./postgres.md)
+  - [Worker](./worker.md)
+  - [ADR-0020](../decisions/0020-value-only-inventory-history.md)
+  - [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
 
 [Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates.
 This document owns price publication, evaluation, public source history and private daily observation persistence and runtime.

@@ -5,8 +5,18 @@
 - Last Reviewed: 2026-10-07
 - Owners: Kyle
 - Source of Truth: Kyle's Q56 acceptance and implemented SavedState transport/workspace consumers
-- Update Triggers: saved-state transport, session expiry/revocation, replica recovery, frontend leases, bounded consumers and stream evidence
-- Related Docs: [Application contract](../architecture/application-contract.md#saved-state-synchronization), [Auth](../architecture/auth.md), [Realtime research](../integrations/realtime-backends.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decisions](./README.md)
+- Update Triggers:
+  - saved-state transport
+  - session expiry/revocation
+  - replica recovery
+  - frontend leases
+  - bounded consumers and stream evidence
+- Related Docs:
+  - [Application contract](../architecture/application-contract.md#saved-state-synchronization)
+  - [Auth](../architecture/auth.md)
+  - [Realtime research](../integrations/realtime-backends.md)
+  - [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md)
+  - [Decisions](./README.md)
 
 ## Context
 

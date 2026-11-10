@@ -3,8 +3,25 @@
 - Status: Canonical functional evidence responsibilities
 - Last Reviewed: 2026-10-28
 - Source of Truth: current Python code/tests, OpenAPI, useful synthetic fixtures, ADR-0029 and PR 276
-- Update Triggers: merged PR 276 and preserved target evidence ownership, native implementation and evidence ownership, pre-release compatibility supersession, native FastAPI/Pydantic acceptance, current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
-- Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md)
+- Update Triggers:
+  - merged PR 276 and preserved target evidence ownership
+  - native implementation and evidence ownership
+  - pre-release compatibility supersession
+  - native FastAPI/Pydantic acceptance
+  - current-route acceptance
+  - installed Python runtime
+  - fixture ownership
+  - stored-data correctness and target evidence
+- Related Docs:
+  - [Migration contract](./python-backend-migration.md)
+  - [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md)
+  - [ADR-0029](../decisions/0029-remove-replaced-interfaces.md)
+  - [Contracts](../../contracts/README.md)
+  - [Independent applications](./independent-applications.md)
+  - [Auth](./auth.md)
+  - [Postgres](./postgres.md)
+  - [Verification](../operations/github-automation.md)
+  - [Deployment](../operations/deployment.md)
 
 ## Scope and authorization
 

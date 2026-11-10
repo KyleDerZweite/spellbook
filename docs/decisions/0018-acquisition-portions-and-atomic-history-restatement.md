@@ -5,8 +5,14 @@
 - Last Reviewed: 2026-10-07
 - Owners: Kyle
 - Source of Truth: Kyle's Q56 acceptance of the reviewed implementation contract
-- Update Triggers: supersession status and historical decision references
-- Related Docs: [Value tracking](../product/value-tracking.md), [Valuation](../architecture/valuation.md), [Application contract](../architecture/application-contract.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decisions](./README.md)
+- Update Triggers:
+  - supersession status and historical decision references
+- Related Docs:
+  - [Value tracking](../product/value-tracking.md)
+  - [Valuation](../architecture/valuation.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md)
+  - [Decisions](./README.md)
 
 ## Supersession
 

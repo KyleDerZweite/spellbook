@@ -3,8 +3,38 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: code
-- Update Triggers: managed Category removal, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md)
+- Update Triggers:
+  - managed Category removal
+  - versioned MTG routes and module ownership
+  - Python source activation and server contraction
+  - independent API/web ownership and relocated code references
+  - QR authorization persistence and migration 0024
+  - schema changes
+  - migration changes
+  - repository changes
+  - auth ownership changes
+  - request fingerprints and replay behavior
+  - profile preferences
+  - card definitions and totals
+  - workspace ownership
+  - application resource lifetime and native operator ownership
+  - Inventory revisions
+  - bounded reads and ICU ordering
+  - Deck revisions
+  - acknowledgements and bounded ownership queries
+  - SavedState notification triggers
+  - private value checkpoints and frozen evidence
+  - public price publication and retention
+- Related Docs:
+  - [System Overview](./system-overview.md)
+  - [Auth](./auth.md)
+  - [Mobile And Scan](./mobile-and-scan.md)
+  - [Deployment](../operations/deployment.md)
+  - [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md)
+  - [Local authentication](../operations/local-auth.md)
+  - [Application contract](./application-contract.md)
+  - [Valuation](./valuation.md)
+  - [Independent applications](./independent-applications.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 

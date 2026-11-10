@@ -5,8 +5,26 @@
 - Last Reviewed: 2026-10-19
 - Owners: Kyle
 - Source of Truth: accepted maintainer boundary and app-delivery decisions
-- Update Triggers: module ownership, application lifecycle and native operator ownership, import enforcement, client/API parity, independent backend deployment and app delivery, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [System overview](../architecture/system-overview.md), [Frontend](../architecture/frontend.md), [Product specification](../product/specification.md), [Deployment](../operations/deployment.md), [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [Decisions](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
+- Update Triggers:
+  - module ownership
+  - application lifecycle and native operator ownership
+  - import enforcement
+  - client/API parity
+  - independent backend deployment and app delivery
+  - accepted design contracts and implementation evidence
+  - local recognition and client responsibilities
+  - client feature parity
+  - browser scanning and phone computation-host evaluation
+- Related Docs:
+  - [System overview](../architecture/system-overview.md)
+  - [Frontend](../architecture/frontend.md)
+  - [Product specification](../product/specification.md)
+  - [Deployment](../operations/deployment.md)
+  - [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md)
+  - [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md)
+  - [Decisions](./README.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
 
 ## Context
 

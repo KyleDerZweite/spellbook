@@ -5,8 +5,19 @@
 - Last Reviewed: 2026-11-02
 - Owners: Kyle
 - Source of Truth: Kyle's explicit 2026-10-07 instruction to drop all buy/acquisition/pack/bulk-cost tracking and consolidate value documentation
-- Update Triggers: managed Category removal, value/history scope, capture design readiness, reporting calendar, retention and supersession
-- Related Docs: [Value tracking](../product/value-tracking.md), [Valuation](../architecture/valuation.md), [Domain glossary](../../GLOSSARY.md), [Application contract](../architecture/application-contract.md), [ADR-0018](./0018-acquisition-portions-and-atomic-history-restatement.md), [Decisions](./README.md)
+- Update Triggers:
+  - managed Category removal
+  - value/history scope
+  - capture design readiness
+  - reporting calendar
+  - retention and supersession
+- Related Docs:
+  - [Value tracking](../product/value-tracking.md)
+  - [Valuation](../architecture/valuation.md)
+  - [Domain glossary](../../GLOSSARY.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0018](./0018-acquisition-portions-and-atomic-history-restatement.md)
+  - [Decisions](./README.md)
 
 ## Context
 

@@ -4,9 +4,17 @@
 - Date: 2026-04-11
 - Last Reviewed: 2026-10-03
 - Source of Truth: recorded decision
-- Update Triggers: decision applicability, supersession, related document changes
+- Update Triggers:
+  - decision applicability
+  - supersession
+  - related document changes
 - Superseded: 2026-04-17
-- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md)
+- Related Docs:
+  - [System Overview](../architecture/system-overview.md)
+  - [Mobile And Scan Architecture](../architecture/mobile-and-scan.md)
+  - [Deployment](../operations/deployment.md)
+  - [Auth](../architecture/auth.md)
+  - [Product specification](../product/specification.md)
 
 > Superseded.
 > The native Android shell was never released and duplicated the existing SvelteKit surfaces.

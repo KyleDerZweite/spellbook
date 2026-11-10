@@ -3,8 +3,33 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-06
 - Source of Truth: code
-- Update Triggers: art crop transform version 6, managed Category removal, complete face-color projection and explicit color evidence validation, Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence
-- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
+- Update Triggers:
+  - art crop transform version 6
+  - managed Category removal
+  - complete face-color projection and explicit color evidence validation
+  - Python default runtime activation
+  - independent Python state package and scheduler ownership
+  - P13 worker source relocation and retired external resource gates
+  - Python API/worker language selection and migration planning
+  - independent API/web ownership and relocated code references
+  - price evidence and paired/optional publication/recovery
+  - public history
+  - resource limits and provider opt-ins
+  - Scryfall formats
+  - synchronization schedule and retries
+  - first publication
+  - source selection
+  - status persistence
+- Related Docs:
+  - [System overview](./system-overview.md)
+  - [Catalog](./catalog.md)
+  - [Deployment](../operations/deployment.md)
+  - [Valuation](./valuation.md)
+  - [Independent applications](./independent-applications.md)
+  - [Backend language evaluation](../integrations/backend-language-evaluation.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
+  - [Migration contract](./python-backend-migration.md)
+  - [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for API and workers, grouped under `backend/` while retaining independent processes.

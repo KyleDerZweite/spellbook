@@ -3,8 +3,20 @@
 - Status: Proposal, not implemented
 - Last Reviewed: 2026-10-24
 - Source of Truth: linked vendor documentation and current authentication code
-- Update Triggers: current registration API path, provider selection, SDK compatibility, pricing, hosting requirements, identity migration, agent registration protocol, deployment profiles
-- Related Docs: [Architecture index](./README.md), [Authentication](./auth.md), [Local authentication decision](../decisions/0009-local-authentication.md), [Product](../product/specification.md)
+- Update Triggers:
+  - current registration API path
+  - provider selection
+  - SDK compatibility
+  - pricing
+  - hosting requirements
+  - identity migration
+  - agent registration protocol
+  - deployment profiles
+- Related Docs:
+  - [Architecture index](./README.md)
+  - [Authentication](./auth.md)
+  - [Local authentication decision](../decisions/0009-local-authentication.md)
+  - [Product](../product/specification.md)
 
 Managed authentication is worth evaluating before adding social login, email recovery, or MFA.
 It can replace Spellbook's credential and session implementation and supply maintained account flows.

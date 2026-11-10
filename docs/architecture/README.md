@@ -3,8 +3,37 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: code and explicitly marked accepted design
-- Update Triggers: managed Category removal, merged PR 276 status reconciliation, ADR-0029 immediate removal of replaced API interfaces, Python default activation and Node source/test contraction, functional Python acceptance and retired strict resource gates, complete unmerged Python execution scope and operational separation, accepted Python migration contract and independent review, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, schema changes, repository changes, auth flow changes, worker flow changes, service boundaries and reviewed module contracts
-- Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Catalog](./catalog.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Docs Index](../README.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration evidence](./python-migration-evidence-baseline.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
+- Update Triggers:
+  - managed Category removal
+  - merged PR 276 status reconciliation
+  - ADR-0029 immediate removal of replaced API interfaces
+  - Python default activation and Node source/test contraction
+  - functional Python acceptance and retired strict resource gates
+  - complete unmerged Python execution scope and operational separation
+  - accepted Python migration contract and independent review
+  - Python API/worker language selection and migration planning
+  - independent API/web ownership and relocated code references
+  - schema changes
+  - repository changes
+  - auth flow changes
+  - worker flow changes
+  - service boundaries and reviewed module contracts
+- Related Docs:
+  - [System Overview](./system-overview.md)
+  - [Frontend](./frontend.md)
+  - [Postgres](./postgres.md)
+  - [Worker](./worker.md)
+  - [Catalog](./catalog.md)
+  - [Auth](./auth.md)
+  - [Mobile And Scan](./mobile-and-scan.md)
+  - [Docs Index](../README.md)
+  - [Application contract](./application-contract.md)
+  - [Valuation](./valuation.md)
+  - [Independent applications](./independent-applications.md)
+  - [Backend language evaluation](../integrations/backend-language-evaluation.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
+  - [Migration evidence](./python-migration-evidence-baseline.md)
+  - [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
 Architecture documents distinguish implemented boundaries from explicitly marked accepted designs and proposals.
 Use the product specification for requirements and current workflow scope.

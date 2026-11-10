@@ -3,8 +3,13 @@
 - Status: Historical
 - Last Reviewed: 2026-10-24
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: konkretes iOS-Commitment, Änderung der Plattformpriorität
-- Related Docs: [Index](./index.md), [Prioritäten](./priorities.md), [Wiki-Pflege](./wiki-maintenance.md)
+- Update Triggers:
+  - konkretes iOS-Commitment
+  - Änderung der Plattformpriorität
+- Related Docs:
+  - [Index](./index.md)
+  - [Prioritäten](./priorities.md)
+  - [Wiki-Pflege](./wiki-maintenance.md)
 
 Am 2026-10-24 bestätigte Kyle Android zuerst und iOS ohne konkreten Termin.
 Quelle: [Plattformentscheidung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).

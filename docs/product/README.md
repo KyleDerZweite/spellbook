@@ -3,8 +3,23 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: product documents
-- Update Triggers: managed Category removal, product document ownership, specification changes, glossary changes, routes, interface requirements, value tracking
-- Related Docs: [Specification](./specification.md), [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Android design handoff](./mobile-app-exploration.md), [Card grouping](./card-grouping.md), [Value tracking](./value-tracking.md), [Docs index](../README.md)
+- Update Triggers:
+  - managed Category removal
+  - product document ownership
+  - specification changes
+  - glossary changes
+  - routes
+  - interface requirements
+  - value tracking
+- Related Docs:
+  - [Specification](./specification.md)
+  - [Domain model](../../GLOSSARY.md)
+  - [Routes](./routing-and-games.md)
+  - [UI direction](./ui-design-direction.md)
+  - [Android design handoff](./mobile-app-exploration.md)
+  - [Card grouping](./card-grouping.md)
+  - [Value tracking](./value-tracking.md)
+  - [Docs index](../README.md)
 
 Product docs describe Spellbook's requirements, behavior, and user-facing language.
 Start with the specification; use the other documents for their distinct subjects.

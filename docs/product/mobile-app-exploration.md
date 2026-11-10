@@ -3,8 +3,28 @@
 - Status: Android first slice implemented; native target verification pending
 - Last Reviewed: 2026-10-24
 - Source of Truth: maintainer's selected Android structure and Figma-first sequence, inspected first-party app images and versioned mobile source, linked Figma files and shared API contracts
-- Update Triggers: Python API activation and canonical client implementation, accepted visual direction and Card Station demo name, independent web/backend/Android delivery, native stack recommendation, prototype journey review, colored app navigation and compact Inventory actions, eight-box Cardstation and proposed Filter-Box/physical links, Cardstation/capture contracts, framework selection, API parity, native session lifecycle and cache policy
-- Related Docs: [UI direction](./ui-design-direction.md), [Routes](./routing-and-games.md), [System overview](../architecture/system-overview.md), [Mobile and Scan](../architecture/mobile-and-scan.md), [Auth](../architecture/auth.md), [Cardstation proposal](../integrations/card-robot.md), [Client evaluation](../integrations/scanner-platform-evaluation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Product index](./README.md)
+- Update Triggers:
+  - Python API activation and canonical client implementation
+  - accepted visual direction and Card Station demo name
+  - independent web/backend/Android delivery
+  - native stack recommendation
+  - prototype journey review
+  - colored app navigation and compact Inventory actions
+  - eight-box Cardstation and proposed Filter-Box/physical links
+  - Cardstation/capture contracts
+  - framework selection
+  - API parity
+  - native session lifecycle and cache policy
+- Related Docs:
+  - [UI direction](./ui-design-direction.md)
+  - [Routes](./routing-and-games.md)
+  - [System overview](../architecture/system-overview.md)
+  - [Mobile and Scan](../architecture/mobile-and-scan.md)
+  - [Auth](../architecture/auth.md)
+  - [Cardstation proposal](../integrations/card-robot.md)
+  - [Client evaluation](../integrations/scanner-platform-evaluation.md)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+  - [Product index](./README.md)
 
 The maintainer selected a separate Android application against the shared backend.
 On 2026-10-19, the maintainer requested a complete clickable Figma prototype before native implementation in a separate application directory.

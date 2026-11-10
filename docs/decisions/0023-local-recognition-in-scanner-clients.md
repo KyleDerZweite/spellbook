@@ -5,9 +5,27 @@
 - Last Reviewed: 2026-10-19
 - Owners: Kyle
 - Source of Truth: maintainer's explicit local-recognition decision of 2026-10-07 and client-scope clarifications of 2026-10-15, 2026-10-16 and 2026-10-19
-- Update Triggers: independent Android design direction and Figma handoff, PWA/QR delivery clarification and remaining machine/recognition scope, recognition placement, client feature parity and responsibilities, browser scanning, phone-client technology, device access, capture storage, client compatibility, supersession
+- Update Triggers:
+  - independent Android design direction and Figma handoff
+  - PWA/QR delivery clarification and remaining machine/recognition scope
+  - recognition placement
+  - client feature parity and responsibilities
+  - browser scanning
+  - phone-client technology
+  - device access
+  - capture storage
+  - client compatibility
+  - supersession
 - Supersedes: [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) for future capture and recognition placement only
-- Related Docs: [Mobile and scan](../architecture/mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [System overview](../architecture/system-overview.md), [Product specification](../product/specification.md), [Card scanner and sorter](../integrations/card-robot.md), [Application contract](../architecture/application-contract.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decision index](./README.md)
+- Related Docs:
+  - [Mobile and scan](../architecture/mobile-and-scan.md)
+  - [Android design handoff](../product/mobile-app-exploration.md)
+  - [System overview](../architecture/system-overview.md)
+  - [Product specification](../product/specification.md)
+  - [Card scanner and sorter](../integrations/card-robot.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md)
+  - [Decision index](./README.md)
 
 ## Context
 

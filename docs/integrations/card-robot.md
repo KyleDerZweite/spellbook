@@ -3,8 +3,32 @@
 - Status: Proposed integration
 - Last Reviewed: 2026-10-24
 - Source of Truth: product requirements, scan API code, maintainer scope brief and supplied hardware concept
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, circular eight-box app prototype, proposed Inventory filters and physical-box links, implemented QR API versus unimplemented machine integration, project responsibilities, integration planning, capture and recognition APIs, physical inventory schema, device protocol, construction choices, prototype results, local scanner recognition and device-login direction, client feature parity, browser scanning and phone computation-core variants
-- Related Docs: [Product specification](../product/specification.md), [Domain model](../../GLOSSARY.md), [Android design handoff](../product/mobile-app-exploration.md), [Mobile and scan](../architecture/mobile-and-scan.md), [API routes](../product/routing-and-games.md), [Local authentication](../operations/local-auth.md), [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+- Update Triggers:
+  - versioned MTG routes and module ownership
+  - Python source activation and server contraction
+  - independent API/web ownership and relocated code references
+  - circular eight-box app prototype
+  - proposed Inventory filters and physical-box links
+  - implemented QR API versus unimplemented machine integration
+  - project responsibilities
+  - integration planning
+  - capture and recognition APIs
+  - physical inventory schema
+  - device protocol
+  - construction choices
+  - prototype results
+  - local scanner recognition and device-login direction
+  - client feature parity
+  - browser scanning and phone computation-core variants
+- Related Docs:
+  - [Product specification](../product/specification.md)
+  - [Domain model](../../GLOSSARY.md)
+  - [Android design handoff](../product/mobile-app-exploration.md)
+  - [Mobile and scan](../architecture/mobile-and-scan.md)
+  - [API routes](../product/routing-and-games.md)
+  - [Local authentication](../operations/local-auth.md)
+  - [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 The proposed device accepts a stack of MTG cards, separates one card at a time, captures an image, and sorts cards into output trays.
 Spellbook supplies the review interface, inventory, decklist, and selected sorting rule.

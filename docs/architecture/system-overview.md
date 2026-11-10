@@ -3,8 +3,30 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: code and explicitly marked design requirements
-- Update Triggers: managed Category removal, Python default activation and source contraction, Python API/worker language selection and migration planning, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
-- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers:
+  - Service boundaries, independent web/API/Android delivery and runtime allocation
+  - Python API/worker implementation, OpenAPI ownership and source contraction
+  - Application and operator resource ownership, topology and hosted capacity
+  - Authentication, same-origin PWA delivery and shared QR sessions
+  - Data ownership, cross-client synchronization and public reference publication
+  - Local recognition, client parity, browser scanning and phone computation-host evaluation
+- Related Docs:
+  - [Architecture](./README.md)
+  - [Frontend](./frontend.md)
+  - [Postgres](./postgres.md)
+  - [Worker](./worker.md)
+  - [Auth](./auth.md)
+  - [Mobile and scan](./mobile-and-scan.md)
+  - [Android design handoff](../product/mobile-app-exploration.md)
+  - [Deployment](../operations/deployment.md)
+  - [Realtime backend evaluation](../integrations/realtime-backends.md)
+  - [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md)
+  - [Accepted application contract](./application-contract.md)
+  - [Valuation](./valuation.md)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+  - [Independent applications](./independent-applications.md)
+  - [Backend language evaluation](../integrations/backend-language-evaluation.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
 
 Spellbook has an independent SvelteKit web runtime and Python/FastAPI API.
 The API owns Auth, Profile, Dashboard, Catalog, Inventory/Groups, Deck, Valuation, Scan and SavedState use cases.

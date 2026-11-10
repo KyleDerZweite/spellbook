@@ -3,8 +3,25 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-10
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: reusable Demo browser smoke and preflight, built-Origin validation before HTTP startup, SavedState derived-subscription check, bounded delegated verification, three-file Compose config and hosted image selection tests, managed Category removal, manual global-search evaluation runner and captured evidence, upstream hosted-generation recheck and existing evidence-manifest owner, hosted updater Python patch limitation and manual frozen dependency refresh, bounded uv updater compatibility, uv-aware dependency automation and bounded maintenance evidence, frozen package test refresh, bounded safe diagnostics and focused shutdown ordering, native listener lifecycle assertions and evidence ownership, native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
-- Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
+- Update Triggers:
+  - Local checks, runtime pins, installed Python packages and canonical operator commands
+  - CI scope, workflow coverage, conditional boundaries and manual heavy workflows
+  - HTTP validation, listener lifecycle, resource cleanup and graceful test-process shutdown
+  - Application, Core, State, Scan and worker integration evidence and replay fixtures
+  - Browser, PWA, QR and native Android acceptance, prerequisites and unavailable target evidence
+  - Inventory, Deck, SavedState and value-history correctness, scale and performance evidence
+  - Artifact provenance, evidence ownership, bounded tool output and delegated verification
+  - Dependency automation, frozen updates and hosted-generation maintenance limitations
+  - Tracker, domain documentation, planning, PR policy and integration closeout
+  - Demo smoke, Compose configuration, immutable hosted images and global-search evaluation
+- Related Docs:
+  - [Operations](./README.md)
+  - [Product acceptance](../product/specification.md#interface-acceptance)
+  - [Frontend](../architecture/frontend.md)
+  - [Deployment](./deployment.md)
+  - [Contributing](../../CONTRIBUTING.md)
+  - [Docs maintenance](../README.md#maintenance)
+  - [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
 Product and integration documents own behavior and acceptance criteria.

@@ -3,8 +3,32 @@
 - Status: Research and decision support; not an accepted architecture
 - Last Reviewed: 2026-11-02
 - Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification and explicitly identified engineering assessments
-- Update Triggers: managed Category removal, versioned MTG routes and module ownership, Python source activation and server contraction, independent Android direction and complete Figma flow handoff, PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
-- Related Docs: [Product specification](../product/specification.md), [Mobile exploration](../product/mobile-app-exploration.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
+- Update Triggers:
+  - managed Category removal
+  - versioned MTG routes and module ownership
+  - Python source activation and server contraction
+  - independent Android direction and complete Figma flow handoff
+  - PWA/QR implementation status without replacing dated research
+  - Android priority
+  - app-specific capabilities
+  - website packaging
+  - Cardstation integration
+  - platform/runtime support
+  - client responsibilities
+  - reference-data use
+  - hardware experiments
+  - recognition measurements
+  - distribution and operating model
+- Related Docs:
+  - [Product specification](../product/specification.md)
+  - [Mobile exploration](../product/mobile-app-exploration.md)
+  - [Clients and Scan](../architecture/mobile-and-scan.md)
+  - [Sorter concept](./card-robot.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [Deployment](../operations/deployment.md)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+  - [Domain glossary](../../GLOSSARY.md)
+  - [Integrations index](./README.md)
 
 ## Mobile UX follow-up, 2026-10-19
 

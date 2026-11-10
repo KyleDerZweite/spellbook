@@ -4,9 +4,16 @@
 - Date: 2026-10-03
 - Last Reviewed: 2026-10-03
 - Source of Truth: code and product decision
-- Update Triggers: authentication strategy, registration policy, identity migration
+- Update Triggers:
+  - authentication strategy
+  - registration policy
+  - identity migration
 - Supersedes: [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md)
-- Related Docs: [Authentication](../architecture/auth.md), [Account recovery](../operations/local-auth.md), [Postgres](../architecture/postgres.md), [Deployment](../operations/deployment.md)
+- Related Docs:
+  - [Authentication](../architecture/auth.md)
+  - [Account recovery](../operations/local-auth.md)
+  - [Postgres](../architecture/postgres.md)
+  - [Deployment](../operations/deployment.md)
 
 The self-hosted application should run without a separate identity provider.
 Spellbook now owns username and password authentication and database-backed sessions.

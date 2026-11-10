@@ -3,8 +3,31 @@
 - Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates; later feature slices planned
 - Last Reviewed: 2026-11-02
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/SavedState/Valuation code and contracts, Worker price publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
-- Update Triggers: managed Category removal, bounded Dashboard Commander previews, current-version Scan/Deck receipt replay and root operator ownership, native FastAPI HTTP contract and pre-release receipt scope, versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, continuous Lazy browsing/dialog contract and selected versus implemented read limits
-- Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
+- Update Triggers:
+  - Module ownership, versioned APIs, Python runtime and independent web/API boundaries
+  - Application, transport and native operator interfaces, resource lifetime and cleanup
+  - Mutation adapters, current-version receipts, replay and revisions
+  - Inventory queries, cache bounds and Deck application/task boundaries
+  - Shared UI controls, synchronization and SavedState process/HMR lifetime
+  - Reference publication, value-only history and bounded Dashboard Commander previews
+  - Continuous Lazy browsing, dialogs, selected versus implemented limits and acceptance evidence
+- Related Docs:
+  - [Architecture](./README.md)
+  - [System overview](./system-overview.md)
+  - [Frontend](./frontend.md)
+  - [Postgres](./postgres.md)
+  - [Authentication](./auth.md)
+  - [Mobile and scan](./mobile-and-scan.md)
+  - [Product specification](../product/specification.md)
+  - [UI direction](../product/ui-design-direction.md)
+  - [Valuation](./valuation.md)
+  - [Verification](../operations/github-automation.md)
+  - [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md)
+  - [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md)
+  - [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md)
+  - [Independent applications](./independent-applications.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
+  - [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06.
 The value-only scope update below supersedes its cost-dependent contracts and dependency ordering.

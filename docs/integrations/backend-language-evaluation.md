@@ -3,8 +3,22 @@
 - Status: Python selected; dormant foundation implemented, full migration pending
 - Last Reviewed: 2026-10-23
 - Source of Truth: current implementation and linked primary-source research
-- Update Triggers: ADR-0027 functional acceptance and reusable foundation status, Python API/worker language selection and migration planning, backend language selection, worker ownership, schema generation, representative measurements
-- Related Docs: [Independent applications](../architecture/independent-applications.md), [Application contract](../architecture/application-contract.md), [Worker](../architecture/worker.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Verification](../operations/github-automation.md), [Decision issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Python direction](../decisions/0025-python-api-and-workers.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
+- Update Triggers:
+  - ADR-0027 functional acceptance and reusable foundation status
+  - Python API/worker language selection and migration planning
+  - backend language selection
+  - worker ownership
+  - schema generation
+  - representative measurements
+- Related Docs:
+  - [Independent applications](../architecture/independent-applications.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [Worker](../architecture/worker.md)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+  - [Verification](../operations/github-automation.md)
+  - [Decision issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
+  - [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
 ## Selected direction
 

@@ -3,8 +3,24 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-06
 - Source of Truth: code
-- Update Triggers: environment isolation and Catalog-preserving private Demo reset, managed Category removal, native HTTP validation and safe error responses, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
-- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
+- Update Triggers:
+  - Credentials, sessions, bearer tokens, origin checks and safe HTTP validation errors
+  - Versioned account APIs, module ownership, Python runtime and interface removal
+  - QR challenges, session-bound decisions, requester cookies and PWA delivery
+  - Trusted actor authority, protected routes, agent discovery and post-login destinations
+  - Preferences, profile validation, password changes and summary failure reporting
+  - Workspace and application resource lifetime, native operators and SavedState authority
+  - Environment isolation, Demo mode and Catalog-preserving private reset
+- Related Docs:
+  - [Postgres](./postgres.md)
+  - [Frontend](./frontend.md)
+  - [Routes](../product/routing-and-games.md)
+  - [Local authentication operations](../operations/local-auth.md)
+  - [Deployment](../operations/deployment.md)
+  - [ADR-0009](../decisions/0009-local-authentication.md)
+  - [Application contract](./application-contract.md)
+  - [Independent applications](./independent-applications.md)
+  - [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
 `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans.

@@ -3,8 +3,13 @@
 - Status: Historical
 - Last Reviewed: 2026-10-24
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: Package-Manager-Fragen, Änderung der uv-Pins oder Installationsbeispiele
-- Related Docs: [Index](./index.md), [CI-Vereinfachung](./ci-simplification.md), [Prioritäten](./priorities.md)
+- Update Triggers:
+  - Package-Manager-Fragen
+  - Änderung der uv-Pins oder Installationsbeispiele
+- Related Docs:
+  - [Index](./index.md)
+  - [CI-Vereinfachung](./ci-simplification.md)
+  - [Prioritäten](./priorities.md)
 
 Am 2026-10-24 fand der [uv-Audit](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-strategy-uv-20261024-r1) bei `KyleDerZweite/spellbook@62c13b5c7a1c5a9a97f25f4e214271bea7ad4951` keine standalone `pip`-Commands und zwei `uv pip`-Installationsstellen.
 `uv pip` gehörte dort zu uv.

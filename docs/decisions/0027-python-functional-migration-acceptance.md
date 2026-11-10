@@ -6,8 +6,21 @@
 - Last Reviewed: 2026-10-28
 - Owners: Kyle
 - Source of Truth: Kyle's authoritative 2026-10-23 migration direction
-- Update Triggers: merged PR 276 status reconciliation, ADR-0029 pre-release compatibility supersession, ADR-0028 route/module supersession, migration acceptance, superseded readiness blockers, functional evidence, source activation and production authority
-- Related Docs: [ADR-0029](./0029-remove-replaced-interfaces.md), [ADR-0025](./0025-python-api-and-workers.md), [ADR-0026](./0026-python-migration-contract.md), [Migration contract](../architecture/python-backend-migration.md), [Evidence baseline](../architecture/python-migration-evidence-baseline.md), [Verification](../operations/github-automation.md)
+- Update Triggers:
+  - merged PR 276 status reconciliation
+  - ADR-0029 pre-release compatibility supersession
+  - ADR-0028 route/module supersession
+  - migration acceptance
+  - superseded readiness blockers
+  - functional evidence
+  - source activation and production authority
+- Related Docs:
+  - [ADR-0029](./0029-remove-replaced-interfaces.md)
+  - [ADR-0025](./0025-python-api-and-workers.md)
+  - [ADR-0026](./0026-python-migration-contract.md)
+  - [Migration contract](../architecture/python-backend-migration.md)
+  - [Evidence baseline](../architecture/python-migration-evidence-baseline.md)
+  - [Verification](../operations/github-automation.md)
 
 [ADR-0029's 2026-10-25 extension](./0029-remove-replaced-interfaces.md#pre-release-extension-2026-10-25) supersedes the historical requirements below for Node wire parity, stored-data upgrades and compatible Node rollback.
 Native FastAPI/Pydantic may replace compatibility adapters; current-version auth, account isolation, receipt replay and safe writes remain required.

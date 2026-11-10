@@ -4,9 +4,15 @@
 - Date: 2026-10-05
 - Last Reviewed: 2026-10-24
 - Source of Truth: user requirement and implemented routes
-- Update Triggers: ADR-0029 removal of flat-page aliases, game routes, supported games and selection behavior
+- Update Triggers:
+  - ADR-0029 removal of flat-page aliases
+  - game routes
+  - supported games and selection behavior
 - Supersedes: [ADR-0004](./0004-flat-routes-with-active-game-state.md) for page routing
-- Related Docs: [Routes](../product/routing-and-games.md), [Design direction](../product/ui-design-direction.md), [Frontend](../architecture/frontend.md)
+- Related Docs:
+  - [Routes](../product/routing-and-games.md)
+  - [Design direction](../product/ui-design-direction.md)
+  - [Frontend](../architecture/frontend.md)
 
 Use `/mtg/search`, `/mtg/inventory`, `/mtg/decks`, and `/mtg/scan` for game-specific work.
 Keep home, authentication, and legal pages shared.

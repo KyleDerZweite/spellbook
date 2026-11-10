@@ -4,8 +4,16 @@
 - Date: 2026-10-05
 - Last Reviewed: 2026-10-24
 - Source of Truth: user requirement and implemented routes
-- Update Triggers: canonical Catalog paths and immediate interface removal, catalog access policy, public API contracts, account mutation boundaries
-- Related Docs: [Catalog](../architecture/catalog.md), [Authentication](../architecture/auth.md), [Routes](../product/routing-and-games.md), [ADR-0010](./0010-postgres-catalog.md)
+- Update Triggers:
+  - canonical Catalog paths and immediate interface removal
+  - catalog access policy
+  - public API contracts
+  - account mutation boundaries
+- Related Docs:
+  - [Catalog](../architecture/catalog.md)
+  - [Authentication](../architecture/auth.md)
+  - [Routes](../product/routing-and-games.md)
+  - [ADR-0010](./0010-postgres-catalog.md)
 
 Visitors can search cards and inspect printings without creating an account.
 Catalog metadata is shared reference data; private inventory and deck changes still require an authenticated account.

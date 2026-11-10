@@ -3,8 +3,15 @@
 - Status: Historical
 - Last Reviewed: 2026-10-25
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: Interface-Ersatz, Client-Upgrades, Abgrenzung zur Production-Freigabe, Pre-release-Kompatibilitätsverzicht
-- Related Docs: [Index](./index.md), [Prioritäten](./priorities.md), [CI-Vereinfachung](./ci-simplification.md)
+- Update Triggers:
+  - Interface-Ersatz
+  - Client-Upgrades
+  - Abgrenzung zur Production-Freigabe
+  - Pre-release-Kompatibilitätsverzicht
+- Related Docs:
+  - [Index](./index.md)
+  - [Prioritäten](./priorities.md)
+  - [CI-Vereinfachung](./ci-simplification.md)
 
 Am 2026-10-24 wählte Kyle die sofortige Entfernung ersetzter Interfaces ohne Alias, Fallback oder Deprecation Window.
 Ältere Clients sollten aktualisiert werden.

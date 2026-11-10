@@ -3,8 +3,31 @@
 - Status: Independent Python API and workers implemented; native target verification pending
 - Last Reviewed: 2026-11-02
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: managed Category removal, native global search read and shared DTO, raw Web header multiplicity and native boolean queries, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
-- Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers:
+  - managed Category removal
+  - native global search read and shared DTO
+  - raw Web header multiplicity and native boolean queries
+  - native FastAPI HTTP contract and pre-release receipt scope
+  - ADR-0029 immediate removal of replaced API interfaces
+  - versioned MTG routes and module ownership
+  - canonical-only versioned game API and client upgrades
+  - Python source activation and implementation status
+  - Python API/worker language selection and migration planning
+  - independent API/web ownership and relocated code references
+  - HTTP extraction
+  - native delivery
+  - credential forwarding
+  - application ownership
+  - acceptance evidence
+- Related Docs:
+  - [System overview](./system-overview.md)
+  - [Application contract](./application-contract.md)
+  - [Auth](./auth.md)
+  - [Mobile handoff](../product/mobile-app-exploration.md)
+  - [ADR-0024](../decisions/0024-independent-applications.md)
+  - [Verification](../operations/github-automation.md)
+  - [Backend language evaluation](../integrations/backend-language-evaluation.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
 

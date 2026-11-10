@@ -3,8 +3,30 @@
 - Status: Source merged through PR 276; owner acceptance and production operations remain separate
 - Last Reviewed: 2026-11-09
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: delivered base-port closure with ongoing owner testing, Compose Demo and production entrypoints, managed Category removal, merged PR 276 and local tracker reconciliation, accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
-- Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+- Update Triggers:
+  - Migration scope, implementation status, tracker reconciliation and ongoing owner testing
+  - FastAPI/Pydantic framework, versioned API modules, schema and SQL ownership
+  - Component interfaces, Core persistence/auth, Dashboard, Scan and worker responsibilities
+  - Packaged migrators/operators, source activation and Node/legacy interface removal
+  - Functional acceptance, independent review, evidence ownership and retired resource gates
+  - Current-version receipt compatibility, immediate interface removal and pre-release policy
+  - Migration rehearsal, recovery, immutable Compose entrypoints and separate production authority
+  - Admin confirmation, ML deferral and accepted retrospective remedies
+- Related Docs:
+  - [ADR-0025](../decisions/0025-python-api-and-workers.md)
+  - [ADR-0026](../decisions/0026-python-migration-contract.md)
+  - [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md)
+  - [ADR-0029](../decisions/0029-remove-replaced-interfaces.md)
+  - [Independent applications](./independent-applications.md)
+  - [Application contract](./application-contract.md)
+  - [Valuation](./valuation.md)
+  - [Migration evidence](./python-migration-evidence-baseline.md)
+  - [Postgres](./postgres.md)
+  - [Auth](./auth.md)
+  - [Worker](./worker.md)
+  - [Deployment](../operations/deployment.md)
+  - [Verification](../operations/github-automation.md)
+  - [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
 

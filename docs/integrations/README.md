@@ -3,8 +3,27 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-02
 - Source of Truth: mixed
-- Update Triggers: managed Category removal, executed lexical/BM25/vector search comparison, PostgreSQL and semantic search evaluation, functional Python acceptance and current migration status, Python API/worker language selection and migration planning, external system contracts, integration scope, provider evaluations and scanner-platform research
-- Related Docs: [Market price research](./market-prices.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Backend language evaluation](./backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
+- Update Triggers:
+  - managed Category removal
+  - executed lexical/BM25/vector search comparison
+  - PostgreSQL and semantic search evaluation
+  - functional Python acceptance and current migration status
+  - Python API/worker language selection and migration planning
+  - external system contracts
+  - integration scope
+  - provider evaluations and scanner-platform research
+- Related Docs:
+  - [Market price research](./market-prices.md)
+  - [Realtime backend evaluation](./realtime-backends.md)
+  - [Proposed card robot](./card-robot.md)
+  - [Scanner platform evaluation](./scanner-platform-evaluation.md)
+  - [Worker](../architecture/worker.md)
+  - [Catalog](../architecture/catalog.md)
+  - [Docs index](../README.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [Backend language evaluation](./backend-language-evaluation.md)
+  - [Python direction](../decisions/0025-python-api-and-workers.md)
+  - [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
 [Backend language evaluation](./backend-language-evaluation.md) compares Go, Python, Rust and the current TypeScript API, with worker grouping and migration gates.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers; the migration contract selects the stack and boundaries, with dormant foundations implemented and full functional migration pending.

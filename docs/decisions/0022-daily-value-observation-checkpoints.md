@@ -5,8 +5,17 @@
 - Last Reviewed: 2026-10-08
 - Owners: Kyle
 - Source of Truth: accepted value-only requirements and technical capture contract
-- Update Triggers: daily observation tolerance, calendar changes, snapshot consistency, retention, runtime scheduling and acceptance evidence
-- Related Docs: [Value tracking](../product/value-tracking.md), [Valuation](../architecture/valuation.md#reviewed-personal-history-contract), [ADR-0020](./0020-value-only-inventory-history.md), [Decisions](./README.md)
+- Update Triggers:
+  - daily observation tolerance
+  - calendar changes
+  - snapshot consistency
+  - retention
+  - runtime scheduling and acceptance evidence
+- Related Docs:
+  - [Value tracking](../product/value-tracking.md)
+  - [Valuation](../architecture/valuation.md#reviewed-personal-history-contract)
+  - [ADR-0020](./0020-value-only-inventory-history.md)
+  - [Decisions](./README.md)
 
 ## Context
 

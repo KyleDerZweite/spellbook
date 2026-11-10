@@ -5,8 +5,23 @@
 - Last Reviewed: 2026-10-07
 - Owners: Kyle
 - Source of Truth: Kyle's confirmed continuous Lazy, native-scroll and card-action requirements
-- Update Triggers: continuous Lazy policy, loaded-range page extent, legacy range normalization, URL/history behavior, viewport ownership, Card dialog responsibilities, API limit compatibility, scale and rendered acceptance
-- Related Docs: [Design direction](../product/ui-design-direction.md#selected-hybrid-browsing-and-card-dialog), [Frontend contract](../architecture/frontend.md#selected-hybrid-browsing-contract), [Application contract](../architecture/application-contract.md), [Catalog](../architecture/catalog.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [ADR-0017](./0017-revisioned-inventory-windows-and-mutation-receipts.md), [Decisions](./README.md)
+- Update Triggers:
+  - continuous Lazy policy
+  - loaded-range page extent
+  - legacy range normalization
+  - URL/history behavior
+  - viewport ownership
+  - Card dialog responsibilities
+  - API limit compatibility
+  - scale and rendered acceptance
+- Related Docs:
+  - [Design direction](../product/ui-design-direction.md#selected-hybrid-browsing-and-card-dialog)
+  - [Frontend contract](../architecture/frontend.md#selected-hybrid-browsing-contract)
+  - [Application contract](../architecture/application-contract.md)
+  - [Catalog](../architecture/catalog.md)
+  - [ADR-0014](./0014-public-landing-and-private-workspace.md)
+  - [ADR-0017](./0017-revisioned-inventory-windows-and-mutation-receipts.md)
+  - [Decisions](./README.md)
 
 ## Context
 

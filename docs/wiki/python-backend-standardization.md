@@ -3,8 +3,26 @@
 - Status: Historical
 - Last Reviewed: 2026-11-09
 - Source of Truth: datierte Nutzerentscheidungen, verlinkte Audits und Reviews sowie immutable Codebelege bis `KyleDerZweite/spellbook@214137ec7f790a328659edf5eb84c1dc879d5121`
-- Update Triggers: delivered base-port closure with ongoing owner testing, akzeptierte Retro-Maßnahmen und implementierte Diagnose-/Testaufrufe, präzise Quellenpositionen, native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Bestätigung, vorerst kein ML-Panel und Voice-to-Text-Korrektur
-- Related Docs: [Index](./index.md), [Datenbankoptionen](./database-options.md), [Prioritäten](./priorities.md), [Python-Vertrag](../architecture/python-backend-migration.md), [Verification](../operations/github-automation.md)
+- Update Triggers:
+  - delivered base-port closure with ongoing owner testing
+  - akzeptierte Retro-Maßnahmen und implementierte Diagnose-/Testaufrufe
+  - präzise Quellenpositionen
+  - native Implementierung
+  - datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung
+  - Stack-Bestätigung
+  - ausgewählter Vereinfachungsschnitt
+  - geänderte Modulverantwortung
+  - neue Audit-Evidenz
+  - native FastAPI-Freigabe
+  - Admin-/ML-Neubewertung
+  - Admin-Bestätigung
+  - vorerst kein ML-Panel und Voice-to-Text-Korrektur
+- Related Docs:
+  - [Index](./index.md)
+  - [Datenbankoptionen](./database-options.md)
+  - [Prioritäten](./priorities.md)
+  - [Python-Vertrag](../architecture/python-backend-migration.md)
+  - [Verification](../operations/github-automation.md)
 
 ## Bestätigung vom 2026-10-25
 

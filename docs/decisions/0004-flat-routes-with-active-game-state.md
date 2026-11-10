@@ -4,9 +4,17 @@
 - Date: 2026-04-18
 - Last Reviewed: 2026-10-06
 - Source of Truth: recorded decision
-- Update Triggers: decision applicability, supersession, related document changes
+- Update Triggers:
+  - decision applicability
+  - supersession
+  - related document changes
 - Owners: Spellbook maintainers
-- Related Docs: [Routing and Games](../product/routing-and-games.md), [Product specification](../product/specification.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0013](./0013-game-prefixed-workspaces.md)
+- Related Docs:
+  - [Routing and Games](../product/routing-and-games.md)
+  - [Product specification](../product/specification.md)
+  - [Frontend Architecture](../architecture/frontend.md)
+  - [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+  - [ADR-0013](./0013-game-prefixed-workspaces.md)
 
 ## Supersession Note
 

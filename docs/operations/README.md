@@ -3,8 +3,19 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-23
 - Source of Truth: mixed
-- Update Triggers: Python functional migration verification, deployment, authentication, environment variables, repository verification and automation
-- Related Docs: [Deployment](./deployment.md), [Local authentication](./local-auth.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Private instance template](./private-instance-template.md), [Repository verification and GitHub automation](./github-automation.md), [Docs index](../README.md)
+- Update Triggers:
+  - Python functional migration verification
+  - deployment
+  - authentication
+  - environment variables
+  - repository verification and automation
+- Related Docs:
+  - [Deployment](./deployment.md)
+  - [Local authentication](./local-auth.md)
+  - [PostgreSQL upgrade](./postgres-upgrade.md)
+  - [Private instance template](./private-instance-template.md)
+  - [Repository verification and GitHub automation](./github-automation.md)
+  - [Docs index](../README.md)
 
 Use these documents to run Spellbook.
 Keep live instance values and secrets outside this repository.

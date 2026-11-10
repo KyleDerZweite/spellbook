@@ -4,9 +4,21 @@
 - Date: 2026-10-06
 - Last Reviewed: 2026-10-07
 - Source of Truth: accepted user requirements and implemented routes, shell and client search
-- Update Triggers: home composition, dashboard ownership, default auth destination, shared layout, browser search boundaries, partial UI/read-limit supersession
+- Update Triggers:
+  - home composition
+  - dashboard ownership
+  - default auth destination
+  - shared layout
+  - browser search boundaries
+  - partial UI/read-limit supersession
 - Supersession: [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md) partially replaces Search browser loading/navigation, scroll/inspection presentation and the affected request maximum; remaining decisions stay accepted
-- Related Docs: [Specification](../product/specification.md#dashboard), [Routes](../product/routing-and-games.md), [Auth](../architecture/auth.md), [Frontend](../architecture/frontend.md), [Catalog](../architecture/catalog.md#browser-result-window), [Design direction](../product/ui-design-direction.md)
+- Related Docs:
+  - [Specification](../product/specification.md#dashboard)
+  - [Routes](../product/routing-and-games.md)
+  - [Auth](../architecture/auth.md)
+  - [Frontend](../architecture/frontend.md)
+  - [Catalog](../architecture/catalog.md#browser-result-window)
+  - [Design direction](../product/ui-design-direction.md)
 
 [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md) selects the implemented replacement UI contract.
 Prior implementation evidence remains tied to its recorded revision.

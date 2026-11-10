@@ -3,8 +3,26 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-01
 - Source of Truth: accepted product decision, current application, upstream documentation
-- Update Triggers: shared Plus icon and explicit ActionMenu item icons, selected A+ Dashboard layout and native Demo evaluation, Mebius visual reference adaptation, compact distribution and Finish ring presentation, shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
-- Related Docs: [Reference](./README.md), [Bits UI](./bits-ui.md), [Frontend](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Design direction](../product/ui-design-direction.md), [Product specification](../product/specification.md)
+- Update Triggers:
+  - shared Plus icon and explicit ActionMenu item icons
+  - selected A+ Dashboard layout and native Demo evaluation
+  - Mebius visual reference adaptation
+  - compact distribution and Finish ring presentation
+  - shared D3 analytics charts
+  - component adoption
+  - generated source ownership
+  - Svelte or Tailwind compatibility
+  - interaction requirements
+  - shared scrolling
+  - Search native window/modal hosts and hybrid pagination
+  - filter editing and destructive confirmation
+- Related Docs:
+  - [Reference](./README.md)
+  - [Bits UI](./bits-ui.md)
+  - [Frontend](../architecture/frontend.md)
+  - [Catalog](../architecture/catalog.md)
+  - [Design direction](../product/ui-design-direction.md)
+  - [Product specification](../product/specification.md)
 
 Spellbook uses shadcn-svelte source components with Bits UI, Svelte, and Tailwind.
 The first adopted component is the shared [Button](../../frontend/src/lib/components/ui/button/Button.svelte), adapted from the upstream implementation with its [MIT notice](../../frontend/src/lib/components/ui/button/LICENSE).

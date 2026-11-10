@@ -3,8 +3,17 @@
 - Status: Historical
 - Last Reviewed: 2026-10-25
 - Source of Truth: datierte Primärquellen und verlinkte Research-Befunde
-- Update Triggers: geklärte Wechselmotivation, Datenbankentscheidung, neue belegte Engine-Eigenschaften, Gesamtbackend-Vergleich, ausdrückliche Stack-Bestätigung
-- Related Docs: [Index](./index.md), [Prioritäten](./priorities.md), [Postgres-Owner](../architecture/postgres.md), [Python-Standardisierung](./python-backend-standardization.md)
+- Update Triggers:
+  - geklärte Wechselmotivation
+  - Datenbankentscheidung
+  - neue belegte Engine-Eigenschaften
+  - Gesamtbackend-Vergleich
+  - ausdrückliche Stack-Bestätigung
+- Related Docs:
+  - [Index](./index.md)
+  - [Prioritäten](./priorities.md)
+  - [Postgres-Owner](../architecture/postgres.md)
+  - [Python-Standardisierung](./python-backend-standardization.md)
 
 Am 2026-10-24 eröffnete Kyle die Datenbankdiskussion erneut und erinnerte sich an einen SQLite-Nachfolger in Rust.
 Eine Engine oder Migration wählte er nicht; der Anlass seiner Unzufriedenheit blieb offen.

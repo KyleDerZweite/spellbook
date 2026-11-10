@@ -4,10 +4,24 @@
 - Date: 2026-04-17
 - Last Reviewed: 2026-10-24
 - Source of Truth: recorded decision
-- Update Triggers: ADR-0029 old API hook removal, independent Android design applicability, accepted PWA/QR delivery applicability, decision applicability, supersession, related document changes
+- Update Triggers:
+  - ADR-0029 old API hook removal
+  - independent Android design applicability
+  - accepted PWA/QR delivery applicability
+  - decision applicability
+  - supersession
+  - related document changes
 - Supersedes: [ADR-0002](./0002-android-first-mobile-and-server-side-scan.md)
 - Partially Superseded By: [ADR-0023](./0023-local-recognition-in-scanner-clients.md) for future capture and recognition placement; [ADR-0024](./0024-independent-applications.md) for independent Android delivery; [ADR-0029](./0029-remove-replaced-interfaces.md) for removal of old mobile API hooks
-- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Application contract](../architecture/application-contract.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
+- Related Docs:
+  - [System Overview](../architecture/system-overview.md)
+  - [Mobile And Scan Architecture](../architecture/mobile-and-scan.md)
+  - [Deployment](../operations/deployment.md)
+  - [Auth](../architecture/auth.md)
+  - [Product specification](../product/specification.md)
+  - [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
 
 ## Current applicability
 

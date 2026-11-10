@@ -3,8 +3,18 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-08
 - Source of Truth: maintainer policy and GitHub repository labels
-- Update Triggers: label definitions, issue triage policy, contribution policy, label automation, engineering skill triage role mapping, Wayfinder planning labels
-- Related Docs: [Contributing](../CONTRIBUTING.md), [Agent instructions](../AGENTS.md), [GitHub automation](./operations/github-automation.md), [Docs index](./README.md)
+- Update Triggers:
+  - label definitions
+  - issue triage policy
+  - contribution policy
+  - label automation
+  - engineering skill triage role mapping
+  - Wayfinder planning labels
+- Related Docs:
+  - [Contributing](../CONTRIBUTING.md)
+  - [Agent instructions](../AGENTS.md)
+  - [GitHub automation](./operations/github-automation.md)
+  - [Docs index](./README.md)
 
 Use labels to describe an issue's type, affected area, and current work status.
 A label does not promise acceptance, implementation, a merge, or a delivery date.

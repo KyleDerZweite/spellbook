@@ -3,8 +3,16 @@
 - Status: Historical
 - Last Reviewed: 2026-10-25
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: akzeptierte Themenbündelung und präzise Quellenpositionen, dauerhafte Erkenntnis, strategische Entscheidung, Wiederaufnahme, Documentation Health Review
-- Related Docs: [Index](./index.md), [Prioritäten](./priorities.md), [Mobile-Richtung](./mobile-direction.md)
+- Update Triggers:
+  - akzeptierte Themenbündelung und präzise Quellenpositionen
+  - dauerhafte Erkenntnis
+  - strategische Entscheidung
+  - Wiederaufnahme
+  - Documentation Health Review
+- Related Docs:
+  - [Index](./index.md)
+  - [Prioritäten](./priorities.md)
+  - [Mobile-Richtung](./mobile-direction.md)
 
 Am 2026-10-24 wählte Kyle zunächst `docs/strategy-history/`.
 Diese Ortswahl wurde am selben Tag durch `docs/wiki/` überholt, nachdem Kyle diesen Ort vorschlug und Root die Korrektur übernahm.

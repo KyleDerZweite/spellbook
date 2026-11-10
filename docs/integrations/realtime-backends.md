@@ -3,8 +3,21 @@
 - Status: Research, PostgreSQL retained for the current pass
 - Last Reviewed: 2026-10-19
 - Source of Truth: linked vendor documentation and current repository code
-- Update Triggers: independent API/web ownership and relocated code references, provider pricing, usage limits, client support, authentication requirements, accepted backend and synchronization contracts
-- Related Docs: [Integrations](./README.md), [System overview](../architecture/system-overview.md#accepted-boundary-redesign), [Authentication](../architecture/auth.md), [Catalog](../architecture/catalog.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Application contract](../architecture/application-contract.md)
+- Update Triggers:
+  - independent API/web ownership and relocated code references
+  - provider pricing
+  - usage limits
+  - client support
+  - authentication requirements
+  - accepted backend and synchronization contracts
+- Related Docs:
+  - [Integrations](./README.md)
+  - [System overview](../architecture/system-overview.md#accepted-boundary-redesign)
+  - [Authentication](../architecture/auth.md)
+  - [Catalog](../architecture/catalog.md)
+  - [Postgres](../architecture/postgres.md)
+  - [Mobile and scan](../architecture/mobile-and-scan.md)
+  - [Application contract](../architecture/application-contract.md)
 
 The maintainer prefers self hosting but will consider a managed backend if its benefits and recurring cost justify the dependency.
 On 2026-10-06, the maintainer set an ideal managed-service cost of $0 and a maximum of $10 per month, in addition to any retained hosting costs.

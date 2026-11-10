@@ -3,8 +3,23 @@
 - Status: Canonical, Inventory groups implemented; Deck presentation contract accepted
 - Last Reviewed: 2026-11-02
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
-- Update Triggers: managed Category removal, versioned MTG routes and module ownership, Python source activation and server contraction, Inventory Box labels, inventory groups, memberships, scan targets, accepted design contracts and implementation evidence
-- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
+- Update Triggers:
+  - managed Category removal
+  - versioned MTG routes and module ownership
+  - Python source activation and server contraction
+  - Inventory Box labels
+  - inventory groups
+  - memberships
+  - scan targets
+  - accepted design contracts and implementation evidence
+- Related Docs:
+  - [Product specification](./specification.md)
+  - [Domain model](../../GLOSSARY.md)
+  - [Frontend](../architecture/frontend.md)
+  - [Postgres](../architecture/postgres.md)
+  - [Mobile and scan](../architecture/mobile-and-scan.md)
+  - [UI direction](./ui-design-direction.md)
+  - [Product index](./README.md)
 
 ## Inventory groups
 

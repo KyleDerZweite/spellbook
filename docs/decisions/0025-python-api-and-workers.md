@@ -6,8 +6,21 @@
 - Last Reviewed: 2026-10-24
 - Owners: Kyle
 - Source of Truth: maintainer-selected shared API/worker language
-- Update Triggers: functional migration acceptance under ADR-0027, complete unmerged candidate status, Python migration design, framework or schema ownership selection, worker relocation, parity evidence
-- Related Docs: [Language evaluation](../integrations/backend-language-evaluation.md), [Independent applications](../architecture/independent-applications.md), [Worker](../architecture/worker.md), [ADR-0024](./0024-independent-applications.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
+- Update Triggers:
+  - functional migration acceptance under ADR-0027
+  - complete unmerged candidate status
+  - Python migration design
+  - framework or schema ownership selection
+  - worker relocation
+  - parity evidence
+- Related Docs:
+  - [Language evaluation](../integrations/backend-language-evaluation.md)
+  - [Independent applications](../architecture/independent-applications.md)
+  - [Worker](../architecture/worker.md)
+  - [ADR-0024](./0024-independent-applications.md)
+  - [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
+  - [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+  - [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
 
 ## Context
 

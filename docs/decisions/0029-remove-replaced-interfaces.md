@@ -5,8 +5,15 @@
 - Last Reviewed: 2026-10-25
 - Owners: Kyle
 - Source of Truth: Kyle's selected removal policy on 2026-10-24 and pre-release extension on 2026-10-25
-- Update Triggers: interface replacement, API removal, schema changes and pre-release upgrade expectations
-- Related Docs: [Contribution policy](../../CONTRIBUTING.md#replacing-interfaces), [Independent applications](../architecture/independent-applications.md), [ADR-0028](./0028-versioned-game-api.md), [Migration contract](../architecture/python-backend-migration.md)
+- Update Triggers:
+  - interface replacement
+  - API removal
+  - schema changes and pre-release upgrade expectations
+- Related Docs:
+  - [Contribution policy](../../CONTRIBUTING.md#replacing-interfaces)
+  - [Independent applications](../architecture/independent-applications.md)
+  - [ADR-0028](./0028-versioned-game-api.md)
+  - [Migration contract](../architecture/python-backend-migration.md)
 
 Spellbook prioritizes a small current implementation and fast changes over support for older clients.
 Replace interfaces and update first-party callers in the same change, then delete superseded code, routes, compatibility adapters, tests and documentation.

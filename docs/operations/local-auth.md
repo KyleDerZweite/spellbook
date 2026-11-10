@@ -3,8 +3,22 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-07
 - Source of Truth: code
-- Update Triggers: explicit hosted launcher and immutable image selection, reviewed environment and guarded private reset contract, hosted built Demo runtime, Compose Demo and production entrypoints, explicit additive Dashboard scenario, explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
-- Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
+- Update Triggers:
+  - Registration policy, account migration and credential recovery operator lifetime
+  - Root environment, reverse proxy origin and independent API/web ownership
+  - Hosted Demo and production Compose entrypoints and immutable image selection
+  - Python operator commands, bundled fixtures and pre-release account scope
+  - Demo valuation, History presentation and additive Dashboard scenario
+  - Versioned English Catalog publication and private starter preservation
+  - Guarded replacement of original Upgrades Unleashed Inventory and reviewed private reset
+- Related Docs:
+  - [Authentication architecture](../architecture/auth.md)
+  - [Deployment](./deployment.md)
+  - [Postgres](../architecture/postgres.md)
+  - [ADR-0009](../decisions/0009-local-authentication.md)
+  - [Catalog](../architecture/catalog.md)
+  - [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update)
+  - [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
 Registration is public.

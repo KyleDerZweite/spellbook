@@ -3,8 +3,23 @@
 - Status: Canonical domain glossary
 - Last Reviewed: 2026-11-02
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account repositories
-- Update Triggers: Deck type groups and related Tokens, card identity, inventory grouping, deck roles, reference values, coverage and personal Inventory history, scan review, physical-card terminology, sorter destinations and box identity, profile cards and metric placeholders
-- Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
+- Update Triggers:
+  - Deck type groups and related Tokens
+  - card identity
+  - inventory grouping
+  - deck roles
+  - reference values
+  - coverage and personal Inventory history
+  - scan review
+  - physical-card terminology
+  - sorter destinations and box identity
+  - profile cards and metric placeholders
+- Related Docs:
+  - [Product specification](docs/product/specification.md)
+  - [Value tracking](docs/product/value-tracking.md)
+  - [Catalog](docs/architecture/catalog.md)
+  - [Postgres](docs/architecture/postgres.md)
+  - [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context.
 This glossary owns terminology; the linked documents own behavior and proposed capabilities.

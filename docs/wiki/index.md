@@ -3,8 +3,28 @@
 - Status: Historical
 - Last Reviewed: 2026-11-10
 - Source of Truth: datierte Quellen in den verlinkten Themenseiten
-- Update Triggers: scoped integration simplification pass of 2026-11-10, explicit priority correction of 2026-11-09, delivered base-port closure with ongoing owner testing, isolated slice coordination preference, akzeptierte Retro-Maßnahmen, Themenbündelung und präzise Quellenpositionen, dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich, Python-/PostgreSQL-Bestätigung, native FastAPI-Freigabe, Pre-release-Verzicht, Admin-Bestätigung und vorerst kein ML-Panel, Voice-to-Text-Präferenz, Admin-/ML-Neubewertung und native Implementierungs-/Runtime-Evidenz
-- Related Docs: [Dokumentationsindex](../README.md), [Agent-Anweisungen](../../AGENTS.md)
+- Update Triggers:
+  - scoped integration simplification pass of 2026-11-10
+  - explicit priority correction of 2026-11-09
+  - delivered base-port closure with ongoing owner testing
+  - isolated slice coordination preference
+  - akzeptierte Retro-Maßnahmen
+  - Themenbündelung und präzise Quellenpositionen
+  - dauerhafte Erkenntnisse
+  - Nutzerkorrekturen
+  - strategische Entscheidungen
+  - Wiederaufnahme
+  - Documentation Health Review
+  - Gesamtbackend-Vergleich
+  - Python-/PostgreSQL-Bestätigung
+  - native FastAPI-Freigabe
+  - Pre-release-Verzicht
+  - Admin-Bestätigung und vorerst kein ML-Panel
+  - Voice-to-Text-Präferenz
+  - Admin-/ML-Neubewertung und native Implementierungs-/Runtime-Evidenz
+- Related Docs:
+  - [Dokumentationsindex](../README.md)
+  - [Agent-Anweisungen](../../AGENTS.md)
 
 Am 2026-10-24 beauftragte Kyle diese historische Sammlung unter `docs/wiki/`.
 Quelle: [Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).

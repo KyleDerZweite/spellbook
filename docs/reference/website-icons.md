@@ -3,8 +3,22 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-24
 - Source of Truth: selected logo, Blender scene and generator, frontend assets and provenance data, browser specifications
-- Update Triggers: current PWA start and shortcut paths, Commander precon baseline and source attribution, logo replacement, illustration source, landing artwork and deck sources, showcase manifest or refresh procedure, asset generation, profile frame source or preparation, favicon or manifest changes, installation requirements
-- Related Docs: [Reference](./README.md), [Design direction](../product/ui-design-direction.md), [Frontend](../architecture/frontend.md), [Original logo](../../logo.png)
+- Update Triggers:
+  - current PWA start and shortcut paths
+  - Commander precon baseline and source attribution
+  - logo replacement
+  - illustration source
+  - landing artwork and deck sources
+  - showcase manifest or refresh procedure
+  - asset generation
+  - profile frame source or preparation
+  - favicon or manifest changes
+  - installation requirements
+- Related Docs:
+  - [Reference](./README.md)
+  - [Design direction](../product/ui-design-direction.md)
+  - [Frontend](../architecture/frontend.md)
+  - [Original logo](../../logo.png)
 
 The root [logo.png](../../logo.png) is an unchanged copy of the logo supplied by the maintainer.
 It is a 1254 by 1254 pixel transparent PNG and is the source for the committed browser assets.

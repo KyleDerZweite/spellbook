@@ -3,8 +3,25 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-06
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: flattened Commander art crops, reviewed browser language filtering contract, environment isolation and Catalog-preserving private Demo reset, managed Category removal, verified per-face printed colors and corrected Demo bundle, independent browser Colorless controls, complete browser color expressions, NOT color exclusions, exact browser AND-only combinations, global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
-- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
+- Update Triggers:
+  - Catalog sources, schema, canonical facts, face colors and art-crop transformations
+  - Transactional generation publication, paired references, recovery and environment isolation
+  - Versioned authenticated API, module ownership and Python runtime boundaries
+  - Search ranking, global power-user queries and independent private matching
+  - Language, Color/Identity, Colorless, NOT and exact AND filter semantics and facets
+  - Browser anchor ranges, cache bounds, dialogs and selected versus implemented read limits
+  - Printing selection, import resolution and Inventory set-name lookup
+  - Versioned English Demo bundles, starter preservation, samples and display assets
+- Related Docs:
+  - [Domain glossary](../../GLOSSARY.md)
+  - [Postgres](./postgres.md)
+  - [Worker](./worker.md)
+  - [Frontend](./frontend.md)
+  - [Deployment](../operations/deployment.md)
+  - [Local authentication and demo setup](../operations/local-auth.md)
+  - [ADR-0010](../decisions/0010-postgres-catalog.md)
+  - [Application contract](./application-contract.md)
+  - [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
 The Python API provides public read-only search and printing lookup through `/api/v1/mtg/catalog/search`, `/api/v1/mtg/catalog/cards/{oracleId}/printings` and `/api/v1/mtg/catalog/printings/{printingId}`.

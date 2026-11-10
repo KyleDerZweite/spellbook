@@ -6,8 +6,26 @@
 - Last Reviewed: 2026-10-25
 - Owners: Kyle
 - Source of Truth: maintainer-accepted migration contract for issue 211, independent Sol/Astra reviews and Kyle's 2026-10-20 execution direction
-- Update Triggers: ADR-0029 pre-release compatibility supersession, ADR-0028 route/module supersession, explicit partial supersession by ADR-0027, complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
-- Related Docs: [ADR-0029](./0029-remove-replaced-interfaces.md), [Migration contract](../architecture/python-backend-migration.md), [ADR-0025](./0025-python-api-and-workers.md), [Independent applications](../architecture/independent-applications.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
+- Update Triggers:
+  - ADR-0029 pre-release compatibility supersession
+  - ADR-0028 route/module supersession
+  - explicit partial supersession by ADR-0027
+  - complete unmerged implementation scope
+  - integration ownership
+  - source preparation versus production operations
+  - independent review
+  - maintainer acceptance
+  - framework or schema ownership changes
+  - migration gates
+- Related Docs:
+  - [ADR-0029](./0029-remove-replaced-interfaces.md)
+  - [Migration contract](../architecture/python-backend-migration.md)
+  - [ADR-0025](./0025-python-api-and-workers.md)
+  - [Independent applications](../architecture/independent-applications.md)
+  - [Postgres](../architecture/postgres.md)
+  - [Worker](../architecture/worker.md)
+  - [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+  - [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
 
 [ADR-0027](./0027-python-functional-migration-acceptance.md) supersedes this decision's strict resource/performance readiness requirements and historical execution-model assignments.
 The language, component boundaries, final unmerged artifact and separate production authority remain accepted; current stack and acceptance requirements follow the migration contract.

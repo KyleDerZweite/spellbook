@@ -3,8 +3,25 @@
 - Status: Market references, public source history, personal daily history, Dashboard and selected-Deck estimates implemented
 - Last Reviewed: 2026-11-02
 - Source of Truth: implemented reference contracts and Kyle's value-only scope decision of 2026-10-07
-- Update Triggers: managed Category removal, preview-only personal History and direct Dashboard links, daily metric totals and Dashboard History preview, explicit static Demo valuation and simplified History presentation, price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
-- Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Valuation](../architecture/valuation.md), [Application contract](../architecture/application-contract.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md)
+- Update Triggers:
+  - managed Category removal
+  - preview-only personal History and direct Dashboard links
+  - daily metric totals and Dashboard History preview
+  - explicit static Demo valuation and simplified History presentation
+  - price providers and fallback policy
+  - value coverage
+  - daily history
+  - reporting currency and timezone
+  - retention
+  - valuation UI and API contracts
+- Related Docs:
+  - [Product index](./README.md)
+  - [Specification](./specification.md)
+  - [Domain glossary](../../GLOSSARY.md)
+  - [Market price research](../integrations/market-prices.md)
+  - [Valuation](../architecture/valuation.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0020](../decisions/0020-value-only-inventory-history.md)
 
 ## Selected scope
 

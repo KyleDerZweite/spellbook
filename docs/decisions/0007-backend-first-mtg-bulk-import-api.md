@@ -3,8 +3,17 @@
 - Status: Accepted
 - Last Reviewed: 2026-10-03
 - Source of Truth: mixed
-- Update Triggers: MTG import contract changes, bulk mutation contract changes, scan-recognition scope changes, frontend implementation scope changes
-- Related Docs: [Product specification](../product/specification.md), [Routing and Games](../product/routing-and-games.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md)
+- Update Triggers:
+  - MTG import contract changes
+  - bulk mutation contract changes
+  - scan-recognition scope changes
+  - frontend implementation scope changes
+- Related Docs:
+  - [Product specification](../product/specification.md)
+  - [Routing and Games](../product/routing-and-games.md)
+  - [Postgres](../architecture/postgres.md)
+  - [Worker](../architecture/worker.md)
+  - [Catalog](../architecture/catalog.md)
 
 ## Current applicability
 

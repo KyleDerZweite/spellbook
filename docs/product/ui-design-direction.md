@@ -3,8 +3,30 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-03
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: type-only Deck sections and related Tokens, portable Deck exchange and price-basis presentation, retired comparison prototypes, compact color formulas and independent Colorless controls, explicit NOT color exclusion, exact AND-only Search combinations, Dashboard Quick Actions and two-thirds Deck grid, reordered Dashboard panels and removed Inventory composition, explicit Add icons and Deck stack motif, stronger Dashboard chart colors, restored Deck grid and icon-free card interiors, selected two-row reference for the regular Dashboard, direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
-- Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
+- Update Triggers:
+  - Dashboard hierarchy, metric links, daily History previews, charts and real-data references
+  - Deck Builder, type sections, related Tokens, portable exchange and price presentation
+  - Search color formulas, Colorless, NOT and AND combinations, and power-user search
+  - Workspace, landing, navigation, account controls, typography, artwork and brand identity
+  - Shared components, icons, contrast, responsive behavior and accessibility
+  - Continuous Lazy browsing, Card dialogs and accepted interaction contracts
+  - PWA and QR sign-in, independent Android design and cross-client Figma handoff
+  - Recognition placement, client parity, browser scanning and phone computation evaluation
+  - Reference selection, rejected prototypes, implementation evidence and deferred UI polish
+- Related Docs:
+  - [Product specification](./specification.md)
+  - [Mobile exploration](./mobile-app-exploration.md)
+  - [Routes](./routing-and-games.md)
+  - [Domain model](../../GLOSSARY.md)
+  - [Selected UI components](../reference/ui-libraries.md)
+  - [Bits UI](../reference/bits-ui.md)
+  - [Brand assets](../reference/website-icons.md)
+  - [Frontend architecture](../architecture/frontend.md)
+  - [Product index](./README.md)
+  - [Application contract](../architecture/application-contract.md)
+  - [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md)
+  - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+  - [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
 Public search, owned Inventory and Deck editing support this focus.

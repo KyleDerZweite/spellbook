@@ -4,9 +4,16 @@
 - Date: 2026-10-03
 - Last Reviewed: 2026-10-03
 - Source of Truth: code and product decision
-- Update Triggers: search relevance, catalog resource use, deployment requirements, database boundaries
+- Update Triggers:
+  - search relevance
+  - catalog resource use
+  - deployment requirements
+  - database boundaries
 - Supersedes: the MeiliSearch index and publication choices in [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md)
-- Related Docs: [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Deployment](../operations/deployment.md)
+- Related Docs:
+  - [Catalog](../architecture/catalog.md)
+  - [Worker](../architecture/worker.md)
+  - [Deployment](../operations/deployment.md)
 
 Spellbook needs canonical-card search, exact printing resolution, facets, and catalog refreshes while readers remain active.
 Its self-hosted deployment already requires PostgreSQL for account data.

@@ -4,9 +4,17 @@
 - Date: 2026-04-25
 - Last Reviewed: 2026-10-07
 - Source of Truth: recorded decision
-- Update Triggers: application module ownership, decision applicability, supersession, related document changes
+- Update Triggers:
+  - application module ownership
+  - decision applicability
+  - supersession
+  - related document changes
 - Owners: project
-- Related Docs: [System Overview](../architecture/system-overview.md), [Postgres](../architecture/postgres.md), [Product specification](../product/specification.md), [Deployment](../operations/deployment.md)
+- Related Docs:
+  - [System Overview](../architecture/system-overview.md)
+  - [Postgres](../architecture/postgres.md)
+  - [Product specification](../product/specification.md)
+  - [Deployment](../operations/deployment.md)
 
 ## Context
 

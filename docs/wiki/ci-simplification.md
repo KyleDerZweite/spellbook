@@ -3,8 +3,14 @@
 - Status: Historical
 - Last Reviewed: 2026-10-24
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: CI-Aufrufketten, Routing, neue Laufzeitmessung
-- Related Docs: [Index](./index.md), [uv](./python-tooling.md), [Prioritäten](./priorities.md)
+- Update Triggers:
+  - CI-Aufrufketten
+  - Routing
+  - neue Laufzeitmessung
+- Related Docs:
+  - [Index](./index.md)
+  - [uv](./python-tooling.md)
+  - [Prioritäten](./priorities.md)
 
 Am 2026-10-24 entfernte `KyleDerZweite/spellbook@9cf73617979f84b81397201a07de338f3e2438aa` wiederholte Prüfungen und spröde Configuration-Assertions.
 Vier Jobs, Path-Routing und Package-Checks blieben erhalten.

@@ -3,8 +3,22 @@
 - Status: Implemented client, native acceptance pending integration
 - Last Reviewed: 2026-10-24
 - Source of Truth: this Gradle project and the shared HTTP contracts
-- Update Triggers: canonical versioned API paths, current-operation mutation recovery, native behavior, toolchain, API origin, credential storage, retention, streamed response bounds, reviewed deletion, account intent lifetime and acceptance evidence
-- Related Docs: [Independent applications](../docs/architecture/independent-applications.md), [Mobile design handoff](../docs/product/mobile-app-exploration.md), [Authentication](../docs/architecture/auth.md), [Mobile HTTP](../docs/architecture/mobile-and-scan.md)
+- Update Triggers:
+  - canonical versioned API paths
+  - current-operation mutation recovery
+  - native behavior
+  - toolchain
+  - API origin
+  - credential storage
+  - retention
+  - streamed response bounds
+  - reviewed deletion
+  - account intent lifetime and acceptance evidence
+- Related Docs:
+  - [Independent applications](../docs/architecture/independent-applications.md)
+  - [Mobile design handoff](../docs/product/mobile-app-exploration.md)
+  - [Authentication](../docs/architecture/auth.md)
+  - [Mobile HTTP](../docs/architecture/mobile-and-scan.md)
 
 This independent Kotlin/Compose application uses the Python API directly.
 It imports no web or database implementation.

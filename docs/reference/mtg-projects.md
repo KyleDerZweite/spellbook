@@ -3,8 +3,17 @@
 - Status: Optional external references, non-authoritative
 - Last Reviewed: 2026-10-30
 - Source of Truth: linked upstream descriptions for claims about those projects only
-- Update Triggers: reference reassessment, upstream capability changes, accepted product direction, reference authority clarification
-- Related Docs: [Reference index](./README.md), [Product specification](../product/specification.md), [Scanner platform evaluation](../integrations/scanner-platform-evaluation.md), [Card robot proposal](../integrations/card-robot.md), [Value tracking](../product/value-tracking.md)
+- Update Triggers:
+  - reference reassessment
+  - upstream capability changes
+  - accepted product direction
+  - reference authority clarification
+- Related Docs:
+  - [Reference index](./README.md)
+  - [Product specification](../product/specification.md)
+  - [Scanner platform evaluation](../integrations/scanner-platform-evaluation.md)
+  - [Card robot proposal](../integrations/card-robot.md)
+  - [Value tracking](../product/value-tracking.md)
 
 These references were supplied by Kyle and assessed on 2026-10-30 from upstream descriptions.
 These are independent external projects that may provide examples for specific questions.

@@ -3,8 +3,19 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-07
 - Source of Truth: compose configuration, PostgreSQL tools, disposable migration rehearsal
-- Update Triggers: three-file Compose selection and immutable hosted images, Compose Demo and production entrypoints, independent API/web ownership and relocated code references, PostgreSQL major versions, database volume layout, ownership or role changes, migration commands
-- Related Docs: [Deployment](./deployment.md), [Postgres architecture](../architecture/postgres.md), [Local authentication](./local-auth.md), [Operations](./README.md)
+- Update Triggers:
+  - three-file Compose selection and immutable hosted images
+  - Compose Demo and production entrypoints
+  - independent API/web ownership and relocated code references
+  - PostgreSQL major versions
+  - database volume layout
+  - ownership or role changes
+  - migration commands
+- Related Docs:
+  - [Deployment](./deployment.md)
+  - [Postgres architecture](../architecture/postgres.md)
+  - [Local authentication](./local-auth.md)
+  - [Operations](./README.md)
 
 The stack now uses PostgreSQL 18.6 with `postgres18_data` mounted at `/var/lib/postgresql`.
 The image stores its database at `/var/lib/postgresql/18/docker`.

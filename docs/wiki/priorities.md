@@ -3,8 +3,21 @@
 - Status: Historical
 - Last Reviewed: 2026-11-10
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: scoped integration simplification pass of 2026-11-10, explicit priority correction of 2026-11-09, isolated slice coordination preference, akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
-- Related Docs: [Index](./index.md), [Wiki-Pflege](./wiki-maintenance.md), [Interface-Entfernung](./interface-removal.md), [Datenbankoptionen](./database-options.md), [Admin-Klarstellung](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25)
+- Update Triggers:
+  - scoped integration simplification pass of 2026-11-10
+  - explicit priority correction of 2026-11-09
+  - isolated slice coordination preference
+  - akzeptierte Themenbündelung und präzise Quellenpositionen
+  - Prioritätswechsel
+  - Agent-Zusammenarbeit
+  - konkrete Environment-Reibung
+  - Voice-to-Text-Korrekturen
+- Related Docs:
+  - [Index](./index.md)
+  - [Wiki-Pflege](./wiki-maintenance.md)
+  - [Interface-Entfernung](./interface-removal.md)
+  - [Datenbankoptionen](./database-options.md)
+  - [Admin-Klarstellung](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25)
 
 Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features.
 The ordering above is superseded by the [2026-11-09 priority decision](#priority-order-selected-on-2026-11-09).
