@@ -22,6 +22,12 @@ Labels describe the work and its current status; they do not promise acceptance 
 3. Follow the [repository verification workflow](docs/operations/github-automation.md#local-checks) before opening a PR.
 4. Open a pull request against `main` with a concise description.
 
+## Documentation formatting
+
+Follow [documentation maintenance](docs/README.md#maintenance) for source formatting and metadata.
+Run `pnpm format:docs` before committing documentation, then `pnpm lint:docs`.
+Reflow alone does not establish a new factual review or change acceptance evidence.
+
 ## Website translations
 
 When adding, changing or removing website text, update the bundled English and German dictionaries in `frontend/src/lib/i18n/` in the same change.

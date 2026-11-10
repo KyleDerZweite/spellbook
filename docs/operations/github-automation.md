@@ -317,7 +317,8 @@ Rendered acceptance and real deployment remain separate evidence.
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests, pushes to `main` and manual dispatch.
 It has four jobs.
-The short `CI Scope` job runs the native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies.
+The short `CI Scope` job first runs the dependency-free [Markdown width check and fixtures](../../scripts/docs.mjs) for every change.
+It then runs the native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies.
 The three substantive jobs depend on successful classification and can run in parallel:
 
 | Job                | Checks                                                                                                                                   | Automatic scope                                                         |
@@ -380,7 +381,9 @@ The suite verifies that explicit loopback port and actual worker health without 
 `test:scan` uses the actual built application, PostgreSQL and configured local storage; [Mobile and Scan](../architecture/mobile-and-scan.md#scan-uploads) owns its evidence limits.
 The workflows are the source of truth for job names, environment variables and tool versions.
 
-Automatic CI does not run the root Markdown command.
+Markdown width checks run before classification even when no application suite is selected.
+Use `pnpm format:docs` to wrap all Markdown with the existing formatter and `pnpm lint:docs` for the dependency-free check.
+The [documentation maintenance rule](../README.md#maintenance) owns prose width, metadata structure and syntax exceptions.
 Backend `test` includes standalone native/operator suites under `backend/scripts/`; database-dependent operator cases skip without their explicitly guarded disposable target.
 The manual application workflow's database name does not satisfy the `_demo`/`_design` guard, so those transaction checks require separate local evidence.
 Android Build assembles/tests/lints; it does not boot an emulator or establish installation/native journeys.

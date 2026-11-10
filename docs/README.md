@@ -56,8 +56,14 @@ Retain decision records with explicit supersession status.
 
 Review documentation health at each milestone or release, or monthly during active development.
 Check claims against code, broken links, orphaned documents, duplicate contracts, and superseded decisions.
-Use plain repository Markdown.
-Put each prose sentence on its own source line, preserving paragraph breaks and list continuation indentation.
-Wrap a long sentence at a useful phrase boundary when needed.
-Keep code blocks, URLs and table rows syntactically intact.
-The repository's Markdown Prettier override uses `proseWrap: preserve` so formatting retains these line breaks.
+Use plain repository Markdown with readable source lines.
+Wrap prose and metadata to the configured 100-character width with `pnpm format:docs`.
+The Markdown formatter uses `proseWrap: always`; preserve paragraph breaks and let it place soft line breaks.
+Keep Update Triggers as a concise nested list of current review topics, not a running delivery changelog.
+Put each Related Docs link in its own nested list item.
+Keep headings, code blocks, tables and indivisible links or code tokens syntactically intact;
+these structural elements may exceed the prose width.
+Formatting does not rewrite code examples or establish a new factual review date.
+
+Run `pnpm lint:docs` to check all tracked and new nonignored Markdown files, including root and hidden directories.
+This dependency-free check also runs in CI Scope before suite classification, so documentation-only changes cannot skip it.

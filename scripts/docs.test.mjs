@@ -14,7 +14,21 @@ test('rejects long prose and metadata while accepting the width boundary', () =>
 });
 test('preserves atomic Markdown and checks prose around tokens', () => {
 	const link = '[reference](https://example.com/' + 'a'.repeat(120) + ')';
-	assert.deepEqual(checkText(['# ' + 'title '.repeat(30), '```js', 'x'.repeat(200), '```', '    ' + 'x'.repeat(200), '| ' + 'cell '.repeat(40) + '|', link, '`' + 'x'.repeat(120) + '`'].join('\n')), []);
+	assert.deepEqual(
+		checkText(
+			[
+				'# ' + 'title '.repeat(30),
+				'```js',
+				'x'.repeat(200),
+				'```',
+				'    ' + 'x'.repeat(200),
+				'| ' + 'cell '.repeat(40) + '|',
+				link,
+				'`' + 'x'.repeat(120) + '`'
+			].join('\n')
+		),
+		[]
+	);
 	assert.equal(checkText('words '.repeat(20) + link).length, 1);
 });
 test('discovers hidden and new Markdown, excludes ignored and deleted files', () => {
@@ -29,5 +43,7 @@ test('discovers hidden and new Markdown, excludes ignored and deleted files', ()
 		writeFileSync(join(directory, '.gitignore'), 'ignored.md\n');
 		writeFileSync(join(directory, 'ignored.md'), 'text');
 		assert.deepEqual(markdownFiles(directory).sort(), ['.github/new file.md', 'tracked.md']);
-	} finally { rmSync(directory, { recursive: true }); }
+	} finally {
+		rmSync(directory, { recursive: true });
+	}
 });
