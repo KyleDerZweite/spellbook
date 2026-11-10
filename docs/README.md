@@ -1,22 +1,15 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-07
+- Last Reviewed: 2026-11-10
 - Source of Truth: mixed
 - Update Triggers:
-  - consolidated standalone
-  - Development and hosted Compose ownership
-  - implemented migration source and PR-owned merge status
-  - historical strategy wiki discovery
-  - versioned shared/MTG API and module ownership
-  - Python runtime activation and Node source/test contraction
-  - Python functional migration acceptance and ADR-0029 interface-removal supersession
-  - sentence-per-line authoring and review-date semantics
-  - independent API/web ownership and relocated code references
-  - document ownership
-  - product contracts
-  - section changes
-  - documentation health review
+  - Documentation ownership, product contracts and section structure
+  - Architecture, API ownership and application/worker boundaries
+  - Backend migration contracts and superseding decisions
+  - Development, hosted deployment and operational references
+  - Historical wiki discovery and source provenance
+  - Markdown formatting, metadata, review dates and documentation health
 - Related Docs:
   - [Product](./product/README.md)
   - [Architecture](./architecture/README.md)
