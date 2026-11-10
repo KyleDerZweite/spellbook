@@ -169,15 +169,17 @@ test('hosted Demo config preserves services, immutable tags, private volumes and
 	assert.deepEqual(model.services.api.volumes, ['demo_scans:/app/storage/scans']);
 });
 
-test('production retains normal accounts, S3 and scheduled live Catalog lifecycle', () => {
+test('production retains normal accounts, shared local Scan storage and scheduled Catalog lifecycle', () => {
 	const plan = hostedPlan('production', 'config', fixture);
 	const model = config(plan.args, plan.env);
 	noPorts(model);
 	assert.equal(plan.args[3], 'spellbook');
 	assert.equal(model.services.newt, undefined);
 	assert.equal(model.services.api.environment.DEMO_MODE, 'false');
-	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, 's3');
-	assert.equal(model.services['scan-worker'].environment.S3_BUCKET, 'fixture-scans');
+	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, 'local');
+	assert.equal(model.services['scan-worker'].environment.SCAN_STORAGE_DRIVER, 'local');
+	assert.deepEqual(model.services.api.volumes, ['demo_scans:/app/storage/scans']);
+	assert.deepEqual(model.services['scan-worker'].volumes, model.services.api.volumes);
 	assert.equal(model.services.worker.environment.SYNC_INTERVAL, 'daily');
 	assert.equal(model.services.worker.restart, 'unless-stopped');
 	assert.deepEqual(model.services.frontend.networks.ingress.aliases, ['spellbook-production-web']);

@@ -79,7 +79,7 @@ services:
     pull_policy: never
     profiles: [application]
     environment:
-      SCAN_STORAGE_DRIVER: ${HOSTED_SCAN_STORAGE_DRIVER:-s3}
+      SCAN_STORAGE_DRIVER: ${HOSTED_SCAN_STORAGE_DRIVER:-local}
       SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
       S3_ENDPOINT: ${HOSTED_S3_ENDPOINT}
       S3_REGION: ${HOSTED_S3_REGION:-us-east-1}
@@ -108,7 +108,7 @@ services:
       DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
       VALUE_HISTORY_TIMEZONE: ${HOSTED_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
       DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
-      SCAN_STORAGE_DRIVER: ${HOSTED_SCAN_STORAGE_DRIVER:-s3}
+      SCAN_STORAGE_DRIVER: ${HOSTED_SCAN_STORAGE_DRIVER:-local}
       SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
       S3_ENDPOINT: ${HOSTED_S3_ENDPOINT}
       S3_REGION: ${HOSTED_S3_REGION:-us-east-1}
