@@ -162,6 +162,7 @@ def main():
                     page.get_by_role("button", name="Card Info", exact=True).click()
                     expect(dialog.locator(".ms-2").first).to_be_visible()
                     expect(dialog.locator(".ms-untap").first).to_be_visible()
+                    page.screenshot(path=str(args.output / "inspector.png"))
                     page.get_by_role("button", name="Printings", exact=True).click()
                     expect(quantity).to_have_value("7")
                     page.keyboard.press("Escape")
