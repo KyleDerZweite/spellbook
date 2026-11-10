@@ -171,6 +171,12 @@ must not make its schema public or use Demo credentials. Its scheduled Catalog w
 legitimately advance public publication pointers. Keep automatic maintenance and SSO policy intact.
 Local Scan volumes remain separate by Compose project and survive updates.
 
+An SSO redirect and healthy application or target checks do not prove that the tunnel forwards
+requests. Verify the actual gateway-to-application route after activation or target changes,
+including `/` and `/openapi.json`, while preserving SSO. A missing internal tunnel listener can
+return 502 after authentication even when direct application and target health checks pass. Internal
+tunnel ports are not published application host ports. Do not disable SSO to test routing.
+
 The private Demo updater selects a new `main` revision after its newest push-CI attempt succeeds. As
 verified on 2026-11-07, it does not filter revisions by changed paths. Documentation, `.gitignore`
 and other repository-only changes can therefore trigger an image build and Demo restart through the
