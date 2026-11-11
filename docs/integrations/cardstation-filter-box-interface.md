@@ -40,57 +40,47 @@ that link does not allocate copies or make the group's apparent count a physical
 
 ## Phase 1: local offline filter editor
 
-The Cardstation's local web UI should initially expose a simple, testable workflow:
+The Cardstation's local UI starts with one deterministic, network-independent sorting
+workflow. Spellbook's later filter editor must emit the **same versioned data-only
+JSON DSL** defined by
+[the canonical Sort Rule v1](https://github.com/KyleDerZweite/spellbook/pull/352)
+in `contracts/schemas/cardstation-sort-rule.v1.schema.json`. The
+[Cardstation Python interpreter](https://github.com/KyleDerZweite/spellbook-cardstation/pull/31)
+consumes identical fixtures and never needs Spellbook for an offline job.
 
-1. Select **Offline sorting**, with no Account login and no network requirement.
-2. Choose **Printed card color** as the first proposed rule. Show a clear distinction from
-   Commander color identity; neither a card frame nor its name is an adequate substitute.
-3. Configure the mapping between **recognized values and actual numbered output slots**. Display
-   the selected physical Reject/Fallback slot explicitly, within the available eight slots.
-4. Show an editable draft and a deterministic preview of sample Recognition values. Flag duplicate
-   slot assignments, missing values and unavailable slots before enabling Start.
-5. Confirm the resulting immutable job snapshot. While the machine runs, the editor is read-only.
-   Stop, jam, lost position and unconfirmed output remain device-state operations, not UI guesses.
-6. Saving a named local preset may persist **only filter/slot configuration**, not any scanned card,
-   result, image, run history or Account data.
+1. Select **Offline sorting** without Account login.
+2. Choose only fields the installed local Recognition can reliably return.
+   `printedColor` is a proposed first feature, not Commander color identity.
+3. Map ordered predicates to actual numbered output slots 1 through 8. Reserve
+   an accessible Reject/Fallback slot among those eight; no ninth slot exists.
+4. Preview first-match priority and AND conditions. Missing or unreliable observations
+   always use Reject, even when some other fields are known.
+5. Validate the full rule and machine capabilities, then freeze a snapshot for the
+   run. Editing a preset cannot change a running machine job.
+6. Save only presets and hardware configuration locally, never images, recognized
+   cards, run history or Account data.
 
-A first concrete value set for the proposed **printed-color bucket** rule is `white`, `blue`,
-`black`, `red`, `green`, `multicolor`, `colorless`, and `unknown`. It fits the eight planned
-slots only if Reject uses one of those slots. The actual first rule, fallback policy, hardware
-availability and recognition evidence must be confirmed in
-[Cardstation #26](https://github.com/KyleDerZweite/spellbook-cardstation/issues/26);
-the value set above is **not** a claim of current classifier support.
-
-A minimal local draft shape to validate and preview, **not an existing API DTO**:
+The canonical v1 example is:
 
 ```json
 {
-  "schemaVersion": 1,
+  "dsl": "spellbook.cardstation.sort",
+  "version": 1,
   "name": "Printed color",
-  "criterion": "printed_color_bucket",
-  "slotByValue": {
-    "white": 1,
-    "blue": 2,
-    "black": 3,
-    "red": 4,
-    "green": 5,
-    "multicolor": 6,
-    "colorless": 7,
-    "unknown": 8
-  },
+  "rules": [
+    { "when": [{ "field": "printedColor", "oneOf": ["white"] }], "slot": 1 },
+    { "when": [{ "field": "printedColor", "oneOf": ["blue"] }], "slot": 2 }
+  ],
   "fallbackSlot": 8
 }
 ```
 
-Validation must use the installed number of slots, reject unsupported criteria, give every
-possible result a defined route, and show conflict handling if an operator intentionally merges
-categories into one slot. The machine must not silently assume a ninth fallback. A rule preview
-does not confirm hardware movement or physical contents.
-
-The initial filter editor should be a compact **rule selector plus slot mapping**, not an
-unrestricted expression builder. Set, rarity, type, deck membership, AND/OR conditions and
-priority across overlapping rules can be added only when their Recognition inputs, timing and
-conflict semantics have been evaluated.
+The DSL also defines `rarity` and `setCode` for future compatible editors,
+but device capability validation must prevent using unsupported classifier output.
+Unknown fields, unsupported versions and arbitrary executable code are rejected.
+Neither a preview nor a JSON match proves that a physical output occurred.
+This shared configuration format is **not yet** an authenticated API, an editor UI,
+a physical Box assignment or an Inventory operation.
 
 ## Later: authenticated physical Box management
 
@@ -137,7 +127,7 @@ These are conceptual names, **not added contracts or routes**:
 | --- | --- | --- |
 | `PhysicalBox` | `id`, `owner` (from Auth), `name`, `revision` | Identity independent of Group, rule and slot |
 | `BoxLabel` | `boxId`, `formatVersion` | No authorization or mutable filter in QR |
-| `SortRulePreset` | `id`, `revision`, `criterion`, `slotByValue`, `fallbackSlot` | A job freezes the validated rule version |
+| `SortRulePreset` | `id`, `revision`, `rule: CardstationSortRuleV1` | A job freezes the validated DSL document |
 | `SlotBinding` | `jobId`, `slot`, optional `boxId`, `observationVersion` | Binding is not proof that a card arrived |
 | `QuantityAllocation` | `entryId`, `boxId` or unknown location, `quantity` | Sum across locations never exceeds owned quantity |
 | `Relocation` | Request/event IDs, source, destination, observed quantities, outcome | One authorized, atomic and idempotent effect |
