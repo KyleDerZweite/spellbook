@@ -102,8 +102,8 @@ export function selectCardstationSortSlot(
 		if (
 			option.when.every(
 				(predicate) =>
-				matches(predicate.field, observation[predicate.field]) &&
-				predicate.oneOf.includes(observation[predicate.field]!)
+					matches(predicate.field, observation[predicate.field]) &&
+					predicate.oneOf.includes(observation[predicate.field]!)
 			)
 		)
 			return option.slot;
