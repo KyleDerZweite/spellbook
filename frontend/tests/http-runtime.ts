@@ -326,6 +326,16 @@ export async function startHttpApplication(
 	const apiOrigin = options.apiOrigin ?? httpApiTestOrigin();
 	const apiAddress = loopbackAddress(apiOrigin);
 	if (origin === apiOrigin) throw new Error('API and web require separate HTTP test ports.');
+	if (entrypoint === 'build/index.js') {
+		let buildOrigin: unknown;
+		try {
+			({ origin: buildOrigin } = await import(new URL('build/adapter-node.js', cwd).href));
+		} catch {
+			throw new Error('Missing public build Origin; rebuild with matching APP_ORIGIN.');
+		}
+		if (buildOrigin !== origin)
+			throw new Error('Public build Origin mismatch; rebuild with matching APP_ORIGIN.');
+	}
 	// Check both before starting either child or publishing any database fixtures.
 	await requireFreePort(origin);
 	await requireFreePort(apiOrigin);

@@ -1208,5 +1208,19 @@
 	"ui.Saving": "Wird gespeichert...",
 	"qr.approval": "{device} als {username} anmelden?",
 	"qr.target.browser": "Einen anderen Browser",
-	"qr.target.device": "Ein Gerät"
+	"qr.target.device": "Ein Gerät",
+	"entries.one": "{count} Eintrag",
+	"entries.other": "{count} Einträge",
+	"inventory.direction.asc": "aufsteigend",
+	"inventory.direction.desc": "absteigend",
+	"inventory.order.newest": "Nach Erstellungsdatum des Eintrags sortiert, neueste zuerst.",
+	"inventory.order.set": "Nach Set {direction} gruppiert, dann nach Kartenname aufsteigend sortiert.",
+	"inventory.order.name": "Nach Kartenname {direction}, dann nach Set aufsteigend sortiert.",
+	"inventory.order.set.variant": "Nach Set {direction} gruppiert, dann nach {column} {variantDirection}, dann nach Kartenname aufsteigend sortiert.",
+	"inventory.order.name.variant": "Nach {column} {variantDirection}, dann nach Kartenname {direction}, dann nach Set aufsteigend sortiert.",
+	"inventory.column.finish": "Ausführung",
+	"inventory.column.condition": "Zustand",
+	"inventory.column.quantity": "Anzahl",
+	"search.color.any": "Beliebige Farbe",
+	"search.color.anyIdentity": "Beliebige Farbidentität"
 }

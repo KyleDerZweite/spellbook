@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
@@ -31,8 +32,6 @@ from spellbook_core.mtg.models import CardDocument
 from spellbook_core.mtg.scan import (
     Scan,
     ScanError,
-    ScanImage,
-    ScanStorage,
     ScanWorker,
     create_scan,
 )
@@ -51,13 +50,13 @@ NOW = datetime(2026, 10, 23, tzinfo=UTC)
 INPUT: WorkerInput = {
     "sessionId": SESSION,
     "artifactId": ARTIFACT,
-    "originalObjectKey": f"scan-sessions/{SESSION}/{ARTIFACT}.png",
+    "imageSha256": sha256(PNG).hexdigest(),
     "contentType": "image/png",
     "fileName": "card.png",
 }
 RAW: dict[str, object] = {
     "status": "no_match",
-    "normalizedObjectKey": INPUT["originalObjectKey"],
+    "imageSha256": INPUT["imageSha256"],
     "qualityScore": 0,
     "embeddingModelVersion": "stub-v1",
     "ocrModelVersion": "stub-v1",
@@ -98,8 +97,6 @@ def artifact() -> ArtifactRow:
         ARTIFACT,
         SESSION,
         ACTOR.account_id,
-        INPUT["originalObjectKey"],
-        INPUT["originalObjectKey"],
         0,
         "stub-v1",
         "stub-v1",
@@ -123,12 +120,11 @@ def fixture() -> Iterator[tuple[Scan, Any, Any, Any, Any, Any, Any]]:
     inventory = create_autospec(Inventory, instance=True)
     inventory.replay.return_value = None
     inventory.apply.return_value = ACK
-    storage = create_autospec(ScanStorage, instance=True)
-    storage.read.return_value = ScanImage(PNG, "image/png")
+    storage = AsyncMock()  # retained in fixture shape for older non-storage assertions
     worker = create_autospec(ScanWorker, instance=True)
-    worker.process.side_effect = lambda input: {
+    worker.process.side_effect = lambda input, image: {
         **RAW,
-        "normalizedObjectKey": input["originalObjectKey"],
+        "imageSha256": sha256(image).hexdigest(),
     }
     tx = AsyncMock()
     tx.cursor = MagicMock()
@@ -136,7 +132,7 @@ def fixture() -> Iterator[tuple[Scan, Any, Any, Any, Any, Any, Any]]:
     pool = create_autospec(ConnectionPool, instance=True)
     pool.connection.return_value.__aenter__.return_value = tx
     tx.transaction = MagicMock()
-    scan = create_scan(pool, catalog, auth, inventory, storage, worker)
+    scan = create_scan(pool, catalog, auth, inventory, worker)
 
     @asynccontextmanager
     async def unit_transaction(*args: object, **kwargs: object) -> AsyncIterator[Transaction]:
@@ -196,7 +192,7 @@ def test_public_artifact_omits_keys_account_and_absent_tokens() -> None:
 @pytest.mark.parametrize(
     "fields",
     [
-        {"normalizedObjectKey": "foreign"},
+        {"imageSha256": "foreign"},
         {"qualityScore": True},
         {"qualityScore": -1},
         {"qualityScore": 0.5},
@@ -402,26 +398,12 @@ def test_closed_review_does_not_apply_inventory(
     asyncio.run(scenario())
 
 
-@pytest.mark.parametrize("outcome", ["present", "absent", "indeterminate"])
-def test_upload_lost_commit_response_discards_before_recovery(
-    fixture: tuple[Any, ...], outcome: str
+def test_upload_lost_commit_response_discards_without_image_cleanup(
+    fixture: tuple[Any, ...],
 ) -> None:
     async def scenario() -> None:
-        scan, _auth, _catalog, _inventory, storage, _worker, tx = fixture
+        scan, _auth, _catalog, _inventory, _storage, _worker, tx = fixture
         tx.transaction.return_value.__aexit__.side_effect = OSError("lost COMMIT response")
-        events: list[str] = []
-
-        async def close() -> None:
-            events.append("discard")
-
-        tx.close.side_effect = close
-
-        async def recover(*args: object) -> bool:
-            events.append("recover")
-            if outcome == "indeterminate":
-                raise OSError("recovery unavailable")
-            return outcome == "present"
-
         with (
             patch.object(scan, "assert_uploadable", AsyncMock()),
             patch(
@@ -431,44 +413,34 @@ def test_upload_lost_commit_response_discards_before_recovery(
                 ),
             ),
             patch.object(scan, "_insert_artifact", AsyncMock(return_value=artifact())),
-            patch.object(scan, "_attachment_exists", recover),
             pytest.raises(ScanError, match="processing failed"),
         ):
             await scan.upload_frame(
                 ACTOR, session_id=SESSION, body=PNG, content_type="image/png", file_name="card.png"
             )
-        assert events == ["discard", "recover"]
-        if outcome == "absent":
-            storage.delete.assert_awaited_once()
-        else:
-            storage.delete.assert_not_awaited()
+        tx.close.assert_awaited_once()
 
     asyncio.run(scenario())
 
 
-def test_worker_failure_cleanup_failure_never_records_or_retries(fixture: tuple[Any, ...]) -> None:
+def test_worker_failure_does_not_record_image_or_metadata(fixture: tuple[Any, ...]) -> None:
     async def scenario() -> None:
-        scan, _auth, _catalog, _inventory, storage, worker, tx = fixture
+        scan, _auth, _catalog, _inventory, _storage, worker, tx = fixture
         worker.process.side_effect = OSError("worker unavailable")
-        storage.delete.side_effect = OSError("cleanup unavailable")
-        with (
-            patch.object(scan, "assert_uploadable", AsyncMock()),
-            pytest.raises(ScanError) as error,
-        ):
+        with patch.object(scan, "assert_uploadable", AsyncMock()), pytest.raises(ScanError):
             await scan.upload_frame(
                 ACTOR, session_id=SESSION, body=PNG, content_type="image/png", file_name="card.png"
             )
-        assert error.value.kind == "ScanProcessingFailed"
         worker.process.assert_awaited_once()
-        storage.delete.assert_awaited_once()
+        assert worker.process.await_args.args[1] == PNG
         tx.execute.assert_not_awaited()
 
     asyncio.run(scenario())
 
 
-def test_upload_cancellation_before_recording_settles_cleanup(fixture: tuple[Any, ...]) -> None:
+def test_upload_cancellation_before_recording(fixture: tuple[Any, ...]) -> None:
     async def scenario() -> None:
-        scan, _auth, _catalog, _inventory, storage, worker, tx = fixture
+        scan, _auth, _catalog, _inventory, _storage, worker, tx = fixture
         worker.process.side_effect = asyncio.CancelledError()
         with (
             patch.object(scan, "assert_uploadable", AsyncMock()),
@@ -477,66 +449,29 @@ def test_upload_cancellation_before_recording_settles_cleanup(fixture: tuple[Any
             await scan.upload_frame(
                 ACTOR, session_id=SESSION, body=PNG, content_type="image/png", file_name="card.png"
             )
-        storage.delete.assert_awaited_once()
         tx.execute.assert_not_awaited()
 
     asyncio.run(scenario())
 
 
-def test_read_image_checks_ownership_and_revalidates_after_storage(
+def test_upload_finishes_transient_worker_before_recording_metadata(
     fixture: tuple[Any, ...],
 ) -> None:
     async def scenario() -> None:
-        scan, auth, _catalog, _inventory, storage, _worker, _tx = fixture
-        with patch(
-            "spellbook_core.mtg.scan.application.owned_artifact",
-            AsyncMock(return_value=artifact()),
-        ):
-            assert await scan.read_image(ACTOR, ARTIFACT) == ScanImage(PNG, "image/png")
-            auth.require_actor.side_effect = [ACTOR, ActorError()]
-            with pytest.raises(ActorError):
-                await scan.read_image(ACTOR, ARTIFACT)
-        storage.read.reset_mock()
-        auth.require_actor.side_effect = None
-        with (
-            patch(
-                "spellbook_core.mtg.scan.application.owned_artifact",
-                AsyncMock(side_effect=ScanError("ScanNotFound", "Scan artifact not found", 404)),
-            ),
-            pytest.raises(ScanError),
-        ):
-            await scan.read_image(ACTOR, ARTIFACT)
-        storage.read.assert_not_awaited()
-
-    asyncio.run(scenario())
-
-
-def test_upload_finishes_external_io_before_recording_and_retains_attached_object(
-    fixture: tuple[Any, ...],
-) -> None:
-    async def scenario() -> None:
-        scan, _auth, _catalog, _inventory, storage, worker, _tx = fixture
+        scan, _auth, _catalog, _inventory, _storage, worker, _tx = fixture
         events: list[str] = []
 
-        async def write(*args: object) -> None:
-            events.append("storage")
-
-        async def process(input: WorkerInput) -> object:
+        async def process(input: WorkerInput, image: bytes) -> object:
             events.append("worker")
-            return {**RAW, "normalizedObjectKey": input["originalObjectKey"]}
+            assert image == PNG
+            return {**RAW, "imageSha256": input["imageSha256"]}
 
         async def insert(
             tx: Transaction, account: str, input: WorkerInput, result: object
         ) -> ArtifactRow:
             events.append("record")
-            return replace(
-                artifact(),
-                id=input["artifactId"],
-                original_object_key=input["originalObjectKey"],
-                normalized_object_key=input["originalObjectKey"],
-            )
+            return replace(artifact(), id=input["artifactId"])
 
-        storage.write.side_effect = write
         worker.process.side_effect = process
         with (
             patch.object(scan, "assert_uploadable", AsyncMock()),
@@ -551,9 +486,8 @@ def test_upload_finishes_external_io_before_recording_and_retains_attached_objec
             response = await scan.upload_frame(
                 ACTOR, session_id=SESSION, body=PNG, content_type="image/png", file_name="card.png"
             )
-        assert events == ["storage", "worker", "record"]
+        assert events == ["worker", "record"]
         assert response["artifact"]["id"] == worker.process.await_args.args[0]["artifactId"]
-        storage.delete.assert_not_awaited()
 
     asyncio.run(scenario())
 
@@ -563,7 +497,7 @@ def test_upload_revalidates_authority_and_session_after_external_work(
     fixture: tuple[Any, ...], failure: str
 ) -> None:
     async def scenario() -> None:
-        scan, auth, _catalog, _inventory, storage, worker, _tx = fixture
+        scan, auth, _catalog, _inventory, _storage, worker, _tx = fixture
         if failure == "revoked":
             auth.require_actor_for_write.side_effect = ActorError()
         with (
@@ -584,6 +518,5 @@ def test_upload_revalidates_authority_and_session_after_external_work(
             )
         worker.process.assert_awaited_once()
         insert.assert_not_awaited()
-        storage.delete.assert_awaited_once_with(storage.write.await_args.args[0])
 
     asyncio.run(scenario())

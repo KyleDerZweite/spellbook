@@ -49,54 +49,51 @@
 	);
 	let selected = $derived.by(() => selectedDeckChoice(choices, draft.deckId));
 	let blocked = $derived(pending || callerPending || !authorized);
-	const resource = $derived(
-		workspaceSavedState.subscribe({
-			topics: ['decks'],
-			clear() {
-				if (!mounted) return;
-				choices = null;
-				query = '';
-				offset = 0;
-				loading = false;
-				readError = '';
-				Object.assign(draft, createDeckAdditionDraft());
-				pending = false;
-				onPendingChange?.(false);
-			},
-			async refresh(lease) {
-				const captured = { account, query, offset, deckId: draft.deckId, draft };
-				const current = () =>
-					mounted &&
-					lease.current() &&
-					account === captured.account &&
-					draft === captured.draft &&
-					query === captured.query &&
-					offset === captured.offset &&
-					draft.deckId === captured.deckId;
-				const params = new URLSearchParams({
-					query: captured.query,
-					offset: String(captured.offset),
-					limit: '20'
+	const resource = workspaceSavedState.subscribe({
+		topics: ['decks'],
+		clear() {
+			if (!mounted) return;
+			choices = null;
+			query = '';
+			offset = 0;
+			loading = false;
+			readError = '';
+			Object.assign(draft, createDeckAdditionDraft());
+			pending = false;
+			onPendingChange?.(false);
+		},
+		async refresh(lease) {
+			const captured = { account, query, offset, deckId: draft.deckId, draft };
+			const current = () =>
+				mounted &&
+				lease.current() &&
+				account === captured.account &&
+				draft === captured.draft &&
+				query === captured.query &&
+				offset === captured.offset &&
+				draft.deckId === captured.deckId;
+			const params = new URLSearchParams({
+				query: captured.query,
+				offset: String(captured.offset),
+				limit: '20'
+			});
+			if (captured.deckId) params.set('selectedDeckId', captured.deckId);
+			loading = true;
+			try {
+				const value = await readSavedJSON<DeckChoicePage>('/api/v1/mtg/decks/choices?' + params, {
+					signal: lease.signal,
+					current
 				});
-				if (captured.deckId) params.set('selectedDeckId', captured.deckId);
-				loading = true;
-				try {
-					const value = await readSavedJSON<DeckChoicePage>('/api/v1/mtg/decks/choices?' + params, {
-						signal: lease.signal,
-						current
-					});
-					if (!current() || !value) return;
-					choices = value;
-					readError = '';
-				} catch {
-					if (current())
-						readError = language.t('ui.Deck.choices.could.not.be.loaded.Retry.the.read');
-				} finally {
-					if (current()) loading = false;
-				}
+				if (!current() || !value) return;
+				choices = value;
+				readError = '';
+			} catch {
+				if (current()) readError = language.t('ui.Deck.choices.could.not.be.loaded.Retry.the.read');
+			} finally {
+				if (current()) loading = false;
 			}
-		})
-	);
+		}
+	});
 	$effect(() => {
 		const next = account;
 		const state = workspaceSavedState.getState();

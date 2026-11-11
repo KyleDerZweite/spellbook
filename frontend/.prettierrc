@@ -14,7 +14,8 @@
 		{
 			"files": ["*.md", "*.mdx"],
 			"options": {
-				"proseWrap": "preserve"
+				"proseWrap": "always",
+				"embeddedLanguageFormatting": "off"
 			}
 		}
 	]

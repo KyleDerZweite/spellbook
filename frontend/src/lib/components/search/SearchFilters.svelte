@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import { translate, type MessageKey } from '#lib/i18n/messages.ts';
-	const colorLabel = (id: string) => translate(language.locale, `color.${id}` as MessageKey);
 	import { printingLanguageOptions } from '#lib/search/languages.ts';
 	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { Collapsible } from 'bits-ui';
 	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import type { FacetResponse } from '#lib/search/types.ts';
 	import {
+		filterOptionLabel,
 		MANA_COLORS,
 		RARITIES,
 		CARD_TYPES,
@@ -93,7 +92,7 @@
 						class="filter-color"
 						data-logic={logic}
 						aria-label={language.t('message.p0.p1.Next.click.p2', {
-							p0: String(colorLabel(color.label)),
+							p0: String(filterOptionLabel(color, language.locale)),
 							p1: String(logic),
 							p2: String(
 								logic === 'off'
@@ -107,7 +106,7 @@
 												: 'off'
 							)
 						})}
-						title={`${colorLabel(color.label)}: ${logic}`}
+						title={`${filterOptionLabel(color, language.locale)}: ${logic}`}
 						aria-pressed={logic !== 'off'}
 					>
 						<i class="ms ms-cost {color.msClass}" aria-hidden="true"></i>
@@ -143,9 +142,7 @@
 						aria-pressed={filters.selectedRarities.has(rarity.id)}
 					>
 						<i class="ms ms-rarity" style:color={rarity.color} aria-hidden="true"></i>
-						<span class="option-label"
-							>{translate(language.locale, `rarity.${rarity.id}` as MessageKey)}</span
-						>
+						<span class="option-label">{filterOptionLabel(rarity, language.locale)}</span>
 						<span class="facet-count"
 							>{facets?.rarity[rarity.id]?.toLocaleString(language.locale) ?? ''}</span
 						>
@@ -172,9 +169,7 @@
 						<span class="selection-mark" aria-hidden="true"></span>{#if symbol}<i
 								class={`type-symbol ms ms-${symbol}`}
 								aria-hidden="true"
-							></i>{/if}<span class="option-label"
-							>{translate(language.locale, `type.${type.id}` as MessageKey)}</span
-						>
+							></i>{/if}<span class="option-label">{filterOptionLabel(type, language.locale)}</span>
 					</button>
 				{/each}
 			</div>
@@ -194,7 +189,7 @@
 						aria-pressed={filters.selectedLegalities.has(format.id)}
 					>
 						<span class="selection-mark" aria-hidden="true"></span><span class="option-label"
-							>{format.label}</span
+							>{filterOptionLabel(format, language.locale)}</span
 						>
 					</button>
 				{/each}

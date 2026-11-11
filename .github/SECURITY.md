@@ -21,7 +21,7 @@ When reporting, include:
 
 ## Response
 
-This is a personal project, so response times may vary.
-I will do my best to acknowledge reports promptly and work on a fix.
+This is a personal project, so response times may vary. I will do my best to acknowledge reports
+promptly and work on a fix.
 
 Please do not disclose vulnerabilities publicly until a fix is available.

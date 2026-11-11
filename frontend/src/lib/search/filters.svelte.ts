@@ -145,15 +145,20 @@ export class SearchFilterState {
 		this.changed();
 	}
 
-	get hasFilters(): boolean {
+	get activeCount(): number {
+		const defaultLanguages =
+			this.selectedLanguages.size === DEFAULT_SEARCH_LANGUAGES.length &&
+			DEFAULT_SEARCH_LANGUAGES.every((language) => this.selectedLanguages.has(language));
 		return (
-			this.selectedLanguages.size !== 2 ||
-			!this.selectedLanguages.has('de') ||
-			!this.selectedLanguages.has('en') ||
-			this.selectedColors.size > 0 ||
-			this.selectedRarities.size > 0 ||
-			this.selectedTypes.size > 0 ||
-			this.selectedLegalities.size > 0
+			(defaultLanguages ? 0 : Math.max(1, this.selectedLanguages.size)) +
+			this.selectedColors.size +
+			this.selectedRarities.size +
+			this.selectedTypes.size +
+			this.selectedLegalities.size
 		);
+	}
+
+	get hasFilters(): boolean {
+		return this.activeCount > 0;
 	}
 }
