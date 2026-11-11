@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-07
+- Last Reviewed: 2026-11-11
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers:
   - Account and platform behavior:
@@ -519,40 +519,42 @@ limits, storage behavior, and worker boundaries.
 
 ## Physical scanner and sorter preparation
 
-A physical card-scanning, indexing, sorting, and deck-assembly product is a separate later project.
-Its proposed integration must not make hardware a requirement for the current website.
+The [Cardstation operating-mode decision](../decisions/0030-cardstation-physical-storage.md) selects
+**Offline sorting** as the only current delivery target in the separate
+[Cardstation repository](https://github.com/KyleDerZweite/spellbook-cardstation). The Jetson locally
+captures, recognizes and physically sorts arbitrary mixed MTG stacks. It requires neither a
+Spellbook Account nor an Internet connection and stores no card-level observations, scan results,
+job histories or Inventory mutations from normal operation. Local reference assets, model weights,
+configuration and calibration may persist.
 
-A future device may feed individual MTG cards from a stack, capture each card, and sort it into
-configured output trays. Colour, type and set are candidate sorting rules. Recognition belongs
-locally to scanner clients. The selected research direction gives the available Jetson Orin Nano
-Super responsibility for Cardstation capture, recognition, motors and sensors; low-level
-implementation and hardware choices remain in the separate hardware project. Recognition models and
-the integration protocol are undecided. The backend owns account access and Inventory/Deck effects,
-with public reference preparation proposed separately. The phone-mediated machine-login concept and
-regular Eject workflow are owned by the [sorter integration](../integrations/card-robot.md).
+Two distinct authenticated modes remain **deferred**:
 
-The [card scanner and sorter proposal](../integrations/card-robot.md) owns the device concept,
-candidate protocol, recovery model, and prototype acceptance criteria. Local hardware testing and 3D
-prototyping are separate preparation work; no hardware test results have been supplied. These are
-proposed contracts. Current scan and inventory APIs do not establish an implemented robot
-controller, sorting job, or physical placement record.
+1. **Inventory intake** accepts only cards explicitly declared new by the operator. A reviewed,
+   authorized and replay-safe commit increases owned quantities once. Current Scan upload/review
+   interfaces provide partial precedents but do not implement machine intake or reliable
+   physical-copy identity.
+2. **Online sorting** accepts arbitrary mixed stacks of **already owned** cards and eventually
+   transfers quantities between physical storage Boxes. It never increases owned Inventory totals. A
+   roughly 90% content match may suggest a source Box, but can never establish identity or source
+   automatically; partial stacks require special care and operator confirmation.
 
-Recognition proposes a printing; user confirmation establishes an intended import. A commanded
-movement does not establish output placement. A sorter must confirm placement through sensor
-evidence or operator reconciliation before recording a physical location. Sorting an already owned
-card must not add its quantity to inventory again.
+Existing Inventory **Boxes** are virtual, overlapping whole-entry groups and remain unchanged. A
+future Physical Box has a stable identity independent of its current machine slot, and each
+Inventory entry's quantity can be allocated across several real storage locations. Neither the
+physical Box registry nor its quantities are implemented. There is no existing QR labeling or
+durable rule/slot binding API; the
+[filter and label proposal](../integrations/cardstation-filter-box-interface.md) records the user
+interface to evaluate. One-time QR login credentials must never double as permanent physical Box
+labels.
 
-Physical tracking requires a schema decision that preserves individual copy identity or explicit
-quantity allocations, language, finish, condition, location, and deck assignment. These fields and
-relationships must be implemented before Spellbook claims to track cards in trays or assembled
-decks. Current aggregate inventory entries cannot distinguish otherwise identical copies in
-different places.
-
-A deck-assembly job selects matching cards only from the stack actually fed into the device. It
-allocates a presented card at most once, follows an explicit alternate-printing policy, and reports
-unmet requirements. It cannot retrieve cards from arbitrary storage or treat inventory elsewhere as
-physically reachable. Deck assembly is separate from AI deck suggestions, which remain outside the
-implemented product.
+The [sorter integration document](../integrations/card-robot.md) retains the earlier mechanical
+simulator and Deck assembly ideas as historical planning. They are **not** part of the three
+selected Cardstation modes or current delivery. Offline filter editing and slot mapping belong to
+Cardstation. Accounts, future Physical Boxes, authoritative quantities and relocation commits belong
+to Spellbook. A Recognition result, commanded movement or observed QR is not proof that a card was
+physically placed. Only confirmed placement or explicit reconciliation may support a future location
+change. Actual sensors, performance, account/device protocol and later APIs still require design and
+hardware evidence.
 
 ## API and consistency requirements
 

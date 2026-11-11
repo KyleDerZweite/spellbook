@@ -9,13 +9,14 @@
   - PostgreSQL and semantic search evaluation
   - functional Python acceptance and current migration status
   - Python API/worker language selection and migration planning
-  - external system contracts
+  - external system contracts and Cardstation filter/physical Box QR interface
   - integration scope
   - provider evaluations and scanner-platform research
 - Related Docs:
   - [Market price research](./market-prices.md)
   - [Realtime backend evaluation](./realtime-backends.md)
-  - [Proposed card robot](./card-robot.md)
+  - [Cardstation modes and sorter integration](./card-robot.md)
+  - [Filter and physical Box label interface](./cardstation-filter-box-interface.md)
   - [Shared Cardstation sort DSL v1](./cardstation-sort-rule-v1.md)
   - [Scanner platform evaluation](./scanner-platform-evaluation.md)
   - [Worker](../architecture/worker.md)
@@ -35,13 +36,16 @@ implemented and full functional migration pending.
 performance/resource blockers; the [current contract](../architecture/python-backend-migration.md)
 owns delivery and acceptance.
 
-The [card robot proposal](./card-robot.md) owns the future phone/sorter integration, hardware
-concept, local fast/slow recognition, device-login concept and exploratory simulator.
-[Cardstation sort DSL v1](./cardstation-sort-rule-v1.md) defines the proposed data-only
-filter-editor exchange format and cross-language fixtures. It does not activate online sorting.
-[ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local recognition,
-with public reference preparation proposed centrally. These decisions are not implemented hardware
-or phone-client support.
+The [sorter integration](./card-robot.md) records accepted Cardstation mode and Box boundaries
+alongside historical hardware/simulator concepts. The
+[filter and physical Box label interface](./cardstation-filter-box-interface.md) proposes a local
+offline rule editor and later authenticated Box QR labels without claiming implementation.
+[ADR-0030](../decisions/0030-cardstation-physical-storage.md) owns the accepted product and
+physical-quantity decision. [Cardstation sort DSL v1](./cardstation-sort-rule-v1.md) defines the
+proposed data-only filter-editor exchange format and cross-language fixtures. It does not activate
+online sorting. [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local
+recognition, with public reference preparation proposed centrally. These decisions are not
+implemented hardware or phone-client support.
 
 [Scanner platform evaluation](./scanner-platform-evaluation.md) is the research report on
 website/phone options, local recognition hosts, controller separation, OSS operation, self-hosting

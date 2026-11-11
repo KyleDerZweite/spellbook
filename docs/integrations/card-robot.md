@@ -1,7 +1,7 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-11
 - Source of Truth: product requirements, scan API code, maintainer scope brief and supplied hardware
   concept
 - Update Triggers:
@@ -9,7 +9,7 @@
   - Python source activation and server contraction
   - independent API/web ownership and relocated code references
   - circular eight-box app prototype
-  - proposed Inventory filters and physical-box links
+  - accepted Cardstation modes, physical Box quantities and later filter/QR interface
   - implemented QR API versus unimplemented machine integration
   - project responsibilities
   - integration planning
@@ -30,6 +30,35 @@
   - [Local authentication](../operations/local-auth.md)
   - [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194)
   - [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+  - [ADR-0030](../decisions/0030-cardstation-physical-storage.md)
+  - [Filter and label interface](./cardstation-filter-box-interface.md)
+
+## Accepted Cardstation boundary, 2026-11-11
+
+[ADR-0030](../decisions/0030-cardstation-physical-storage.md) and
+[Cardstation ADR-0001](https://github.com/KyleDerZweite/spellbook-cardstation/blob/main/docs/adr/0001-offline-first-operating-modes.md)
+supersede the open-ended modes and controller choices below:
+
+- **Phase 1 is only Offline sorting** of arbitrary mixed stacks without an Account, Spellbook
+  connection, persisted card-level results or job history. Local device rules, references, models
+  and calibration may persist. The Jetson owns local recognition and machine control.
+- **Inventory intake is deferred** and only supports explicitly declared new physical cards.
+  Authenticated review and committed changes in Spellbook are required.
+- **Online sorting is deferred** and moves quantities of already owned cards between physical Boxes;
+  it must not increase ownership. A roughly 90% matching Box is only a source suggestion that
+  requires confirmation, especially for partial stacks.
+- Current Inventory **Boxes** are virtual overlapping whole-entry groups. A future physical Box has
+  an independent stable identity and quantity allocations. Output slots are temporary device
+  positions, not Inventory Boxes. There is no implemented physical Box registry.
+- The current circular concept has eight output slots. Do not invent a ninth Reject position. The
+  first sorting criterion and fallback assignment still need hardware confirmation.
+
+The [filter and label interface proposal](./cardstation-filter-box-interface.md) separates the local
+offline rule/slot editor from later authenticated QR-label and physical-storage management. The
+remaining six-output, Eject, Deck-assembly, phone-computing and simulator descriptions are
+**historical proposals**, not part of the current delivery. Spellbook is not the motor controller.
+The current [Cardstation #26](https://github.com/KyleDerZweite/spellbook-cardstation/issues/26) owns
+the first integrated device run.
 
 The proposed device accepts a stack of MTG cards, separates one card at a time, captures an image,
 and sorts cards into output trays. Spellbook supplies the review interface, inventory, decklist, and
@@ -92,10 +121,10 @@ selected Deck. Card colour is distinct from Commander colour identity. A Deck ma
 copies or assemble that Deck. The current Inventory query has neither colour nor Deck predicates;
 this is a prototype proposal, not an implemented filtering service.
 
-Keep three identities separate: the logical Inventory Box, an optional stable reference to a
-removable physical box, and the current device position. A logical Box without a physical link is
-virtual. Matching Inventory is not observed physical content. Previewing a rule or linking a
-container does not change owned quantities, establish placement or activate a device rule.
+Keep three identities separate: the implemented virtual Inventory Box, the **independent** proposed
+physical Box, and the temporary device position. An optional future navigation link does not convert
+a Group into a location. Matching Inventory is not observed physical content. Previewing a rule or
+linking a container does not change owned quantities, establish placement or activate a device rule.
 Overlapping views must not inflate Inventory totals.
 
 The prototype explores filter preview/confirmation/cancellation and physical link/unlink. Automatic
@@ -126,10 +155,11 @@ device handling; a straight path alone does not prove a safe outcome in those ca
 
 ## Box identity and availability
 
-Each removable box has a durable identity independent of its current device position and a
-configurable rule. Candidate filters include colour, colour identity, set, rarity, card type and
-membership in a selected decklist. Overlapping filters, priority, unknown attributes and rule
-changes during a run require explicit semantics.
+A proposed physical Box has a durable identity independent of its device position. The accepted
+direction separates that identity from the **sort filter preset** and its per-job slot binding.
+Candidate future filters include printed colour, colour identity, set, rarity, card type and
+selected Deck membership. Overlaps, priority, unknown values and changes during a job require a
+later contract; they are not required for the first local filter editor.
 
 The concept puts a QR marker on the rear inner wall, viewed at an angle. One camera or reader per
 position is an idea, not a selected part. QR may carry a filter or reference a versioned
@@ -348,10 +378,11 @@ feed, lost position or uncertain placement requires device handling and reconcil
 conceptual lifecycles, not selected protocol enums or new values for the current Scan-session status
 column.
 
-The digital lifecycle retains local captures and recognition evidence, then applies the review and
-authorized Inventory effect selected for that handling intent. Physical arrival does not authorize a
-new owned quantity, and a recognition result does not establish arrival. The duplicate-intake
-strategy and final mode semantics remain open for simulator and hardware experiments.
+For **deferred authenticated modes**, a digital lifecycle may retain authorized captures or
+Recognition evidence according to a future privacy and API contract. The current **Offline sorting**
+mode retains no card-level captures, results or job history. Physical arrival alone does not
+authorize a new owned quantity, and a Recognition result does not establish arrival. The new-only
+intake and quantity-only relocation decisions replace the former mode proposals.
 
 An approved import records a newly owned copy only after the required physical outcome is confirmed.
 For a scan-only phone flow, the operator confirms the held card and its import. For a sorter, the
@@ -383,7 +414,11 @@ moving again. Do not blindly replay motor commands. Recovering software state ca
 that already moved. Retain an unresolved placement until sensor evidence or the operator establishes
 its destination.
 
-## Prototype acceptance
+## Historical prototype acceptance ideas
+
+The following earlier simulator, six-box and Deck-assembly ideas are **not** the accepted Phase 1
+scope. Current device acceptance belongs to
+[Cardstation #26](https://github.com/KyleDerZweite/spellbook-cardstation/issues/26).
 
 1. A phone or simulated client creates a session, submits an image, shows candidates or manual
    catalog selection, and imports only after confirmation. A repeated commit has one inventory
