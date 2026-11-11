@@ -1,49 +1,64 @@
 {
-  "rule": {
-    "dsl": "spellbook.cardstation.sort",
-    "version": 1,
-    "name": "Printed color, then rare cards",
-    "rules": [
-      {
-        "when": [
-          { "field": "printedColor", "oneOf": ["white"] },
-          { "field": "rarity", "oneOf": ["rare", "mythic"] }
-        ],
-        "slot": 1
-      },
-      {
-        "when": [{ "field": "printedColor", "oneOf": ["white"] }],
-        "slot": 2
-      },
-      {
-        "when": [{ "field": "printedColor", "oneOf": ["blue", "black"] }],
-        "slot": 3
-      }
-    ],
-    "fallbackSlot": 8
-  },
-  "cases": [
-    { "observation": { "reliable": true, "printedColor": "white", "rarity": "rare" }, "slot": 1 },
-    { "observation": { "reliable": true, "printedColor": "white", "rarity": "common" }, "slot": 2 },
-    { "observation": { "reliable": true, "printedColor": "black" }, "slot": 3 },
-    { "observation": { "reliable": true, "printedColor": "red" }, "slot": 8 },
-    { "observation": { "reliable": true }, "slot": 8 },
-    { "observation": { "reliable": false, "printedColor": "white", "rarity": "rare" }, "slot": 8 }
-  ],
-  "invalid": [
-    { "dsl": "spellbook.cardstation.sort", "version": 2, "name": "Future", "rules": [], "fallbackSlot": 8 },
-    { "dsl": "spellbook.cardstation.sort", "version": 1, "name": "Bad", "rules": [], "fallbackSlot": 9 },
-    {
-      "dsl": "spellbook.cardstation.sort",
-      "version": 1,
-      "name": "Duplicate field",
-      "rules": [
-        { "when": [
-          { "field": "printedColor", "oneOf": ["blue"] },
-          { "field": "printedColor", "oneOf": ["white"] }
-        ], "slot": 1 }
-      ],
-      "fallbackSlot": 8
-    }
-  ]
+	"rule": {
+		"dsl": "spellbook.cardstation.sort",
+		"version": 1,
+		"name": "Printed color, then rare cards",
+		"rules": [
+			{
+				"when": [
+					{ "field": "printedColor", "oneOf": ["white"] },
+					{ "field": "rarity", "oneOf": ["rare", "mythic"] }
+				],
+				"slot": 1
+			},
+			{
+				"when": [{ "field": "printedColor", "oneOf": ["white"] }],
+				"slot": 2
+			},
+			{
+				"when": [{ "field": "printedColor", "oneOf": ["blue", "black"] }],
+				"slot": 3
+			}
+		],
+		"fallbackSlot": 8
+	},
+	"cases": [
+		{ "observation": { "reliable": true, "printedColor": "white", "rarity": "rare" }, "slot": 1 },
+		{ "observation": { "reliable": true, "printedColor": "white", "rarity": "common" }, "slot": 2 },
+		{ "observation": { "reliable": true, "printedColor": "black" }, "slot": 3 },
+		{ "observation": { "reliable": true, "printedColor": "red" }, "slot": 8 },
+		{ "observation": { "reliable": true }, "slot": 8 },
+		{ "observation": { "reliable": false, "printedColor": "white", "rarity": "rare" }, "slot": 8 }
+	],
+	"invalid": [
+		{
+			"dsl": "spellbook.cardstation.sort",
+			"version": 2,
+			"name": "Future",
+			"rules": [],
+			"fallbackSlot": 8
+		},
+		{
+			"dsl": "spellbook.cardstation.sort",
+			"version": 1,
+			"name": "Bad",
+			"rules": [],
+			"fallbackSlot": 9
+		},
+		{
+			"dsl": "spellbook.cardstation.sort",
+			"version": 1,
+			"name": "Duplicate field",
+			"rules": [
+				{
+					"when": [
+						{ "field": "printedColor", "oneOf": ["blue"] },
+						{ "field": "printedColor", "oneOf": ["white"] }
+					],
+					"slot": 1
+				}
+			],
+			"fallbackSlot": 8
+		}
+	]
 }

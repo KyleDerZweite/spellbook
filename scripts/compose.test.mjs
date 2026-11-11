@@ -22,7 +22,7 @@ const fixture = {
 	PROD_APP_ORIGIN: 'https://production.example.test',
 	PROD_POSTGRES_PASSWORD: 'fixture-only',
 	PROD_FRONTEND_ALIAS: 'spellbook-production-web',
-	PROD_IMAGE_REVISION: sha,
+	PROD_IMAGE_REVISION: sha
 };
 const cleanEnv = { PATH: process.env.PATH, HOME: process.env.HOME };
 
@@ -93,10 +93,7 @@ test('no-env dev preserves project/data identities and matches port with build/A
 	const model = config([...plan.args.slice(0, -3), 'config'], plan.env);
 	assert.equal(plan.args[1], 'spellbook-dev-local');
 	assert.equal(model.services.postgres.environment.POSTGRES_DB, 'spellbook_dev');
-	assert.deepEqual(Object.keys(model.volumes).sort(), [
-		'postgres18_data',
-		'worker_data'
-	]);
+	assert.deepEqual(Object.keys(model.volumes).sort(), ['postgres18_data', 'worker_data']);
 	assert.deepEqual(model.services.frontend.ports, ['127.0.0.1:5192:3000']);
 	assert.equal(
 		model.services.frontend.build.args.find((value) => value.startsWith('APP_ORIGIN=')),
@@ -142,10 +139,7 @@ test('hosted Demo config preserves services, immutable tags, private volumes and
 	assert.equal(model.services.newt, undefined);
 	assert.equal(model.services.worker, undefined);
 	assert.equal(model.services.postgres.environment.POSTGRES_DB, 'spellbook_demo');
-	assert.deepEqual(Object.keys(model.volumes).sort(), [
-		'postgres18_data',
-		'worker_data'
-	]);
+	assert.deepEqual(Object.keys(model.volumes).sort(), ['postgres18_data', 'worker_data']);
 	for (const [name, service] of Object.entries(model.services)) {
 		if (name !== 'postgres')
 			assert.equal(service.image, `localhost/spellbook-demo-${name}:git-${sha.slice(0, 12)}`);

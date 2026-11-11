@@ -17,8 +17,7 @@ test('shared versioned sort fixture returns the same output as Python', () => {
 });
 
 test('unknown fields, future versions and ambiguous predicates fail closed', () => {
-	for (const invalid of fixture.invalid)
-		assert.throws(() => parseCardstationSortRule(invalid));
+	for (const invalid of fixture.invalid) assert.throws(() => parseCardstationSortRule(invalid));
 	assert.throws(() => parseCardstationSortRule({ ...fixture.rule, accountId: 'private' }));
 	assert.throws(() =>
 		parseCardstationSortRule({
