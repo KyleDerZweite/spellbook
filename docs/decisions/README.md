@@ -1,7 +1,7 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-11
 - Source of Truth: mixed
 - Update Triggers:
   - managed Category removal
@@ -12,7 +12,7 @@
   - accepted Python migration framework and delivery contract
   - Python API/worker language selection and migration planning
   - major architectural decisions
-  - major product decisions
+  - major product decisions, including Cardstation physical-storage boundary
   - documentation system changes
   - supersession of earlier decisions
   - uniform continuous Lazy browsing
@@ -28,6 +28,7 @@
   - [Docs Index](../README.md)
   - [Accepted mechanisms](../architecture/application-contract.md)
   - [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md)
+  - [ADR-0030](./0030-cardstation-physical-storage.md)
   - [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
   - [Python direction](./0025-python-api-and-workers.md)
   - [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
@@ -55,6 +56,10 @@ Rules:
 - link affected canonical docs from the ADR
 
 ## Files
+
+- [ADR-0030: Cardstation modes and physical storage](./0030-cardstation-physical-storage.md),
+  accepted offline-first, new-only Inventory intake, quantity allocation per independent physical
+  Box, and no automatic ownership changes from re-sorting
 
 - [ADR-0029: Remove replaced interfaces immediately](./0029-remove-replaced-interfaces.md), accepted
   removal policy and 2026-10-25 pre-release extension; supersedes legacy API aliases and
