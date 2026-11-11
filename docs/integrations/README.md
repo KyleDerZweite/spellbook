@@ -1,7 +1,7 @@
 # Integrations
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-11
 - Source of Truth: mixed
 - Update Triggers:
   - managed Category removal
@@ -9,13 +9,14 @@
   - PostgreSQL and semantic search evaluation
   - functional Python acceptance and current migration status
   - Python API/worker language selection and migration planning
-  - external system contracts
+  - external system contracts and Cardstation filter/physical Box QR interface
   - integration scope
   - provider evaluations and scanner-platform research
 - Related Docs:
   - [Market price research](./market-prices.md)
   - [Realtime backend evaluation](./realtime-backends.md)
-  - [Proposed card robot](./card-robot.md)
+  - [Cardstation modes and sorter integration](./card-robot.md)
+  - [Filter and physical Box label interface](./cardstation-filter-box-interface.md)
   - [Scanner platform evaluation](./scanner-platform-evaluation.md)
   - [Worker](../architecture/worker.md)
   - [Catalog](../architecture/catalog.md)
@@ -34,8 +35,12 @@ implemented and full functional migration pending.
 performance/resource blockers; the [current contract](../architecture/python-backend-migration.md)
 owns delivery and acceptance.
 
-The [card robot proposal](./card-robot.md) owns the future phone/sorter integration, hardware
-concept, local fast/slow recognition, device-login concept and exploratory simulator.
+The [sorter integration](./card-robot.md) records accepted Cardstation mode and Box boundaries
+alongside historical hardware/simulator concepts. The
+[filter and physical Box label interface](./cardstation-filter-box-interface.md) proposes a
+local offline rule editor and later authenticated Box QR labels without claiming implementation.
+[ADR-0030](../decisions/0030-cardstation-physical-storage.md) owns the accepted product and
+physical-quantity decision.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local recognition,
 with public reference preparation proposed centrally. These decisions are not implemented hardware
 or phone-client support.
