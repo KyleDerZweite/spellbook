@@ -1,13 +1,13 @@
 # Card grouping
 
 - Status: Canonical, Inventory groups implemented; Deck presentation contract accepted
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-11
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
 - Update Triggers:
   - managed Category removal
   - versioned MTG routes and module ownership
   - Python source activation and server contraction
-  - Inventory Box labels
+  - Inventory Box labels versus future physical storage
   - inventory groups
   - memberships
   - scan targets
@@ -20,6 +20,7 @@
   - [Mobile and scan](../architecture/mobile-and-scan.md)
   - [UI direction](./ui-design-direction.md)
   - [Product index](./README.md)
+  - [Cardstation physical storage decision](../decisions/0030-cardstation-physical-storage.md)
 
 ## Inventory groups
 
@@ -49,6 +50,15 @@ Deleting a group requires confirmation and removes only its memberships. Deletin
 removes its memberships. Quantity edits update group counts without changing assignments.
 Overlapping group counts must not be summed as total ownership. The Inventory total counts every
 entry once. Removing a membership never removes owned cards.
+
+The accepted [Cardstation storage direction](../decisions/0030-cardstation-physical-storage.md)
+keeps these virtual Boxes unchanged. A later **Physical Box** is a distinct account-owned storage
+location with **quantities per Inventory entry**, not another Inventory group or an automatic
+one-to-one mapping. A physical Box may contain several quantities from an entry, and one entry may
+be allocated across several physical Boxes. Future QR labels identify the physical Box, not this
+group or its selected members. The current page does not display recorded physical contents.
+The proposed [filter and label interface](../integrations/cardstation-filter-box-interface.md)
+belongs to later integration and does not redefine current group CRUD.
 
 ## Implementation contract
 
