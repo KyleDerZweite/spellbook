@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-08
+- Last Reviewed: 2026-11-11
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
@@ -12,7 +12,7 @@
     workflow improvements.
   - One-time migration of installations still using Compose overlays.
   - Catalog publication, Demo bundles, private reset and source refresh.
-  - Scan storage, worker ownership, value-history scheduling and reporting configuration.
+  - Transient Scan processing, worker ownership, value-history scheduling and reporting.
   - Authentication, QR sessions, PWA operation and current runtime acceptance.
 - Related Docs:
   - [Postgres](../architecture/postgres.md)
@@ -47,9 +47,9 @@ podman-compose -f compose.yml up --build -d
 Open `http://localhost:3000` and register a normal account. Only frontend publishes a host port,
 bound to `127.0.0.1`. API shares frontend's network namespace and binds to loopback; PostgreSQL and
 workers publish no ports. PostgreSQL uses trust authentication inside the private application
-network. API and Scan share local artifact storage. No Newt, provider credentials, S3 service or
-Demo account is required. Startup runs migrations without Demo seeding. The database starts empty;
-the opt-in Catalog worker imports public data separately:
+network. Scan frames pass through API and worker memory only. No Newt or storage service or Demo
+account is required. Startup runs migrations without Demo seeding. The database starts empty; the
+opt-in Catalog worker imports public data separately:
 
 ```sh
 podman-compose -f compose.yml --profile catalog run --rm worker
@@ -74,8 +74,8 @@ Demo uses production image entrypoints without source mounts or reload servers. 
 `DEMO_POSTGRES_DB` defaults to `spellbook_demo` and must end in `_demo` or `_design`. Startup
 migrates and seeds the bundled searchable Catalog before API and State start. Demo enables the
 shared `demo` account and static example prices; registration remains disabled. Seeding preserves
-private edits and an existing active Catalog publication. API and Scan share local storage, without
-S3 credentials. The live Catalog worker is opt-in. Card images still use remote Scryfall URLs.
+private edits and an existing active Catalog publication. Scan frames are transient in memory. The
+live Catalog worker is opt-in. Catalog card images still use remote Scryfall URLs.
 
 Hosted commands select an explicit full Git revision through `DEMO_IMAGE_REVISION`,
 `PROD_IMAGE_REVISION` or `--revision FULL_SHA`. Each first-party image is
@@ -128,8 +128,8 @@ Ingress bridge must enable Netavark `isolate=true`. Different bridge names alone
 cross-network connections on Podman. The option blocks traffic between bridges that both enable it;
 same-bridge frontend communication remains intentional. PostgreSQL and workers stay on their project
 bridge, and API continues to listen on frontend loopback. No application host ports are published.
-Keep outbound access for Catalog and optional S3. This is the selected Podman deployment policy, not
-a Docker bridge-driver option.
+Keep outbound access for Catalog. This is the selected Podman deployment policy, not a Docker
+bridge-driver option.
 
 Existing networks require a coordinated, volume-preserving recreation to apply driver options. Stop
 only the selected application stacks and their connector gracefully under the update and backup
@@ -138,11 +138,9 @@ TCP denial and working same-stack reads, Scan and Catalog access before resuming
 `down --volumes` for this operation.
 
 Demo remains project `spellbook-demo`; Production remains project `spellbook`. Production uses
-normal accounts, `PROD_*` storage configuration and the scheduled Catalog worker. Scan uploads use
-the shared local volume by default. S3 is optional and requires an explicit
-`PROD_SCAN_STORAGE_DRIVER=s3` selection and bucket configuration. Production remains stopped until
-its separate activation is authorized. Use `pnpm compose production build` and
-`pnpm compose production up` only for that selected rollout.
+normal accounts and the scheduled Catalog worker. Scan images remain transient without a named
+volume or S3 configuration. Production remains stopped until its separate activation is authorized.
+Use `pnpm compose production build` and `pnpm compose production up` only for that selected rollout.
 
 Development is a separate persistent environment with normal accounts. Requests to start "dev" mean
 Development Compose. Native processes and Vite require an explicit request.
@@ -183,7 +181,7 @@ the update and host-backup locks. Each environment independently selects the lat
 push CI. Production uses internal application health and an external Pangolin SSO redirect check; it
 must not make its schema public or use Demo credentials. Its scheduled Catalog worker can
 legitimately advance public publication pointers. Keep automatic maintenance and SSO policy intact.
-Local Scan volumes remain separate by Compose project and survive updates.
+Scan images are processed in memory and have no Compose volume or S3 dependency.
 
 An SSO redirect and healthy application or target checks do not prove that the tunnel forwards
 requests. Verify the actual gateway-to-application route after activation or target changes,
@@ -213,7 +211,7 @@ selected SHA:
   selected immutable images, and the public `/openapi.json` health check returns 200.
 - The existing [Demo deployment verification](#demo-deployment) passes through the public origin,
   including authenticated Demo login/read/logout and long-lived streams, with Catalog/Price
-  publication pointers and retained database/Scan volumes preserved.
+  publication pointers and retained database volumes preserved.
 
 Use the existing protected updater and receipt procedures to collect this evidence. Report source
 synchronization and CI success separately from deployment completion. A busy update or backup lock
@@ -272,10 +270,10 @@ receipt. Do not leave a compatibility overlay or fall back to the old Compose na
 Reload the user manager after editing units, then perform the separately authorized rollout. Verify
 actual image IDs for every running application and the completed `db-migrate` container against the
 selected tags. Check public API health, authenticated Demo login/read/logout, unchanged
-Catalog/Price publication pointers and retained database/Scan volumes. Confirm the connector still
-has the same project, ingress network and target aliases, with Production and Development still
-stopped. Only then resume the update timer. For installations still using overlays, these are
-migration dependencies; this document does not establish that a target has completed them.
+Catalog/Price publication pointers and retained database volumes. Confirm the connector still has
+the same project, ingress network and target aliases, with Production and Development still stopped.
+Only then resume the update timer. For installations still using overlays, these are migration
+dependencies; this document does not establish that a target has completed them.
 
 ## Prepare a shared UI development session
 
@@ -490,10 +488,9 @@ available for rollback.
 
 1. Copy `.env.example` to a private `.env` and replace the `PROD_POSTGRES_*` database credentials.
 2. Set `PROD_APP_ORIGIN` to the externally reachable application origin.
-3. Configure scan storage as described below.
-4. Select `PROD_IMAGE_REVISION`, build with `pnpm compose production build`, then run
+3. Select `PROD_IMAGE_REVISION`, build with `pnpm compose production build`, then run
    `pnpm compose production up`.
-5. Inspect migration and worker logs, then register a local account. Enroll existing accounts using
+4. Inspect migration and worker logs, then register a local account. Enroll existing accounts using
    [local authentication operations](./local-auth.md).
 
 Use `pnpm compose site up` for the independent stable connector and the configured external ingress
@@ -527,11 +524,6 @@ hosted Development origin.
 | `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                                                            |
 | `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                                                              |
 | `SCAN_WORKER_URL`                                   | API-only internal scan-worker URL; Compose uses `http://scan-worker:8080`                                                                                 |
-| `SCAN_STORAGE_DRIVER`                               | API and Scan worker default to `local`; `s3` is an explicit optional selection                                                                            |
-| `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                                                           |
-| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | API/Scan-worker S3-compatible endpoint, region and bucket; never web configuration                                                                        |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | API/Scan-worker S3-compatible credentials                                                                                                                 |
-| `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                                                             |
 
 Native Python commands do not implicitly load `.env`. From `backend/workers/catalog/` or
 `backend/workers/scan/`, use `uv run --env-file ../../../.env` before the existing command when its
@@ -559,9 +551,9 @@ The native launcher and HTTP test harness pass `BODY_SIZE_LIMIT=12M` to web unle
 overridden. The web image uses the same default. When starting a built web application directly, set
 `BODY_SIZE_LIMIT=12M` or the intended override; adapter-node otherwise uses its 512 KiB default.
 Keep the reverse proxy request limit large enough for the configured adapter limit. API JSON
-handlers independently cap streamed bodies at 1 MiB; Scan uploads independently cap their multipart
-body at 12 MiB and image at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application
-limits. See [request validation](../architecture/mobile-and-scan.md#request-validation).
+handlers independently cap streamed bodies at 1 MiB; Scan uploads accept raw image bytes and cap
+them at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application limits. See
+[request validation](../architecture/mobile-and-scan.md#request-validation).
 
 OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables are no longer used.
 Browser catalog reads are public; account operations and the versioned integration API require
@@ -617,22 +609,15 @@ PostgreSQL 18 uses the new named volume at `/var/lib/postgresql`, with database 
 `/var/lib/postgresql/18/docker`. The [database upgrade procedure](./postgres-upgrade.md) owns
 migration, verification, and rollback for existing PostgreSQL 17 installations.
 
-Standalone, Development, Demo and Production share their project-scoped `demo_scans` volume between
-API and Scan worker. Local Scan storage is the default and needs no separate storage service. Keep
-this volume and PostgreSQL backups together when moving or restoring an installation. Container
-recreation retains the volume; removing volumes deletes uploaded files. A filesystem copy of a live
-PostgreSQL data directory alone does not establish a consistent database backup. Use `pg_dump` and
-verify restoration separately. For optional S3 storage, provision the bucket and configure its
-lifecycle policy. Scan upload bytes remain outside Postgres; PostgreSQL stores their account and
-review metadata. The backend Scan application owns storage and worker calls; the Python host injects
-existing configuration. Failed uploads remove only confirmed unattached objects. If COMMIT outcome
-cannot be established, retain the object for operator inspection rather than risking deletion of a
-committed artifact. Cleanup logs contain no object keys or credentials. Real S3-compatible bucket
-evidence must be obtained separately. These user-uploaded images are separate from catalog card
-image URLs and tracked landing-page images. Recognition and normalized-image generation are not
-implemented.
+Scan uploads use only volatile API/worker memory. Neither Compose image has a Scan artifact volume,
+and neither environment has S3 storage configuration. The migration removes the two legacy
+object-key columns, retaining only session, candidate, review and Inventory metadata. Previously
+persisted image files or S3 objects are not automatically deleted by this migration. Operators must
+evaluate and clean them up separately, without deleting unrelated data or live database volumes.
 
-`worker_data` persists `state.json` across container recreation. See
+A filesystem copy of live PostgreSQL data is not a consistent database backup. Use `pg_dump` and
+verify restoration separately. Catalog card image URLs and tracked landing-page images are distinct
+from user-uploaded Scan frames. `worker_data` persists `state.json` across container recreation. See
 [worker operations and limits](../architecture/worker.md). On SELinux hosts, named volumes avoid
 most bind-mount relabeling. Host networking configuration belongs in operator notes rather than the
 shared compose file.

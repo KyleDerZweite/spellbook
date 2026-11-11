@@ -190,6 +190,13 @@
 			"when": 1793659875023,
 			"tag": "0026_remove_managed_categories",
 			"breakpoints": true
+		},
+		{
+			"idx": 27,
+			"version": "7",
+			"when": 1794398400000,
+			"tag": "0027_ephemeral_scan_images",
+			"breakpoints": true
 		}
 	]
 }

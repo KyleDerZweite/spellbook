@@ -27,7 +27,6 @@ from spellbook_api.http.application import create_http_application
 from spellbook_api.http.routes_saved_state import create_saved_state_routes
 from spellbook_api.http.types import ApplicationLifetime, Configuration
 from spellbook_api.listener import SavedStateListener
-from spellbook_api.scan_storage import create_scan_storage
 from spellbook_api.scan_worker import HttpScanWorker
 
 
@@ -70,10 +69,9 @@ class ApplicationResources:
         self.dashboard = create_dashboard(self.pool, self.auth, self.inventory_values)
         self.inventory = create_inventory(self.pool, self.catalog, self.auth)
         self.decks = create_decks(self.pool, self.catalog, self.auth, self.valuation)
-        self.scan_storage = create_scan_storage(configuration.scan_storage)
         self.scan_worker = HttpScanWorker(configuration.scan_worker_url)
         self.scan = create_scan(
-            self.pool, self.catalog, self.auth, self.inventory, self.scan_storage, self.scan_worker
+            self.pool, self.catalog, self.auth, self.inventory, self.scan_worker
         )
         self.saved_state = create_saved_state(
             self.auth,
@@ -121,10 +119,7 @@ class ApplicationResources:
                     await self.saved_state.close()
                 finally:
                     try:
-                        try:
-                            await self.scan_worker.close()
-                        finally:
-                            await self.scan_storage.close()
+                        await self.scan_worker.close()
                     finally:
                         try:
                             try:

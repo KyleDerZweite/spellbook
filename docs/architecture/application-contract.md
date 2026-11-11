@@ -5,7 +5,7 @@
   upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace
   consumers, source references, optional public providers, bounded public source history, private
   daily Inventory history, Dashboard/selected-Deck estimates; later feature slices planned
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-11
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/SavedState/Valuation
   code and contracts, Worker price publication code, unaffected Q56 contracts and Kyle's value-only
   and continuous Lazy decisions of 2026-10-07
@@ -123,8 +123,8 @@ concrete [Inventory writer](../../backend/core/src/spellbook_core/mtg/inventory.
 preparation, lock participation, effects, revision and original receipt persistence. This internal
 transaction seam is unavailable to frontend callers; public composition exposes only actor-based
 operations. The [Scan application](../../backend/core/src/spellbook_core/mtg/scan/application.py)
-owns complete upload/read/result/review behavior with injected storage/worker configuration. Its
-shared JSON-safe DTOs expose neither account identity nor storage keys.
+owns transient upload/result/review behavior with an injected synchronous worker. Its shared
+JSON-safe DTOs expose neither account identity nor image bytes.
 [Mobile and Scan](./mobile-and-scan.md#selected-reads-and-compact-review-commits) owns bounded
 reads, current-version receipt replay and cancellation/uncertain-commit cleanup. Scan workspace
 invalidation uses the mounted frontend resource adapter.
@@ -139,9 +139,9 @@ and CI must migrate together.
 Contracts owns explicit JSON-safe requests, DTOs and discriminated errors. Timestamps are ISO
 strings and revisions are opaque decimal strings. Contracts imports neither implementation, database
 rows, platform APIs nor framework types. Backend owns trusted actor authentication, account
-authorization, validated use cases, persistence, transactions and artifact storage. Frontend owns
-presentation, navigation, browser cookies, HTML form Origin protection and native form results. The
-API owns HTTP parsing, API Origin policy and credential authentication.
+authorization, validated use cases, persistence and transactions. Frontend owns presentation,
+navigation, browser cookies, HTML form Origin protection and native form results. The API owns HTTP
+parsing, API Origin policy and credential authentication.
 
 Use small application interfaces for Auth/Profile, Catalog, Inventory/Groups, Decks, Scan and
 Valuation/History. Backend maps DTOs at that interface so direct API clients and the web remote

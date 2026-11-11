@@ -38,8 +38,8 @@ native target acceptance remains pending.
 Browser -> SvelteKit SSR/forms and same-origin proxy -> Python API -> Postgres
 Android / API client -> Python API using a local session bearer token
 Scryfall -> Python worker -> Postgres catalog generation -> atomic publication
-Scan upload -> Python API -> Backend Scan -> local or S3 artifact storage
-                                     -> Python scan-worker scaffold
+Scan image bytes -> Python API -> Python scan-worker in memory
+                               -> Postgres recognition/review metadata only
 ```
 
 The browser and installed web app share one frontend and session cookie. Root pnpm workspace

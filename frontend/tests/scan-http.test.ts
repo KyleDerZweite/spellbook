@@ -2,7 +2,6 @@ import { createScanSave } from '../src/lib/scan/save.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { rm, readdir } from 'node:fs/promises';
 import pg from 'pg';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
@@ -49,7 +48,13 @@ async function request(
 	headers: Record<string, string> = {},
 	body?: BodyInit | null
 ) {
-	return fetch(origin + path, { method, headers, body, redirect: 'manual' });
+	const mime = body instanceof Blob ? body.type : '';
+	return fetch(origin + path, {
+		method,
+		headers: { ...(mime ? { 'content-type': mime } : {}), ...headers },
+		body,
+		redirect: 'manual'
+	});
 }
 async function session(authorization: string) {
 	const response = await request(`${api}/sessions`, 'POST', { authorization });
@@ -59,9 +64,7 @@ async function session(authorization: string) {
 	return result.session;
 }
 function frame(bytes: Uint8Array = png, type = 'image/png') {
-	const form = new FormData();
-	form.set('file', new File([new Uint8Array(bytes)], 'photo.png', { type }));
-	return form;
+	return new Blob([new Uint8Array(bytes)], { type });
 }
 async function jsonPost(path: string, body: unknown, headers: Record<string, string>) {
 	return request(
@@ -104,7 +107,7 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 		const a = await account(),
 			b = await account();
 		await t.test(
-			'owned create/upload/no-match/manual commit/image/replay journey is compact and private',
+			'owned create/upload/no-match/manual commit/replay journey is compact and private',
 			async () => {
 				const s = await session(a.authorization);
 				assert.equal(s.status, 'open');
@@ -123,12 +126,7 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 				const image = await request(`${api}/artifacts/${photo.artifact.id}/image`, 'GET', {
 					authorization: a.authorization
 				});
-				assert.equal(image.status, 200);
-				assert.equal(image.headers.get('content-type'), 'image/png');
-				assert.equal(image.headers.get('cache-control'), 'no-store');
-				assert.equal(image.headers.get('x-content-type-options'), 'nosniff');
-				assert.equal(image.headers.get('content-length'), '8');
-				assert.deepEqual(new Uint8Array(await image.arrayBuffer()), png);
+				assert.equal(image.status, 404);
 				assert.equal(
 					(
 						await request(`${api}/artifacts/${photo.artifact.id}/image`, 'GET', {
@@ -264,7 +262,7 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 		);
 
 		await t.test(
-			'bodyless session and exact multipart Origin/bearer/cookie matrix retains guard ordering',
+			'bodyless session and raw-image Origin/bearer/cookie matrix retains guard ordering',
 			async () => {
 				for (const suppliedOrigin of ['https://foreign.test', 'null']) {
 					assert.equal(
@@ -429,12 +427,12 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 							'POST',
 							{
 								authorization: a.authorization,
-								'content-type': 'multipart/form-data; boundary=broken'
+							'content-type': 'multipart/form-data; boundary=broken'
 							},
 							'broken'
 						)
 					).status,
-					400
+					415
 				);
 				assert.equal(
 					(
@@ -449,7 +447,7 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 				);
 				const oversized = new ReadableStream({
 					start(c) {
-						c.enqueue(new Uint8Array(12 * 1024 * 1024 + 1));
+						c.enqueue(new Uint8Array(10 * 1024 * 1024 + 1));
 						c.close();
 					}
 				});
@@ -457,7 +455,7 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 					method: 'POST',
 					headers: {
 						authorization: a.authorization,
-						'content-type': 'multipart/form-data; boundary=oversized'
+						'content-type': 'image/png'
 					},
 					body: oversized,
 					duplex: 'half'
@@ -512,7 +510,7 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 			}
 		);
 		await t.test(
-			'real response-side abort before attachment leaves no artifact or new object',
+			'real response-side abort before attachment leaves no artifact',
 			async () => {
 				const s = await session(a.authorization),
 					client = await pool.connect(),
@@ -533,16 +531,6 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 					await aborting;
 					await new Promise((r) => setTimeout(r, 30));
 					await client.query('ROLLBACK');
-					const until = Date.now() + 4000;
-					let files: string[] = [];
-					do {
-						files = await readdir(
-							`${process.env.SCAN_LOCAL_STORAGE_DIR}/scan-sessions/${s.id}`
-						).catch(() => []);
-						if (!files.length) break;
-						await new Promise((r) => setTimeout(r, 10));
-					} while (Date.now() < until);
-					assert.deepEqual(files, []);
 					const result = await (
 						await request(`${api}/sessions/${s.id}/result`, 'GET', {
 							authorization: a.authorization
@@ -583,10 +571,6 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 							.rowCount,
 						0
 					);
-					assert.deepEqual(
-						await readdir(`${process.env.SCAN_LOCAL_STORAGE_DIR}/scan-sessions/${s.id}`),
-						[]
-					);
 				} finally {
 					await client.query('ROLLBACK');
 					client.release();
@@ -600,11 +584,6 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 			accounts
 		]);
 		await pool.query('DELETE FROM user_profiles WHERE account_id=ANY($1::text[])', [accounts]);
-		for (const id of sessions)
-			await rm(`${process.env.SCAN_LOCAL_STORAGE_DIR}/scan-sessions/${id}`, {
-				recursive: true,
-				force: true
-			});
 		await pool.end();
 	}
 });

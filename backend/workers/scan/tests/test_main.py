@@ -1,3 +1,6 @@
+import base64
+from hashlib import sha256
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -15,7 +18,8 @@ def scan_request() -> dict[str, str]:
     return {
         "sessionId": "session-1",
         "artifactId": "artifact-1",
-        "originalObjectKey": "scan-sessions/session-1/artifact-1.jpg",
+        "imageSha256": sha256(b"\xff\xd8\xffimage").hexdigest(),
+        "imageBase64": base64.b64encode(b"\xff\xd8\xffimage").decode(),
         "contentType": "image/jpeg",
         "fileName": "artifact-1.jpg",
     }
@@ -29,7 +33,7 @@ def test_health_returns_ok(client: TestClient) -> None:
 
 
 @pytest.mark.parametrize("content_type", ["image/jpeg", "image/png", "image/webp"])
-def test_scaffold_reuses_original_artifact(
+def test_scaffold_processes_transient_image(
     client: TestClient, scan_request: dict[str, str], content_type: str
 ) -> None:
     scan_request["contentType"] = content_type
@@ -39,7 +43,7 @@ def test_scaffold_reuses_original_artifact(
     assert response.status_code == 200
     assert response.json() == {
         "status": "no_match",
-        "normalizedObjectKey": scan_request["originalObjectKey"],
+        "imageSha256": scan_request["imageSha256"],
         "qualityScore": 0,
         "embeddingModelVersion": "stub-v1",
         "ocrModelVersion": "stub-v1",
@@ -56,8 +60,8 @@ def test_scaffold_reuses_original_artifact(
         ("sessionId", "s" * 129),
         ("artifactId", ""),
         ("artifactId", "artifact/1"),
-        ("originalObjectKey", " "),
-        ("originalObjectKey", "k" * 1025),
+        ("imageSha256", "not-a-digest"),
+        ("imageBase64", "#"),
         ("contentType", "application/octet-stream"),
         ("contentType", "image/svg+xml"),
         ("fileName", ""),
@@ -75,12 +79,21 @@ def test_invalid_scan_metadata_returns_validation_error(
     assert response.json()["detail"][0]["loc"] == ["body", field]
 
 
-def test_missing_artifact_key_returns_validation_error(
+def test_missing_image_returns_validation_error(
     client: TestClient, scan_request: dict[str, str]
 ) -> None:
-    del scan_request["originalObjectKey"]
+    del scan_request["imageBase64"]
 
     response = client.post("/v1/scan/process", json=scan_request)
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "originalObjectKey"]
+    assert response.json()["detail"][0]["loc"] == ["body", "imageBase64"]
+
+
+def test_worker_rejects_corrupted_image_and_digest(
+    client: TestClient, scan_request: dict[str, str]
+) -> None:
+    scan_request["imageSha256"] = "0" * 64
+    assert client.post("/v1/scan/process", json=scan_request).status_code == 422
+    scan_request["imageBase64"] = base64.b64encode(b"x" * (10 * 1024 * 1024 + 1)).decode()
+    assert client.post("/v1/scan/process", json=scan_request).status_code == 413

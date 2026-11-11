@@ -141,8 +141,7 @@ assert entrypoints['spellbook-demo-seed'] == 'spellbook_api.operators.seed:main'
 assert entrypoints['spellbook-demo-replace-inventory'] == (
     'spellbook_api.operators.replace_inventory:main'
 )
-import boto3, python_multipart, httpx2
-from spellbook_api.scan_storage import ScanStorageConfiguration, create_scan_storage
+import python_multipart, httpx2
 from spellbook_api.scan_worker import HttpScanWorker
 for package in (spellbook_api, spellbook_core):
     assert '/site-packages/' in package.__file__
