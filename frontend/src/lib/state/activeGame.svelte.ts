@@ -3,18 +3,11 @@ import type { Game } from '#lib/search/types.ts';
 export const ACTIVE_GAME_COOKIE = 'spellbook_game';
 export const DEFAULT_GAME: Game = 'mtg';
 
-/** Games the product recognises. Only `mtg` is wired end-to-end today. */
-export const SUPPORTED_GAMES: Game[] = ['mtg', 'pokemon', 'yugioh'];
-
 /** Games that actually have catalog + inventory support right now. */
 export const AVAILABLE_GAMES: Game[] = ['mtg'];
 
 export function isAvailableGame(value: unknown): value is Game {
 	return typeof value === 'string' && AVAILABLE_GAMES.includes(value as Game);
-}
-
-export function isGame(value: unknown): value is Game {
-	return typeof value === 'string' && (SUPPORTED_GAMES as string[]).includes(value);
 }
 
 /** Shared active-game selection. Game-specific pages live under their game prefix. */

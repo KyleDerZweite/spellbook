@@ -12,13 +12,6 @@ const settings = [
 	'POSTGRES_USER',
 	'POSTGRES_PASSWORD',
 	'FRONTEND_ALIAS',
-	'SCAN_STORAGE_DRIVER',
-	'S3_ENDPOINT',
-	'S3_REGION',
-	'S3_BUCKET',
-	'S3_ACCESS_KEY_ID',
-	'S3_SECRET_ACCESS_KEY',
-	'S3_FORCE_PATH_STYLE',
 	'VALUE_HISTORY_ENABLED',
 	'VALUE_HISTORY_TIMEZONE',
 	'ADDRESS_HEADER',
@@ -69,23 +62,13 @@ export function hostedPlan(mode, action, configuration, environment = {}, revisi
 		env.HOSTED_DEMO_MODE = String(mode === 'demo');
 		env.HOSTED_POSTGRES_DB ||= mode === 'demo' ? 'spellbook_demo' : 'spellbook';
 		env.HOSTED_POSTGRES_USER ||= 'spellbook';
-		env.HOSTED_SCAN_STORAGE_DRIVER ||= mode === 'demo' ? 'local' : 's3';
 		if (mode === 'demo') {
 			if (!/_(demo|design)$/.test(env.HOSTED_POSTGRES_DB))
 				throw new Error('DEMO_POSTGRES_DB must end in _demo or _design.');
-			env.HOSTED_SCAN_STORAGE_DRIVER = 'local';
 			env.HOSTED_CATALOG_SOURCE = 'all_cards';
 			env.HOSTED_SYNC_INTERVAL = 'manual';
 			env.HOSTED_WORKER_RESTART = 'no';
 		}
-		if (!['local', 's3'].includes(env.HOSTED_SCAN_STORAGE_DRIVER))
-			throw new Error(`${prefix}_SCAN_STORAGE_DRIVER must be local or s3.`);
-		if (env.HOSTED_SCAN_STORAGE_DRIVER === 's3')
-			required.push(
-				...['S3_ENDPOINT', 'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'].map(
-					(key) => `${prefix}_${key}`
-				)
-			);
 		revision ||= configuration[`${prefix}_IMAGE_REVISION`];
 		if (!/^[0-9a-f]{40}$/.test(revision || ''))
 			throw new Error(`Set ${prefix}_IMAGE_REVISION or --revision to a full Git SHA.`);
@@ -199,10 +182,8 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
 	try {
 		const [mode, action, ...rest] = process.argv.slice(2);
 		let revision;
-		const at = rest[0] === '--revision' ? 0 : -1;
-		if (at !== -1) {
-			revision = rest[at + 1];
-			rest.splice(at, 2);
+		if (rest[0] === '--revision') {
+			[, revision] = rest.splice(0, 2);
 			if (!revision) throw new Error(usage);
 		}
 		const configuration = {

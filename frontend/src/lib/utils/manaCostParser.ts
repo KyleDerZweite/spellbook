@@ -20,11 +20,6 @@ export function getManaFontClass(symbol: string): string {
 		return `ms-${lower.replaceAll('/', '')}`;
 	}
 
-	// Generic mana (numbers 0-20)
-	if (/^\d+$/.test(symbol) && parseInt(symbol) <= 20) {
-		return `ms-${symbol}`;
-	}
-
 	// Named tap symbol
 	if (lower === 't') return 'ms-tap';
 	if (lower === 'q') return 'ms-untap';

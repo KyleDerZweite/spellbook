@@ -1,6 +1,5 @@
-"""Scan wire projections and the two externally owned IO ports."""
+"""Scan wire projections and the worker port."""
 
-from dataclasses import dataclass
 from typing import Literal, NotRequired, Protocol, TypedDict
 
 from spellbook_core.mtg.inventory import InventoryAcknowledgement
@@ -94,14 +93,14 @@ class ScanCommitAcknowledgement(TypedDict):
 class WorkerInput(TypedDict):
     sessionId: str
     artifactId: str
-    originalObjectKey: str
+    imageSha256: str
     contentType: str
     fileName: str
 
 
 class WorkerResult(TypedDict):
     status: ScanStatus
-    normalizedObjectKey: str
+    imageSha256: str
     qualityScore: int
     embeddingModelVersion: str
     ocrModelVersion: str
@@ -109,21 +108,7 @@ class WorkerResult(TypedDict):
     candidates: list[ScanCandidate]
 
 
-@dataclass(frozen=True, slots=True)
-class ScanImage:
-    bytes: bytes
-    content_type: str
-
-
-class ScanStorage(Protocol):
-    """API runtime owns construction and close; Core owns generated object keys."""
-
-    async def write(self, key: str, body: bytes, content_type: str) -> None: ...
-    async def read(self, key: str) -> ScanImage: ...
-    async def delete(self, key: str) -> None: ...
-
-
 class ScanWorker(Protocol):
-    """Return bounded decoded JSON. Core validates identity against Catalog."""
+    """Process bytes synchronously without persisting images or jobs."""
 
-    async def process(self, input: WorkerInput) -> object: ...
+    async def process(self, input: WorkerInput, image: bytes) -> object: ...

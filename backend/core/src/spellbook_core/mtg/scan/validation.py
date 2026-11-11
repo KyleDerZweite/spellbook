@@ -151,7 +151,7 @@ async def printing_candidate(catalog: Catalog, identifier: str) -> ScanCandidate
 
 async def worker_result(value: object, input: WorkerInput, catalog: Catalog) -> WorkerResult:
     raw = record(value)
-    if raw.get("normalizedObjectKey") != input["originalObjectKey"]:
+    if raw.get("imageSha256") != input["imageSha256"]:
         raise ValidationError("Invalid worker image identity")
     tokens = record(raw.get("ocrTokens", MISSING))
     if len(tokens) > 100:
@@ -195,7 +195,7 @@ async def worker_result(value: object, input: WorkerInput, catalog: Catalog) -> 
         candidates.append(candidate)
     return {
         "status": status(raw.get("status"), len(candidates)),
-        "normalizedObjectKey": input["originalObjectKey"],
+        "imageSha256": input["imageSha256"],
         "qualityScore": score(raw.get("qualityScore", MISSING)),
         "embeddingModelVersion": text(
             raw.get("embeddingModelVersion", MISSING), "embeddingModelVersion", 128

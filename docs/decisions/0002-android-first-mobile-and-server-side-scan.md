@@ -4,14 +4,21 @@
 - Date: 2026-04-11
 - Last Reviewed: 2026-10-03
 - Source of Truth: recorded decision
-- Update Triggers: decision applicability, supersession, related document changes
+- Update Triggers:
+  - decision applicability
+  - supersession
+  - related document changes
 - Superseded: 2026-04-17
-- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md)
+- Related Docs:
+  - [System Overview](../architecture/system-overview.md)
+  - [Mobile And Scan Architecture](../architecture/mobile-and-scan.md)
+  - [Deployment](../operations/deployment.md)
+  - [Auth](../architecture/auth.md)
+  - [Product specification](../product/specification.md)
 
-> Superseded.
-> The native Android shell was never released and duplicated the existing SvelteKit surfaces.
-> See [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) for the PWA-first replacement.
-> The server-side scan pipeline decision from this ADR is preserved by ADR-0003.
+> Superseded. The native Android shell was never released and duplicated the existing SvelteKit
+> surfaces. See [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) for the PWA-first
+> replacement. The server-side scan pipeline decision from this ADR is preserved by ADR-0003.
 
 ## Context
 
@@ -24,11 +31,13 @@ The next product expansion needs to add:
 - card scanning with retained scan artifacts
 - review-first inventory mutation
 
-The existing architecture has no mobile API, no scan artifact storage, and no dedicated scan-processing service.
+The existing architecture has no mobile API, no scan artifact storage, and no dedicated
+scan-processing service.
 
 ## Decision
 
-Spellbook will adopt an Android-first mobile architecture with a thin native client and a server-heavy scan pipeline.
+Spellbook will adopt an Android-first mobile architecture with a thin native client and a
+server-heavy scan pipeline.
 
 The implementation constraints are:
 
@@ -83,4 +92,5 @@ The scan pipeline is hybrid:
 - do not introduce Play Services-backed ML or auth dependencies into the Android app
 - do not store binary image blobs in the application database
 - do not auto-add scan results directly to inventory
-- do not treat the Android shell as released product surface until auth, inventory, decks, and scan review flows are verified end to end
+- do not treat the Android shell as released product surface until auth, inventory, decks, and scan
+  review flows are verified end to end

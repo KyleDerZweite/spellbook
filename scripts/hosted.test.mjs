@@ -16,10 +16,6 @@ const fixture = {
 	PROD_POSTGRES_PASSWORD: 'fixture-only',
 	PROD_FRONTEND_ALIAS: 'spellbook-production-web',
 	PROD_IMAGE_REVISION: sha,
-	PROD_S3_ENDPOINT: 'https://storage.example.test',
-	PROD_S3_BUCKET: 'fixture-scans',
-	PROD_S3_ACCESS_KEY_ID: 'fixture-only',
-	PROD_S3_SECRET_ACCESS_KEY: 'fixture-only'
 };
 
 test('mode validation rejects missing settings, revision drift and unsafe commands without leaking values', () => {
@@ -38,11 +34,11 @@ test('mode validation rejects missing settings, revision drift and unsafe comman
 		/_demo or _design/
 	);
 	assert.throws(
-		() => hostedPlan('production', 'up', { ...fixture, PROD_S3_ACCESS_KEY_ID: '' }),
-		/PROD_S3_ACCESS_KEY_ID/
-	);
-	assert.throws(
-		() => hostedPlan('demo', 'up', { ...fixture, DEMO_APP_ORIGIN: 'private-invalid-value' }),
+		() =>
+			hostedPlan('demo', 'up', {
+				...fixture,
+				DEMO_APP_ORIGIN: 'private-invalid-value'
+			}),
 		(error) => !error.message.includes('private-invalid-value')
 	);
 	assert.throws(() => hostedPlan('site', 'build', fixture), /Site only/);
@@ -63,6 +59,11 @@ test('mode validation rejects missing settings, revision drift and unsafe comman
 	assert.equal(plan.env.HOSTED_DEMO_MODE, 'true');
 	assert.equal(plan.env.COMPOSE_PROFILES, undefined);
 	assert.match(plan.env.HOSTED_API_IMAGE, /:git-fdb40bd8bc11$/);
+});
+
+test('Production no longer requires Scan storage configuration', () => {
+	const plan = hostedPlan('production', 'up', fixture);
+	assert.equal(plan.env.HOSTED_SCAN_STORAGE_DRIVER, undefined);
 });
 
 test('rollout checks existing local images and never builds or pulls; absent tags stop before Compose', () => {
@@ -109,7 +110,10 @@ test('build requires clean selected source and refuses to overwrite immutable im
 	const calls = [];
 	executeHosted(plan, (command, args) => {
 		calls.push([command, args]);
-		return { status: command === 'podman' ? 1 : 0, stdout: args[0] === 'status' ? '' : sha };
+		return {
+			status: command === 'podman' ? 1 : 0,
+			stdout: args[0] === 'status' ? '' : sha
+		};
 	});
 	assert.ok(
 		calls.find(([command, args]) => command === 'podman-compose' && args.includes('build'))

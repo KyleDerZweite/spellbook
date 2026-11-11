@@ -6,7 +6,7 @@ import {
 } from '#lib/server/data/inventory.ts';
 import { error } from '@sveltejs/kit';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
-import { ValidationError } from '#lib/server/mtg/validation.ts';
+import { ValidationError } from '@spellbook/contracts/validation.ts';
 
 /** Map domain failures to HTTP status codes and preserve infrastructure failures. */
 export function badRequestIfValidation(cause: unknown, fallback = 'Invalid request'): never {

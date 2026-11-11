@@ -3,7 +3,7 @@ import { application } from '#lib/server/composition.ts';
 import { addToDeck, addBrowsingToInventory } from '#lib/server/card-browsing-actions.ts';
 import { nativeSearchContext } from './native.ts';
 import { nativeSearchPageKey } from '#lib/search/native-panel.ts';
-import { ValidationError } from '#lib/server/mtg/validation.ts';
+import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { parseSearchUrl, searchHref } from '#lib/search/navigation.ts';
 import { clampBrowsePagination } from '#lib/browsing/pagination.ts';
 import { parseCatalogSearchRequest } from '#lib/server/catalog/query.ts';

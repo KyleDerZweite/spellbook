@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KyleDerZweite/spellbook/blob/main/contracts/schemas/cardstation-sort-rule.v1.schema.json",
+  "title": "Cardstation sort rule v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dsl", "version", "name", "rules", "fallbackSlot"],
+  "properties": {
+    "dsl": { "const": "spellbook.cardstation.sort" },
+    "version": { "const": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "rules": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["when", "slot"],
+        "properties": {
+          "when": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["field", "oneOf"],
+                  "properties": {
+                    "field": { "const": "printedColor" },
+                    "oneOf": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "enum": ["white", "blue", "black", "red", "green", "multicolor", "colorless"]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["field", "oneOf"],
+                  "properties": {
+                    "field": { "const": "rarity" },
+                    "oneOf": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "enum": ["common", "uncommon", "rare", "mythic", "special", "bonus"]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["field", "oneOf"],
+                  "properties": {
+                    "field": { "const": "setCode" },
+                    "oneOf": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]{2,6}$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "slot": { "type": "integer", "minimum": 1, "maximum": 8 }
+        }
+      }
+    },
+    "fallbackSlot": { "type": "integer", "minimum": 1, "maximum": 8 }
+  }
+}

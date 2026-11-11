@@ -29,23 +29,18 @@ from spellbook_api.http.parsing import (
 )
 
 
-def scalar(request: Request, key: str, fallback: str | None = None) -> str | None:
-    values = request.query_params.getlist(key)
-    return values[-1] if values else fallback
-
-
 def library_input(request: Request) -> dict[str, object]:
     try:
         result: dict[str, object] = dict(
-            query=scalar(request, "dirQ", ""),
-            format=scalar(request, "dirFormat", ""),
-            ownership=scalar(request, "dirOwnership", "all"),
-            sort=scalar(request, "dirSort", "updated:desc"),
-            offset=read_query_integer(scalar(request, "offset"), "offset", 0),
-            limit=read_query_integer(scalar(request, "limit"), "limit", 40),
+            query=request.query_params.get("dirQ", ""),
+            format=request.query_params.get("dirFormat", ""),
+            ownership=request.query_params.get("dirOwnership", "all"),
+            sort=request.query_params.get("dirSort", "updated:desc"),
+            offset=read_query_integer(request.query_params.get("offset"), "offset", 0),
+            limit=read_query_integer(request.query_params.get("limit"), "limit", 40),
         )
-        expected = scalar(request, "expectedRevision")
-        expected = scalar(request, "revision") if expected is None else expected
+        expected = request.query_params.get("expectedRevision")
+        expected = request.query_params.get("revision") if expected is None else expected
         if expected is not None:
             result["expectedRevision"] = expected
         normalized = parse_library_input(
@@ -70,14 +65,16 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
     ) -> Response:
         return json_response(
             await decks.locate_deck(
-                actor, require_uuid(scalar(request, "deckId")), library_input(request)
+                actor, require_uuid(request.query_params.get("deckId")), library_input(request)
             )
         )
 
     async def snapshot(
         request: Request, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
-        return json_response(await decks.get_deck_snapshot(actor, "mtg", scalar(request, "deck")))
+        return json_response(
+            await decks.get_deck_snapshot(actor, "mtg", request.query_params.get("deck"))
+        )
 
     async def create(
         request: Request,
@@ -105,11 +102,11 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
             ):
                 raise HttpError(400, "Invalid Deck choice query")
         input: dict[str, object] = dict(
-            offset=read_query_integer(scalar(request, "offset"), "offset", 0, 1000000),
-            limit=read_query_integer(scalar(request, "limit"), "limit", 20, 50, 1),
+            offset=read_query_integer(request.query_params.get("offset"), "offset", 0, 1000000),
+            limit=read_query_integer(request.query_params.get("limit"), "limit", 20, 50, 1),
         )
         for key in ("query", "selectedDeckId"):
-            value = scalar(request, key)
+            value = request.query_params.get(key)
             if value is not None:
                 input[key] = value
         return json_response(
@@ -156,7 +153,7 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
     async def search(
         request: Request, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
-        return json_response(await decks.search(actor, scalar(request, "q") or ""))
+        return json_response(await decks.search(actor, request.query_params.get("q") or ""))
 
     async def patch_card(
         request: Request,
@@ -186,7 +183,7 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         await drain_request_body(request)
         return json_response(
             await decks.remove_deck_card(
-                actor, entry, scalar(request, "requestId", "") or "", "mobile"
+                actor, entry, request.query_params.get("requestId", "") or "", "mobile"
             )
         )
 
@@ -307,7 +304,7 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
         deck_id = deckId
-        format = scalar(request, "format", "arena") or "arena"
+        format = request.query_params.get("format", "arena") or "arena"
         if format not in ("arena", "simple", "csv", "json"):
             raise HttpError(400, "Unsupported Deck export format")
         media = {"csv": "text/csv", "json": "application/json"}.get(format, "text/plain")

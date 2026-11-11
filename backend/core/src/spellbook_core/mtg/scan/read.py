@@ -39,8 +39,6 @@ class ArtifactRow:
     id: str
     session_id: str
     account_id: str
-    original_object_key: str
-    normalized_object_key: str
     quality_score: int
     embedding_model_version: str
     ocr_model_version: str
@@ -79,7 +77,7 @@ class ReviewRow:
 
 SESSION_COLUMNS = "id::text,account_id,game,status,created_at,updated_at"
 ARTIFACT_COLUMNS = (
-    "id::text,session_id::text,account_id,original_object_key,normalized_object_key,"
+    "id::text,session_id::text,account_id,"
     "quality_score,embedding_model_version,ocr_model_version,status,ocr_name,ocr_set_code,"
     "ocr_collector_number,candidate_json,created_at,updated_at"
 )

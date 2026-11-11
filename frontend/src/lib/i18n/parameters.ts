@@ -1,4 +1,19 @@
 export interface MessageParameters {
+	'entries.one': { count: string | number };
+	'entries.other': { count: string | number };
+	'inventory.order.set': { direction: string | number };
+	'inventory.order.name': { direction: string | number };
+	'inventory.order.set.variant': {
+		direction: string | number;
+		column: string | number;
+		variantDirection: string | number;
+	};
+	'inventory.order.name.variant': {
+		column: string | number;
+		variantDirection: string | number;
+		direction: string | number;
+	};
+
 	'qr.approval': { device: string | number; username: string | number };
 	'deck.import.add.one': { count: string | number };
 	'deck.import.add.other': { count: string | number };

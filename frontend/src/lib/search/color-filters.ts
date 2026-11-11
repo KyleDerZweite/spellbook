@@ -1,5 +1,7 @@
 import type { CatalogFilters, ColorMatch } from './types.ts';
-import { MANA_COLORS } from './filter-options.ts';
+import { MANA_COLORS, filterOptionLabel } from './filter-options.ts';
+import { translate } from '#lib/i18n/messages.ts';
+import type { Locale } from '#lib/i18n/locale.ts';
 
 /** Two distinct filters complete WUBRG; Colorless remains an explicit choice. */
 export function completeColorMatch(match: ColorMatch): ColorMatch {
@@ -24,11 +26,12 @@ export function browserColorFilters(match: ColorMatch): CatalogFilters {
 
 export function formatColorExpression(
 	match: ColorMatch,
-	compact = false
+	compact = false,
+	locale: Locale = 'en'
 ): { visual: string; spoken: string } {
 	const labels = (selected: ColorMatch['all'], abbreviate: boolean) =>
-		MANA_COLORS.filter(({ id }) => selected.includes(id)).map(({ id, label }) =>
-			abbreviate ? id : label
+		MANA_COLORS.filter(({ id }) => selected.includes(id)).map((option) =>
+			abbreviate ? option.id : filterOptionLabel(option, locale)
 		);
 	const format = (or: string, and: string, exclude: string, abbreviate = false) => {
 		const any = labels(match.any, abbreviate),
@@ -39,7 +42,10 @@ export function formatColorExpression(
 			.filter(Boolean)
 			.join(and);
 	};
-	const empty = match.field === 'identity' ? 'Any color identity' : 'Any color';
+	const empty = translate(
+		locale,
+		match.field === 'identity' ? 'search.color.anyIdentity' : 'search.color.any'
+	);
 	return {
 		visual: format(' || ', ' && ', '!', compact) || empty,
 		spoken: format(' OR ', ' AND ', 'NOT ') || empty

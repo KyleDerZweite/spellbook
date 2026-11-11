@@ -8,7 +8,7 @@ vi.mock('#lib/server/data/decks.ts', async () => {
 	return { DeckNotFoundError: actual.DeckNotFoundError };
 });
 import { addToDeck, addBrowsingToInventory } from '#lib/server/card-browsing-actions.ts';
-import { ValidationError } from '#lib/server/mtg/validation.ts';
+import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { DeckNotFoundError } from '#lib/server/remote/errors.ts';
 const draft = {

@@ -32,6 +32,7 @@
 				hits = [];
 				printings = [];
 				files = undefined;
+				clearPreview();
 				pendingCommit = null;
 				confirmed = false;
 				query = '';
@@ -94,6 +95,13 @@
 	let reviewArtifactId = $state(untrack(() => initialResult?.lastResult?.artifactId));
 	let confirmed = $state(false);
 	let files = $state<FileList>();
+	let previewUrl = $state('');
+	let previewArtifactId = $state('');
+	function clearPreview() {
+		if (previewUrl) URL.revokeObjectURL(previewUrl);
+		previewUrl = '';
+		previewArtifactId = '';
+	}
 	let sessionInput = $state(untrack(() => initialResult?.session?.id ?? ''));
 	let searchGeneration = 0;
 	let pendingCommit: { key: string; body: string } | null = null;
@@ -102,6 +110,7 @@
 	let mounted = true;
 	onDestroy(() => {
 		mounted = false;
+		clearPreview();
 	});
 	const saved = createScanSave({
 		commit: (body) =>
@@ -200,10 +209,14 @@
 		const sessionId = session.id;
 		busy = true;
 		try {
-			const form = new FormData();
-			form.set('file', file);
-			await request(`${api}/scan/sessions/${sessionId}/frames`, { method: 'POST', body: form });
+			const uploaded = await request<{ artifact: { id: string } }>(
+				`${api}/scan/sessions/${sessionId}/frames`,
+				{ method: 'POST', headers: { 'Content-Type': file.type }, body: file }
+			);
 			if (!write.current() || !mounted || session?.id !== sessionId) return;
+			clearPreview();
+			previewArtifactId = uploaded.artifact.id;
+			previewUrl = URL.createObjectURL(file);
 			message = language.t('ui.Photo.uploaded.Review.the.printing.before.adding.it.to.inventory');
 		} catch (cause) {
 			if (write.current() && mounted && session?.id === sessionId) report(cause);
@@ -441,11 +454,13 @@
 		{#if artifact}
 			<div class="grid items-start gap-5 md:grid-cols-[minmax(180px,280px)_1fr]">
 				<div class="surface-card space-y-3 p-3">
-					<img
-						src={`${api}/scan/artifacts/${artifact.id}/image`}
-						alt={language.t('ui.Original.card.submitted.for.review')}
-						class="max-h-[420px] w-full rounded object-contain"
-					/>
+					{#if previewUrl && previewArtifactId === artifact.id}
+						<img
+							src={previewUrl}
+							alt={language.t('ui.Original.card.submitted.for.review')}
+							class="max-h-[420px] w-full rounded object-contain"
+						/>
+					{/if}
 
 					{#if candidates.length === 0}<p class="text-text-secondary">
 							{language.t(

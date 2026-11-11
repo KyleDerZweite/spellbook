@@ -2,6 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { completeColorMatch, formatColorExpression } from '#lib/search/color-filters.ts';
 
 describe('color expression presentation', () => {
+	it('localizes full names while retaining compact symbols and logical operators', () => {
+		const match = {
+			field: 'identity' as const,
+			any: ['W', 'U'] as const,
+			all: ['B'] as const,
+			not: ['R'] as const
+		};
+		const input = { ...match, any: [...match.any], all: [...match.all], not: [...match.not] };
+		expect(formatColorExpression(input, false, 'de')).toEqual({
+			visual: '(Weiß || Blau) && Schwarz && !Rot',
+			spoken: '(Weiß OR Blau) AND Schwarz AND NOT Rot'
+		});
+		expect(formatColorExpression(input, true, 'de').visual).toBe('(W || U) && B && !R');
+		expect(formatColorExpression({ field: 'identity', any: [], all: [] }, false, 'de').visual).toBe(
+			'Beliebige Farbidentität'
+		);
+	});
 	it('groups OR before conjunctions and names exclusions for assistive technology', () => {
 		expect(
 			formatColorExpression({ field: 'identity', any: ['U', 'W'], all: ['B'], not: ['R'] })

@@ -1,10 +1,10 @@
-"""Scan orchestration over caller-owned PostgreSQL, storage and worker ports."""
+"""Scan orchestration with transient image bytes and durable review metadata."""
 
 import asyncio
-import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from hashlib import sha256
 from uuid import uuid4
 
 from psycopg.rows import class_row
@@ -37,10 +37,8 @@ from spellbook_core.mtg.scan.types import (
     ArtifactResult,
     ScanCandidate,
     ScanCommitAcknowledgement,
-    ScanImage,
     ScanSession,
     ScanSessionResult,
-    ScanStorage,
     ScanWorker,
     WorkerInput,
     WorkerResult,
@@ -56,8 +54,6 @@ from spellbook_core.mtg.scan.validation import (
     worker_result,
 )
 from spellbook_core.validation import MISSING, assert_uuid, js_utf8
-
-logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -79,14 +75,12 @@ class Scan:
         catalog: Catalog,
         auth: SessionAuth,
         inventory: Inventory,
-        storage: ScanStorage,
         worker: ScanWorker,
     ):
         self._pool = pool
         self._catalog = catalog
         self._auth = auth
         self._inventory = inventory
-        self._storage = storage
         self._worker = worker
 
     async def create_session(self, actor: Actor) -> ScanSession:
@@ -286,43 +280,6 @@ class Scan:
             (datetime.now(UTC), session_id),
         )
 
-    async def _attachment_exists(self, account_id: str, session_id: str, artifact_id: str) -> bool:
-        # This transaction starts only after the failed attachment connection was closed.
-        # The ordered locks wait for any dispatched COMMIT before absence is used.
-        async with transaction(self._pool) as tx:
-            await tx.execute(
-                "SELECT account_id FROM user_profiles WHERE account_id=%s FOR UPDATE",
-                (account_id,),
-            )
-            await owned_session(tx, account_id, session_id, lock=True)
-            return (
-                await (
-                    await tx.execute(
-                        "SELECT id FROM scan_artifacts "
-                        "WHERE id=%s AND account_id=%s AND session_id=%s",
-                        (artifact_id, account_id, session_id),
-                    )
-                ).fetchone()
-                is not None
-            )
-
-    async def _cleanup(
-        self, key: str, account_id: str, session_id: str, artifact_id: str, uncertain: bool
-    ) -> None:
-        if uncertain:
-            try:
-                if await self._attachment_exists(account_id, session_id, artifact_id):
-                    return
-            except Exception:
-                logger.error(
-                    "Unable to establish rejected Scan attachment outcome; object retained"
-                )
-                return
-        try:
-            await self._storage.delete(key)
-        except Exception:
-            logger.error("Failed to clean up a rejected Scan upload")
-
     async def upload_frame(
         self, actor: Actor, *, session_id: str, body: bytes, content_type: str, file_name: str
     ) -> ArtifactResult:
@@ -330,20 +287,19 @@ class Scan:
         await self.assert_uploadable(actor, session_id)
         actual = check_image(body, content_type, file_name)
         artifact_id = str(uuid4())
-        extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[actual]
-        key = f"scan-sessions/{session_id}/{artifact_id}.{extension}"
-        user = await self._auth.require_actor(actor)
-        uncertain = attached = False
+        # Only the derived result is stored. The original bytes leave scope after
+        # the synchronous request/worker round trip, including failures.
+        input: WorkerInput = {
+            "sessionId": session_id,
+            "artifactId": artifact_id,
+            "imageSha256": sha256(body).hexdigest(),
+            "contentType": actual,
+            "fileName": file_name,
+        }
         try:
-            await self._storage.write(key, body, actual)
-            input: WorkerInput = {
-                "sessionId": session_id,
-                "artifactId": artifact_id,
-                "originalObjectKey": key,
-                "contentType": actual,
-                "fileName": file_name,
-            }
-            result = await worker_result(await self._worker.process(input), input, self._catalog)
+            result = await worker_result(
+                await self._worker.process(input, body), input, self._catalog
+            )
             # Keep the lease until a possible COMMIT failure has discarded the connection.
             async with self._pool.connection(timeout=2.0) as tx:
                 try:
@@ -358,27 +314,13 @@ class Scan:
                         assert_open(session.status)
                         row = await self._insert_artifact(tx, current.account_id, input, result)
                         await self._pending(tx, session_id)
-                        # Cancellation/errors from here may have lost the COMMIT response.
-                        uncertain = True
-                    attached = True
                 except BaseException:
-                    if uncertain:
-                        await tx.close()
+                    # COMMIT may have succeeded without a response. No image or
+                    # object needs cleanup; the durable metadata can be reread.
+                    await tx.close()
                     raise
             return {"artifact": artifact_dto(row), "result": result_dto(row)}
         except BaseException as cause:
-            if not attached and not isinstance(cause, FileExistsError):
-                cleanup = asyncio.create_task(
-                    self._cleanup(key, user.account_id, session_id, artifact_id, uncertain)
-                )
-                # Settle cleanup even when the request was cancelled. Both DB and adapter
-                # operations have ordinary finite timeouts; no process retention protocol.
-                while not cleanup.done():
-                    try:
-                        await asyncio.shield(cleanup)
-                    except asyncio.CancelledError:
-                        continue
-                await cleanup
             if isinstance(cause, ScanError | ActorError | asyncio.CancelledError):
                 raise
             if not isinstance(cause, Exception):
@@ -394,16 +336,14 @@ class Scan:
         tokens = result["ocrTokens"]
         async with tx.cursor(row_factory=class_row(ArtifactRow)) as cursor:
             await cursor.execute(
-                "INSERT INTO scan_artifacts(id,session_id,account_id,original_object_key,"
-                "normalized_object_key,status,quality_score,embedding_model_version,ocr_model_version,"
+                "INSERT INTO scan_artifacts(id,session_id,account_id,"
+                "status,quality_score,embedding_model_version,ocr_model_version,"
                 "ocr_name,ocr_set_code,ocr_collector_number,candidate_json) "
-                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING {ARTIFACT_COLUMNS}",
+                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING {ARTIFACT_COLUMNS}",
                 (
                     input["artifactId"],
                     input["sessionId"],
                     account_id,
-                    input["originalObjectKey"],
-                    input["originalObjectKey"],
                     result["status"],
                     result["qualityScore"],
                     js_utf8(result["embeddingModelVersion"]).decode("utf-8"),
@@ -421,24 +361,13 @@ class Scan:
             raise RuntimeError("Scan artifact unavailable")
         return row
 
-    async def read_image(self, actor: Actor, artifact_id: str) -> ScanImage:
-        user = await self._auth.require_actor(actor)
-        identifier = assert_uuid(artifact_id, "artifactId")
-        async with guarded("Unable to load scan image. Try again."):
-            async with transaction(self._pool, read_only=True) as tx:
-                artifact = await owned_artifact(tx, user.account_id, identifier)
-            image = await self._storage.read(artifact.original_object_key)
-            await self._auth.require_actor(actor)
-            return image
-
 
 def create_scan(
     pool: ConnectionPool,
     catalog: Catalog,
     auth: SessionAuth,
     inventory: Inventory,
-    storage: ScanStorage,
     worker: ScanWorker,
 ) -> Scan:
-    """No IO or resource acquisition; the runtime closes both external adapters."""
-    return Scan(pool, catalog, auth, inventory, storage, worker)
+    """No IO or resource acquisition; the runtime owns the worker adapter."""
+    return Scan(pool, catalog, auth, inventory, worker)

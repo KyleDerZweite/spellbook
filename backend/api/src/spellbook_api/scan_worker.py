@@ -6,6 +6,7 @@ Its async streaming client supplies cancellation and bounded response consumptio
 """
 
 import asyncio
+import base64
 import json
 
 import httpx2
@@ -26,9 +27,12 @@ class HttpScanWorker:
             limits=httpx2.Limits(max_connections=16, max_keepalive_connections=4),
         )
 
-    async def process(self, input: WorkerInput) -> object:
+    async def process(self, input: WorkerInput, image: bytes) -> object:
         async with asyncio.timeout(30):
-            async with self._client.stream("POST", self._url, json=input) as response:
+            # Image bytes travel only in this request. No disk, object storage,
+            # queue or database is involved in the worker handoff.
+            payload = {**input, "imageBase64": base64.b64encode(image).decode("ascii")}
+            async with self._client.stream("POST", self._url, json=payload) as response:
                 if not 200 <= response.status_code < 300:
                     raise RuntimeError("Scan processing failed")
                 body = bytearray()

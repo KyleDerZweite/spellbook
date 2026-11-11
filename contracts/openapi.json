@@ -6430,148 +6430,6 @@
 				"description": "Requires an owned artifact in an open or pending-review session. Repeating a result replaces recognition data without creating artifacts or adding inventory. Card identity comes from the catalog. Inventory changes require an explicit review commit."
 			}
 		},
-		"/api/v1/mtg/scan/artifacts/{artifactId}/image": {
-			"parameters": [
-				{
-					"name": "artifactId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"get": {
-				"summary": "Read the original image for an owned scan artifact",
-				"tags": ["mtg"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Original image, with its media type detected from its bytes",
-						"headers": {
-							"Cache-Control": {
-								"schema": {
-									"const": "no-store"
-								}
-							},
-							"X-Content-Type-Options": {
-								"schema": {
-									"const": "nosniff"
-								}
-							}
-						},
-						"content": {
-							"image/jpeg": {
-								"schema": {
-									"type": "string",
-									"format": "binary"
-								}
-							},
-							"image/png": {
-								"schema": {
-									"type": "string",
-									"format": "binary"
-								}
-							},
-							"image/webp": {
-								"schema": {
-									"type": "string",
-									"format": "binary"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Artifact or stored image not found in this account",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Stored image exceeds 10 MiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Stored content is not JPEG, PNG, or WebP",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Scan temporarily unavailable; no partial write",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
 		"/api/v1/mtg/scan/sessions/{sessionId}/frames": {
 			"parameters": [
 				{
@@ -6666,7 +6524,7 @@
 						}
 					},
 					"413": {
-						"description": "Multipart body exceeds 12 MiB or the image exceeds 10 MiB",
+						"description": "Image exceeds 10 MiB",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -6676,7 +6534,7 @@
 						}
 					},
 					"415": {
-						"description": "Use multipart/form-data with a JPEG, PNG, or WebP file whose signature matches its MIME type",
+						"description": "Use image/jpeg, image/png, or image/webp with matching image bytes",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -6719,19 +6577,9 @@
 				"requestBody": {
 					"required": true,
 					"content": {
-						"multipart/form-data": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"file": {
-										"type": "string",
-										"format": "binary",
-										"description": "Nonempty JPEG, PNG, or WebP image up to 10 MiB. Its signature must match the declared MIME type. The multipart body must not exceed 12 MiB and the filename must be at most 255 characters."
-									}
-								},
-								"required": ["file"]
-							}
-						}
+						"image/png": { "schema": { "type": "string", "format": "binary" } },
+						"image/jpeg": { "schema": { "type": "string", "format": "binary" } },
+						"image/webp": { "schema": { "type": "string", "format": "binary" } }
 					}
 				}
 			}

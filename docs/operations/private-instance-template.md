@@ -3,11 +3,16 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-03
 - Source of Truth: operator notes
-- Update Triggers: deployment note conventions, recovery and backup procedures
-- Related Docs: [Operations](./README.md), [Deployment](./deployment.md), [Local authentication](./local-auth.md)
+- Update Triggers:
+  - deployment note conventions
+  - recovery and backup procedures
+- Related Docs:
+  - [Operations](./README.md)
+  - [Deployment](./deployment.md)
+  - [Local authentication](./local-auth.md)
 
-Copy this template into the operator's private notes.
-Record secret storage references, never secret values.
+Copy this template into the operator's private notes. Record secret storage references, never secret
+values.
 
 ## Instance
 
@@ -20,9 +25,8 @@ Record secret storage references, never secret values.
 ## Data and access
 
 - Postgres connection secret reference:
-- Object storage credential references:
 - Account provisioning policy:
 - Password recovery procedure and authorized operator:
 - Backup location, retention, and last restore test:
-- Scan artifact retention policy:
+- Scan recognition metadata retention policy (uploaded images are never persisted):
 - Privacy contact and deployment-specific legal information:
