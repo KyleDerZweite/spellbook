@@ -8,6 +8,7 @@ export type * from './decks.ts';
 export type * from './saved-state.ts';
 
 export type * from './scan.ts';
+export type * from './cardstation-sort-rule.ts';
 export type * from './inventory-value.ts';
 export type * from './deck-library.ts';
 export type * from './web.ts';
