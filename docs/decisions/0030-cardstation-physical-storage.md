@@ -19,9 +19,9 @@ The implemented Inventory screen calls editable, overlapping groups of complete 
 identified physical copy. Counting one entry in two groups must not count it as two owned copies.
 
 A physical sorter can encounter the same card again. Exact Printing recognition, identical photo
-hashes, and similarity to a stored Box are not reliable proof of individual physical identity.
-The current Scan API commits newly owned quantities after review, but cannot track a physical
-source or destination.
+hashes, and similarity to a stored Box are not reliable proof of individual physical identity. The
+current Scan API commits newly owned quantities after review, but cannot track a physical source or
+destination.
 
 ## Decision
 
@@ -56,10 +56,9 @@ source or destination.
   current one-time QR authentication flow.
 - A local offline filter preset is **device configuration**, not an Inventory search or a physical
   inventory claim. Saved configuration does not violate the no-persisted-card-results rule.
-- In a future physical allocation model, the sum of allocations for an Inventory entry cannot
-  exceed the owned quantity. Location-unknown amounts require an explicit reconciliation route.
-  Transfers must reject negative sources, account-crossing access, stale state and conflicting
-  retries.
+- In a future physical allocation model, the sum of allocations for an Inventory entry cannot exceed
+  the owned quantity. Location-unknown amounts require an explicit reconciliation route. Transfers
+  must reject negative sources, account-crossing access, stale state and conflicting retries.
 - An Account may have many physical Boxes and many unrelated virtual Inventory groups. If the UI
   offers optional cross-links later, they are references only and cannot synchronize overlapping
   memberships as physical counts.
@@ -69,16 +68,16 @@ source or destination.
 
 ## Follow-up
 
-- [Cardstation #26](https://github.com/KyleDerZweite/spellbook-cardstation/issues/26):
-  deliver offline sorting and a local filter/slot interface first.
-- [Cardstation #27](https://github.com/KyleDerZweite/spellbook-cardstation/issues/27):
-  later new-only intake, using the existing reviewed Scan semantics where applicable.
-- [Cardstation #28](https://github.com/KyleDerZweite/spellbook-cardstation/issues/28):
-  later physical relocation and source suggestions.
+- [Cardstation #26](https://github.com/KyleDerZweite/spellbook-cardstation/issues/26): deliver
+  offline sorting and a local filter/slot interface first.
+- [Cardstation #27](https://github.com/KyleDerZweite/spellbook-cardstation/issues/27): later
+  new-only intake, using the existing reviewed Scan semantics where applicable.
+- [Cardstation #28](https://github.com/KyleDerZweite/spellbook-cardstation/issues/28): later
+  physical relocation and source suggestions.
 - [Spellbook #195](https://github.com/KyleDerZweite/spellbook/issues/195),
   [#196](https://github.com/KyleDerZweite/spellbook/issues/196),
   [#197](https://github.com/KyleDerZweite/spellbook/issues/197),
   [#199](https://github.com/KyleDerZweite/spellbook/issues/199),
   [#200](https://github.com/KyleDerZweite/spellbook/issues/200) and
-  [#201](https://github.com/KyleDerZweite/spellbook/issues/201)
-  remain the existing decision/workflow owners. No duplicate implementation epic is needed.
+  [#201](https://github.com/KyleDerZweite/spellbook/issues/201) remain the existing
+  decision/workflow owners. No duplicate implementation epic is needed.

@@ -56,10 +56,10 @@ entries. _Avoid_: Collection as a separate domain object, deck
 in the interface. An entry can belong to multiple groups, and all its copies share that membership.
 _Avoid_: Deck, physical location, scan batch, owned quantity
 
-**Box**: The current Inventory interface name for a **virtual Inventory group**. It selects
-whole entries with overlapping membership and does not allocate copies to a physical location.
-A Box cannot be treated as a real storage container. _Avoid_: Physical box allocation, copy
-location, separate ownership
+**Box**: The current Inventory interface name for a **virtual Inventory group**. It selects whole
+entries with overlapping membership and does not allocate copies to a physical location. A Box
+cannot be treated as a real storage container. _Avoid_: Physical box allocation, copy location,
+separate ownership
 
 **Group membership**: An association between an inventory entry and an inventory group, without
 changing ownership. _Avoid_: Deck entry, copy allocation, physical reservation
@@ -166,35 +166,35 @@ _Avoid_: Backend, scan worker, Inventory
 stacks without persisted card-level results or Account inventory changes. Device configuration,
 models and calibration may remain stored. _Avoid_: Scan session, new-ownership import
 
-**Inventory intake**: A deferred authenticated Cardstation mode for a stack explicitly declared
-to contain **only new** physical cards. Reviewed accepted copies add to owned Inventory, not merely
-to a location. _Avoid_: Re-sorting, physical relocation
+**Inventory intake**: A deferred authenticated Cardstation mode for a stack explicitly declared to
+contain **only new** physical cards. Reviewed accepted copies add to owned Inventory, not merely to
+a location. _Avoid_: Re-sorting, physical relocation
 
 **Online sorting**: A deferred authenticated mode for relocating already owned quantities between
 physical Boxes without adding to total ownership. Unknown source or placement requires review.
 _Avoid_: Inventory intake, automatic ownership increase
 
-**Physical box**: A proposed real storage container with a stable identity independent of
-its sorter slot. Future tracking allocates **quantities per Inventory entry and physical box**, not
-individual IDs to each physical copy. No physical Box registry or per-Box quantities are implemented.
-_Avoid_: Virtual Inventory Box, Inventory group, display position, Inventory entry
+**Physical box**: A proposed real storage container with a stable identity independent of its sorter
+slot. Future tracking allocates **quantities per Inventory entry and physical box**, not individual
+IDs to each physical copy. No physical Box registry or per-Box quantities are implemented. _Avoid_:
+Virtual Inventory Box, Inventory group, display position, Inventory entry
 
-**Unallocated quantity**: A proposed portion of an owned Inventory entry not yet assigned to a
-known physical Box. It is not a new owned copy or proof of its current physical location.
-_Avoid_: Missing Inventory, automatically available source
+**Unallocated quantity**: A proposed portion of an owned Inventory entry not yet assigned to a known
+physical Box. It is not a new owned copy or proof of its current physical location. _Avoid_: Missing
+Inventory, automatically available source
 
 **Sort filter preset**: A proposed saved rule for classifying presented cards and mapping recognized
 values to physical output slots. A filter is a configuration snapshot, not an Inventory group,
 physical Box identity or assertion of placement. _Avoid_: Inventory search filter, ownership
 
-**Box QR marker**: A proposed printed marker identifying a physical Box by stable reference.
-It is not the existing short-lived QR authentication credential, an access grant, a capacity sensor
-or proof of card placement. The payload format remains undecided. _Avoid_: QR login token
+**Box QR marker**: A proposed printed marker identifying a physical Box by stable reference. It is
+not the existing short-lived QR authentication credential, an access grant, a capacity sensor or
+proof of card placement. The payload format remains undecided. _Avoid_: QR login token
 
-**Eject**: An output concept from the earlier straight-path sorter design. The current
-circular eight-slot Cardstation does not assume an extra fixed Eject. Offline sorting instead
-requires an explicitly configured fallback/Reject destination within available hardware.
-_Avoid_: Guaranteed ninth slot, proof of placement
+**Eject**: An output concept from the earlier straight-path sorter design. The current circular
+eight-slot Cardstation does not assume an extra fixed Eject. Offline sorting instead requires an
+explicitly configured fallback/Reject destination within available hardware. _Avoid_: Guaranteed
+ninth slot, proof of placement
 
 **Deck assembly**: The proposed physical selection of required cards from the stack fed into a
 device for one fixed decklist. It does not imply retrieval from other storage or AI deck

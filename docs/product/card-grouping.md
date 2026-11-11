@@ -56,9 +56,9 @@ keeps these virtual Boxes unchanged. A later **Physical Box** is a distinct acco
 location with **quantities per Inventory entry**, not another Inventory group or an automatic
 one-to-one mapping. A physical Box may contain several quantities from an entry, and one entry may
 be allocated across several physical Boxes. Future QR labels identify the physical Box, not this
-group or its selected members. The current page does not display recorded physical contents.
-The proposed [filter and label interface](../integrations/cardstation-filter-box-interface.md)
-belongs to later integration and does not redefine current group CRUD.
+group or its selected members. The current page does not display recorded physical contents. The
+proposed [filter and label interface](../integrations/cardstation-filter-box-interface.md) belongs
+to later integration and does not redefine current group CRUD.
 
 ## Implementation contract
 
