@@ -45,12 +45,7 @@ services:
   scan-worker:
     build:
       context: ./backend/workers/scan
-    environment:
-      SCAN_STORAGE_DRIVER: local
-      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
     restart: unless-stopped
-    volumes:
-      - demo_scans:/app/storage/scans
   api:
     build:
       context: .
@@ -64,17 +59,13 @@ services:
       DEMO_MODE: 'false'
       VALUE_HISTORY_TIMEZONE: ${DEV_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
       DATABASE_URL: postgres://${DEV_POSTGRES_USER:-spellbook}:${DEV_POSTGRES_PASSWORD:?Set DEV_POSTGRES_PASSWORD for Development}@postgres:5432/${DEV_POSTGRES_DB:-spellbook_dev}
-      SCAN_STORAGE_DRIVER: local
       SCAN_WORKER_URL: http://scan-worker:8080
-      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
     depends_on:
       db-migrate:
         condition: service_completed_successfully
       scan-worker:
         condition: service_started
     restart: unless-stopped
-    volumes:
-      - demo_scans:/app/storage/scans
   state-worker:
     build:
       context: .
@@ -117,5 +108,4 @@ services:
 
 volumes:
   postgres18_data: null
-  demo_scans: null
   worker_data: null

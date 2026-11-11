@@ -1,7 +1,7 @@
 # Spellbook
 
 - Status: Canonical domain glossary
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-11
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account
   repositories
 - Update Triggers:
@@ -139,8 +139,9 @@ completed import
 **Scan session**: An account-owned grouping of scan artifacts and their review lifecycle. _Avoid_:
 Physical sorting job, ownership record
 
-**Scan artifact**: A stored scan record linking an uploaded image to recognition metadata and
-candidates within a scan session. _Avoid_: Physical copy, inventory entry
+**Scan artifact**: A stored recognition-metadata record and candidate list within a scan session.
+The original uploaded image is processed only in memory and is not retained. _Avoid_: Physical copy,
+inventory entry, saved image
 
 **Recognition candidate**: A proposed printing match for a captured card, with optional evidence
 such as a score or recognized text. It is not confirmation of ownership or physical placement.

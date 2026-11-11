@@ -19,10 +19,9 @@ Path/Query inputs, bounded JSON objects and the nine strict command models. Body
 preserve authority and throttle ordering before decoding. Ruff owns lint/format; strict Mypy checks
 source and tests. Pytest and httpx2 provide component/host tests and Starlette TestClient transport.
 Hatchling embeds the canonical schema and unchanged SQL/journal/snapshot assets in both
-distributions, including a wheel rebuilt from the sdist. Scan assembly pins `boto3==1.43.118` for
-maintained S3/SigV4 and `python-multipart==0.0.32` for the existing bounded multipart upload
-contract. The existing `httpx2==2.13.1` pin is now a runtime dependency for the Scan worker adapter.
-The regenerated API lock freezes their transitive dependencies.
+distributions, including a wheel rebuilt from the sdist. `python-multipart==0.0.32` remains for
+account form parsing. `httpx2` is the runtime dependency for the transient Scan worker handoff. The
+regenerated API lock freezes their transitive dependencies.
 
 From the repository root:
 
@@ -118,10 +117,10 @@ native MIME behavior. Last scalar values, binary image bytes, body limits, incom
 rejection and file closure remain covered.
 
 Shutdown closes admission and SSE before Uvicorn drain, then settles listener/Core work, closes the
-Scan worker and storage adapters, settles native work, joins the dedicated executor and closes the
-request pool last. All host shutdown phases share the 15-second deadline, including partial startup
-cleanup. A deadline failure is not permission to force termination. Cancellation never establishes
-that a mutation did not commit.
+Scan worker adapter, settles native work, joins the dedicated executor and closes the request pool
+last. All host shutdown phases share the 15-second deadline, including partial startup cleanup. A
+deadline failure is not permission to force termination. Cancellation never establishes that a
+mutation did not commit.
 
 Build from the repository root:
 
@@ -184,15 +183,12 @@ owner; `--fixtures-dir` remains available. The external wheel test checks all th
 complete streaming bundle validation after rebuilding from the sdist. It performs no database
 operation.
 
-With `DATABASE_URL`, the host constructs `ScanStorageConfiguration`, `create_scan_storage`,
-`HttpScanWorker` and Core `create_scan`, then registers `create_scan_routes` once.
-`SCAN_STORAGE_DRIVER`, `SCAN_LOCAL_STORAGE_DIR`, all existing `S3_*` settings and `SCAN_WORKER_URL`
-retain their current meanings and defaults. The worker URL defaults to `http://scan-worker:8080`;
-local storage defaults to `/app/storage/scans`. No-DB Discovery startup constructs neither adapter.
-Request settlement precedes adapter close, and both adapters close before the request pool,
-including after startup or close failures. Tests exercise local storage, Boto3 against a task-owned
-HTTP protocol fixture, the actual scaffold source over TCP, timeout and shutdown. Real Scan
-PostgreSQL, proxy, independently installed worker and S3 target acceptance remain with Root.
+With `DATABASE_URL`, the host constructs `HttpScanWorker` and Core `create_scan`, then registers
+`create_scan_routes` once. `SCAN_WORKER_URL` defaults to `http://scan-worker:8080`. No storage
+adapter or S3 configuration exists. Images are bounded raw request bytes passed to the worker, never
+files. No-DB Discovery startup constructs no worker adapter. Request settlement precedes worker
+close and pool close. Tests exercise real HTTP transport and timeout. Production PostgreSQL, proxy
+and independently installed worker acceptance remain separate evidence.
 
 The separate [state worker](../workers/state/README.md) owns ValueHistory scheduling. API startup
 does not create the scheduler. Default Compose and launchers select API and independent State

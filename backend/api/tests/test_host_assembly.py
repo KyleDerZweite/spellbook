@@ -45,7 +45,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         (create_deck_routes(resources.auth, resources.decks, ORIGIN), 18),
         (create_catalog_routes(resources.catalog), 4),
         (create_valuation_routes(resources.auth, resources.valuation, ORIGIN), 5),
-        (create_scan_routes(resources.auth, resources.scan, ORIGIN), 7),
+        (create_scan_routes(resources.auth, resources.scan, ORIGIN), 6),
     ):
         assert len(operations(routes)) == expected
         assert operations(routes) <= installed
@@ -53,7 +53,6 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     assert ("POST", "/api/v1/mtg/commands") in installed
     assert resources.decks.valuation is resources.valuation
     assert resources.scan._inventory is resources.inventory
-    assert resources.scan._storage is resources.scan_storage
     assert resources.scan._worker is resources.scan_worker
     assert resources.dashboard._values is resources.inventory_values
     assert resources.inventory_values.valuation is resources.valuation
@@ -128,7 +127,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         asyncio.run(lifetime.close())
 
 
-def test_scan_environment_is_typed_and_discovery_constructs_no_scan_adapters(
+def test_scan_environment_does_not_require_s3_and_discovery_constructs_no_worker(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from spellbook_api import application
@@ -136,35 +135,16 @@ def test_scan_environment_is_typed_and_discovery_constructs_no_scan_adapters(
     config = Configuration.from_environment(
         {
             "APP_ORIGIN": ORIGIN,
-            "SCAN_STORAGE_DRIVER": "s3",
-            "SCAN_LOCAL_STORAGE_DIR": "/retained/scans",
             "SCAN_WORKER_URL": "http://retained-worker:8087",
-            "S3_ENDPOINT": "http://objects.test",
-            "S3_REGION": "eu-central-1",
-            "S3_BUCKET": "retained",
-            "S3_ACCESS_KEY_ID": "synthetic-access",
-            "S3_SECRET_ACCESS_KEY": "synthetic-secret",
-            "S3_FORCE_PATH_STYLE": "false",
         }
     )
     assert config.scan_worker_url == "http://retained-worker:8087"
-    assert config.scan_storage.storage_driver == "s3"
-    assert config.scan_storage.local_storage_dir == "/retained/scans"
-    assert config.scan_storage.s3_endpoint == "http://objects.test"
-    assert config.scan_storage.s3_region == "eu-central-1"
-    assert config.scan_storage.s3_bucket == "retained"
-    assert config.scan_storage.s3_force_path_style == "false"
-    assert config.scan_storage.s3_access_key_id == "synthetic-access"
-    assert config.scan_storage.s3_secret_access_key == "synthetic-secret"
-    assert "synthetic-secret" not in repr(config) and "synthetic-access" not in repr(config)
     defaults = Configuration(ORIGIN)
     assert defaults.scan_worker_url == "http://scan-worker:8080"
-    assert defaults.scan_storage.local_storage_dir == "/app/storage/scans"
 
     def forbidden(*args: object, **kwargs: object) -> None:
         pytest.fail("Discovery must not construct Scan IO adapters")
 
-    monkeypatch.setattr(application, "create_scan_storage", forbidden)
     monkeypatch.setattr(application, "HttpScanWorker", forbidden)
     lifetime = create_application(config)
     with TestClient(lifetime.http) as client:
