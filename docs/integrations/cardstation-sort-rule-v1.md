@@ -5,7 +5,8 @@
 - Source of Truth: [JSON Schema](../../contracts/schemas/cardstation-sort-rule.v1.schema.json),
   [cross-language fixtures](../../contracts/fixtures/cardstation-sort-rule.v1.json)
 - Update Triggers:
-  - Cardstation recognition fields, output-slot hardware, filter-editor behavior or account integration
+  - Cardstation recognition fields, output-slot hardware, filter-editor behavior or
+    account integration
 - Related Docs:
   - [Card robot](./card-robot.md)
   - [Inventory Groups](../product/card-grouping.md)
