@@ -190,8 +190,10 @@ physical Box identity or assertion of placement. _Avoid_: Inventory search filte
 It is not the existing short-lived QR authentication credential, an access grant, a capacity sensor
 or proof of card placement. The payload format remains undecided. _Avoid_: QR login token
 
-**Eject**: The sorter's fixed general output for cards that are not routed into an available box,
-including intentionally selected output cards. _Avoid_: Error-only tray, failed recognition
+**Eject**: An output concept from the earlier straight-path sorter design. The current
+circular eight-slot Cardstation does not assume an extra fixed Eject. Offline sorting instead
+requires an explicitly configured fallback/Reject destination within available hardware.
+_Avoid_: Guaranteed ninth slot, proof of placement
 
 **Deck assembly**: The proposed physical selection of required cards from the stack fed into a
 device for one fixed decklist. It does not imply retrieval from other storage or AI deck
