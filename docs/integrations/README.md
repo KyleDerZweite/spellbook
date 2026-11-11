@@ -1,7 +1,7 @@
 # Integrations
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-11
 - Source of Truth: mixed
 - Update Triggers:
   - managed Category removal
@@ -16,6 +16,7 @@
   - [Market price research](./market-prices.md)
   - [Realtime backend evaluation](./realtime-backends.md)
   - [Proposed card robot](./card-robot.md)
+  - [Shared Cardstation sort DSL v1](./cardstation-sort-rule-v1.md)
   - [Scanner platform evaluation](./scanner-platform-evaluation.md)
   - [Worker](../architecture/worker.md)
   - [Catalog](../architecture/catalog.md)
@@ -36,6 +37,8 @@ owns delivery and acceptance.
 
 The [card robot proposal](./card-robot.md) owns the future phone/sorter integration, hardware
 concept, local fast/slow recognition, device-login concept and exploratory simulator.
+[Cardstation sort DSL v1](./cardstation-sort-rule-v1.md) defines the proposed data-only
+filter-editor exchange format and cross-language fixtures. It does not activate online sorting.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local recognition,
 with public reference preparation proposed centrally. These decisions are not implemented hardware
 or phone-client support.
