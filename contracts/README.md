@@ -61,8 +61,7 @@ architecture and separate production authority.
 # Shared Cardstation sorting DSL
 
 The [v1 JSON Schema](./schemas/cardstation-sort-rule.v1.schema.json) and
-[golden vectors](./fixtures/cardstation-sort-rule.v1.json) are the canonical
-cross-language contract for offline Cardstation sort presets. The
-[TypeScript parser](./src/cardstation-sort-rule.ts) evaluates them in Spellbook;
-Cardstation vendors byte-identical schema and vectors for its Python interpreter.
-Neither implementation may execute user-supplied code.
+[golden vectors](./fixtures/cardstation-sort-rule.v1.json) are the canonical cross-language contract
+for offline Cardstation sort presets. The [TypeScript parser](./src/cardstation-sort-rule.ts)
+evaluates them in Spellbook; Cardstation vendors byte-identical schema and vectors for its Python
+interpreter. Neither implementation may execute user-supplied code.
