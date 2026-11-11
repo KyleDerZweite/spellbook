@@ -1,7 +1,7 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-11
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope
   clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19
   independent Android design clarification
@@ -10,7 +10,7 @@
   - Versioned API ownership, Python runtime assembly, adapters and operator responsibilities
   - Inventory and Deck bounded reads, revisions, availability and wire contracts
   - Portable Deck exchange, complete import rejection and Deck choice reads
-  - Scan uploads, validation, limits, artifact storage and current-version receipt replay
+  - Transient Scan uploads, validation, limits, metadata and receipt replay
   - Recognition pipelines, fixtures, device limits, local recognition and computation-host
     evaluation
   - Public reference history, private value queries, source precision and calendar refresh
@@ -312,77 +312,46 @@ endpoint-specific fields and responses.
 
 ## Scan uploads
 
-The independent [Scan scaffold](../../backend/workers/scan/src/scan_worker/main.py) and its tests
-reside in `backend/workers/scan/`, retaining `scan_worker.main:app`.
-[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires strict
-resource/benchmark experiment gates. Real functional integration remains separate from source
-relocation and TestClient checks. The Python candidate composes all seven Scan routes with Core
-`create_scan`, API-owned local/S3 storage and its HTTP worker client. It retains existing
-environment variables and defaults, constructs adapters only for the database-backed host, and
-closes them after request settlement and before its pool. Boto3 owns S3/SigV4, python-multipart owns
-multipart parsing and httpx2 owns worker HTTP. Owned HTTP protocol/scaffold fixtures verify adapter
-behavior; real PostgreSQL, proxy, independently installed worker and S3 target acceptance remain
-pending with Root.
+The authenticated Scan endpoint accepts a raw JPEG, PNG or WebP image body of at most 10 MiB at
+`POST /api/v1/mtg/scan/sessions/{sessionId}/frames`. The `Content-Type` must match the image
+signature. An upload is accepted only for an open, owned Scan session. Browser cookie requests
+require the application Origin; bearer-only clients can omit Origin, but a foreign Origin is
+rejected.
 
-Native scanners submit frames with a valid `Authorization: Bearer <token>` header and may omit
-`Origin`. The exact multipart frame endpoint has a narrow exception in the
-[form-origin guard](./auth.md#entry-points); other form routes do not share it. A foreign origin
-fails even with a bearer token, and an invalid bearer token never falls back to a browser cookie.
-Browser cookie uploads require the matching application origin.
+**No uploaded image is stored on disk, in S3, or in PostgreSQL.** The Python API keeps the validated
+request bytes in memory, calls the Scan worker synchronously with base64-encoded bytes and a SHA-256
+digest, validates the echoed digest and the worker result, and drops the image bytes when the
+request ends. The worker also decodes and checks the digest only in memory. There is no durable
+image queue, object-key reference or image download endpoint. No session image survives a restart or
+is available to another browser/device.
 
-Frame submission requires `multipart/form-data` with a `file` field. The streamed multipart body is
-limited to 12 MiB, and the image itself to 10 MiB. Empty or malformed uploads return HTTP 400.
-Unsupported media types and signatures that do not match the declared JPEG, PNG, or WebP MIME type
-return HTTP 415. Oversized data returns HTTP 413 before storage.
+The Scan worker currently returns a `stub-v1` `no_match` response. Recognition, OCR and embeddings
+are not implemented there; the image handoff supports a future recognition implementation without
+introducing storage. The 30-second worker deadline, 1 MiB response cap, candidate validation and
+Catalog identity checks remain. Only the recognition metadata, candidate list, session/review
+records and confirmed Inventory changes are persisted.
 
-The adapter's [deployment limit](../operations/deployment.md#configuration) allows the multipart
-envelope. Application checks still apply independently of the adapter and reverse proxy.
+Upload processing and worker communication happen before the short PostgreSQL recording transaction.
+Account and ScanSession authority are checked again before recording. On failure or cancellation, no
+image cleanup job is necessary. A dropped COMMIT response can leave committed metadata, but never an
+image object. The client can reread the Scan session; retries of uploads remain non-idempotent.
 
-Scan API processing follows this order:
-
-1. A client creates a scan session and uploads an image.
-2. Backend Scan stores the original image in configured local or S3-compatible storage.
-3. Backend Scan passes artifact metadata to `scan-worker`.
-4. The worker returns `no_match`, zero quality, empty OCR tokens, and no candidates.
-5. Backend Scan records artifact metadata and review state in Postgres.
-6. Explicit review commits compose the private Inventory writer in one authorized transaction.
-
-The worker reports the original object key as its normalized object key because it has not created a
-normalized image. Its `stub-v1` model versions identify the scaffold. It does not read images,
-recognize cards, run OCR, generate embeddings, or call a vector database.
-
-Storage and worker processing finish outside the short recording transaction. Backend validates at
-most 1 MiB of worker JSON, 20 distinct candidates, 100 OCR tokens, bounded model names and integer
-scores. Only the exact original object key is accepted from the current worker. Public DTOs omit
-storage keys and account IDs; candidate display identity is resolved from authoritative Catalog. The
-worker request times out after 30 seconds.
-
-Recording locks Profile/account, revalidates the session-produced actor, then locks the owned
-ScanSession. Upload requires `open`; result replacement and review commit accept `open` or
-`pending_review`. A successful attachment moves to `pending_review`; review commit moves to
-`committed`. Closed sessions return 409, foreign or absent subjects return 404. Storage failure,
-worker failure or confirmed rollback attempts deletion of only the newly generated object.
-Cancellation before commit dispatch rolls back before cleanup. After an uncertain COMMIT, Backend
-destroys the original connection and checks under the same ordered account/session locks. A
-committed attachment or an indeterminate recovery retains its object. Cleanup failures log a safe
-message without keys or credentials. Generic processing failures return 502; infrastructure
-reads/writes return sanitized 503.
-
-The local acceptance seam uses the actual Python scaffold, real PostgreSQL and filesystem storage,
-including a loopback TCP proxy that drops a server-completed COMMIT response. It does not establish
-real S3-compatible storage integration or recognition quality. Production S3 configuration remains
-supported; verification against an operator-owned bucket is separate evidence.
+S3 storage, local scan volumes, the previous multipart Scan-upload protocol, and
+`GET /scan/artifacts/{artifactId}/image` were removed together under the pre-release
+interface-replacement policy. The browser may show its just-selected image through a temporary local
+`blob:` URL and revokes that URL on teardown; after reload only review metadata remains. Existing
+historical local/S3 objects from previous deployments are **not** deleted by the migration.
+Operators should review and remove those separately under their retention policy.
 
 ## External scanner results
 
 The [OpenAPI route](../../backend/api/src/spellbook_api/http/application.py) owns wire schemas.
 Current scanner operations include:
 
-| Operation          | Route under `/api/v1/mtg`                                       | Behavior                                                                               |
-| ------------------ | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| List sessions      | `GET /scan/sessions`                                            | Up to 100 owned sessions, newest update first                                          |
-| Read image         | `GET /scan/artifacts/{artifactId}/image`                        | The owned original image, checked as JPEG, PNG, or WebP, with `no-store` and `nosniff` |
-| Submit recognition | `POST /scan/sessions/{sessionId}/artifacts/{artifactId}/result` | Replace an owned artifact's candidate result without changing inventory                |
+| Operation          | Route under `/api/v1/mtg`                                       | Behavior                                                                |
+| ------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| List sessions      | `GET /scan/sessions`                                            | Up to 100 owned sessions, newest update first                           |
+| Submit recognition | `POST /scan/sessions/{sessionId}/artifacts/{artifactId}/result` | Replace an owned artifact's candidate result without changing inventory |
 
 A recognition submission includes `status`, `modelVersion`, and up to 20 distinct printing
 candidates. Each candidate includes `catalogCardId`, finite `confidence` from 0 to 1, and optional
@@ -409,8 +378,8 @@ proposed in the [card robot integration](../integrations/card-robot.md).
 Selected session reads use a repeatable-read snapshot with independent artifact/review UUID cursors,
 default 50 and maximum 100 rows per collection. Complete owned counts and the latest result are
 included even when its artifact is outside the current page. Lists return at most 100 owned
-sessions. All timestamps are ISO strings. Images require current authority before storage access and
-again before delivery, with checked JPEG/PNG/WebP bytes, `no-store` and `nosniff`.
+sessions. All timestamps are ISO strings. Scan images are transient request bytes, never a saved
+session resource or later download.
 
 Experimental v1 changes in place: old database-shaped Scan rows and raw worker results become
 explicit JSON-safe session, artifact, result and review DTOs. Review requests now send
@@ -441,12 +410,9 @@ guarantee under the [pre-release policy](../../CONTRIBUTING.md#replacing-interfa
 
 ## Data boundaries
 
-Binary uploads live outside Postgres. Postgres stores account ownership, scan session state,
-artifact metadata, review entries, and mutation request IDs. Uploading an image never adds cards
-directly to inventory.
-
-Development uses a shared named volume for local artifacts. Production can use an existing
-S3-compatible bucket. See [deployment](../operations/deployment.md) for configuration.
+Binary uploads are processed in memory and discarded. Postgres stores account ownership, scan
+session state, recognition metadata, review entries, and mutation request IDs, but never uploaded
+image bytes or storage keys. Uploading an image never adds cards directly to inventory.
 
 Recognition evidence does not itself authorize Inventory changes.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) replaces the former

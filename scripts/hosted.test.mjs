@@ -16,10 +16,6 @@ const fixture = {
 	PROD_POSTGRES_PASSWORD: 'fixture-only',
 	PROD_FRONTEND_ALIAS: 'spellbook-production-web',
 	PROD_IMAGE_REVISION: sha,
-	PROD_S3_ENDPOINT: 'https://storage.example.test',
-	PROD_S3_BUCKET: 'fixture-scans',
-	PROD_S3_ACCESS_KEY_ID: 'fixture-only',
-	PROD_S3_SECRET_ACCESS_KEY: 'fixture-only'
 };
 
 test('mode validation rejects missing settings, revision drift and unsafe commands without leaking values', () => {
@@ -36,15 +32,6 @@ test('mode validation rejects missing settings, revision drift and unsafe comman
 	assert.throws(
 		() => hostedPlan('demo', 'up', { ...fixture, DEMO_POSTGRES_DB: 'spellbook' }),
 		/_demo or _design/
-	);
-	assert.throws(
-		() =>
-			hostedPlan('production', 'up', {
-				...fixture,
-				PROD_SCAN_STORAGE_DRIVER: 's3',
-				PROD_S3_ACCESS_KEY_ID: ''
-			}),
-		/PROD_S3_ACCESS_KEY_ID/
 	);
 	assert.throws(
 		() =>
@@ -74,17 +61,9 @@ test('mode validation rejects missing settings, revision drift and unsafe comman
 	assert.match(plan.env.HOSTED_API_IMAGE, /:git-fdb40bd8bc11$/);
 });
 
-test('Production defaults to local Scan storage without S3 configuration', () => {
-	const configuration = Object.fromEntries(
-		Object.entries(fixture).filter(([key]) => !key.startsWith('PROD_S3_'))
-	);
-	const plan = hostedPlan('production', 'up', configuration);
-	assert.equal(plan.env.HOSTED_SCAN_STORAGE_DRIVER, 'local');
-	const s3 = hostedPlan('production', 'config', {
-		...fixture,
-		PROD_SCAN_STORAGE_DRIVER: 's3'
-	});
-	assert.equal(s3.env.HOSTED_SCAN_STORAGE_DRIVER, 's3');
+test('Production no longer requires Scan storage configuration', () => {
+	const plan = hostedPlan('production', 'up', fixture);
+	assert.equal(plan.env.HOSTED_SCAN_STORAGE_DRIVER, undefined);
 });
 
 test('rollout checks existing local images and never builds or pulls; absent tags stop before Compose', () => {

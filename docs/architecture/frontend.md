@@ -961,12 +961,12 @@ dependency. The [root lockfile](../../pnpm-lock.yaml) preserves these choices. C
 `APP_ORIGIN` configures `paths.origin` at build time in
 [`vite.config.ts`](../../frontend/vite.config.ts) and the API public Origin at runtime. Vite
 development uses `DEV_APP_ORIGIN`, defaulting to `http://localhost:5173`. Web uses `envDir: '.'` and
-framework `env.dir: '.'`; it does not load the root database/S3 environment. The root launcher loads
-protected configuration, starts API plus web and filters backend secrets from the web environment.
-Safe `DEMO_MODE` presentation reaches web separately from API auth enforcement. A web build needs no
-database or API process. Set `API_INTERNAL_URL` when starting web. Adapter-node 6 does not read
-runtime `ORIGIN`; rebuild web and update API runtime `APP_ORIGIN` when the public Origin changes.
-[Deployment](../operations/deployment.md#independent-build-and-start) owns commands.
+framework `env.dir: '.'`; it does not load the root database/backend environment. The root launcher
+loads protected configuration, starts API plus web and filters backend secrets from the web
+environment. Safe `DEMO_MODE` presentation reaches web separately from API auth enforcement. A web
+build needs no database or API process. Set `API_INTERNAL_URL` when starting web. Adapter-node 6
+does not read runtime `ORIGIN`; rebuild web and update API runtime `APP_ORIGIN` when the public
+Origin changes. [Deployment](../operations/deployment.md#independent-build-and-start) owns commands.
 
 The application serves its machine-readable API contract at `/openapi.json`. It describes local
 authentication, account Profile/Dashboard/password/session operations and MTG API operations,

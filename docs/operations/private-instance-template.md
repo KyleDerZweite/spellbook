@@ -25,9 +25,8 @@ values.
 ## Data and access
 
 - Postgres connection secret reference:
-- Object storage credential references:
 - Account provisioning policy:
 - Password recovery procedure and authorized operator:
 - Backup location, retention, and last restore test:
-- Scan artifact retention policy:
+- Scan recognition metadata retention policy (uploaded images are never persisted):
 - Privacy contact and deployment-specific legal information:

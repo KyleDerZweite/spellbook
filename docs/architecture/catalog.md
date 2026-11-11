@@ -101,9 +101,8 @@ manifests are provenance references; the landing page loads the tracked local We
 catalog cards still use their remote image URLs.
 
 The separate `frontend/static/profile/` assets provide card frames and profile artwork. They are not
-Scryfall catalog images. Scan uploads also use separate storage: PostgreSQL records artifact
-metadata, while local storage or S3 holds the uploaded bytes. See
-[scan storage](../operations/deployment.md#storage-and-upgrades).
+Scryfall catalog images. Scan images are processed transiently by the API and worker. PostgreSQL
+stores recognition metadata, not uploaded image bytes. See [Scan processing](./mobile-and-scan.md).
 
 Search hits, totals, facets, and `generationId` represent one publication snapshot. Hits, totals and
 generation are selected by one SQL statement; unfiltered facet reuse follows the

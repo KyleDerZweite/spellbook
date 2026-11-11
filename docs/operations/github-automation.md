@@ -1,13 +1,13 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-10
+- Last Reviewed: 2026-11-11
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers:
   - Local checks, runtime pins, installed Python packages and canonical operator commands
   - CI scope, workflow coverage, conditional boundaries and manual heavy workflows
   - HTTP validation, listener lifecycle, resource cleanup and graceful test-process shutdown
-  - Application, Core, State, Scan and worker integration evidence and replay fixtures
+  - Application, Core, State, transient Scan and worker integration evidence and replay fixtures
   - Browser, PWA, QR and native Android acceptance, prerequisites and unavailable target evidence
   - Inventory, Deck, SavedState and value-history correctness, scale and performance evidence
   - Artifact provenance, evidence ownership, bounded tool output and delegated verification
@@ -122,8 +122,8 @@ requires Python 3 and Linux `ss`. The separate
 [HTTP runtime shutdown regression](../../frontend/tests/http-runtime.test.ts) discovers the physical
 LISTEN backend PID and verifies its disappearance, HTTP closure and owned API process exit. The
 pinned Uvicorn 0.54.0 re-raises SIGTERM after graceful shutdown; process assertions require a null
-exit code and the exact SIGTERM signal. The Scan suite requires the actual configured worker and
-local storage; mocks do not establish S3 or recognizer integration.
+exit code and the exact SIGTERM signal. The Scan suite requires the actual configured worker; mocks
+do not establish recognizer quality or deployment integration.
 
 The retained [account-scale fixture](../../frontend/tests/fixtures/account-scale.ts) requires
 `TEST_SCALE_CATALOG_PATH` with 10,000 genuine Catalog printings for optional large-account HTTP
@@ -203,8 +203,8 @@ SSE. It requires the existing exclusive sse target, matching protected DSNs,
 module. It does not launch a Node API or compare removed routes; Node is used only for built web
 where required. The obsolete direct Node-source replay driver is removed; guarded Python HTTP
 fixtures remain shared in `native_inventory.py`. Root owns those real runtime checks, scheduled
-state observations, actual Scan/storage/providers and current-head rendered acceptance. Production
-deployment has not been performed.
+state observations, actual transient Scan/provider flows and current-head rendered acceptance.
+Production deployment has not been performed.
 
 ### Native evidence sources
 
@@ -465,7 +465,7 @@ not alter repository protection settings.
 For isolated worktrees, set the existing `TEST_SCAN_DATABASE_NAME` to the assigned disposable
 database and `SCAN_WORKER_URL` to the assigned real loopback worker before PG/HTTP Scan checks. The
 suite verifies that explicit loopback port and actual worker health without a fixed local port.
-`test:scan` uses the actual built application, PostgreSQL and configured local storage;
+`test:scan` uses the actual built application, PostgreSQL and transient worker handoff;
 [Mobile and Scan](../architecture/mobile-and-scan.md#scan-uploads) owns its evidence limits. The
 workflows are the source of truth for job names, environment variables and tool versions.
 

@@ -25,9 +25,9 @@ Development and `compose.prod.yml` for hosted Demo, Production and the independe
 preparing the external ingress network, start the connector with `pnpm compose site up`. Select the
 full `DEMO_IMAGE_REVISION`, build it from a clean checkout with `pnpm compose demo build`, then
 start it with `pnpm compose demo up`. Hosted rollout requires the selected immutable local images
-and never rebuilds them. The Demo uses its own database and local Scan storage. Its seed bootstraps
-the bundled Catalog only when no active Catalog exists, preserving subsequent full imports and
-private edits on restart. Use the opt-in
+and never rebuilds them. The Demo uses its own database; Scan images are processed in memory and are
+not stored. Its seed bootstraps the bundled Catalog only when no active Catalog exists, preserving
+subsequent full imports and private edits on restart. Use the opt-in
 [Catalog worker](docs/operations/deployment.md#environment-update-and-reset-interface) to import
 Scryfall `all_cards`, including German and English Printings. Hosted Demo and production publish no
 application host port. Production stays stopped until explicitly selected. Run `pnpm dev` for the

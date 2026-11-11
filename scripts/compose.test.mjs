@@ -23,10 +23,6 @@ const fixture = {
 	PROD_POSTGRES_PASSWORD: 'fixture-only',
 	PROD_FRONTEND_ALIAS: 'spellbook-production-web',
 	PROD_IMAGE_REVISION: sha,
-	PROD_S3_ENDPOINT: 'https://storage.example.test',
-	PROD_S3_BUCKET: 'fixture-scans',
-	PROD_S3_ACCESS_KEY_ID: 'fixture-only',
-	PROD_S3_SECRET_ACCESS_KEY: 'fixture-only'
 };
 const cleanEnv = { PATH: process.env.PATH, HOME: process.env.HOME };
 
@@ -86,9 +82,9 @@ test('direct standalone resolves without .env, tunnel, Demo, providers or publis
 	assert.deepEqual(model.services['db-migrate'].command, [
 		'/app/backend/api/.venv/bin/spellbook-migrate'
 	]);
-	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, 'local');
+	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, undefined);
 	assert.equal(model.services.api.network_mode, 'service:frontend');
-	assert.deepEqual(model.services.api.volumes, model.services['scan-worker'].volumes);
+	assert.equal(model.services.api.volumes, undefined);
 	assert.equal(model.services.api.environment.S3_ACCESS_KEY_ID, undefined);
 });
 
@@ -98,7 +94,6 @@ test('no-env dev preserves project/data identities and matches port with build/A
 	assert.equal(plan.args[1], 'spellbook-dev-local');
 	assert.equal(model.services.postgres.environment.POSTGRES_DB, 'spellbook_dev');
 	assert.deepEqual(Object.keys(model.volumes).sort(), [
-		'demo_scans',
 		'postgres18_data',
 		'worker_data'
 	]);
@@ -148,7 +143,6 @@ test('hosted Demo config preserves services, immutable tags, private volumes and
 	assert.equal(model.services.worker, undefined);
 	assert.equal(model.services.postgres.environment.POSTGRES_DB, 'spellbook_demo');
 	assert.deepEqual(Object.keys(model.volumes).sort(), [
-		'demo_scans',
 		'postgres18_data',
 		'worker_data'
 	]);
@@ -167,10 +161,10 @@ test('hosted Demo config preserves services, immutable tags, private volumes and
 	assert.equal(model.networks.ingress.name, 'spellbook-prod-ingress');
 	assert.equal(model.networks.ingress.external, true);
 	assert.equal(model.networks.default.driver_opts.isolate, 'true');
-	assert.deepEqual(model.services.api.volumes, ['demo_scans:/app/storage/scans']);
+	assert.equal(model.services.api.volumes, undefined);
 });
 
-test('production retains normal accounts, shared local Scan storage and scheduled Catalog lifecycle', () => {
+test('production retains normal accounts, transient Scan and scheduled Catalog lifecycle', () => {
 	const plan = hostedPlan('production', 'config', fixture);
 	const model = config(plan.args, plan.env);
 	noPorts(model);
@@ -178,10 +172,9 @@ test('production retains normal accounts, shared local Scan storage and schedule
 	assert.equal(model.networks.default.driver_opts.isolate, 'true');
 	assert.equal(model.services.newt, undefined);
 	assert.equal(model.services.api.environment.DEMO_MODE, 'false');
-	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, 'local');
-	assert.equal(model.services['scan-worker'].environment.SCAN_STORAGE_DRIVER, 'local');
-	assert.deepEqual(model.services.api.volumes, ['demo_scans:/app/storage/scans']);
-	assert.deepEqual(model.services['scan-worker'].volumes, model.services.api.volumes);
+	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, undefined);
+	assert.equal(model.services.api.volumes, undefined);
+	assert.equal(model.services['scan-worker'].volumes, undefined);
 	assert.equal(model.services.worker.environment.SYNC_INTERVAL, 'daily');
 	assert.equal(model.services.worker.restart, 'unless-stopped');
 	assert.deepEqual(model.services.frontend.networks.ingress.aliases, ['spellbook-production-web']);

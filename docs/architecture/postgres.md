@@ -106,7 +106,8 @@ expiry, revocation and idempotent decisions.
   serializes membership replacement by locking the Inventory parent before the entry and groups
 - the Python worker publishes public printing metadata using the
   [catalog generation contract](./catalog.md)
-- scan binary artifacts remain in object storage, not Postgres
+- scan uploads are processed in memory by the API and worker; PostgreSQL retains recognition
+  metadata and review state, not image bytes or storage object keys
 
 ## Current Access Pattern
 

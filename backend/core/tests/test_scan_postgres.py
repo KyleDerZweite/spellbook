@@ -23,7 +23,7 @@ from spellbook_core.errors import ActorError, RequestConflictError, ValidationEr
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog, create_catalog
 from spellbook_core.mtg.inventory import Inventory, create_inventory
-from spellbook_core.mtg.scan import Scan, ScanError, ScanStorage, ScanWorker, create_scan
+from spellbook_core.mtg.scan import Scan, ScanError, ScanWorker, create_scan
 from spellbook_core.mtg.scan.commit import normalize_commit
 
 pytestmark = pytest.mark.skipif(
@@ -50,7 +50,6 @@ async def fixture() -> AsyncIterator[tuple[ConnectionPool, Scan, Inventory, Acto
             catalog,
             auth,
             inventory,
-            create_autospec(ScanStorage, instance=True),
             create_autospec(ScanWorker, instance=True),
         )
         yield pool, scan, inventory, actor, catalog
@@ -58,14 +57,13 @@ async def fixture() -> AsyncIterator[tuple[ConnectionPool, Scan, Inventory, Acto
 
 async def artifact(pool: ConnectionPool, actor: Actor, session_id: str) -> str:
     identifier = str(uuid4())
-    key = f"scan-sessions/{session_id}/{identifier}.png"
     async with transaction(pool) as tx:
         await tx.execute(
-            "INSERT INTO scan_artifacts(id,session_id,account_id,original_object_key,"
-            "normalized_object_key,quality_score,embedding_model_version,ocr_model_version,"
+            "INSERT INTO scan_artifacts(id,session_id,account_id,"
+            "quality_score,embedding_model_version,ocr_model_version,"
             "status) "
-            "VALUES (%s,%s,%s,%s,%s,0,'stub-v1','stub-v1','no_match')",
-            (identifier, session_id, actor.account_id, key, key),
+            "VALUES (%s,%s,%s,0,'stub-v1','stub-v1','no_match')",
+            (identifier, session_id, actor.account_id),
         )
     return identifier
 
@@ -128,15 +126,12 @@ def test_native_scan_snapshot_result_replacement_and_scope() -> None:
                     create_catalog(pool),
                     foreign_auth,
                     create_inventory(pool, create_catalog(pool), foreign_auth),
-                    create_autospec(ScanStorage),
                     create_autospec(ScanWorker),
                 )
                 assert await other.list_sessions(foreign) == []
                 with pytest.raises(ScanError) as hidden:
                     await other.read_session(foreign, {"sessionId": session["id"]})
                 assert hidden.value.status == 404
-                with pytest.raises(ScanError):
-                    await other.read_image(foreign, identifiers[0])
             for forged in (copy.copy(actor), Actor(actor.account_id, "forged", "", "", "")):
                 with pytest.raises(ActorError):
                     await scan.list_sessions(forged)

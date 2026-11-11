@@ -1,7 +1,7 @@
 # Independent applications implementation contract
 
 - Status: Independent Python API and workers implemented; native target verification pending
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-11
 - Source of Truth: accepted maintainer direction and existing application contracts
 - Update Triggers:
   - managed Category removal
@@ -34,11 +34,11 @@
 Retain `frontend/`, `backend/` and `contracts/`, with independent Catalog and Scan packages under
 `backend/workers/`. Add the independent Gradle project `android/`. SvelteKit owns rendering, native
 form actions and browser presentation. The Python API owns credential authentication, PostgreSQL,
-application use cases, Scan storage and SavedState lifetime. The independent Python State process
-owns the ValueHistory scheduler. Android owns native navigation, presentation, credentials and
-bounded local state. Contracts contain serialized DTOs and pure shared validation/presentation
-helpers only. No web runtime may import backend implementation, PostgreSQL, Drizzle or password
-hashing.
+application use cases, transient Scan processing and SavedState lifetime. The independent Python
+State process owns the ValueHistory scheduler. Android owns native navigation, presentation,
+credentials and bounded local state. Contracts contain serialized DTOs and pure shared
+validation/presentation helpers only. No web runtime may import backend implementation, PostgreSQL,
+Drizzle or password hashing.
 
 The unmerged integration candidate uses Python API/Core and workers by default.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) owns functional acceptance
