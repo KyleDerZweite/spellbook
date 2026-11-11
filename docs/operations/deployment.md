@@ -181,7 +181,7 @@ the update and host-backup locks. Each environment independently selects the lat
 push CI. Production uses internal application health and an external Pangolin SSO redirect check; it
 must not make its schema public or use Demo credentials. Its scheduled Catalog worker can
 legitimately advance public publication pointers. Keep automatic maintenance and SSO policy intact.
-Local Scan volumes remain separate by Compose project and survive updates.
+Scan images are processed in memory and have no Compose volume or S3 dependency.
 
 An SSO redirect and healthy application or target checks do not prove that the tunnel forwards
 requests. Verify the actual gateway-to-application route after activation or target changes,
@@ -211,7 +211,7 @@ selected SHA:
   selected immutable images, and the public `/openapi.json` health check returns 200.
 - The existing [Demo deployment verification](#demo-deployment) passes through the public origin,
   including authenticated Demo login/read/logout and long-lived streams, with Catalog/Price
-  publication pointers and retained database/Scan volumes preserved.
+  publication pointers and retained database volumes preserved.
 
 Use the existing protected updater and receipt procedures to collect this evidence. Report source
 synchronization and CI success separately from deployment completion. A busy update or backup lock
@@ -270,10 +270,10 @@ receipt. Do not leave a compatibility overlay or fall back to the old Compose na
 Reload the user manager after editing units, then perform the separately authorized rollout. Verify
 actual image IDs for every running application and the completed `db-migrate` container against the
 selected tags. Check public API health, authenticated Demo login/read/logout, unchanged
-Catalog/Price publication pointers and retained database/Scan volumes. Confirm the connector still
-has the same project, ingress network and target aliases, with Production and Development still
-stopped. Only then resume the update timer. For installations still using overlays, these are
-migration dependencies; this document does not establish that a target has completed them.
+Catalog/Price publication pointers and retained database volumes. Confirm the connector still has
+the same project, ingress network and target aliases, with Production and Development still stopped.
+Only then resume the update timer. For installations still using overlays, these are migration
+dependencies; this document does not establish that a target has completed them.
 
 ## Prepare a shared UI development session
 

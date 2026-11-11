@@ -60,7 +60,7 @@ def process_scan(request: ScanProcessRequest) -> ScanProcessResponse:
         raise HTTPException(413, "Scan image exceeds 10 MiB")
     if sha256(image).hexdigest() != request.imageSha256:
         raise HTTPException(422, "Scan image digest mismatch")
-    # ponytail: recognition is a scaffold; revisit when OCR and embeddings are implemented.
+    # Recognition remains a scaffold until OCR and embeddings are implemented.
     # The worker does not retain the image after this request returns.
     return ScanProcessResponse(
         status="no_match",
