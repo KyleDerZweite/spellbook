@@ -15,7 +15,7 @@ const fixture = {
 	PROD_APP_ORIGIN: 'https://production.example.test',
 	PROD_POSTGRES_PASSWORD: 'fixture-only',
 	PROD_FRONTEND_ALIAS: 'spellbook-production-web',
-	PROD_IMAGE_REVISION: sha,
+	PROD_IMAGE_REVISION: sha
 };
 
 test('mode validation rejects missing settings, revision drift and unsafe commands without leaking values', () => {

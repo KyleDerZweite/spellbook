@@ -427,7 +427,7 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 							'POST',
 							{
 								authorization: a.authorization,
-							'content-type': 'multipart/form-data; boundary=broken'
+								'content-type': 'multipart/form-data; boundary=broken'
 							},
 							'broken'
 						)
@@ -509,41 +509,38 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 				);
 			}
 		);
-		await t.test(
-			'real response-side abort before attachment leaves no artifact',
-			async () => {
-				const s = await session(a.authorization),
-					client = await pool.connect(),
-					controller = new AbortController();
-				await client.query('BEGIN');
-				await client.query('SELECT account_id FROM user_profiles WHERE account_id=$1 FOR UPDATE', [
-					a.accountId
-				]);
-				const aborting = fetch(origin + `${api}/sessions/${s.id}/frames`, {
-					method: 'POST',
-					headers: { authorization: a.authorization },
-					body: frame(),
-					signal: controller.signal
-				}).catch(() => null);
-				try {
-					await lockBarrier(client);
-					controller.abort();
-					await aborting;
-					await new Promise((r) => setTimeout(r, 30));
-					await client.query('ROLLBACK');
-					const result = await (
-						await request(`${api}/sessions/${s.id}/result`, 'GET', {
-							authorization: a.authorization
-						})
-					).json();
-					assert.equal(result.artifactCount, 0);
-				} finally {
-					await client.query('ROLLBACK');
-					client.release();
-					await aborting;
-				}
+		await t.test('real response-side abort before attachment leaves no artifact', async () => {
+			const s = await session(a.authorization),
+				client = await pool.connect(),
+				controller = new AbortController();
+			await client.query('BEGIN');
+			await client.query('SELECT account_id FROM user_profiles WHERE account_id=$1 FOR UPDATE', [
+				a.accountId
+			]);
+			const aborting = fetch(origin + `${api}/sessions/${s.id}/frames`, {
+				method: 'POST',
+				headers: { authorization: a.authorization },
+				body: frame(),
+				signal: controller.signal
+			}).catch(() => null);
+			try {
+				await lockBarrier(client);
+				controller.abort();
+				await aborting;
+				await new Promise((r) => setTimeout(r, 30));
+				await client.query('ROLLBACK');
+				const result = await (
+					await request(`${api}/sessions/${s.id}/result`, 'GET', {
+						authorization: a.authorization
+					})
+				).json();
+				assert.equal(result.artifactCount, 0);
+			} finally {
+				await client.query('ROLLBACK');
+				client.release();
+				await aborting;
 			}
-		);
+		});
 		await t.test(
 			'operator revocation after real worker I/O prevents protected attachment',
 			async () => {
