@@ -3,6 +3,10 @@ import { RemoteClient } from '#lib/server/remote/client.ts';
 import { createRemoteApplication } from '#lib/server/remote/application.ts';
 import {
 	decodeRemoteError,
+	InventoryGroupConflictError,
+	InventoryGroupNameError,
+	InventoryGroupNotFoundError,
+	InventoryNotFoundError,
 	NotesConflictError,
 	InventoryQuantityChangedError,
 	DescriptionConflictError,
@@ -143,6 +147,16 @@ describe('flat remote failures', () => {
 	it('retains known safe reporting failures while hiding unexpected infrastructure details', () => {
 		expect(
 			decodeRemoteError(503, {
+				kind: 'SummaryOutOfRange',
+				message: 'private collection detail'
+			})
+		).toMatchObject({
+			status: 503,
+			kind: 'SummaryOutOfRange',
+			message: 'Your collection totals exceed the supported reporting range.'
+		});
+		expect(
+			decodeRemoteError(503, {
 				message: 'Your collection totals exceed the supported reporting range.'
 			})
 		).toMatchObject({
@@ -158,8 +172,31 @@ describe('flat remote failures', () => {
 			message: 'Reference prices are temporarily unavailable.'
 		});
 		expect(
+			decodeRemoteError(500, {
+				kind: 'InvalidInventoryCount',
+				message: 'private totals detail'
+			})
+		).toMatchObject({ status: 500, kind: 'InvalidInventoryCount' });
+		expect(
 			decodeRemoteError(500, { message: 'Inventory totals cannot be represented exactly.' })
 		).toMatchObject({ status: 500, kind: 'InvalidInventoryCount' });
+	});
+	it('decodes group failures by structured kind instead of message text', () => {
+		expect(decodeRemoteError(404, { kind: 'GroupNotFound', message: 'private detail' })).toEqual(
+			expect.any(InventoryGroupNotFoundError)
+		);
+		expect(decodeRemoteError(400, { kind: 'GroupNameInvalid', message: 'private detail' })).toEqual(
+			expect.any(InventoryGroupNameError)
+		);
+		expect(decodeRemoteError(400, { kind: 'GroupDuplicate', message: 'private detail' })).toEqual(
+			expect.any(InventoryGroupConflictError)
+		);
+		expect(
+			decodeRemoteError(404, { kind: 'NotFound', message: 'Entry not found' }, 'inventory')
+		).toEqual(expect.any(InventoryNotFoundError));
+		expect(
+			decodeRemoteError(404, { kind: 'NotFound', message: 'x' }, 'inventory').constructor
+		).not.toBe(InventoryGroupNotFoundError);
 	});
 });
 

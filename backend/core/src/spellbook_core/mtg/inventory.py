@@ -20,6 +20,9 @@ from spellbook_core.fingerprint import mutation_fingerprint
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.errors import (
+    InventoryGroupConflictError,
+    InventoryGroupNameError,
+    InventoryGroupNotFoundError,
     InventoryNotFoundError,
     InventoryQuantityChangedError,
     NotesConflictError,
@@ -283,7 +286,7 @@ def _group_name(value: object) -> str:
     # Array.from in Node counts Unicode code points, including paired UTF-16 input.
     points = name.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "surrogatepass")
     if not 1 <= len(points) <= 64:
-        raise ValidationError("Group name must contain 1 to 64 characters")
+        raise InventoryGroupNameError()
     return name
 
 
@@ -692,7 +695,7 @@ class Inventory:
                 )
             ).fetchone()
             if row is None:
-                raise InventoryNotFoundError("Inventory group not found")
+                raise InventoryGroupNotFoundError()
             if operation["op"] == "group-delete":
                 await tx.execute(
                     "DELETE FROM inventory_groups WHERE id=%s AND inventory_id=%s", target
@@ -730,7 +733,7 @@ class Inventory:
                     )
                 ).fetchall()
                 if len(groups) != len(operation["groupIds"]):
-                    raise InventoryNotFoundError("Inventory group not found")
+                    raise InventoryGroupNotFoundError()
             current = await (
                 await tx.execute(
                     "SELECT group_id::text FROM inventory_group_memberships WHERE entry_id=%s",
@@ -882,7 +885,7 @@ class Inventory:
             return acknowledgement
         except pg_errors.UniqueViolation as cause:
             if cause.diag.constraint_name == "inventory_groups_inventory_name_idx":
-                raise ValidationError("A group with this name already exists") from None
+                raise InventoryGroupConflictError() from None
             raise
 
     async def preview_import(self, actor: Actor, text: object) -> ImportPreview:

@@ -117,7 +117,11 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         dashboard.side_effect = SummaryRangeError()
         failure = client.get("/api/v1/mtg/dashboard", headers=headers)
         assert failure.status_code == 503
-        assert failure.json() == {"status": 503, "message": SUMMARY_RANGE_MESSAGE}
+        assert failure.json() == {
+            "status": 503,
+            "kind": "SummaryOutOfRange",
+            "message": SUMMARY_RANGE_MESSAGE,
+        }
         assert failure.headers["cache-control"] == "no-store"
         catalog.assert_awaited_once()
         groups.assert_awaited_once()

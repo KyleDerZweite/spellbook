@@ -60,7 +60,7 @@ def error_response(cause: Exception) -> Response:
     elif isinstance(cause, ProfileError):
         cause = HttpError(400, dict(kind=cause.kind, message=str(cause), fields=cause.fields))
     elif isinstance(cause, PriceReadUnavailable):
-        cause = HttpError(503, str(cause))
+        cause = HttpError(503, dict(kind="PriceReadUnavailable", message=str(cause)))
     elif isinstance(cause, InventoryPriceNotFound):
         cause = HttpError(404, str(cause))
     elif isinstance(cause, ScanError):
@@ -85,19 +85,28 @@ def error_response(cause: Exception) -> Response:
             },
         )
     elif isinstance(cause, InventoryNotFoundError):
-        cause = HttpError(404, {"kind": "NotFound", "message": str(cause)})
+        cause = HttpError(404, dict(kind=cause.kind_of_failure, message=str(cause)))
     elif isinstance(cause, RequestConflictError):
         cause = HttpError(409, {"kind": "RequestConflict", "message": str(cause)})
     elif isinstance(cause, InventoryCountError):
-        cause = HttpError(500, "Inventory totals cannot be represented exactly.")
+        cause = HttpError(
+            500,
+            dict(
+                kind="InvalidInventoryCount",
+                message="Inventory totals cannot be represented exactly.",
+            ),
+        )
     elif isinstance(cause, SummaryRangeError):
-        cause = HttpError(503, str(cause))
+        cause = HttpError(503, dict(kind="SummaryOutOfRange", message=str(cause)))
     elif isinstance(cause, AuthError):
         cause = HttpError(429, str(cause))
     elif isinstance(cause, ActorError):
         cause = HttpError(401, "Authentication required")
     elif isinstance(cause, ValidationError):
-        cause = HttpError(400, str(cause))
+        body = dict(message=str(cause))
+        if cause.kind_of_failure != "ValidationFailed":
+            body["kind"] = cause.kind_of_failure
+        cause = HttpError(400, body)
     if isinstance(cause, HttpError):
         return json_response({**cause.body, "status": cause.status}, status=cause.status)
     return json_response({"status": 500, "message": "Internal Server Error"}, status=500)

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ValidationError } from '@spellbook/contracts/validation.ts';
+import {
+	InventoryGroupConflictError,
+	InventoryGroupNotFoundError,
+	InventoryGroupNameError
+} from '#lib/server/remote/errors.ts';
 
 const mocks = vi.hoisted(() => ({
 	page: vi.fn(),
@@ -11,14 +15,17 @@ const mocks = vi.hoisted(() => ({
 	assign: vi.fn(),
 	setNames: vi.fn()
 }));
-vi.mock('#lib/server/data/inventory.ts', () => ({
-	getInventorySnapshot: mocks.snapshot,
-	removeInventoryCard: vi.fn(),
-	updateInventoryCard: vi.fn(),
-	InventoryQuantityChangedError: class InventoryQuantityChangedError extends Error {},
-	InventoryNotFoundError: class InventoryNotFoundError extends Error {},
-	NotesConflictError: class NotesConflictError extends Error {}
-}));
+vi.mock('#lib/server/data/inventory.ts', async () => {
+	const errors = await import('#lib/server/remote/errors.ts');
+	return {
+		getInventorySnapshot: mocks.snapshot,
+		removeInventoryCard: vi.fn(),
+		updateInventoryCard: vi.fn(),
+		InventoryQuantityChangedError: errors.InventoryQuantityChangedError,
+		InventoryNotFoundError: errors.InventoryNotFoundError,
+		NotesConflictError: errors.NotesConflictError
+	};
+});
 vi.mock('#lib/server/data/inventory-groups.ts', () => ({
 	getInventoryGroups: mocks.groups,
 	createInventoryGroup: mocks.create,
@@ -32,7 +39,6 @@ vi.mock('#lib/server/data/inventory-window.ts', async () => {
 	return { inventoryQueryFromUrl, inventoryApplication: { page: mocks.page } };
 });
 vi.mock('#lib/server/catalog/search.ts', () => ({ getCatalogSetNames: mocks.setNames }));
-import { InventoryNotFoundError } from '../../src/lib/server/data/inventory';
 import { actions, load } from '../../src/routes/mtg/inventory/+page.server';
 
 const groupId = '1d61bd72-10b8-4f30-b76e-af51c6875557';
@@ -59,8 +65,7 @@ beforeEach(() => {
 		memberships: []
 	});
 	mocks.page.mockImplementation(async (_account, query) => {
-		if (query.group && query.group !== groupId)
-			throw new ValidationError('Inventory group not found');
+		if (query.group && query.group !== groupId) throw new InventoryGroupNotFoundError();
 		return {
 			kind: 'Page',
 			query,
@@ -296,12 +301,12 @@ describe('Inventory group route boundaries', () => {
 	});
 
 	it('returns validation and ownership failures as form failures', async () => {
-		mocks.create.mockRejectedValue(new ValidationError('A group with this name already exists'));
+		mocks.create.mockRejectedValue(new InventoryGroupConflictError());
 		expect(await actions.createGroup(event() as never)).toMatchObject({
 			status: 400,
 			data: { message: 'A box with this name already exists' }
 		});
-		mocks.assign.mockRejectedValue(new InventoryNotFoundError('Inventory group not found'));
+		mocks.assign.mockRejectedValue(new InventoryGroupNotFoundError());
 		expect(await actions.assignGroups(event() as never)).toMatchObject({
 			status: 404,
 			data: { message: 'Inventory box not found' }
