@@ -17,21 +17,6 @@
 				>↗</span
 			></a
 		>
-		<a href="/mtg/scan">
-			<svg
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-				focusable="false"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M4 12h16" /></svg
-			>
-			<span>{language.t('ui.Scan.cards')}</span><span class="arrow" aria-hidden="true">↗</span>
-		</a>
 		<a href="/mtg/inventory?view=groups">
 			<svg
 				width="16"
