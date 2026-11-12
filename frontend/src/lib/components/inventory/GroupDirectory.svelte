@@ -10,7 +10,7 @@
 	} from '#lib/browsing/loadedSpan.ts';
 	import { restoreInitialBrowsePosition } from '#lib/browsing/viewport.ts';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
-	import type { InventoryGroup } from '#lib/types/legacy.ts';
+	import type { InventoryGroup } from '#lib/inventory/types.ts';
 	import { groupDirectoryIndexes } from '#lib/inventory/groupRows.ts';
 	let {
 		groups,

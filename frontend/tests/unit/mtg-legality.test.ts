@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateLegalityWarnings, type LegalityLine } from '../../src/lib/server/mtg/legality';
+import { generateLegalityWarnings, type LegalityLine } from '@spellbook/contracts/legality.ts';
 
 describe('generateLegalityWarnings', () => {
 	it('counts only main and commanders toward Commander size', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatArenaDecklist, parseArenaDecklist } from '../../src/lib/server/mtg/decklist';
+import { formatArenaDecklist, parseArenaDecklist } from '@spellbook/contracts/decklist.ts';
 
 describe('parseArenaDecklist', () => {
 	it('parses quantity and name', () => {

@@ -2,7 +2,7 @@ import { render } from 'svelte/server';
 import { expect, it } from 'vitest';
 import { groupDirectoryIndexes } from '../../src/lib/inventory/groupRows.ts';
 import GroupDirectory from '../../src/lib/components/inventory/GroupDirectory.svelte';
-import type { InventoryGroup } from '../../src/lib/types/legacy.ts';
+import type { InventoryGroup } from '../../src/lib/inventory/types.ts';
 const groups: InventoryGroup[] = Array.from({ length: 10000 }, (_, index) => ({
 	id: String(index),
 	name: `Group ${index}`,
