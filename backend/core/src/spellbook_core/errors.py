@@ -3,6 +3,7 @@
 
 class ValidationError(Exception):
     kind = "ValidationFailed"
+    kind_of_failure = "ValidationFailed"
 
 
 class RequestConflictError(ValidationError):

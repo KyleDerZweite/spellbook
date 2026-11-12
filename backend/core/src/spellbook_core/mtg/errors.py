@@ -14,6 +14,27 @@ class InventoryNotFoundError(ValidationError):
     kind_of_failure = "NotFound"
 
 
+class InventoryGroupNotFoundError(InventoryNotFoundError):
+    kind_of_failure = "GroupNotFound"
+
+    def __init__(self) -> None:
+        super().__init__("Inventory group not found")
+
+
+class InventoryGroupNameError(ValidationError):
+    kind_of_failure = "GroupNameInvalid"
+
+    def __init__(self) -> None:
+        super().__init__("Group name must contain 1 to 64 characters")
+
+
+class InventoryGroupConflictError(ValidationError):
+    kind_of_failure = "GroupDuplicate"
+
+    def __init__(self) -> None:
+        super().__init__("A group with this name already exists")
+
+
 class InventoryQuantityChangedError(ValidationError):
     kind_of_failure = "QuantityChanged"
 
@@ -34,7 +55,7 @@ class NotesConflictError(ValidationError):
 
 
 class DescriptionConflictError(ValidationError):
-    conflict = "DescriptionConflict"
+    kind_of_failure = "DescriptionConflict"
 
     def __init__(self, latest: DescriptionLatest):
         self.latest = latest.copy()
@@ -45,7 +66,7 @@ class DescriptionConflictError(ValidationError):
 
 
 class DeckNotFoundError(ValidationError):
-    not_found = True
+    kind_of_failure = "NotFound"
 
     def __init__(self) -> None:
         super().__init__("Deck or entry not found")

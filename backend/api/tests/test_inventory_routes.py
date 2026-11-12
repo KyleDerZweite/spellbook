@@ -189,28 +189,42 @@ def test_http_mutations_reach_the_shared_normalized_receipt_path(
 
 
 @pytest.mark.parametrize(
-    ("method", "path", "body", "message"),
+    ("method", "path", "body", "message", "kind"),
     [
-        ("POST", "", {"items": [None]}, "Each inventory item must be an object"),
+        ("POST", "", {"items": [None]}, "Each inventory item must be an object", None),
         (
             "POST",
             "",
             {"items": [{"catalogCardId": ENTRY, "quantity": None}]},
             "quantity must be a finite number",
+            None,
         ),
-        ("POST", "/bulk", {"operations": "bad"}, "Supply 1 to 1000 Inventory operations"),
+        ("POST", "/bulk", {"operations": "bad"}, "Supply 1 to 1000 Inventory operations", None),
         (
             "POST",
             "/bulk",
             {"operations": [{"op": "bad", "target": {"entryId": ENTRY}}]},
             "Unsupported Inventory operation",
+            None,
         ),
-        ("PATCH", "/" + ENTRY, {"quantity": True}, "quantity must be a finite number"),
-        ("PATCH", "/" + ENTRY, {"quantity": 2, "delta": 1}, "Supply quantity or delta, not both"),
-        ("PATCH", "/" + ENTRY, {"notes": "draft"}, "Invalid Notes revision"),
-        ("POST", "/groups", {"name": " "}, "Group name must contain 1 to 64 characters"),
-        ("PUT", "/" + ENTRY + "/groups", {"groupIds": None}, "Invalid groupIds"),
-        ("PATCH", "/" + ENTRY + "/position", {"position": -1}, "Invalid display position"),
+        ("PATCH", "/" + ENTRY, {"quantity": True}, "quantity must be a finite number", None),
+        (
+            "PATCH",
+            "/" + ENTRY,
+            {"quantity": 2, "delta": 1},
+            "Supply quantity or delta, not both",
+            None,
+        ),
+        ("PATCH", "/" + ENTRY, {"notes": "draft"}, "Invalid Notes revision", None),
+        (
+            "POST",
+            "/groups",
+            {"name": " "},
+            "Group name must contain 1 to 64 characters",
+            "GroupNameInvalid",
+        ),
+        ("PUT", "/" + ENTRY + "/groups", {"groupIds": None}, "Invalid groupIds", None),
+        ("PATCH", "/" + ENTRY + "/position", {"position": -1}, "Invalid display position", None),
     ],
 )
 def test_http_rejects_actual_invalid_inputs_without_writing(
@@ -219,10 +233,14 @@ def test_http_rejects_actual_invalid_inputs_without_writing(
     path: str,
     body: dict[str, object],
     message: str,
+    kind: str | None,
 ) -> None:
     _, _, client, prepare = routes
     response = client.request(method, BASE + path, json={"requestId": "r", **body})
-    assert response.status_code == 400 and response.json() == {"status": 400, "message": message}
+    expected: dict[str, object] = {"status": 400, "message": message}
+    if kind is not None:
+        expected["kind"] = kind
+    assert response.status_code == 400 and response.json() == expected
     prepare.assert_not_awaited()
 
 
