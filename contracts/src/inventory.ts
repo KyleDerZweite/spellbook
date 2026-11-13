@@ -194,6 +194,9 @@ export type InventoryFailure =
 	  }
 	| { kind: 'QuantityChanged'; message: string; latestQuantity: number | null }
 	| { kind: 'NotFound'; message: string }
+	| { kind: 'GroupNotFound'; message: string }
+	| { kind: 'GroupNameInvalid'; message: string }
+	| { kind: 'GroupDuplicate'; message: string }
 	| { kind: 'RequestConflict'; message: string };
 export interface InventoryMutationApplication {
 	previewImport(actor: AuthUser, text: string): Promise<ImportPreview>;
