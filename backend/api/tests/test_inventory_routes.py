@@ -16,7 +16,11 @@ from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
-from spellbook_core.mtg.errors import InventoryQuantityChangedError, NotesConflictError
+from spellbook_core.mtg.errors import (
+    InventoryGroupNotFoundError,
+    InventoryQuantityChangedError,
+    NotesConflictError,
+)
 from spellbook_core.mtg.inventory import (
     Inventory,
     InventoryAcknowledgement,
@@ -318,6 +322,44 @@ def test_group_directory_location_and_detail_statuses(
             response.status_code == 404
             and response.json()["message"] == "Inventory entry not found"
         )
+
+
+@pytest.mark.parametrize(
+    ("application_method", "request_path", "contract_path"),
+    [
+        ("page", BASE + "?group=" + GROUP, BASE),
+        (
+            "locate",
+            BASE + "/" + ENTRY + "/location?group=" + GROUP + "&revision=9",
+            BASE + "/{entryId}/location",
+        ),
+    ],
+)
+def test_missing_inventory_groups_have_documented_structured_404(
+    routes: tuple[Any, Inventory, TestClient, AsyncMock],
+    application_method: str,
+    request_path: str,
+    contract_path: str,
+) -> None:
+    _, inventory, client, _ = routes
+    with patch.object(
+        inventory, application_method, AsyncMock(side_effect=InventoryGroupNotFoundError())
+    ):
+        response = client.get(request_path)
+    assert response.status_code == 404
+    assert response.json() == {
+        "status": 404,
+        "kind": "GroupNotFound",
+        "message": "Inventory group not found",
+    }
+
+    schema = json.loads(
+        (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
+    )
+    documented = schema["paths"][contract_path]["get"]["responses"]["404"]
+    assert documented["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ErrorResponse"
+    }
 
 
 @pytest.mark.parametrize(
