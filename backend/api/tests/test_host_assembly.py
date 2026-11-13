@@ -117,7 +117,11 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         dashboard.side_effect = SummaryRangeError()
         failure = client.get("/api/v1/mtg/dashboard", headers=headers)
         assert failure.status_code == 503
-        assert failure.json() == {"status": 503, "message": SUMMARY_RANGE_MESSAGE}
+        assert failure.json() == {
+            "status": 503,
+            "kind": "SummaryOutOfRange",
+            "message": SUMMARY_RANGE_MESSAGE,
+        }
         assert failure.headers["cache-control"] == "no-store"
         catalog.assert_awaited_once()
         groups.assert_awaited_once()
@@ -125,6 +129,28 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     finally:
         client.close()
         asyncio.run(lifetime.close())
+
+
+def test_dashboard_range_error_matches_specialized_openapi_schema() -> None:
+    import json
+    from pathlib import Path
+
+    from spellbook_api.http.errors import error_response
+
+    response = error_response(SummaryRangeError())
+    body = json.loads(bytes(response.body))
+    schema = json.loads(
+        (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
+    )
+    reference = schema["paths"]["/api/v1/mtg/dashboard"]["get"]["responses"]["503"][
+        "content"
+    ]["application/json"]["schema"]["$ref"]
+    assert reference == "#/components/schemas/SummaryOutOfRangeResponse"
+    definition = schema["components"]["schemas"]["SummaryOutOfRangeResponse"]
+    assert definition["additionalProperties"] is False
+    assert set(body) == set(definition["required"]) == set(definition["properties"])
+    for name, property_schema in definition["properties"].items():
+        assert body[name] == property_schema["const"]
 
 
 def test_scan_environment_does_not_require_s3_and_discovery_constructs_no_worker(

@@ -27,6 +27,21 @@ export class DeckNotFoundError extends ValidationError {
 	}
 }
 export class InventoryNotFoundError extends ValidationError {}
+export class InventoryGroupNotFoundError extends InventoryNotFoundError {
+	constructor(message = 'Inventory group not found') {
+		super(message);
+	}
+}
+export class InventoryGroupNameError extends ValidationError {
+	constructor(message = 'Group name must contain 1 to 64 characters') {
+		super(message);
+	}
+}
+export class InventoryGroupConflictError extends ValidationError {
+	constructor(message = 'A group with this name already exists') {
+		super(message);
+	}
+}
 export class NotesConflictError extends ValidationError {
 	constructor(
 		readonly latest: { entryId: string; notes: string; notesRevision: string },
@@ -110,13 +125,24 @@ export function decodeRemoteError(status: number, value: unknown, domain?: Error
 		if (kind === 'RequestConflict') return new RequestConflictError(message);
 	}
 	if (status === 404) {
+		if (kind === 'GroupNotFound') return new InventoryGroupNotFoundError(message);
 		if (domain === 'decks') return new DeckNotFoundError(message);
 		if (domain === 'inventory') return new InventoryNotFoundError(message);
 	}
-	if (status === 400 && (!kind || kind === 'ValidationFailed')) {
-		const failure = new ValidationError(message);
-		if (record(body.fields)) Object.assign(failure, { fields: body.fields });
-		return failure;
+	if (status === 400) {
+		if (kind === 'GroupNameInvalid' || kind === 'GroupDuplicate') {
+			const failure =
+				kind === 'GroupNameInvalid'
+					? new InventoryGroupNameError(message)
+					: new InventoryGroupConflictError(message);
+			if (record(body.fields)) Object.assign(failure, { fields: body.fields });
+			return failure;
+		}
+		if (!kind || kind === 'ValidationFailed') {
+			const failure = new ValidationError(message);
+			if (record(body.fields)) Object.assign(failure, { fields: body.fields });
+			return failure;
+		}
 	}
 	if (status === 503 && (kind === 'SummaryOutOfRange' || message === SUMMARY_RANGE_MESSAGE))
 		return new RemoteError(status, 'SummaryOutOfRange', SUMMARY_RANGE_MESSAGE);
@@ -129,7 +155,11 @@ export function decodeRemoteError(status: number, value: unknown, domain?: Error
 			'PriceReadUnavailable',
 			'Reference prices are temporarily unavailable.'
 		);
-	if (status === 500 && message === 'Inventory totals cannot be represented exactly.')
+	if (
+		status === 500 &&
+		(kind === 'InvalidInventoryCount' ||
+			message === 'Inventory totals cannot be represented exactly.')
+	)
 		return new RemoteError(status, 'InvalidInventoryCount', message);
 	if (status >= 500) return new RemoteUnavailableError();
 	const failure = new RemoteError(status, kind, message);
