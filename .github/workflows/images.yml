@@ -1,8 +1,8 @@
 name: Images
 
-# Builds hosted images once in CI after green main CI and publishes the environment-independent
-# ones to GHCR as sha-<full commit>. Version tags create a GitHub (pre)release for an already
-# published commit. The host updater keeps building locally until it consumes these images.
+# Builds hosted images once in CI after green main CI and publishes them to GHCR as
+# sha-<full commit>, then moves `main` to that commit. Version tags create a GitHub (pre)release
+# for an already published commit and move `release`. Podman auto-update follows the moving tags.
 on:
   workflow_run:
     workflows: [CI]
@@ -44,8 +44,8 @@ jobs:
               file: backend/workers/scan/Dockerfile,
               push: true
             }
-          # The web build embeds its public Origin, so it is verified here but not yet published.
-          - { name: frontend, context: ., file: frontend/Dockerfile, push: false }
+          # Built without APP_ORIGIN: the web server derives its Origin from the request Host.
+          - { name: frontend, context: ., file: frontend/Dockerfile, push: true }
     env:
       SHA: ${{ github.event.workflow_run.head_sha }}
       IMAGE: ghcr.io/kylederzweite/spellbook-${{ matrix.name }}
@@ -65,6 +65,56 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker push "$IMAGE:sha-$SHA"
 
+  promote:
+    name: Move main tag
+    needs: publish
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    # Serialized; each run moves :main to the newest main commit whose five images are published,
+    # so replaced pending runs, late older runs or a failed newer commit cannot leave it stale.
+    concurrency:
+      group: images-promote-main
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Point main at the newest fully published main commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          names=(api state-worker worker scan-worker frontend)
+          accept='application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json'
+          # 0 = all five published, 1 = confirmed missing (404); any other answer fails the job
+          # without retagging, so registry errors can never move :main backwards.
+          published() {
+            for name in "${names[@]}"; do
+              repo="kylederzweite/spellbook-$name"
+              token="$(curl -fsS -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+                "https://ghcr.io/token?scope=repository:$repo:pull" | jq -r .token)"
+              code="$(curl -sS -o /dev/null -w '%{http_code}' --head -H "Accept: $accept" \
+                -H "Authorization: Bearer $token" "https://ghcr.io/v2/$repo/manifests/sha-$1")"
+              case "$code" in
+                200) ;;
+                404) return 1 ;;
+                *) echo "::error::GHCR answered $code for $repo:sha-$1"; exit 1 ;;
+              esac
+            done
+          }
+          for sha in $(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=30" --jq '.[].sha'); do
+            if published "$sha"; then
+              for name in "${names[@]}"; do
+                image="ghcr.io/kylederzweite/spellbook-$name"
+                docker buildx imagetools create --tag "$image:main" "$image:sha-$sha"
+              done
+              echo ":main -> $sha"
+              exit 0
+            fi
+          done
+          echo "::error::No fully published commit among the 30 newest main commits"
+          exit 1
+
   release:
     name: Release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -72,12 +122,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: read
+      packages: write
     steps:
       - name: Require published images for the tagged commit
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          for name in api state-worker worker scan-worker; do
+          for name in api state-worker worker scan-worker frontend; do
             docker manifest inspect "ghcr.io/kylederzweite/spellbook-$name:sha-$GITHUB_SHA" > /dev/null
           done
       - name: Create release
@@ -88,3 +138,9 @@ jobs:
           [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease=(--prerelease)
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
             --generate-notes "${prerelease[@]}"
+      - name: Point release at the tagged commit
+        run: |
+          for name in api state-worker worker scan-worker frontend; do
+            image="ghcr.io/kylederzweite/spellbook-$name"
+            docker buildx imagetools create --tag "$image:release" "$image:sha-$GITHUB_SHA"
+          done

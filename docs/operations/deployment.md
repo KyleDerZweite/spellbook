@@ -235,17 +235,24 @@ retained data.
 ### CI images and release tags
 
 The [Images workflow](../../.github/workflows/images.yml) runs after a successful `main` push CI. It
-builds every hosted image once and publishes `api`, `state-worker`, `worker` and `scan-worker` to
-`ghcr.io/kylederzweite/spellbook-<name>:sha-<full SHA>`; `db-migrate` reuses the `api` image. The
-web image embeds its public Origin at build time, so CI verifies its build but does not publish it.
-The running updater still builds local images and does not consume GHCR yet. GHCR creates new
-packages as private; make them public once, or give the host a read-only package token, before the
-host pulls them.
+builds every hosted image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and
+`frontend` to `ghcr.io/kylederzweite/spellbook-<name>:sha-<full SHA>`; `db-migrate` reuses the `api`
+image. Then a serialized job moves the `main` tag to the newest `main` commit whose five images are
+published, so a failed newer commit leaves `main` on the last complete one. The CI web image is
+built without `APP_ORIGIN`, so the web server derives its Origin from the request `Host` header with
+`https` as default protocol; adapter-node reads `HOST_HEADER` and `PROTOCOL_HEADER` at runtime when
+a proxy needs other headers. Host builds through `scripts/compose.mjs` still embed `APP_ORIGIN`. The
+`api`, `state-worker`, `worker` and `scan-worker` packages pull anonymously, as verified on
+2026-11-14. GHCR may create a new package as private; after a package's first publication, check an
+anonymous pull and set its visibility to public once if needed.
 
 Version tags mark a commit whose images are already published. Pre-alpha tags use
 `v<major>.<minor>.<patch>-prealpha.<n>`, for example `v0.1.0-prealpha.1`; a hyphenated tag creates a
-GitHub prerelease with generated notes. The tag job fails when any published image for the tagged
-commit is missing. Tags do not yet select the Production revision.
+GitHub prerelease with generated notes and then moves the `release` tag. The tag job fails when any
+image for the tagged commit is missing. Podman auto-update can follow `main` for Demo and `release`
+for Production. Auto-update restarts one unit at a time, so workers and web can briefly run newer
+code than the API during one update; keep them tolerant of the previous schema and API for one
+update.
 
 ### Operator cutover from overlays
 
@@ -599,7 +606,8 @@ starter replacement. Migration configuration and SQL/journal/snapshots belong to
 Keep each migration compatible with the previous release's code, so redeploying the previous image
 remains possible. Drop columns, tables or constraints only in a later release, after the running
 code no longer reads or writes them. Image rollback cannot undo an applied migration; restore the
-pre-update dump instead.
+pre-update dump instead. The previous release's migrator accepts a ledger that is ahead of its
+journal when the known prefix matches and applies nothing, so its image can start again.
 
 Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New
 conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay
