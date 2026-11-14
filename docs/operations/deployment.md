@@ -238,13 +238,13 @@ The [Images workflow](../../.github/workflows/images.yml) runs after a successfu
 builds every hosted image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and
 `frontend` to `ghcr.io/kylederzweite/spellbook-<name>:sha-<full SHA>`; `db-migrate` reuses the `api`
 image. Then a serialized job moves the `main` tag to the newest `main` commit whose five images are
-published. The CI web image is built without `APP_ORIGIN`, so the web server derives its Origin from
-the request `Host` header with `https` as default protocol; adapter-node reads `HOST_HEADER` and
-`PROTOCOL_HEADER` at runtime when a proxy needs other headers. Host builds through
-`scripts/compose.mjs` still embed `APP_ORIGIN`. The `api`, `state-worker`, `worker` and
-`scan-worker` packages pull anonymously, as verified on 2026-11-14. GHCR may create a new package as
-private; after a package's first publication, check an anonymous pull and set its visibility to
-public once if needed.
+published, so a failed newer commit leaves `main` on the last complete one. The CI web image is
+built without `APP_ORIGIN`, so the web server derives its Origin from the request `Host` header with
+`https` as default protocol; adapter-node reads `HOST_HEADER` and `PROTOCOL_HEADER` at runtime when
+a proxy needs other headers. Host builds through `scripts/compose.mjs` still embed `APP_ORIGIN`. The
+`api`, `state-worker`, `worker` and `scan-worker` packages pull anonymously, as verified on
+2026-11-14. GHCR may create a new package as private; after a package's first publication, check an
+anonymous pull and set its visibility to public once if needed.
 
 Version tags mark a commit whose images are already published. Pre-alpha tags use
 `v<major>.<minor>.<patch>-prealpha.<n>`, for example `v0.1.0-prealpha.1`; a hyphenated tag creates a

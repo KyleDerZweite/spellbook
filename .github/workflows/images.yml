@@ -71,7 +71,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     # Serialized; each run moves :main to the newest main commit whose five images are published,
-    # so a replaced pending run or a late older run cannot leave :main behind or move it backwards.
+    # so replaced pending runs, late older runs or a failed newer commit cannot leave it stale.
     concurrency:
       group: images-promote-main
       cancel-in-progress: false
@@ -79,23 +79,29 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Point main at the newest published main commit
+      - name: Point main at the newest fully published main commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
           names=(api state-worker worker scan-worker frontend)
-          for name in "${names[@]}"; do
-            if ! docker manifest inspect "ghcr.io/kylederzweite/spellbook-$name:sha-$tip" > /dev/null; then
-              echo "main tip $tip is not fully published yet; its own run promotes it"
+          published() {
+            for name in "${names[@]}"; do
+              docker manifest inspect "ghcr.io/kylederzweite/spellbook-$name:sha-$1" > /dev/null 2>&1 || return 1
+            done
+          }
+          for sha in $(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=30" --jq '.[].sha'); do
+            if published "$sha"; then
+              for name in "${names[@]}"; do
+                image="ghcr.io/kylederzweite/spellbook-$name"
+                docker buildx imagetools create --tag "$image:main" "$image:sha-$sha"
+              done
+              echo ":main -> $sha"
               exit 0
             fi
           done
-          for name in "${names[@]}"; do
-            image="ghcr.io/kylederzweite/spellbook-$name"
-            docker buildx imagetools create --tag "$image:main" "$image:sha-$tip"
-          done
+          echo "::error::No fully published commit among the 30 newest main commits"
+          exit 1
 
   release:
     name: Release
