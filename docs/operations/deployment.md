@@ -8,6 +8,7 @@
   - Compose services, independent images, startup commands and graceful shutdown.
   - Stable server ingress, Development tunnels, loopback ports and origin builds.
   - Database migration ownership, retained data, recovery and operator commands.
+  - CI image publication, release tags and migration compatibility with the previous release.
   - Automatic Demo update eligibility, completion evidence, documentation-only restarts and proposed
     workflow improvements.
   - One-time migration of installations still using Compose overlays.
@@ -230,6 +231,21 @@ The following workflow improvements are proposals, not implemented behavior:
 Keep source synchronization, CI success, deployment verification and recovery evidence distinct.
 These proposals do not authorize changes to the running updater, automatic recovery or removal of
 retained data.
+
+### CI images and release tags
+
+The [Images workflow](../../.github/workflows/images.yml) runs after a successful `main` push CI. It
+builds every hosted image once and publishes `api`, `state-worker`, `worker` and `scan-worker` to
+`ghcr.io/kylederzweite/spellbook-<name>:sha-<full SHA>`; `db-migrate` reuses the `api` image. The
+web image embeds its public Origin at build time, so CI verifies its build but does not publish it.
+The running updater still builds local images and does not consume GHCR yet. GHCR creates new
+packages as private; make them public once, or give the host a read-only package token, before the
+host pulls them.
+
+Version tags mark a commit whose images are already published. Pre-alpha tags use
+`v<major>.<minor>.<patch>-prealpha.<n>`, for example `v0.1.0-prealpha.1`; a hyphenated tag creates a
+GitHub prerelease with generated notes. The tag job fails when any published image for the tagged
+commit is missing. Tags do not yet select the Production revision.
 
 ### Operator cutover from overlays
 
@@ -579,6 +595,11 @@ the [interface replacement policy](../../CONTRIBUTING.md#replacing-interfaces).
 starter replacement. Migration configuration and SQL/journal/snapshots belong to backend.
 
 ## Storage and upgrades
+
+Keep each migration compatible with the previous release's code, so redeploying the previous image
+remains possible. Drop columns, tables or constraints only in a later release, after the running
+code no longer reads or writes them. Image rollback cannot undo an applied migration; restore the
+pre-update dump instead.
 
 Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New
 conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay

@@ -403,16 +403,18 @@ three substantive jobs depend on successful classification and can run in parall
 | Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, Core/API unit/host/Discovery tests, package builds and negative Python import checks          | API, Core, neutral contracts, migrations and shared Python tooling      |
 | Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                                    | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
-Migration asset/ledger consistency runs in Python Core/API tests. Root `test:tooling` includes
-launcher and packaging tests, so CI does not invoke those suites separately. The two worker projects
-share their existing job/toolchain setup, retaining separate project environments; its PostgreSQL
-service starts only when Catalog worker tests are selected. Python API/Core runs the repository
-Python import checker and six negative unittest cases. The worker job runs the same checker and
-fixtures with the pinned interpreter only when Python API/Core is unselected. Worker-only edits
-therefore enforce dependency rules without depending on the API/Core job. Scope tests run only in CI
-Scope, and Node boundary fixtures run only through Application Checks tooling. The scope job has a
-five-minute timeout; Application Checks, Python API/Core and Python Workers each have fifteen
-minutes.
+The separate [Images workflow](../../.github/workflows/images.yml) runs only after a successful
+`main` push CI and for version tags; [deployment](./deployment.md#ci-images-and-release-tags) owns
+its images and tag policy. Migration asset/ledger consistency runs in Python Core/API tests. Root
+`test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.
+The two worker projects share their existing job/toolchain setup, retaining separate project
+environments; its PostgreSQL service starts only when Catalog worker tests are selected. Python
+API/Core runs the repository Python import checker and six negative unittest cases. The worker job
+runs the same checker and fixtures with the pinned interpreter only when Python API/Core is
+unselected. Worker-only edits therefore enforce dependency rules without depending on the API/Core
+job. Scope tests run only in CI Scope, and Node boundary fixtures run only through Application
+Checks tooling. The scope job has a five-minute timeout; Application Checks, Python API/Core and
+Python Workers each have fifteen minutes.
 
 [Application Integration](../../.github/workflows/application-integration.yml) and
 [Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by
@@ -644,28 +646,12 @@ State, Catalog and Scan. Python entries use the
 `uv.lock` alongside changed dependency requirements. Core, API and State accept uv `>=0.12.23,<0.14`
 so the native Dependabot updater can use its uv 0.13 toolchain. Local and CI commands remain pinned
 to uv 0.12.23; lock compatibility must pass with both that pin and the observed Dependabot version
-before changing the supported range. The hosted updater currently broadens exact Python patch
-requirements to a minor series and overwrites `.python-version` with its selected interpreter. Its
-selection of Python 3.14.9 conflicts with these projects' exact 3.14.8 requirement; adding a pin
-file does not override that selection. The
-[upstream version manager](https://github.com/dependabot/dependabot-core/blob/9bafe516f9ed4160145e1d43b7c5414d4767fdf7/python/lib/dependabot/python/language_version_manager.rb#L65)
-and
-[uv updater setup](https://github.com/dependabot/dependabot-core/blob/9bafe516f9ed4160145e1d43b7c5414d4767fdf7/uv/lib/dependabot/uv/file_updater/lock_file_updater.rb#L332)
-own this behavior. Until that hosted limitation is resolved, review and update those independent
-package manifests locally, regenerate their locks using the pinned uv command with explicit
-`--python 3.14.8`, then run the owning package checks and CI. Keep runtime pins and bot schedules
-intact; a successful local update does not establish that hosted generation works. Rechecked on
-2026-10-28 against upstream revision `510dd5e861be74ddc533083fe8b9953a66670f2f`: the
-[Python version manager](https://github.com/dependabot/dependabot-core/blob/510dd5e861be74ddc533083fe8b9953a66670f2f/python/lib/dependabot/python/language_version_manager.rb)
-still broadens exact patch requirements, and
-[uv environment setup](https://github.com/dependabot/dependabot-core/blob/510dd5e861be74ddc533083fe8b9953a66670f2f/uv/lib/dependabot/uv/file_updater/lock_file_updater.rb)
-still runs `pyenv local` with the selected version. The
-[supported Dependabot options](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference)
-expose no Python interpreter override; the documented
-[uv ecosystem integration](https://docs.astral.sh/uv/guides/integration/dependabot/) already matches
-this repository. No supported hosted-generation repair was identified that preserves the exact
-Python requirement; retain the local procedure and verify an actual successful hosted update before
-retiring it. The `pip` ecosystem can update `pyproject.toml` alone, leaving the committed uv lock
+before changing the supported range. Core, API and State require Python `>=3.14.8,<3.15`. The hosted
+updater broadens exact patch requirements and selects its own 3.14 interpreter, so an exact
+`==3.14.8` requirement blocked every hosted update. The range lets hosted generation proceed, while
+CI, `uv python install`, Dockerfile base images and local commands keep the exact 3.14.8 patch.
+Regenerate locks locally with the pinned uv command and explicit `--python 3.14.8` when a hosted
+update fails. The `pip` ecosystem can update `pyproject.toml` alone, leaving the committed uv lock
 stale and failing CI's `uv lock --check` before package checks run. These pull requests require
 passing CI and review; agent merges require explicit owner authorization. No repository workflow
 auto-merges them.
