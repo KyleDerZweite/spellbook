@@ -237,10 +237,10 @@ retained data.
 The [Images workflow](../../.github/workflows/images.yml) runs after a successful `main` push CI. It
 builds every hosted image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and
 `frontend` to `ghcr.io/kylederzweite/spellbook-<name>:sha-<full SHA>`; `db-migrate` reuses the `api`
-image. After all five are published, the moving `main` tag points at that commit unless `main` has
-already moved on. The CI web image is built without `APP_ORIGIN`, so the web server derives its
-Origin from the request `Host` header with `https` as default protocol; adapter-node reads
-`HOST_HEADER` and `PROTOCOL_HEADER` at runtime when a proxy needs other headers. Host builds through
+image. Then a serialized job moves the `main` tag to the newest `main` commit whose five images are
+published. The CI web image is built without `APP_ORIGIN`, so the web server derives its Origin from
+the request `Host` header with `https` as default protocol; adapter-node reads `HOST_HEADER` and
+`PROTOCOL_HEADER` at runtime when a proxy needs other headers. Host builds through
 `scripts/compose.mjs` still embed `APP_ORIGIN`. The `api`, `state-worker`, `worker` and
 `scan-worker` packages pull anonymously, as verified on 2026-11-14. GHCR may create a new package as
 private; after a package's first publication, check an anonymous pull and set its visibility to

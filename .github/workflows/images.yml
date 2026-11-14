@@ -70,27 +70,31 @@ jobs:
     needs: publish
     timeout-minutes: 10
     runs-on: ubuntu-latest
-    # Superseded commits skip: a newer main commit promotes itself after its own CI and builds,
-    # minutes after this check, so :main never moves backwards.
+    # Serialized; each run moves :main to the newest main commit whose five images are published,
+    # so a replaced pending run or a late older run cannot leave :main behind or move it backwards.
+    concurrency:
+      group: images-promote-main
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
-    env:
-      SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - name: Point main at the published commit
+      - name: Point main at the newest published main commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
-          if [[ "$tip" != "$SHA" ]]; then
-            echo "main moved to $tip; leaving :main for that commit's run"
-            exit 0
-          fi
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          for name in api state-worker worker scan-worker frontend; do
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          names=(api state-worker worker scan-worker frontend)
+          for name in "${names[@]}"; do
+            if ! docker manifest inspect "ghcr.io/kylederzweite/spellbook-$name:sha-$tip" > /dev/null; then
+              echo "main tip $tip is not fully published yet; its own run promotes it"
+              exit 0
+            fi
+          done
+          for name in "${names[@]}"; do
             image="ghcr.io/kylederzweite/spellbook-$name"
-            docker buildx imagetools create --tag "$image:main" "$image:sha-$SHA"
+            docker buildx imagetools create --tag "$image:main" "$image:sha-$tip"
           done
 
   release:
