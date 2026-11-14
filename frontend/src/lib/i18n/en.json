@@ -852,7 +852,6 @@
 	"message.Delete.p0.and.its.card.list.Your.inventory.stays.unchanged": "Delete {p0} and its card list? Your inventory stays unchanged.",
 	"message.p0.Decks": "{p0} | Decks",
 	"message.Filter.by.p0.p1": "Filter by {p0} {p1}",
-	"message.This.removes.p0.p1.p2.of.p3.p4.p5.p6.from.your.inventory.It.cannot.be.undone": "This removes {p0}{p1} {p2} of {p3} ({p4}, {p5}, {p6}) from your inventory. It cannot be undone.",
 	"message.Delete.p0.Your.cards.stay.in.inventory.only.this.box.s.assignments.are.removed": "Delete {p0}? Your cards stay in inventory; only this box's assignments are removed.",
 	"message.Actions.for.p0.p1.p2.p3": "Actions for {p0}, {p1}, {p2}, {p3}",
 	"message.p0.owned.copies": "{p0} owned copies",
@@ -1222,6 +1221,10 @@
 	"inventory.column.finish": "finish",
 	"inventory.column.condition": "condition",
 	"inventory.column.quantity": "quantity",
+	"ui.Deleting": "Deleting...",
+	"ui.Removing": "Removing...",
+	"inventory.remove.description.one": "This removes {count} copy of {name} ({set}, {finish}, {condition}) from your inventory. It cannot be undone.",
+	"inventory.remove.description.other": "This removes all {count} copies of {name} ({set}, {finish}, {condition}) from your inventory. It cannot be undone.",
 	"search.color.any": "Any color",
 	"search.color.anyIdentity": "Any color identity"
 }

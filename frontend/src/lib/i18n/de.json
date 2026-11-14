@@ -852,7 +852,6 @@
 	"message.Delete.p0.and.its.card.list.Your.inventory.stays.unchanged": "{p0} und die Kartenliste löschen? Dein Bestand bleibt unverändert.",
 	"message.p0.Decks": "{p0} | Decks",
 	"message.Filter.by.p0.p1": "Nach {p0} {p1} filtern",
-	"message.This.removes.p0.p1.p2.of.p3.p4.p5.p6.from.your.inventory.It.cannot.be.undone": "Dies entfernt {p0}{p1} {p2} von {p3} ({p4}, {p5}, {p6}) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.",
 	"message.Delete.p0.Your.cards.stay.in.inventory.only.this.box.s.assignments.are.removed": "{p0} löschen? Deine Karten bleiben im Bestand. Nur die Zuordnungen zu dieser Box werden entfernt.",
 	"message.Actions.for.p0.p1.p2.p3": "Aktionen für {p0}, {p1}, {p2}, {p3}",
 	"message.p0.owned.copies": "{p0} eigene Exemplare",
@@ -1222,6 +1221,10 @@
 	"inventory.column.finish": "Ausführung",
 	"inventory.column.condition": "Zustand",
 	"inventory.column.quantity": "Anzahl",
+	"ui.Deleting": "Wird gelöscht...",
+	"ui.Removing": "Wird entfernt...",
+	"inventory.remove.description.one": "Dies entfernt {count} Exemplar von {name} ({set}, {finish}, {condition}) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.",
+	"inventory.remove.description.other": "Dies entfernt alle {count} Exemplare von {name} ({set}, {finish}, {condition}) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.",
 	"search.color.any": "Beliebige Farbe",
 	"search.color.anyIdentity": "Beliebige Farbidentität"
 }

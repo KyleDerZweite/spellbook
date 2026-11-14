@@ -1,6 +1,20 @@
 export interface MessageParameters {
 	'entries.one': { count: string | number };
 	'entries.other': { count: string | number };
+	'inventory.remove.description.one': {
+		count: string | number;
+		name: string | number;
+		set: string | number;
+		finish: string | number;
+		condition: string | number;
+	};
+	'inventory.remove.description.other': {
+		count: string | number;
+		name: string | number;
+		set: string | number;
+		finish: string | number;
+		condition: string | number;
+	};
 	'inventory.order.set': { direction: string | number };
 	'inventory.order.name': { direction: string | number };
 	'inventory.order.set.variant': {
@@ -93,15 +107,6 @@ export interface MessageParameters {
 	'message.Delete.p0.and.its.card.list.Your.inventory.stays.unchanged': { p0: string | number };
 	'message.p0.Decks': { p0: string | number };
 	'message.Filter.by.p0.p1': { p0: string | number; p1: string | number };
-	'message.This.removes.p0.p1.p2.of.p3.p4.p5.p6.from.your.inventory.It.cannot.be.undone': {
-		p0: string | number;
-		p1: string | number;
-		p2: string | number;
-		p3: string | number;
-		p4: string | number;
-		p5: string | number;
-		p6: string | number;
-	};
 	'message.Delete.p0.Your.cards.stay.in.inventory.only.this.box.s.assignments.are.removed': {
 		p0: string | number;
 	};

@@ -61,6 +61,7 @@
 	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
 	import {
 		describeInventoryOrder,
+		describeInventoryRemoval,
 		inventoryConditions,
 		inventorySetColor,
 		isNewInventoryEntry,
@@ -1004,7 +1005,7 @@
 			formData.has('notes');
 		const removing = action.searchParams.has('/remove');
 		pendingId = id;
-		status = 'Saving…';
+		status = language.t('ui.Saving');
 		mutationError = '';
 		return async ({ result, update }) => {
 			try {
@@ -1318,7 +1319,7 @@
 				><strong>{selectedGroup.name}</strong>
 			</div>{/if}
 		{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
-				{mutationError || form?.message}
+				{language.message(mutationError || form?.message)}
 			</p>{/if}
 		{#if groupDirectory}
 			{#key window.queryIdentity}<GroupDirectory
@@ -1530,7 +1531,10 @@
 								type="button"
 								class="filter-chip-remove"
 								aria-label={language.t('message.Clear.finish.filter.p0', {
-									p0: String(selectedFinish)
+									p0:
+										selectedFinish === 'foil'
+											? language.t('notice.Foil')
+											: language.t('notice.Nonfoil')
 								})}
 								onclick={() => (selectedFinish = 'all')}>×</button
 							>
@@ -1836,7 +1840,8 @@
 			<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
 				class="btn btn-destructive"
 				disabled={groupDeletion.pending}
-				type="submit">{groupDeletion.pending ? 'Deleting...' : language.t('ui.Delete.box')}</button
+				type="submit"
+				>{groupDeletion.pending ? language.t('ui.Deleting') : language.t('ui.Delete.box')}</button
 			>
 		</form>
 	</ConfirmationDialog>
@@ -1844,24 +1849,7 @@
 	<ConfirmationDialog
 		open={removeId !== null}
 		title={language.t('ui.Remove.this.entry')}
-		description={removing
-			? language.t(
-					'message.This.removes.p0.p1.p2.of.p3.p4.p5.p6.from.your.inventory.It.cannot.be.undone',
-					{
-						p0: String(removing.quantity > 1 ? 'all ' : ''),
-						p1: String(removing.quantity),
-						p2: String(
-							removing.quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')
-						),
-						p3: String(removing.name),
-						p4: String(removing.setCode.toUpperCase()),
-						p5: String(
-							removing.finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')
-						),
-						p6: String(removing.condition)
-					}
-				)
-			: ''}
+		description={removing ? describeInventoryRemoval(removing, language.locale) : ''}
 		pending={pendingId !== null}
 		error={language.message(mutationError)}
 		onCancel={cancelRemoval}
@@ -1879,7 +1867,7 @@
 				value={removing?.quantity ?? 0}
 			/>
 			<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
-				>{pendingId === removeId ? 'Removing…' : language.t('ui.Remove')}</button
+				>{pendingId === removeId ? language.t('ui.Removing') : language.t('ui.Remove')}</button
 			>
 		</form>
 	</ConfirmationDialog>
@@ -2018,7 +2006,7 @@
 						type="submit"
 						class="btn btn-primary"
 						disabled={pendingId !== null || targetGone}
-						>{pendingId === inspected.id ? 'Saving…' : language.t('ui.Save')}</button
+						>{pendingId === inspected.id ? language.t('ui.Saving') : language.t('ui.Save')}</button
 					>{#if mutationError}<p class="mutation-error" role="alert">
 							{language.message(mutationError)}
 						</p>{:else}<p class="text-sm text-text-muted" role="status">

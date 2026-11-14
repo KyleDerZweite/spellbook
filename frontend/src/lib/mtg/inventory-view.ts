@@ -1,4 +1,4 @@
-import { translate } from '../i18n/messages.ts';
+import { pluralKey, translate } from '../i18n/messages.ts';
 import type { Locale } from '../i18n/locale.ts';
 
 export type InventoryDirection = 'asc' | 'desc';
@@ -45,6 +45,19 @@ export function describeInventoryOrder(order: InventoryOrder, locale: Locale): s
 		direction,
 		column: translate(locale, `inventory.column.${order.variant.column}`),
 		variantDirection: translate(locale, `inventory.direction.${order.variant.direction}`)
+	});
+}
+
+export function describeInventoryRemoval(
+	entry: { quantity: number; name: string; setCode: string; finish: string; condition: string },
+	locale: Locale
+): string {
+	return translate(locale, `inventory.remove.description.${pluralKey(locale, entry.quantity)}`, {
+		count: new Intl.NumberFormat(locale).format(entry.quantity),
+		name: entry.name,
+		set: entry.setCode.toUpperCase(),
+		finish: translate(locale, entry.finish === 'foil' ? 'notice.Foil' : 'notice.Nonfoil'),
+		condition: entry.condition
 	});
 }
 

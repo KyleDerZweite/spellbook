@@ -2,6 +2,7 @@ import { createLanguage } from '../../src/lib/i18n/context.ts';
 import { describe, expect, it } from 'vitest';
 import {
 	describeInventoryOrder,
+	describeInventoryRemoval,
 	inventorySetColor,
 	isNewInventoryEntry,
 	nextInventoryOrder,
@@ -160,5 +161,26 @@ describe('localized Inventory presentation', () => {
 				);
 			}
 		}
+	});
+	it('describes entry removal as one complete singular or plural message', () => {
+		const entry = { name: 'Llanowar Elves', setCode: 'dom', finish: 'foil', condition: 'NM' };
+		expect(describeInventoryRemoval({ ...entry, quantity: 1 }, 'en')).toBe(
+			'This removes 1 copy of Llanowar Elves (DOM, Foil, NM) from your inventory. It cannot be undone.'
+		);
+		expect(describeInventoryRemoval({ ...entry, quantity: 1200 }, 'en')).toBe(
+			'This removes all 1,200 copies of Llanowar Elves (DOM, Foil, NM) from your inventory. It cannot be undone.'
+		);
+		expect(describeInventoryRemoval({ ...entry, quantity: 1, finish: 'nonfoil' }, 'de')).toBe(
+			'Dies entfernt 1 Exemplar von Llanowar Elves (DOM, Nicht-Foil, NM) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.'
+		);
+		expect(describeInventoryRemoval({ ...entry, quantity: 1200 }, 'de')).toBe(
+			'Dies entfernt alle 1.200 Exemplare von Llanowar Elves (DOM, Foil, NM) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.'
+		);
+	});
+	it('translates Inventory pending labels', () => {
+		const keys = ['ui.Saving', 'ui.Removing', 'ui.Deleting'] as const;
+		const labels = (locale: 'en' | 'de') => keys.map((key) => createLanguage(() => locale).t(key));
+		expect(labels('en')).toEqual(['Saving...', 'Removing...', 'Deleting...']);
+		expect(labels('de')).toEqual(['Wird gespeichert...', 'Wird entfernt...', 'Wird gelöscht...']);
 	});
 });
