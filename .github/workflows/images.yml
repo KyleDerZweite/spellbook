@@ -70,10 +70,8 @@ jobs:
     needs: publish
     timeout-minutes: 10
     runs-on: ubuntu-latest
-    # Serialized, and skipped for superseded commits, so :main never moves backwards.
-    concurrency:
-      group: images-promote-main
-      cancel-in-progress: false
+    # Superseded commits skip: a newer main commit promotes itself after its own CI and builds,
+    # minutes after this check, so :main never moves backwards.
     permissions:
       contents: read
       packages: write
