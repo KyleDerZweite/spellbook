@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "spellbook-api"
 version = "0.1.0"
-requires-python = "==3.14.8"
+requires-python = ">=3.14.8,<3.15"
 dependencies = [
     "spellbook-core==0.1.0",
     "fastapi==0.162.0",
