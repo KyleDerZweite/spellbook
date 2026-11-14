@@ -85,9 +85,21 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           names=(api state-worker worker scan-worker frontend)
+          accept='application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json'
+          # 0 = all five published, 1 = confirmed missing (404); any other answer fails the job
+          # without retagging, so registry errors can never move :main backwards.
           published() {
             for name in "${names[@]}"; do
-              docker manifest inspect "ghcr.io/kylederzweite/spellbook-$name:sha-$1" > /dev/null 2>&1 || return 1
+              repo="kylederzweite/spellbook-$name"
+              token="$(curl -fsS -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+                "https://ghcr.io/token?scope=repository:$repo:pull" | jq -r .token)"
+              code="$(curl -sS -o /dev/null -w '%{http_code}' --head -H "Accept: $accept" \
+                -H "Authorization: Bearer $token" "https://ghcr.io/v2/$repo/manifests/sha-$1")"
+              case "$code" in
+                200) ;;
+                404) return 1 ;;
+                *) echo "::error::GHCR answered $code for $repo:sha-$1"; exit 1 ;;
+              esac
             done
           }
           for sha in $(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=30" --jq '.[].sha'); do

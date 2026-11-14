@@ -122,9 +122,29 @@ def test_applied_prefix_and_serial_gaps() -> None:
 def test_newer_release_history_applies_nothing() -> None:
     migrations = read_migrations(SQL_DIRECTORY)
     rows = [(index + 1, item.hash, item.created_at) for index, item in enumerate(migrations)]
-    rows.append((len(rows) + 1, "newer-release", 9999999999999))
+    rows.append((len(rows) + 1, "a" * 64, 9999999999999))
     assert validate_ledger(migrations, rows) == len(migrations)
     rows[0] = (1, "changed", migrations[0].created_at)
+    with pytest.raises(MigrationError, match="ledger"):
+        validate_ledger(migrations, rows)
+
+
+@pytest.mark.parametrize("extra", ["empty", "duplicate", "earlier", "id"])
+def test_reject_malformed_newer_history(extra: str) -> None:
+    migrations = read_migrations(SQL_DIRECTORY)
+    rows: list[tuple[object, ...]] = [
+        (index + 1, item.hash, item.created_at) for index, item in enumerate(migrations)
+    ]
+    last = migrations[-1]
+    next_id = len(rows) + 1
+    rows.append(
+        {
+            "empty": (next_id, "", -1),
+            "duplicate": (next_id, last.hash, last.created_at),
+            "earlier": (next_id, "b" * 64, last.created_at - 1),
+            "id": (len(rows), "b" * 64, last.created_at + 1),
+        }[extra]
+    )
     with pytest.raises(MigrationError, match="ledger"):
         validate_ledger(migrations, rows)
 

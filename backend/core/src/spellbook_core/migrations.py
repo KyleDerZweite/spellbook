@@ -19,6 +19,7 @@ from psycopg.pq import TransactionStatus
 # application/worker advisory locks. PostgreSQL releases it on rollback or close.
 MIGRATION_LOCK_KEY = 0x5350454C4C4D4947
 _BREAKPOINT = "--> statement-breakpoint"
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 class MigrationError(Exception):
@@ -94,19 +95,27 @@ def validate_ledger(migrations: Sequence[Migration], rows: Sequence[tuple[object
     known prefix must match and nothing is applied.
     """
     previous_id = 0
+    previous_created_at = -1
     for index, row in enumerate(rows):
-        expected = migrations[index] if index < len(migrations) else None
-        if (
-            len(row) != 3
-            or type(row[0]) is not int
-            or row[0] <= previous_id
-            or type(row[2]) is not int
-            or (
-                expected is not None and (row[1] != expected.hash or row[2] != expected.created_at)
-            )
-        ):
+        if len(row) != 3:
             raise MigrationError(f"Migration ledger differs from the journal at entry {index}.")
-        previous_id = row[0]
+        row_id, row_hash, created_at = row
+        if type(row_id) is not int or row_id <= previous_id or type(created_at) is not int:
+            raise MigrationError(f"Migration ledger differs from the journal at entry {index}.")
+        if index < len(migrations):
+            expected = migrations[index]
+            valid = row_hash == expected.hash and created_at == expected.created_at
+        else:
+            # Newer-release rows: well-formed SHA-256 and strictly later than their predecessor.
+            valid = (
+                isinstance(row_hash, str)
+                and _SHA256.fullmatch(row_hash) is not None
+                and created_at > previous_created_at
+            )
+        if not valid:
+            raise MigrationError(f"Migration ledger differs from the journal at entry {index}.")
+        previous_id = row_id
+        previous_created_at = created_at
     return min(len(rows), len(migrations))
 
 

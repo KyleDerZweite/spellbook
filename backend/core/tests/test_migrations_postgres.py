@@ -172,7 +172,8 @@ def test_upgrade_existing_drizzle_prefix_preserves_data(database: Database) -> N
 def test_newer_release_ledger_applies_nothing(database: Database) -> None:
     migrate(database, SQL_DIRECTORY)
     database.execute(
-        "INSERT INTO drizzle.__drizzle_migrations(hash,created_at) VALUES ('newer',9999999999999)"
+        "INSERT INTO drizzle.__drizzle_migrations(hash,created_at) "
+        f"VALUES ('{'a' * 64}',9999999999999)"
     )
     before = _ledger(database)
     assert migrate(database, SQL_DIRECTORY) == ()
