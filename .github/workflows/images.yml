@@ -70,6 +70,10 @@ jobs:
     needs: publish
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    # Serialized, and skipped for superseded commits, so :main never moves backwards.
+    concurrency:
+      group: images-promote-main
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -77,7 +81,14 @@ jobs:
       SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
       - name: Point main at the published commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          if [[ "$tip" != "$SHA" ]]; then
+            echo "main moved to $tip; leaving :main for that commit's run"
+            exit 0
+          fi
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           for name in api state-worker worker scan-worker frontend; do
             image="ghcr.io/kylederzweite/spellbook-$name"
