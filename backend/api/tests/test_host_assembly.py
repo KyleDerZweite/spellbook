@@ -142,9 +142,9 @@ def test_dashboard_range_error_matches_specialized_openapi_schema() -> None:
     schema = json.loads(
         (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
     )
-    reference = schema["paths"]["/api/v1/mtg/dashboard"]["get"]["responses"]["503"][
-        "content"
-    ]["application/json"]["schema"]["$ref"]
+    reference = schema["paths"]["/api/v1/mtg/dashboard"]["get"]["responses"]["503"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
     assert reference == "#/components/schemas/SummaryOutOfRangeResponse"
     definition = schema["components"]["schemas"]["SummaryOutOfRangeResponse"]
     assert definition["additionalProperties"] is False
