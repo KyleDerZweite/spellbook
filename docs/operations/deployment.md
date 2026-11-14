@@ -78,9 +78,9 @@ shared `demo` account and static example prices; registration remains disabled. 
 private edits and an existing active Catalog publication. Scan frames are transient in memory. The
 live Catalog worker is opt-in. Catalog card images still use remote Scryfall URLs.
 
-Hosted commands select an explicit full Git revision through `DEMO_IMAGE_REVISION`,
-`PROD_IMAGE_REVISION` or `--revision FULL_SHA`. Each first-party image is
-`localhost/spellbook-demo-<service>:git-<first-12-characters>` or
+Compose-based hosted commands (`pnpm compose demo|production`) select an explicit full Git revision
+through `DEMO_IMAGE_REVISION`, `PROD_IMAGE_REVISION` or `--revision FULL_SHA`. Each first-party
+image is `localhost/spellbook-demo-<service>:git-<first-12-characters>` or
 `localhost/spellbook-production-<service>:git-<first-12-characters>`. The service names include
 `db-migrate`, `api`, `frontend`, `state-worker`, `scan-worker` and `worker`. This retains the
 existing Demo tag convention. `build` requires a clean checkout at that exact revision and refuses
@@ -140,8 +140,9 @@ TCP denial and working same-stack reads, Scan and Catalog access before resuming
 
 Demo remains project `spellbook-demo`; Production remains project `spellbook`. Production uses
 normal accounts and the scheduled Catalog worker. Scan images remain transient without a named
-volume or S3 configuration. Production remains stopped until its separate activation is authorized.
-Use `pnpm compose production build` and `pnpm compose production up` only for that selected rollout.
+volume or S3 configuration. A new Production installation stays stopped until its separate
+activation is authorized; use `pnpm compose production build` and `pnpm compose production up` only
+for that selected rollout. The hosted Production is active and updated by the protected updater.
 
 Development is a separate persistent environment with normal accounts. Requests to start "dev" mean
 Development Compose. Native processes and Vite require an explicit request.
