@@ -179,13 +179,13 @@ operator-owned Quadlet units and follows `:main` through Podman auto-update, wit
 per-unit rollback. Production keeps the protected updater described below until it follows
 `:release`. The operator repository owns the units, cutover and rollback.
 
-The same protected updater can enroll an explicitly authorized Production installation with its own
-target binding, deployment receipt, database export, service and timer. Demo and Production share
-the update and host-backup locks. Each environment independently selects the latest successful main
-push CI. Production uses internal application health and an external Pangolin SSO redirect check; it
-must not make its schema public or use Demo credentials. Its scheduled Catalog worker can
-legitimately advance public publication pointers. Keep automatic maintenance and SSO policy intact.
-Scan images are processed in memory and have no Compose volume or S3 dependency.
+The protected updater runs the authorized Production installation with its own target binding,
+deployment receipt, database export, service and timer. It shares the host-backup lock with host
+maintenance and selects the latest successful main push CI. Production uses internal application
+health and an external Pangolin SSO redirect check; it must not make its schema public or use Demo
+credentials. Its scheduled Catalog worker can legitimately advance public publication pointers. Keep
+automatic maintenance and SSO policy intact. Scan images are processed in memory and have no Compose
+volume or S3 dependency.
 
 An SSO redirect and healthy application or target checks do not prove that the tunnel forwards
 requests. Verify the actual gateway-to-application route after activation or target changes,
@@ -193,16 +193,16 @@ including `/` and `/openapi.json`, while preserving SSO. A missing internal tunn
 return 502 after authentication even when direct application and target health checks pass. Internal
 tunnel ports are not published application host ports. Do not disable SSO to test routing.
 
-The private Demo updater selects a new `main` revision after its newest push-CI attempt succeeds. As
+The Production updater selects a new `main` revision after its newest push-CI attempt succeeds. As
 verified on 2026-11-07, it does not filter revisions by changed paths. Documentation, `.gitignore`
-and other repository-only changes can therefore trigger an image build and Demo restart through the
-active timer. Updating a checkout alone does not establish which revision is running; use the
-deployment receipt and actual image IDs. Private ignored skill edits alone do not create a new Git
-revision. Keep the updater's implementation, target binding and access details in protected operator
-storage.
+and other repository-only changes can therefore trigger an image build and Production restart
+through the active timer. Updating a checkout alone does not establish which revision is running;
+use the deployment receipt and actual image IDs. Private ignored skill edits alone do not create a
+new Git revision. Keep the updater's implementation, target binding and access details in protected
+operator storage.
 
-An authorized Demo update is complete only when all of the following evidence agrees on the full
-selected SHA:
+An authorized Production update is complete only when all of the following evidence agrees on the
+full selected SHA:
 
 - Source synchronization has passed the existing clean-main, expected-remote and fast-forward
   checks, and the checkout is at the selected SHA.
@@ -213,14 +213,18 @@ selected SHA:
   latch.
 - Actual image IDs for every running application and the completed `db-migrate` container match the
   selected immutable images, and the public `/openapi.json` health check returns 200.
-- The existing [Demo deployment verification](#demo-deployment) passes through the public origin,
-  including authenticated Demo login/read/logout and long-lived streams, with Catalog/Price
-  publication pointers and retained database volumes preserved.
+- The gateway keeps SSO redirects for `/` and `/openapi.json`, anonymous Inventory access is denied,
+  and retained database volumes are preserved.
 
 Use the existing protected updater and receipt procedures to collect this evidence. Report source
 synchronization and CI success separately from deployment completion. A busy update or backup lock
 means the update is pending. Unavailable remote evidence leaves deployment verification blocked and
 the rollout unverified; neither state establishes successful deployment.
+
+A Demo update is complete when Podman auto-update reports the units updated rather than rolled back,
+the one-shot migrator succeeded, every running Demo container's `org.opencontainers.image.revision`
+label equals the `:main` commit, and the [Demo deployment verification](#demo-deployment) passes
+through the public origin, including authenticated Demo login/read/logout.
 
 The following workflow improvements are proposals, not implemented behavior:
 
@@ -849,20 +853,22 @@ verification is tracked with [slice 19](https://github.com/KyleDerZweite/spellbo
 
 Configured environments use one ignored root `.env` per checkout with `PROD_*`, `DEMO_*` and `DEV_*`
 source keys. Compose constructs internal URLs exclusively from the selected environment keys.
-Production, Demo and the stable connector use `compose.prod.yml` through their explicit launcher
-mode. Configured Development uses `compose.dev.yml`; no-configuration self-hosting uses
-`compose.yml`. Development defaults to `spellbook_dev`, without the disposable reset suffix. Hosted
-environments publish no host ports. Local Development publishes its frontend on loopback and needs
-no `.env`. No additional private environment files are required. Build web with the selected
-environment's origin before recreation. Migration is ledger-idempotent; Demo seed preserves existing
-private state and active public publications. See the
+Production and the stable connector use `compose.prod.yml` through their explicit launcher mode; its
+Demo mode remains the supported Compose path for other Demo installations, while the hosted Demo
+runs the GHCR images as operator-owned Quadlet units. Configured Development uses `compose.dev.yml`;
+no-configuration self-hosting uses `compose.yml`. Development defaults to `spellbook_dev`, without
+the disposable reset suffix. Hosted environments publish no host ports. Local Development publishes
+its frontend on loopback and needs no `.env`. No additional private environment files are required.
+Build web with the selected environment's origin before recreation. Migration is ledger-idempotent;
+Demo seed preserves existing private state and active public publications. See the
 [reviewed private reset contract](./local-auth.md#reviewed-environment-and-private-reset-contract).
 
-Demo follows successful main CI automatically through deployment-owner automation. Production later
-follows approved releases and stays disabled until deliberate first activation. This repository
-change does not install that automation or select a registry.
+The hosted Demo follows `:main` through Podman auto-update. The hosted Production follows successful
+main CI through the protected updater and is planned to follow `:release`. A new installation stays
+disabled until its deliberate first activation.
 
-For a full public Demo Catalog refresh, run the existing one-shot Worker:
+For a full public Demo Catalog refresh in a Compose-based Demo, run the existing one-shot Worker;
+the hosted Demo uses its operator-owned manual worker unit instead:
 
 ```sh
 pnpm compose demo run worker
