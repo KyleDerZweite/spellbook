@@ -174,6 +174,11 @@ maintenance enabled during normal operation; deliberately disabled Production st
 
 ### Automatic Demo updates
 
+Since 2026-11-14 the hosted Demo runs the [published GHCR images](#ci-images-and-release-tags) as
+operator-owned Quadlet units and follows `:main` through Podman auto-update, with health-gated
+per-unit rollback. Production keeps the protected updater described below until it follows
+`:release`. The operator repository owns the units, cutover and rollback.
+
 The same protected updater can enroll an explicitly authorized Production installation with its own
 target binding, deployment receipt, database export, service and timer. Demo and Production share
 the update and host-backup locks. Each environment independently selects the latest successful main
