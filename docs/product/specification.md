@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-14
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers:
   - Account and platform behavior:
@@ -487,16 +487,17 @@ accept user-provided exports before depending on private remote APIs.
 ## Scan review
 
 Scan presentation is paused. The retained authenticated `/mtg/scan` route creates and reopens
-account-owned sessions, uploads a JPEG, PNG, or WebP photo, and displays stored images and
-recognition candidates. The initial workflow uses one photo per session. Users can search the
-catalog, select a printing manually, set quantity, finish, and condition, then confirm an explicit
-inventory commit. Draft selections remain local until commit. Committed sessions are read-only.
+account-owned sessions, uploads a JPEG, PNG, or WebP photo, and displays recognition candidates. The
+photo is processed in memory and never stored; only the just-selected local preview is shown. The
+initial workflow uses one photo per session. Users can search the catalog, select a printing
+manually, set quantity, finish, and condition, then confirm an explicit inventory commit. Draft
+selections remain local until commit. Committed sessions are read-only.
 
-Scan APIs list recent owned sessions, accept image artifacts, return candidate matches, serve owned
-images, and accept externally produced candidate results. External results identify a model version
-and resolve submitted printing identifiers against the catalog. A result replaces the artifact's
-current candidates under a session lock; identical retries do not create additional artifacts,
-review entries, or inventory. Committed and cancelled sessions reject result changes.
+Scan APIs list recent owned sessions, accept image uploads, return candidate matches, and accept
+externally produced candidate results. No API serves uploaded images. External results identify a
+model version and resolve submitted printing identifiers against the catalog. A result replaces the
+artifact's current candidates under a session lock; identical retries do not create additional
+artifacts, review entries, or inventory. Committed and cancelled sessions reject result changes.
 
 Result submission has no event identifier, payload-digest conflict protocol, or stale-version
 rejection. A late result can replace a newer result while the session remains reviewable. Session

@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-14
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
@@ -160,12 +160,10 @@ mode. Configured Development publishes no host port and defaults to database `sp
 modes run migration without Demo seed and keep Catalog opt-in. Keep `.env` available for
 `pnpm dev:stop` so it selects the same project.
 
-All application modes retain volume keys `postgres18_data`, `demo_scans` and `worker_data` where
-used. Project names provide separate persistent identities, including
-`spellbook-demo_postgres18_data` and `spellbook-demo_demo_scans`. The historical `demo_scans` key
-also remains in Development and standalone configuration to preserve existing data. Changing files
-or modes does not transfer data. Never use `down --volumes` during this configuration cutover. Keep
-the Development connector active on only one selected device at a time.
+All application modes retain volume keys `postgres18_data` and `worker_data` where used. Project
+names provide separate persistent identities, including `spellbook-demo_postgres18_data`. Scan has
+no volume. Changing files or modes does not transfer data. Never use `down --volumes` during this
+configuration cutover. Keep the Development connector active on only one selected device at a time.
 
 After an authorized startup, verify `/openapi.json`, normal registration/login or Demo login, the
 selected origin and retained data. Resolved Compose configuration alone does not establish runtime
@@ -600,8 +598,7 @@ Runtime support was reviewed on 2026-10-03. The workers pin
 [Python 3.14.8](https://www.python.org/downloads/release/python-3148/), released on 2026-10-01. Its
 [release schedule](https://peps.python.org/pep-0745/) provides regular bugfix releases through
 October 2027 and security releases through October 2030.
-[Python 3.15](https://peps.python.org/pep-0790/) is scheduled for final release on 2026-10-09 and is
-not adopted ahead of that release.
+[Python 3.15](https://peps.python.org/pep-0790/) is not adopted yet.
 [Frontend runtime policy](../architecture/frontend.md#runtime-compatibility) owns Node and framework
 compatibility.
 

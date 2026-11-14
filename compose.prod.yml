@@ -73,8 +73,6 @@ services:
   scan-worker:
     build:
       context: ./backend/workers/scan
-    volumes:
-      - demo_scans:/app/storage/scans
     image: ${HOSTED_SCAN_WORKER_IMAGE:-localhost/spellbook-unselected-scan-worker:unselected}
     pull_policy: never
     profiles: [application]

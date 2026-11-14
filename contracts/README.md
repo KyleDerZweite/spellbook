@@ -9,11 +9,12 @@ remain under `src/`. The Python adapter bundles and reads the artifact and subst
 deployment, or generate a second schema. The relative `/` server in the artifact is deployment
 neutral.
 
-OpenAPI is the sole current route inventory. The API serves 85 canonical operations plus Discovery;
-seven browser page methods remain web-owned. Native FastAPI routing registers only the documented
-operations. HEAD and OPTIONS return 405 on known paths; unknown paths and trailing slashes return
-404 without redirects. Scalar query parameters use the last supplied value; declared list filters
-retain all values. Request validation returns safe 400 JSON errors rather than FastAPI 422 details.
+OpenAPI is the sole current route inventory. The API serves exactly its `/api/` operations plus
+Discovery (`GET /openapi.json`); its `/auth/` browser page methods remain web-owned. Native FastAPI
+routing registers only the documented operations. HEAD and OPTIONS return 405 on known paths;
+unknown paths and trailing slashes return 404 without redirects. Scalar query parameters use the
+last supplied value; declared list filters retain all values. Request validation returns safe 400
+JSON errors rather than FastAPI 422 details.
 [ADR-0029](../docs/decisions/0029-remove-replaced-interfaces.md) removes previous API paths without
 aliases, redirects or fallback dispatch; older clients must update. Browser Auth pages retain their
 separate API form bridges. The Scan worker's internal methods and generated documentation remain

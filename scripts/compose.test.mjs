@@ -77,7 +77,7 @@ test('direct standalone resolves without .env, tunnel, Demo, providers or publis
 	assert.deepEqual(model.services.frontend.ports, ['127.0.0.1:3000:3000']);
 	for (const [name, service] of Object.entries(model.services)) {
 		if (name !== 'frontend') assert.equal(service.ports, undefined);
-		if (name !== 'postgres') assert.equal(service.environment.DEMO_MODE ?? 'false', 'false');
+		if (name !== 'postgres') assert.equal(service.environment?.DEMO_MODE ?? 'false', 'false');
 	}
 	assert.deepEqual(model.services['db-migrate'].command, [
 		'/app/backend/api/.venv/bin/spellbook-migrate'

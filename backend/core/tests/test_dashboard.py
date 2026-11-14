@@ -34,7 +34,11 @@ def test_summary_range_is_never_rounded(value: object) -> None:
     [(False, False, False), (True, False, False), (False, True, False), (False, False, True)],
 )
 def test_snapshot_account_distributions_allocation_and_optional_failures(
-    monkeypatch: pytest.MonkeyPatch, scan_failure: bool, value_failure: bool, catalog_failure: bool
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    scan_failure: bool,
+    value_failure: bool,
+    catalog_failure: bool,
 ) -> None:
     async def scenario() -> None:
         auth = create_autospec(SessionAuth, instance=True)
@@ -203,6 +207,8 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
         values.history_in_transaction.assert_awaited_once_with(
             tx, ACTOR.account_id, {"days": 30}, NOW
         )
+        warnings = [r.getMessage() for r in caplog.records if r.name.endswith(".dashboard")]
+        assert len(warnings) == sum((scan_failure, value_failure, catalog_failure))
 
     asyncio.run(scenario())
 

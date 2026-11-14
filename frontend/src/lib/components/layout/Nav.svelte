@@ -118,7 +118,7 @@
 >
 
 {#if pwaState.standalone}
-	<nav class="app-bottom-nav" aria-label="App">
+	<nav class="app-bottom-nav" aria-label={language.t('ui.App')}>
 		{#each APP_LINKS as link}
 			<a
 				href={link.href}
