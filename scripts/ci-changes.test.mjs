@@ -104,9 +104,14 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 		'--dir .. check:boundaries',
 		'--dir frontend check',
 		'test:unit',
-		'--dir .. test:tooling'
+		'--dir .. test:tooling',
+		'--dir .. test:contracts'
 	])
 		assert.ok(application.includes(`- run: pnpm ${command}\n`), command);
+	assert.match(
+		application,
+		/pipx install podman-compose==[\d.]+\n\s+pnpm --dir \.\. test:compose\n/
+	);
 	assert.match(application, /run: pnpm --dir frontend check\n\s+working-directory: \./);
 	assert.doesNotMatch(application, /run: pnpm check(?:\s|$)/);
 	for (const key of ['application', 'worker', 'scan_worker', 'python_backend', 'state_worker'])

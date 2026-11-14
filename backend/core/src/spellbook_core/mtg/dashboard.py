@@ -1,5 +1,6 @@
 """Account dashboard on one read-only snapshot, with optional summaries isolated."""
 
+import logging
 from datetime import datetime
 from typing import Literal, TypedDict
 
@@ -22,6 +23,8 @@ from spellbook_core.mtg.inventory_value import InventoryValues
 from spellbook_core.mtg.profile import SummaryRangeError
 from spellbook_core.mtg.valuation import PriceReadUnavailable
 from spellbook_core.mtg.valuation_query import Document
+
+_LOG = logging.getLogger(__name__)
 
 
 class Distribution(TypedDict):
@@ -313,6 +316,7 @@ class Dashboard:
             except SummaryRangeError:
                 raise
             except Exception:
+                _LOG.warning("Dashboard catalog_summary unavailable", exc_info=True)
                 await tx.execute("ROLLBACK TO SAVEPOINT catalog_summary")
                 catalog_breakdown = None
             await tx.execute("RELEASE SAVEPOINT catalog_summary")
@@ -407,6 +411,7 @@ class Dashboard:
             except SummaryRangeError:
                 raise
             except Exception:
+                _LOG.warning("Dashboard scan_summary unavailable", exc_info=True)
                 await tx.execute("ROLLBACK TO SAVEPOINT scan_summary")
                 pending = None
             await tx.execute("RELEASE SAVEPOINT scan_summary")
@@ -420,6 +425,7 @@ class Dashboard:
                     tx, user.account_id, {"days": 30}, as_of
                 )
             except Exception:
+                _LOG.warning("Dashboard inventory_value_summary unavailable", exc_info=True)
                 await tx.execute("ROLLBACK TO SAVEPOINT inventory_value_summary")
                 current = history = None
                 failure = PriceReadUnavailable()

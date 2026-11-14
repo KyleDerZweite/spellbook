@@ -1,5 +1,6 @@
 """Exact current Inventory estimates and closed private observation queries."""
 
+import logging
 import re
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
@@ -22,6 +23,8 @@ from spellbook_core.mtg.valuation import (
 )
 from spellbook_core.mtg.valuation_query import Document, ValuationQuery, records, valuation_query
 from spellbook_core.validation import MISSING
+
+_LOG = logging.getLogger(__name__)
 
 
 def exact_amount(value: object) -> int:
@@ -344,6 +347,7 @@ class InventoryValues:
         except ValidationError:
             raise
         except Exception:
+            _LOG.warning("Inventory value read failed", exc_info=True)
             raise PriceReadUnavailable() from None
 
     async def history(self, actor: Actor, input: object = MISSING) -> Document:
@@ -357,6 +361,7 @@ class InventoryValues:
         except ValidationError:
             raise
         except Exception:
+            _LOG.warning("Inventory value read failed", exc_info=True)
             raise PriceReadUnavailable() from None
 
 

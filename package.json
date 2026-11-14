@@ -33,6 +33,7 @@
 		"demo:seed": "node --env-file-if-exists=.env scripts/python.mjs demo",
 		"demo:replace-inventory": "node --env-file-if-exists=.env scripts/python.mjs replace-inventory",
 		"compose": "node scripts/compose.mjs",
-		"test:compose": "node --test scripts/compose.test.mjs"
+		"test:compose": "node --test scripts/compose.test.mjs",
+		"test:contracts": "node --test contracts/tests/*.test.ts"
 	}
 }

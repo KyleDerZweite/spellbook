@@ -1,7 +1,7 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-14
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers:
   - Local checks, runtime pins, installed Python packages and canonical operator commands
@@ -62,8 +62,8 @@ directories without a private `.env`. It checks standalone defaults, configured 
 failures, hosted Demo/Production semantics, connector isolation, immutable image selection and
 persistent resource keys. It never builds images or starts containers; successful config checks do
 not establish runtime health. Run it for Compose or launcher changes alongside `pnpm test:tooling`.
-Run each affected package's ordinary checks once, then broaden only for changes or unresolved
-failures.
+Application Checks runs it in CI with pinned podman-compose 1.6.0. Run each affected package's
+ordinary checks once, then broaden only for changes or unresolved failures.
 
 For local routing or workflow changes, run `node --test scripts/ci-changes.test.mjs` directly. Run
 `CI_EVENT_NAME=pull_request CI_BASE_SHA=<base-sha> CI_HEAD_SHA=<head-sha> node scripts/ci-changes.mjs`
@@ -397,11 +397,11 @@ native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and
 [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies. The
 three substantive jobs depend on successful classification and can run in parallel:
 
-| Job                | Checks                                                                                                                                   | Automatic scope                                                         |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Application Checks | Prettier, explicit source boundaries and frontend TypeScript/Svelte checks, web unit tests and root `test:tooling`                       | App/shared source and Scan worker changes                               |
-| Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, Core/API unit/host/Discovery tests, package builds and negative Python import checks | API, Core, neutral contracts, migrations and shared Python tooling      |
-| Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                           | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
+| Job                | Checks                                                                                                                                            | Automatic scope                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Application Checks | Prettier, explicit source boundaries and frontend TypeScript/Svelte checks, web unit tests, root `test:tooling`, `test:contracts`, `test:compose` | App/shared source and Scan worker changes                               |
+| Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, Core/API unit/host/Discovery tests, package builds and negative Python import checks          | API, Core, neutral contracts, migrations and shared Python tooling      |
+| Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                                    | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
 Migration asset/ledger consistency runs in Python Core/API tests. Root `test:tooling` includes
 launcher and packaging tests, so CI does not invoke those suites separately. The two worker projects

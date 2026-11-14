@@ -70,6 +70,11 @@ jobs:
         working-directory: .
       - run: pnpm test:unit
       - run: pnpm --dir .. test:tooling
+      - run: pnpm --dir .. test:contracts
+      - name: Compose configuration
+        run: |
+          pipx install podman-compose==1.6.0
+          pnpm --dir .. test:compose
 
   python-backend:
     name: Python API/Core

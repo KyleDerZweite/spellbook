@@ -199,11 +199,11 @@ fixtures.
 The comparison prototypes are retired after selection of the regular Dashboard direction. Git
 retains the former implementations; the ordinary Dashboard is the current implementation. The saved
 source images remain unchanged:
-[Collection workbench](../../frontend/src/lib/components/dashboard/prototypes/references/collection-workbench.png),
-[Deck workbench](../../frontend/src/lib/components/dashboard/prototypes/references/deck-workbench.png),
-[Collection overview](../../frontend/src/lib/components/dashboard/prototypes/references/collection-overview.png)
+[Collection workbench](./assets/ui-references/collection-workbench.png),
+[Deck workbench](./assets/ui-references/deck-workbench.png),
+[Collection overview](./assets/ui-references/collection-overview.png)
 and
-[Dashboard grid](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-grid.png).
+[Dashboard grid](./assets/ui-references/dashboard-grid.png).
 Additional Dashboard search fields are excluded; meaningful filters may remain. Mana Font carries
 actual color, color-identity, rarity and primary-type semantics rather than decorating unrelated
 controls.
@@ -232,7 +232,7 @@ regular Dashboard consumes this read contract.
 ### Selected regular Dashboard reference
 
 On 2026-11-01 Kyle selected the supplied
-[Dashboard reference](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-reference.png)
+[Dashboard reference](./assets/ui-references/dashboard-reference.png)
 for the regular Dashboard, replacing the previous large Deck/Set composition. Keep the actual
 application shell, navigation, fonts and neutral page background. Keep four equal metric cards,
 followed by four aligned panels in this order: Card Types, Mana Color Identity, Collection by Set
