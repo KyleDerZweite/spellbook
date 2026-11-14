@@ -113,7 +113,7 @@ def test_fresh_all_27_and_noop(database: Database) -> None:
     migrations = read_migrations(SQL_DIRECTORY)
     assert migrate(database, SQL_DIRECTORY) == tuple(item.tag for item in migrations)
     before = _ledger(database)
-    assert validate_ledger(migrations, before) == 27
+    assert validate_ledger(migrations, before) == len(migrations)
     assert migrate(database, SQL_DIRECTORY) == ()
     assert _ledger(database) == before
     assert database.execute("SELECT extname FROM pg_extension WHERE extname='pg_trgm'").fetchone()
@@ -169,20 +169,25 @@ def test_upgrade_existing_drizzle_prefix_preserves_data(database: Database) -> N
     ).fetchone() == (None,)
 
 
-@pytest.mark.parametrize("corruption", ["hash", "time", "gap", "unknown"])
+def test_newer_release_ledger_applies_nothing(database: Database) -> None:
+    migrate(database, SQL_DIRECTORY)
+    database.execute(
+        "INSERT INTO drizzle.__drizzle_migrations(hash,created_at) VALUES ('newer',9999999999999)"
+    )
+    before = _ledger(database)
+    assert migrate(database, SQL_DIRECTORY) == ()
+    assert _ledger(database) == before
+
+
+@pytest.mark.parametrize("corruption", ["hash", "time", "gap"])
 def test_invalid_ledger_fails_without_changes(database: Database, corruption: str) -> None:
     migrate(database, SQL_DIRECTORY)
     if corruption == "hash":
         database.execute("UPDATE drizzle.__drizzle_migrations SET hash='changed' WHERE id=3")
     elif corruption == "time":
         database.execute("UPDATE drizzle.__drizzle_migrations SET created_at=NULL WHERE id=3")
-    elif corruption == "gap":
-        database.execute("DELETE FROM drizzle.__drizzle_migrations WHERE id=3")
     else:
-        database.execute(
-            "INSERT INTO drizzle.__drizzle_migrations(hash,created_at) "
-            "VALUES ('unknown',9999999999999)"
-        )
+        database.execute("DELETE FROM drizzle.__drizzle_migrations WHERE id=3")
     before = _ledger(database)
     with pytest.raises(MigrationError, match="ledger"):
         migrate(database, SQL_DIRECTORY)

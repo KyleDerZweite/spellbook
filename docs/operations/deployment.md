@@ -606,7 +606,8 @@ starter replacement. Migration configuration and SQL/journal/snapshots belong to
 Keep each migration compatible with the previous release's code, so redeploying the previous image
 remains possible. Drop columns, tables or constraints only in a later release, after the running
 code no longer reads or writes them. Image rollback cannot undo an applied migration; restore the
-pre-update dump instead.
+pre-update dump instead. The previous release's migrator accepts a ledger that is ahead of its
+journal when the known prefix matches and applies nothing, so its image can start again.
 
 Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New
 conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay

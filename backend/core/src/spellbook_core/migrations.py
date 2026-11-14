@@ -89,23 +89,25 @@ def validate_ledger(migrations: Sequence[Migration], rows: Sequence[tuple[object
 
     Rows are id/hash/created_at ordered by id. Serial IDs may have gaps after a
     rolled-back run, but hashes and timestamps must exactly match the journal.
+    A ledger ahead of this journal comes from a newer release; the previous
+    release's image may still start against it after an image rollback, so its
+    known prefix must match and nothing is applied.
     """
-    if len(rows) > len(migrations):
-        raise MigrationError("Migration ledger contains unknown history.")
     previous_id = 0
     for index, row in enumerate(rows):
-        expected = migrations[index]
+        expected = migrations[index] if index < len(migrations) else None
         if (
             len(row) != 3
             or type(row[0]) is not int
             or row[0] <= previous_id
-            or row[1] != expected.hash
             or type(row[2]) is not int
-            or row[2] != expected.created_at
+            or (
+                expected is not None and (row[1] != expected.hash or row[2] != expected.created_at)
+            )
         ):
             raise MigrationError(f"Migration ledger differs from the journal at entry {index}.")
         previous_id = row[0]
-    return len(rows)
+    return min(len(rows), len(migrations))
 
 
 def migrate(connection: Connection[tuple[object, ...]], directory: Path) -> tuple[str, ...]:

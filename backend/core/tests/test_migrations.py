@@ -119,6 +119,16 @@ def test_applied_prefix_and_serial_gaps() -> None:
     assert validate_ledger(migrations, rows) == len(migrations)
 
 
+def test_newer_release_history_applies_nothing() -> None:
+    migrations = read_migrations(SQL_DIRECTORY)
+    rows = [(index + 1, item.hash, item.created_at) for index, item in enumerate(migrations)]
+    rows.append((len(rows) + 1, "newer-release", 9999999999999))
+    assert validate_ledger(migrations, rows) == len(migrations)
+    rows[0] = (1, "changed", migrations[0].created_at)
+    with pytest.raises(MigrationError, match="ledger"):
+        validate_ledger(migrations, rows)
+
+
 @pytest.mark.parametrize("corruption", ["hash", "time", "gap", "reorder", "duplicate", "unknown"])
 def test_reject_changed_unknown_or_noncontiguous_history(corruption: str) -> None:
     migrations = read_migrations(SQL_DIRECTORY)
