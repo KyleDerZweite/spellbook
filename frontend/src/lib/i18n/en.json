@@ -1221,6 +1221,8 @@
 	"inventory.column.finish": "finish",
 	"inventory.column.condition": "condition",
 	"inventory.column.quantity": "quantity",
+	"inventory.label.finish": "Finish",
+	"inventory.label.condition": "Condition",
 	"ui.Deleting": "Deleting...",
 	"ui.Removing": "Removing...",
 	"inventory.remove.description.one": "This removes {count} copy of {name} ({set}, {finish}, {condition}) from your inventory. It cannot be undone.",

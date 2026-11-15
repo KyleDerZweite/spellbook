@@ -183,4 +183,12 @@ describe('localized Inventory presentation', () => {
 		expect(labels('en')).toEqual(['Saving...', 'Removing...', 'Deleting...']);
 		expect(labels('de')).toEqual(['Wird gespeichert...', 'Wird entfernt...', 'Wird gelöscht...']);
 	});
+	it('labels Inventory sort columns without form-label punctuation', () => {
+		const columns = (locale: 'en' | 'de') => {
+			const language = createLanguage(() => locale);
+			return [language.t('inventory.label.finish'), language.t('inventory.label.condition')];
+		};
+		expect(columns('en')).toEqual(['Finish', 'Condition']);
+		expect(columns('de')).toEqual(['Veredelung', 'Zustand']);
+	});
 });

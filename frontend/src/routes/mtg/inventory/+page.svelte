@@ -147,8 +147,8 @@
 	const columns: Array<{ column: Exclude<InventoryColumn, 'newest'>; label: string }> = $derived([
 		{ column: 'name', label: language.t('ui.Card') },
 		{ column: 'set', label: language.t('ui.Set') },
-		{ column: 'finish', label: language.t('ui.Finish') },
-		{ column: 'condition', label: language.t('ui.Condition') },
+		{ column: 'finish', label: language.t('inventory.label.finish') },
+		{ column: 'condition', label: language.t('inventory.label.condition') },
 		{ column: 'quantity', label: language.t('ui.Quantity') }
 	]);
 	const conditionOptions = $derived([
@@ -1244,8 +1244,8 @@
 											name: 'ui.Name',
 											set: 'ui.Set',
 											newest: 'ui.Newest',
-											finish: 'ui.Finish',
-											condition: 'ui.Condition',
+											finish: 'inventory.label.finish',
+											condition: 'inventory.label.condition',
 											quantity: 'ui.Quantity'
 										} as const
 									)[value as 'name']
@@ -1272,8 +1272,8 @@
 											name: 'ui.Name',
 											set: 'ui.Set',
 											newest: 'ui.Newest',
-											finish: 'ui.Finish',
-											condition: 'ui.Condition',
+											finish: 'inventory.label.finish',
+											condition: 'inventory.label.condition',
 											quantity: 'ui.Quantity'
 										} as const
 									)[value as 'name']
