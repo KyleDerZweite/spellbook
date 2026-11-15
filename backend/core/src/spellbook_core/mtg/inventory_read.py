@@ -7,8 +7,8 @@ from typing import Literal, TypedDict
 from psycopg.rows import class_row
 
 from spellbook_core.db import Transaction, database_integer, iso_timestamp
-from spellbook_core.errors import DatabaseIntegerRangeError, ValidationError
-from spellbook_core.mtg.errors import InventoryCountError
+from spellbook_core.errors import DatabaseIntegerRangeError
+from spellbook_core.mtg.errors import InventoryCountError, InventoryGroupNotFoundError
 from spellbook_core.mtg.inventory_query import InventoryQuery, inventory_query_key, selection
 
 
@@ -171,7 +171,7 @@ async def validate_group(tx: Transaction, inventory_id: str | None, query: Inven
         ).fetchone()
         is None
     ):
-        raise ValidationError("Inventory group not found")
+        raise InventoryGroupNotFoundError()
 
 
 async def read_location(

@@ -1,6 +1,35 @@
 export interface MessageParameters {
 	'entries.one': { count: string | number };
 	'entries.other': { count: string | number };
+	'inventory.remove.description.one': {
+		count: string | number;
+		name: string | number;
+		set: string | number;
+		finish: string | number;
+		condition: string | number;
+	};
+	'inventory.remove.description.other': {
+		count: string | number;
+		name: string | number;
+		set: string | number;
+		finish: string | number;
+		condition: string | number;
+	};
+	'inventory.filter.set': { value: string | number };
+	'inventory.filter.finish': { value: string | number };
+	'inventory.filter.condition': { value: string | number };
+	'inventory.owned.one': { count: string | number };
+	'inventory.owned.other': { count: string | number };
+	'inventory.owned.details.one': {
+		count: string | number;
+		finish: string | number;
+		condition: string | number;
+	};
+	'inventory.owned.details.other': {
+		count: string | number;
+		finish: string | number;
+		condition: string | number;
+	};
 	'inventory.order.set': { direction: string | number };
 	'inventory.order.name': { direction: string | number };
 	'inventory.order.set.variant': {
@@ -96,16 +125,6 @@ export interface MessageParameters {
 	'message.p0.format.warnings': { p0: string | number };
 	'message.Delete.p0.and.its.card.list.Your.inventory.stays.unchanged': { p0: string | number };
 	'message.p0.Decks': { p0: string | number };
-	'message.Filter.by.p0.p1': { p0: string | number; p1: string | number };
-	'message.This.removes.p0.p1.p2.of.p3.p4.p5.p6.from.your.inventory.It.cannot.be.undone': {
-		p0: string | number;
-		p1: string | number;
-		p2: string | number;
-		p3: string | number;
-		p4: string | number;
-		p5: string | number;
-		p6: string | number;
-	};
 	'message.Delete.p0.Your.cards.stay.in.inventory.only.this.box.s.assignments.are.removed': {
 		p0: string | number;
 	};
@@ -115,7 +134,6 @@ export interface MessageParameters {
 		p2: string | number;
 		p3: string | number;
 	};
-	'message.p0.owned.copies': { p0: string | number };
 	'message.Added.p0.UTC.New.until.the.end.of.this.UTC.date': { p0: string | number };
 	'message.Inspect.p0.p1.p2.p3': {
 		p0: string | number;
@@ -197,11 +215,6 @@ export interface MessageParameters {
 	'sentence.p0.unavailable.Printing.p1': { p0: string | number; p1: string | number };
 	'sentence.p0.p1.cards': { p0: string | number; p1: string | number };
 	'sentence.p0.matched.copies.in.p1.records': { p0: string | number; p1: string | number };
-	'sentence.p0.owned.copies.p1.p2': {
-		p0: string | number;
-		p1: string | number;
-		p2: string | number;
-	};
 	'sentence.entry.added.p0.UTC.marked.new.until.the.end.of.this.UTC.date': { p0: string | number };
 	'sentence.Remove.all.p0.copies': { p0: string | number };
 	'sentence.Remove.all.p0.copies.of.this.printing.finish.and.condition.This.cannot.be.undone': {

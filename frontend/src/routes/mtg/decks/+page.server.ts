@@ -30,7 +30,7 @@ import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/de
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import type { CardDocument } from '#lib/search/types.ts';
 import { deckImportText, readDeckImportForm } from '#lib/server/mtg/deck-import.ts';
-import type { LegalityWarning } from '#lib/server/mtg/legality.ts';
+import type { LegalityWarning } from '@spellbook/contracts/legality.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks');

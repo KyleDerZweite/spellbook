@@ -38,7 +38,7 @@
 		InventoryQuery,
 		InventoryPage
 	} from '@spellbook/contracts/inventory.ts';
-	import type { InventoryCard } from '#lib/types/legacy.ts';
+	import type { InventoryCard } from '#lib/inventory/types.ts';
 	import { page } from '$app/state';
 	import {
 		inventoryAction,
@@ -54,13 +54,14 @@
 	import GroupEditor from '#lib/components/inventory/GroupEditor.svelte';
 	import EntryGroups from '#lib/components/inventory/EntryGroups.svelte';
 	import { GroupMutation } from '#lib/mtg/groupMutation.svelte.ts';
-	import type { InventoryGroup } from '#lib/types/legacy.ts';
+	import type { InventoryGroup } from '#lib/inventory/types.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
 	import {
 		describeInventoryOrder,
+		describeInventoryRemoval,
 		inventoryConditions,
 		inventorySetColor,
 		isNewInventoryEntry,
@@ -146,8 +147,8 @@
 	const columns: Array<{ column: Exclude<InventoryColumn, 'newest'>; label: string }> = $derived([
 		{ column: 'name', label: language.t('ui.Card') },
 		{ column: 'set', label: language.t('ui.Set') },
-		{ column: 'finish', label: language.t('ui.Finish') },
-		{ column: 'condition', label: language.t('ui.Condition') },
+		{ column: 'finish', label: language.t('inventory.label.finish') },
+		{ column: 'condition', label: language.t('inventory.label.condition') },
 		{ column: 'quantity', label: language.t('ui.Quantity') }
 	]);
 	const conditionOptions = $derived([
@@ -172,6 +173,10 @@
 		{ value: 'nonfoil', label: language.t('notice.Nonfoil') },
 		{ value: 'foil', label: language.t('notice.Foil') }
 	]);
+	const finishLabel = (finish: string) =>
+		language.t(finish === 'foil' ? 'notice.Foil' : 'notice.Nonfoil');
+	const metadataLabel = (kind: InventoryMetadataKind, value: string) =>
+		kind === 'set' ? value.toUpperCase() : kind === 'finish' ? finishLabel(value) : value;
 	let hydrated = $state(false),
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null),
@@ -1004,7 +1009,7 @@
 			formData.has('notes');
 		const removing = action.searchParams.has('/remove');
 		pendingId = id;
-		status = 'Saving…';
+		status = language.t('ui.Saving');
 		mutationError = '';
 		return async ({ result, update }) => {
 			try {
@@ -1243,8 +1248,8 @@
 											name: 'ui.Name',
 											set: 'ui.Set',
 											newest: 'ui.Newest',
-											finish: 'ui.Finish',
-											condition: 'ui.Condition',
+											finish: 'inventory.label.finish',
+											condition: 'inventory.label.condition',
 											quantity: 'ui.Quantity'
 										} as const
 									)[value as 'name']
@@ -1271,8 +1276,8 @@
 											name: 'ui.Name',
 											set: 'ui.Set',
 											newest: 'ui.Newest',
-											finish: 'ui.Finish',
-											condition: 'ui.Condition',
+											finish: 'inventory.label.finish',
+											condition: 'inventory.label.condition',
 											quantity: 'ui.Quantity'
 										} as const
 									)[value as 'name']
@@ -1318,7 +1323,7 @@
 				><strong>{selectedGroup.name}</strong>
 			</div>{/if}
 		{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
-				{mutationError || form?.message}
+				{language.message(mutationError || form?.message)}
 			</p>{/if}
 		{#if groupDirectory}
 			{#key window.queryIdentity}<GroupDirectory
@@ -1523,14 +1528,12 @@
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('finish', event)}
 								>{language.t('ui.Finish')}
-								{selectedFinish === 'foil'
-									? language.t('notice.Foil')
-									: language.t('notice.Nonfoil')}</button
+								{finishLabel(selectedFinish)}</button
 							><button
 								type="button"
 								class="filter-chip-remove"
 								aria-label={language.t('message.Clear.finish.filter.p0', {
-									p0: String(selectedFinish)
+									p0: finishLabel(selectedFinish)
 								})}
 								onclick={() => (selectedFinish = 'all')}>×</button
 							>
@@ -1643,7 +1646,7 @@
 								aria-label={language.t('message.Inspect.p0.p1.p2.p3', {
 									p0: String(card.name),
 									p1: String(card.setCode.toUpperCase()),
-									p2: String(card.finish),
+									p2: finishLabel(card.finish),
 									p3: String(card.condition)
 								})}
 								aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
@@ -1687,14 +1690,15 @@
 						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
 						<span
 							class="owned-quantity"
-							aria-label={language.t('message.p0.owned.copies', { p0: String(card.quantity) })}
-							>{card.quantity}</span
+							aria-label={language.t(`inventory.owned.${language.plural(card.quantity)}`, {
+								count: language.number(card.quantity)
+							})}>{card.quantity}</span
 						>
 						<ActionMenu
 							label={language.t('message.Actions.for.p0.p1.p2.p3', {
 								p0: String(card.name),
 								p1: String(card.setCode.toUpperCase()),
-								p2: String(card.finish),
+								p2: finishLabel(card.finish),
 								p3: String(card.condition)
 							})}
 							iconOnly
@@ -1836,7 +1840,8 @@
 			<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
 				class="btn btn-destructive"
 				disabled={groupDeletion.pending}
-				type="submit">{groupDeletion.pending ? 'Deleting...' : language.t('ui.Delete.box')}</button
+				type="submit"
+				>{groupDeletion.pending ? language.t('ui.Deleting') : language.t('ui.Delete.box')}</button
 			>
 		</form>
 	</ConfirmationDialog>
@@ -1844,24 +1849,7 @@
 	<ConfirmationDialog
 		open={removeId !== null}
 		title={language.t('ui.Remove.this.entry')}
-		description={removing
-			? language.t(
-					'message.This.removes.p0.p1.p2.of.p3.p4.p5.p6.from.your.inventory.It.cannot.be.undone',
-					{
-						p0: String(removing.quantity > 1 ? 'all ' : ''),
-						p1: String(removing.quantity),
-						p2: String(
-							removing.quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')
-						),
-						p3: String(removing.name),
-						p4: String(removing.setCode.toUpperCase()),
-						p5: String(
-							removing.finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')
-						),
-						p6: String(removing.condition)
-					}
-				)
-			: ''}
+		description={removing ? describeInventoryRemoval(removing, language.locale) : ''}
 		pending={pendingId !== null}
 		error={language.message(mutationError)}
 		onCancel={cancelRemoval}
@@ -1879,7 +1867,7 @@
 				value={removing?.quantity ?? 0}
 			/>
 			<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
-				>{pendingId === removeId ? 'Removing…' : language.t('ui.Remove')}</button
+				>{pendingId === removeId ? language.t('ui.Removing') : language.t('ui.Remove')}</button
 			>
 		</form>
 	</ConfirmationDialog>
@@ -1947,11 +1935,14 @@
 			{/if}
 			{#if inspection?.mode === 'edit'}{@render editEntryActions(activeCard)}
 			{:else if inspection?.mode === 'details'}<p>
-					{language.t('sentence.p0.owned.copies.p1.p2', {
-						p0: String(inspected?.quantity ?? quantityBase),
-						p1: String(inspected?.finish ?? ''),
-						p2: String(inspected?.condition ?? '')
-					})}
+					{language.t(
+						`inventory.owned.details.${language.plural(inspected?.quantity ?? quantityBase)}`,
+						{
+							count: language.number(inspected?.quantity ?? quantityBase),
+							finish: inspected ? finishLabel(inspected.finish) : '',
+							condition: inspected?.condition ?? ''
+						}
+					)}
 				</p>
 				{#if notesDraft !== notesOriginal || quantityDraft !== quantityBase}<p>
 						{language.t('ui.Unsaved.entry.edits.retained')}
@@ -1981,9 +1972,7 @@
 					/>
 					<input type="hidden" name="entryId" value={inspected.id} />
 					<p>
-						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil'
-							? language.t('notice.Foil')
-							: language.t('notice.Nonfoil')} · {inspected.condition}
+						{inspected.setCode.toUpperCase()} · {finishLabel(inspected.finish)} · {inspected.condition}
 					</p>
 					{#if notesConflict}<p role="alert">
 							{language.t('ui.Latest.saved.Notes')}
@@ -2018,7 +2007,7 @@
 						type="submit"
 						class="btn btn-primary"
 						disabled={pendingId !== null || targetGone}
-						>{pendingId === inspected.id ? 'Saving…' : language.t('ui.Save')}</button
+						>{pendingId === inspected.id ? language.t('ui.Saving') : language.t('ui.Save')}</button
 					>{#if mutationError}<p class="mutation-error" role="alert">
 							{language.message(mutationError)}
 						</p>{:else}<p class="text-sm text-text-muted" role="status">
@@ -2039,20 +2028,14 @@
 		class="metadata-link"
 		href={metadataHref(kind, value)}
 		onclick={(event) => filterMetadata(event, kind, value)}
-		aria-label={language.t('message.Filter.by.p0.p1', { p0: String(kind), p1: String(value) })}
+		aria-label={language.t(`inventory.filter.${kind}`, { value: metadataLabel(kind, value) })}
 	>
 		<span
 			class="metadata-frame"
 			data-finish={kind === 'finish' ? value : undefined}
 			data-condition={kind === 'condition' ? value : undefined}
 			style={kind === 'set' ? `--metadata-color: ${inventorySetColor(value)}` : undefined}
-			>{kind === 'set'
-				? value.toUpperCase()
-				: kind === 'finish'
-					? value === 'foil'
-						? language.t('notice.Foil')
-						: language.t('notice.Nonfoil')
-					: value}</span
+			>{metadataLabel(kind, value)}</span
 		>
 	</a>
 {/snippet}

@@ -14,7 +14,7 @@ describe('demo credentials', () => {
 });
 
 import { readFileSync } from 'node:fs';
-import { generateLegalityWarnings } from '../../src/lib/server/mtg/legality';
+import { generateLegalityWarnings } from '@spellbook/contracts/legality.ts';
 import type { CardDocument } from '../../src/lib/search/types';
 
 it('ships demo card records usable by format checks, including cards without rules text', () => {
