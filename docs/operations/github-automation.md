@@ -35,6 +35,7 @@ Use Node 26.10.0, pnpm 12.8.1, Python 3.14.8 and uv 0.12.23. Verify a change by 
 
 ```sh
 pnpm install --frozen-lockfile
+pnpm setup:python
 pnpm check:changed            # against the merge base with the local origin/main
 pnpm check:changed <ref>      # against the merge base with another ref
 pnpm check:changed --list     # print the selected scopes and commands without running them
@@ -45,12 +46,15 @@ them with the [CI classifier](../../scripts/ci-changes.mjs) and runs the same
 [`scripts/ci-checks.mjs`](../../scripts/ci-checks.mjs) entries as the selected CI jobs, including
 the CI Scope documentation checks. Fetch `origin` first so the merge base is current. It prints each
 command, then a summary of scopes and step outcomes, and exits nonzero when a step fails. Provision
-the machine yourself; the command does not install dependencies. A step whose tool is not on `PATH`
-or whose service is unconfigured is reported as not run, never as passed: Compose configuration
-needs `podman-compose`, and Catalog worker tests need `WORKER_TEST_DATABASE_URL` for an exclusively
-assigned disposable PostgreSQL 18 database because they otherwise skip. It provides no evidence for
-the manual Application Integration and Android Build workflows, browser, PWA and QR checks,
-container builds or deployment; the sections below own those.
+the machine yourself; the command does not install dependencies. Python package checks test
+installed non-editable wheels, and uv keeps an installed project until its `pyproject.toml` changes,
+so run `pnpm setup:python` after Python source changes; CI starts from fresh environments. A step
+whose tool is not on `PATH` or whose service is unconfigured is reported as not run, never as
+passed: Compose configuration needs `podman-compose`, and Catalog worker tests need
+`WORKER_TEST_DATABASE_URL` for an exclusively assigned disposable PostgreSQL 18 database because
+they otherwise skip. It provides no evidence for the manual Application Integration and Android
+Build workflows, browser, PWA and QR checks, container builds or deployment; the sections below own
+those.
 
 The pnpm workspace owns frontend/contracts; independently locked Python packages own API/Core and
 workers. For a broader pass that includes the full build, run from the repository root in an
