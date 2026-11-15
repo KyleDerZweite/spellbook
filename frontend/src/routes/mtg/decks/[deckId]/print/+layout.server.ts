@@ -1,10 +1,10 @@
 import { translate } from '#lib/i18n/messages.ts';
 import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import type { LayoutServerLoad } from './$types';
 import { application } from '#lib/server/composition.ts';
 import { DeckNotFoundError } from '#lib/server/remote/errors.ts';
 
-export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
+export const load: LayoutServerLoad = async ({ locals, params, setHeaders }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks');
 	setHeaders({ 'cache-control': 'no-store' });
 	try {

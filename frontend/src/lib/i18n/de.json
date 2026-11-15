@@ -2,6 +2,8 @@
 	"language.choose": "Sprache der Website auswählen",
 	"cards.one": "{count} Karte",
 	"cards.other": "{count} Karten",
+	"printPages.one": "{count} A4-Seite",
+	"printPages.other": "{count} A4-Seiten",
 	"session.ended": "Deine Sitzung ist abgelaufen.",
 	"session.signIn": "Erneut anmelden",
 	"ui.Sign.in.QR.scanner": "QR-Scanner zur Anmeldung",
@@ -1232,5 +1234,13 @@
 	"inventory.remove.description.one": "Dies entfernt {count} Exemplar von {name} ({set}, {finish}, {condition}) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.",
 	"inventory.remove.description.other": "Dies entfernt alle {count} Exemplare von {name} ({set}, {finish}, {condition}) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.",
 	"search.color.any": "Beliebige Farbe",
-	"search.color.anyIdentity": "Beliebige Farbidentität"
+	"search.color.anyIdentity": "Beliebige Farbidentität",
+	"printSheet.loading": "Kartenbilder werden geladen: {loaded} von {total}",
+	"printSheet.pageLabel": "Seite {page} von {pages}",
+	"ui.Print.card.sheet.A4": "Kartenbogen drucken (A4)",
+	"ui.Card.sheet": "Kartenbogen",
+	"ui.Print.cards": "Karten drucken",
+	"ui.Card.images.are.ready.to.print": "Die Kartenbilder sind druckbereit.",
+	"ui.Print.on.A4.paper.at.100.scale": "Drucke auf A4-Papier mit 100 % Skalierung (tatsächliche Größe), damit jede Karte ihre echte Größe von 63 × 88 mm behält.",
+	"ui.Some.card.images.are.unavailable": "Einige Kartenbilder sind nicht verfügbar. Ihre Plätze zeigen stattdessen den Kartennamen."
 }

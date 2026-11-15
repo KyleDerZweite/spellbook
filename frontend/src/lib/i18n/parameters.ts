@@ -53,6 +53,10 @@ export interface MessageParameters {
 	'validation.mana': { example: string | number };
 	'cards.one': { count: string | number };
 	'cards.other': { count: string | number };
+	'printPages.one': { count: string | number };
+	'printPages.other': { count: string | number };
+	'printSheet.loading': { loaded: string | number; total: string | number };
+	'printSheet.pageLabel': { page: string | number; pages: string | number };
 	'printing.one': { count: string | number };
 	'printing.other': { count: string | number };
 	'unique.one': { count: string | number };

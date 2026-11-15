@@ -24,7 +24,7 @@ vi.mock('#lib/server/composition.ts', () => ({
 vi.mock('#lib/server/mtg/deck-builder.ts', () => ({ exportDecklist: mocks.export }));
 import { actions, load } from '../../src/routes/mtg/decks/import/+page.server.ts';
 import { GET } from '../../src/routes/mtg/decks/[deckId]/export/+server.ts';
-import { load as printLoad } from '../../src/routes/mtg/decks/[deckId]/print/+page.server.ts';
+import { load as printLoad } from '../../src/routes/mtg/decks/[deckId]/print/+layout.server.ts';
 
 function event(fields: Record<string, string> = {}, user: object | null = { accountId: 'owner' }) {
 	return {
@@ -192,7 +192,6 @@ describe('authenticated downloads and print', () => {
 		const { body } = render(PrintPage, {
 			props: {
 				params: { deckId: 'owned' },
-				form: null,
 				data: {
 					deck: {
 						id: 'owned',

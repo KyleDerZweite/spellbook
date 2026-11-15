@@ -641,6 +641,30 @@ button:disabled {
 	}
 }
 
+/* Print views mark their root with `print-document`; printing then hides the application shell. */
+@media print {
+	html:has(.print-document) {
+		color-scheme: light;
+	}
+	html:has(.print-document),
+	body:has(.print-document),
+	body:has(.print-document) .app-shell {
+		background: white !important;
+		color: black !important;
+		min-height: 0;
+		padding: 0;
+	}
+	body:has(.print-document) .app-shell > :not(main),
+	body:has(.print-document) .app-main > :not(.app-content),
+	body:has(.print-document) .app-content > :not(.print-document) {
+		display: none !important;
+	}
+	body:has(.print-document) .app-main,
+	body:has(.print-document) .app-content {
+		display: block;
+	}
+}
+
 /* Shared outer width for every account workspace. */
 .workspace-container {
 	width: min(calc(100% - 2rem), var(--layout-wide-width));

@@ -748,6 +748,10 @@
 							},
 							{ label: language.t('ui.Print.deck'), href: `/mtg/decks/${selectedDeck.id}/print` },
 							{
+								label: language.t('ui.Print.card.sheet.A4'),
+								href: `/mtg/decks/${selectedDeck.id}/print/cards`
+							},
+							{
 								label: language.t('ui.Delete.deck'),
 								destructive: true,
 								onSelect: () => openEditor('delete')
@@ -1162,6 +1166,10 @@
 					>{language.t('ui.Export.simple.text')}</a
 				>
 				· <a href={`/mtg/decks/${selectedDeck.id}/print`}>{language.t('ui.Print.deck')}</a> ·
+				<a href={`/mtg/decks/${selectedDeck.id}/print/cards`}
+					>{language.t('ui.Print.card.sheet.A4')}</a
+				>
+				·
 				<a href={flowHref('delete')}>{language.t('ui.Delete.deck')}</a>
 				· <a href={flowHref('search')}>{language.t('ui.Find.cards')}</a>
 			</nav></noscript

@@ -18,7 +18,7 @@
 		content="noindex"
 	/></svelte:head
 >
-<article class="deck-print workspace-container">
+<article class="deck-print print-document workspace-container">
 	<div class="print-actions">
 		<Button onclick={() => window.print()}>{language.t('ui.Print.deck')}</Button><Button
 			href={`/mtg/decks?deck=${data.deck.id}`}
@@ -126,26 +126,8 @@
 			margin: 14mm;
 			background: white;
 		}
-		:global(html:has(.deck-print)) {
-			color-scheme: light;
-		}
-		:global(html:has(.deck-print)),
-		:global(body:has(.deck-print)),
-		:global(body:has(.deck-print) .app-shell) {
-			background: white !important;
-			color: black !important;
-			min-height: 0;
-			padding: 0;
-		}
-		:global(body:has(.deck-print) .app-shell > :not(main)),
-		:global(body:has(.deck-print) .app-main > :not(.app-content)),
-		:global(body:has(.deck-print) .app-content > :not(.deck-print)),
 		.print-actions {
 			display: none !important;
-		}
-		:global(body:has(.deck-print) .app-main),
-		:global(body:has(.deck-print) .app-content) {
-			display: block;
 		}
 		.deck-print {
 			width: 100%;

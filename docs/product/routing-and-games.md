@@ -1,7 +1,7 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-14
 - Source of Truth: route handlers and server hooks
 - Update Triggers:
   - Deck import/download/print routes
@@ -62,6 +62,7 @@ The [web routes](../../frontend/src/routes/) own pages and the same-origin API p
 | `/mtg/decks`                               | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
 | `/mtg/decks/import`                        | Authenticated preview and explicit creation of a complete new Deck                |
 | `/mtg/decks/[deckId]/print`                | Authenticated native browser print view of an owned Deck                          |
+| `/mtg/decks/[deckId]/print/cards`          | Authenticated DIN A4 card image sheet of an owned Deck for browser printing       |
 | `/mtg/decks/[deckId]/export`               | Authenticated Arena/simple text, CSV or Spellbook JSON download of an owned Deck  |
 | `/settings`                                | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
 | `/settings/profile-card`                   | Authenticated private card editor and artwork save; excluded from indexing        |
