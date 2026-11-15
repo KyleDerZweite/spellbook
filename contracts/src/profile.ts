@@ -81,5 +81,6 @@ export interface SummaryFailure {
 export const SUMMARY_RANGE_MESSAGE = 'Your collection totals exceed the supported reporting range.';
 export interface SummaryOutOfRangeResponse {
 	status: 503;
+	kind: 'SummaryOutOfRange';
 	message: typeof SUMMARY_RANGE_MESSAGE;
 }

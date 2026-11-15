@@ -162,6 +162,7 @@ def test_public_prices_are_open_private_prices_require_auth_and_errors_are_503()
         response = await invoke(routes[0], request(query=query))
         assert response.status_code == 503
         assert json.loads(bytes(response.body)) == {
+            "kind": "PriceReadUnavailable",
             "message": "Reference prices are temporarily unavailable.",
             "status": 503,
         }

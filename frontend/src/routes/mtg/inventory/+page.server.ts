@@ -3,6 +3,11 @@ import type { Locale } from '#lib/i18n/locale.ts';
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import {
+	InventoryGroupConflictError,
+	InventoryGroupNotFoundError,
+	InventoryGroupNameError
+} from '#lib/server/remote/errors.ts';
+import {
 	InventoryQuantityChangedError,
 	InventoryNotFoundError,
 	NotesConflictError,
@@ -16,6 +21,7 @@ import {
 	replaceInventoryGroupMemberships
 } from '#lib/server/data/inventory-groups.ts';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
+import { RemoteError } from '#lib/server/remote/errors.ts';
 import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
 import { inventoryApplication } from '#lib/server/data/inventory-window.ts';
@@ -26,14 +32,14 @@ import {
 } from '#lib/server/data/inventory-browsing.ts';
 import { browsePaginationHref } from '#lib/browsing/pagination.ts';
 
-function inventoryDisplayMessage(locale: Locale, message: string): string {
-	if (message === 'Inventory group not found')
+function inventoryDisplayMessage(locale: Locale, cause: unknown): string {
+	if (cause instanceof InventoryGroupNotFoundError)
 		return localizeMessage(locale, 'Inventory box not found');
-	if (message === 'A group with this name already exists')
+	if (cause instanceof InventoryGroupConflictError)
 		return localizeMessage(locale, 'A box with this name already exists');
-	if (message === 'Group name must contain 1 to 64 characters')
+	if (cause instanceof InventoryGroupNameError)
 		return localizeMessage(locale, 'Box name must contain 1 to 64 characters');
-	return localizeMessage(locale, message);
+	return localizeMessage(locale, cause instanceof Error ? cause.message : '');
 }
 
 export const load: PageServerLoad = async ({ locals, parent, url, request }) => {
@@ -88,19 +94,14 @@ export const load: PageServerLoad = async ({ locals, parent, url, request }) => 
 			}
 		};
 	} catch (cause) {
-		if (
-			cause &&
-			typeof cause === 'object' &&
-			'kind' in cause &&
-			cause.kind === 'InvalidInventoryCount'
-		)
+		if (cause instanceof RemoteError && cause.kind === 'InvalidInventoryCount')
 			error(500, 'Inventory totals cannot be represented exactly.');
-		if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
+		if (cause instanceof RemoteError && cause.kind === 'Unauthenticated')
 			error(401, 'Authentication required');
+		if (cause instanceof InventoryGroupNotFoundError)
+			error(404, inventoryDisplayMessage(locals.locale, cause));
 		if (cause instanceof ValidationError) {
-			if (cause.message === 'Inventory group not found')
-				error(404, inventoryDisplayMessage(locals.locale, cause.message));
-			error(400, inventoryDisplayMessage(locals.locale, cause.message));
+			error(400, inventoryDisplayMessage(locals.locale, cause));
 		}
 		throw cause;
 	}
@@ -127,20 +128,20 @@ function mutationFailure(
 ): ActionFailure<InventoryFormFailure> {
 	if (cause instanceof NotesConflictError)
 		return fail(409, {
-			message: inventoryDisplayMessage(locale, cause.message),
+			message: inventoryDisplayMessage(locale, cause),
 			notesRecovery: draft,
 			latestNotes: cause.latest
 		});
 	if (cause instanceof InventoryQuantityChangedError || cause instanceof RequestConflictError)
-		return fail(409, { message: inventoryDisplayMessage(locale, cause.message) });
+		return fail(409, { message: inventoryDisplayMessage(locale, cause) });
 	if (cause instanceof InventoryNotFoundError)
 		return fail(404, {
-			message: inventoryDisplayMessage(locale, cause.message),
+			message: inventoryDisplayMessage(locale, cause),
 			notesRecovery: draft
 		});
 	if (cause instanceof ValidationError)
 		return fail(400, {
-			message: inventoryDisplayMessage(locale, cause.message),
+			message: inventoryDisplayMessage(locale, cause),
 			notesRecovery: draft
 		});
 	throw cause;
