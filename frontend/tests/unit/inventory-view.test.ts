@@ -2,6 +2,7 @@ import { createLanguage } from '../../src/lib/i18n/context.ts';
 import { describe, expect, it } from 'vitest';
 import {
 	describeInventoryOrder,
+	describeInventoryRemoval,
 	inventorySetColor,
 	isNewInventoryEntry,
 	nextInventoryOrder,
@@ -160,5 +161,59 @@ describe('localized Inventory presentation', () => {
 				);
 			}
 		}
+	});
+	it('describes entry removal as one complete singular or plural message', () => {
+		const entry = { name: 'Llanowar Elves', setCode: 'dom', finish: 'foil', condition: 'NM' };
+		expect(describeInventoryRemoval({ ...entry, quantity: 1 }, 'en')).toBe(
+			'This removes 1 copy of Llanowar Elves (DOM, Foil, NM) from your inventory. It cannot be undone.'
+		);
+		expect(describeInventoryRemoval({ ...entry, quantity: 1200 }, 'en')).toBe(
+			'This removes all 1,200 copies of Llanowar Elves (DOM, Foil, NM) from your inventory. It cannot be undone.'
+		);
+		expect(describeInventoryRemoval({ ...entry, quantity: 1, finish: 'nonfoil' }, 'de')).toBe(
+			'Dies entfernt 1 Exemplar von Llanowar Elves (DOM, Nicht-Foil, NM) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.'
+		);
+		expect(describeInventoryRemoval({ ...entry, quantity: 1200 }, 'de')).toBe(
+			'Dies entfernt alle 1.200 Exemplare von Llanowar Elves (DOM, Foil, NM) aus deinem Bestand. Dies kann nicht rückgängig gemacht werden.'
+		);
+	});
+	it('translates Inventory pending labels', () => {
+		const keys = ['ui.Saving', 'ui.Removing', 'ui.Deleting'] as const;
+		const labels = (locale: 'en' | 'de') => keys.map((key) => createLanguage(() => locale).t(key));
+		expect(labels('en')).toEqual(['Saving...', 'Removing...', 'Deleting...']);
+		expect(labels('de')).toEqual(['Wird gespeichert...', 'Wird entfernt...', 'Wird gelöscht...']);
+	});
+	it('labels Inventory sort columns without form-label punctuation', () => {
+		const columns = (locale: 'en' | 'de') => {
+			const language = createLanguage(() => locale);
+			return [language.t('inventory.label.finish'), language.t('inventory.label.condition')];
+		};
+		expect(columns('en')).toEqual(['Finish', 'Condition']);
+		expect(columns('de')).toEqual(['Veredelung', 'Zustand']);
+	});
+	it('describes owned copies and metadata filters as complete messages', () => {
+		const english = createLanguage(() => 'en');
+		const german = createLanguage(() => 'de');
+		for (const [count, en, de] of [
+			[1, '1 owned copy', '1 eigenes Exemplar'],
+			[1200, '1,200 owned copies', '1.200 eigene Exemplare']
+		] as const) {
+			expect(
+				english.t(`inventory.owned.${english.plural(count)}`, { count: english.number(count) })
+			).toBe(en);
+			expect(
+				german.t(`inventory.owned.${german.plural(count)}`, { count: german.number(count) })
+			).toBe(de);
+		}
+		expect(
+			german.t('inventory.owned.details.one', { count: 1, finish: 'Foil', condition: 'NM' })
+		).toBe('1 eigenes Exemplar · Foil · NM');
+		expect(english.t('inventory.filter.finish', { value: 'Nonfoil' })).toBe(
+			'Filter by finish Nonfoil'
+		);
+		expect(german.t('inventory.filter.finish', { value: 'Nicht-Foil' })).toBe(
+			'Nach Veredelung Nicht-Foil filtern'
+		);
+		expect(german.t('inventory.filter.set', { value: 'NEO' })).toBe('Nach Set NEO filtern');
 	});
 });
