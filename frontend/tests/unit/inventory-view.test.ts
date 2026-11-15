@@ -191,4 +191,29 @@ describe('localized Inventory presentation', () => {
 		expect(columns('en')).toEqual(['Finish', 'Condition']);
 		expect(columns('de')).toEqual(['Veredelung', 'Zustand']);
 	});
+	it('describes owned copies and metadata filters as complete messages', () => {
+		const english = createLanguage(() => 'en');
+		const german = createLanguage(() => 'de');
+		for (const [count, en, de] of [
+			[1, '1 owned copy', '1 eigenes Exemplar'],
+			[1200, '1,200 owned copies', '1.200 eigene Exemplare']
+		] as const) {
+			expect(
+				english.t(`inventory.owned.${english.plural(count)}`, { count: english.number(count) })
+			).toBe(en);
+			expect(
+				german.t(`inventory.owned.${german.plural(count)}`, { count: german.number(count) })
+			).toBe(de);
+		}
+		expect(
+			german.t('inventory.owned.details.one', { count: 1, finish: 'Foil', condition: 'NM' })
+		).toBe('1 eigenes Exemplar · Foil · NM');
+		expect(english.t('inventory.filter.finish', { value: 'Nonfoil' })).toBe(
+			'Filter by finish Nonfoil'
+		);
+		expect(german.t('inventory.filter.finish', { value: 'Nicht-Foil' })).toBe(
+			'Nach Veredelung Nicht-Foil filtern'
+		);
+		expect(german.t('inventory.filter.set', { value: 'NEO' })).toBe('Nach Set NEO filtern');
+	});
 });

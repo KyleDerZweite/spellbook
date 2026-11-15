@@ -173,6 +173,10 @@
 		{ value: 'nonfoil', label: language.t('notice.Nonfoil') },
 		{ value: 'foil', label: language.t('notice.Foil') }
 	]);
+	const finishLabel = (finish: string) =>
+		language.t(finish === 'foil' ? 'notice.Foil' : 'notice.Nonfoil');
+	const metadataLabel = (kind: InventoryMetadataKind, value: string) =>
+		kind === 'set' ? value.toUpperCase() : kind === 'finish' ? finishLabel(value) : value;
 	let hydrated = $state(false),
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null),
@@ -1524,17 +1528,12 @@
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('finish', event)}
 								>{language.t('ui.Finish')}
-								{selectedFinish === 'foil'
-									? language.t('notice.Foil')
-									: language.t('notice.Nonfoil')}</button
+								{finishLabel(selectedFinish)}</button
 							><button
 								type="button"
 								class="filter-chip-remove"
 								aria-label={language.t('message.Clear.finish.filter.p0', {
-									p0:
-										selectedFinish === 'foil'
-											? language.t('notice.Foil')
-											: language.t('notice.Nonfoil')
+									p0: finishLabel(selectedFinish)
 								})}
 								onclick={() => (selectedFinish = 'all')}>×</button
 							>
@@ -1647,7 +1646,7 @@
 								aria-label={language.t('message.Inspect.p0.p1.p2.p3', {
 									p0: String(card.name),
 									p1: String(card.setCode.toUpperCase()),
-									p2: String(card.finish),
+									p2: finishLabel(card.finish),
 									p3: String(card.condition)
 								})}
 								aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
@@ -1691,14 +1690,15 @@
 						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
 						<span
 							class="owned-quantity"
-							aria-label={language.t('message.p0.owned.copies', { p0: String(card.quantity) })}
-							>{card.quantity}</span
+							aria-label={language.t(`inventory.owned.${language.plural(card.quantity)}`, {
+								count: language.number(card.quantity)
+							})}>{card.quantity}</span
 						>
 						<ActionMenu
 							label={language.t('message.Actions.for.p0.p1.p2.p3', {
 								p0: String(card.name),
 								p1: String(card.setCode.toUpperCase()),
-								p2: String(card.finish),
+								p2: finishLabel(card.finish),
 								p3: String(card.condition)
 							})}
 							iconOnly
@@ -1935,11 +1935,14 @@
 			{/if}
 			{#if inspection?.mode === 'edit'}{@render editEntryActions(activeCard)}
 			{:else if inspection?.mode === 'details'}<p>
-					{language.t('sentence.p0.owned.copies.p1.p2', {
-						p0: String(inspected?.quantity ?? quantityBase),
-						p1: String(inspected?.finish ?? ''),
-						p2: String(inspected?.condition ?? '')
-					})}
+					{language.t(
+						`inventory.owned.details.${language.plural(inspected?.quantity ?? quantityBase)}`,
+						{
+							count: language.number(inspected?.quantity ?? quantityBase),
+							finish: inspected ? finishLabel(inspected.finish) : '',
+							condition: inspected?.condition ?? ''
+						}
+					)}
 				</p>
 				{#if notesDraft !== notesOriginal || quantityDraft !== quantityBase}<p>
 						{language.t('ui.Unsaved.entry.edits.retained')}
@@ -1969,9 +1972,7 @@
 					/>
 					<input type="hidden" name="entryId" value={inspected.id} />
 					<p>
-						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil'
-							? language.t('notice.Foil')
-							: language.t('notice.Nonfoil')} · {inspected.condition}
+						{inspected.setCode.toUpperCase()} · {finishLabel(inspected.finish)} · {inspected.condition}
 					</p>
 					{#if notesConflict}<p role="alert">
 							{language.t('ui.Latest.saved.Notes')}
@@ -2027,20 +2028,14 @@
 		class="metadata-link"
 		href={metadataHref(kind, value)}
 		onclick={(event) => filterMetadata(event, kind, value)}
-		aria-label={language.t('message.Filter.by.p0.p1', { p0: String(kind), p1: String(value) })}
+		aria-label={language.t(`inventory.filter.${kind}`, { value: metadataLabel(kind, value) })}
 	>
 		<span
 			class="metadata-frame"
 			data-finish={kind === 'finish' ? value : undefined}
 			data-condition={kind === 'condition' ? value : undefined}
 			style={kind === 'set' ? `--metadata-color: ${inventorySetColor(value)}` : undefined}
-			>{kind === 'set'
-				? value.toUpperCase()
-				: kind === 'finish'
-					? value === 'foil'
-						? language.t('notice.Foil')
-						: language.t('notice.Nonfoil')
-					: value}</span
+			>{metadataLabel(kind, value)}</span
 		>
 	</a>
 {/snippet}
