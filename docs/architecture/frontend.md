@@ -1,7 +1,7 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-11-10
+- Last Reviewed: 2026-11-14
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
 - Update Triggers:
   - Website shell and presentation:
@@ -445,7 +445,8 @@ Create complete Deck submission. An unconfirmed new-Deck commit offers a retry w
 content and request ID. The selected Deck's Import decklist dialog also accepts uploads and states
 its additive semantics. Unresolved or unsupported records disable its commit, and Core independently
 rejects partial imports. Deck actions exposes Arena, simple text, CSV and Spellbook JSON downloads
-plus `/mtg/decks/[deckId]/print`. Native task links retain these entrypoints without JavaScript.
+plus `/mtg/decks/[deckId]/print` and `/mtg/decks/[deckId]/print/cards`. Native task links retain
+these entrypoints without JavaScript.
 
 The authenticated print page uses the owned selected Deck read model and renders Commander, Main
 Deck, Sideboard and Companion with actual quantities and stored printing IDs. Related Tokens form a
@@ -454,6 +455,16 @@ separate supplemental reference appendix without requirement counts. A user-init
 JavaScript. Print CSS removes application navigation/actions, uses paper colors, wraps long names
 and printing IDs, repeats table headers and avoids splitting ordinary card rows. Rendered acceptance
 must check page breaks, responsive layout and the native print dialog.
+
+Both print views share one layout load of the owned Deck and mark their root with `print-document`,
+which global print CSS uses to hide the application shell. The
+[card sheet](../product/specification.md#deck-card-sheet) expands entries into copies and nine-card
+pages in [print-sheet.ts](../../frontend/src/lib/decks/print-sheet.ts). Each page is a fixed 210 mm
+× 297 mm grid on the named `card-sheet` page with zero browser margin, so the screen preview and the
+printout share one geometry. Image `load` and `error` events, plus images already complete at
+hydration, settle slots; Print cards stays disabled until all slots settle, and failed images fall
+back to the card name. Verify changes with a headless Chromium PDF that checks A4 pages, the page
+count and 63 mm × 88 mm card boxes.
 
 The feature-specific [DeckSaveLifecycle](../../frontend/src/lib/decks/save-lifecycle.ts) guards
 completion by action, active account/Deck scope and exact editor or Inspector opening. Row saves

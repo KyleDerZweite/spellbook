@@ -15,6 +15,7 @@
     - Market reference values, Inventory history and native Demo evaluation.
   - Catalog, Inventory and Decks:
     - Catalog identity, Inventory and Deck behavior, and import formats.
+    - Deck export formats and the DIN A4 card sheet layout.
     - Deck Library ownership filters and views, and managed Category removal.
     - Inventory metadata shortcuts, compact read-only rows and UTC New badges.
     - Bounded Inventory loading, scaling evidence and API contracts.
@@ -417,7 +418,8 @@ submissions while preserving visible error recovery.
 
 Import and export belong in this workspace. The user must review imported text before committing it.
 The preview must show malformed, unresolved, ambiguous, or unsupported lines. An export must be a
-downloadable or copyable plain-text decklist with supported sections.
+downloadable or copyable plain-text decklist with supported sections. Deck actions also open the
+[DIN A4 card sheet](#deck-card-sheet) for printing card images.
 
 Drag-and-drop, deck tags, maybeboard persistence, playtesting, deck sharing, collaboration, and a
 full rules engine are not required for this builder.
@@ -474,6 +476,27 @@ Deck text export preserves quantities and role sections. Exact printing round tr
 available printing metadata. The exporter enriches entries with collector numbers when the local
 catalog provides them; fallback text may contain only a name and set. It is not a complete archival
 export of database state.
+
+### Deck card sheet
+
+The authenticated `/mtg/decks/[deckId]/print/cards` view prints the cards the Deck text export
+covers: every entry in every Deck role, with one printed card per required copy, so an entry with
+quantity three prints three cards. Copies follow Commander, Main Deck, Sideboard and Companion
+order. Related Tokens are not printed. Each card shows the stored image of the entry's selected
+Printing, the same image the Deck workspace displays.
+
+Printing uses the browser print dialog on DIN A4 portrait paper. Each page holds 3 × 3 cards at the
+real card size of 63 mm × 88 mm with 3 mm gaps, 7.5 mm left and right margins and 13.5 mm top and
+bottom margins, so a Deck with `n` cards prints `ceil(n / 9)` pages and only the last page may be
+partly filled. The layout uses fixed millimetre units and its own zero-margin A4 page rule, so it
+does not depend on the viewport. Cards do not overlap, are not clipped and never split across pages.
+The Print cards action stays disabled until every card image has loaded or failed. A card without a
+stored image, or whose image fails to load, keeps its slot and shows its card name.
+
+Known limits: double-faced cards print only the stored front-face image, and back faces are not
+added. The output contains no cut marks, bleed, other paper sizes or layout options, and Spellbook
+does not generate a PDF; users can save as PDF from the browser dialog. Real size requires printing
+at 100% scale (actual size); browser or printer scaling such as "fit to page" changes the card size.
 
 Warnings cover basic deck size, commander counts and singleton requirements, constructed copy
 limits, Vintage restricted-card quantities, and available catalog legality data. Commander size

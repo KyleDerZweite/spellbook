@@ -2,6 +2,8 @@
 	"language.choose": "Choose website language",
 	"cards.one": "{count} card",
 	"cards.other": "{count} cards",
+	"printPages.one": "{count} A4 page",
+	"printPages.other": "{count} A4 pages",
 	"session.ended": "Your session has ended.",
 	"session.signIn": "Sign in again",
 	"ui.Sign.in.QR.scanner": "Sign-in QR scanner",
@@ -1223,5 +1225,13 @@
 	"inventory.column.condition": "condition",
 	"inventory.column.quantity": "quantity",
 	"search.color.any": "Any color",
-	"search.color.anyIdentity": "Any color identity"
+	"search.color.anyIdentity": "Any color identity",
+	"printSheet.loading": "Loading card images: {loaded} of {total}",
+	"printSheet.pageLabel": "Page {page} of {pages}",
+	"ui.Print.card.sheet.A4": "Print card sheet (A4)",
+	"ui.Card.sheet": "Card sheet",
+	"ui.Print.cards": "Print cards",
+	"ui.Card.images.are.ready.to.print": "Card images are ready to print.",
+	"ui.Print.on.A4.paper.at.100.scale": "Print on A4 paper at 100% scale (actual size) so every card keeps its real size of 63 × 88 mm.",
+	"ui.Some.card.images.are.unavailable": "Some card images are unavailable. Their slots show the card name instead."
 }
