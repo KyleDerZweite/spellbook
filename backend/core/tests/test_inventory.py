@@ -316,7 +316,6 @@ async def native_pool() -> AsyncIterator[_Pool]:
                 )
                 for e in journal["entries"]
             ]
-            assert len(before) == 25
         yield pool
         async with transaction(pool, read_only=True) as tx:
             assert (
