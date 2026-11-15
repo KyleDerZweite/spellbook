@@ -1,11 +1,13 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-14
+- Last Reviewed: 2026-11-15
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers:
-  - Local checks, runtime pins, installed Python packages and canonical operator commands
-  - CI scope, workflow coverage, conditional boundaries and manual heavy workflows
+  - Local checks, `check:changed` selection, runtime pins, installed Python packages and canonical
+    operator commands
+  - CI scope, shared CI check commands, workflow coverage, conditional boundaries and manual heavy
+    workflows
   - HTTP validation, listener lifecycle, resource cleanup and graceful test-process shutdown
   - Application, Core, State, transient Scan and worker integration evidence and replay fixtures
   - Browser, PWA, QR and native Android acceptance, prerequisites and unavailable target evidence
@@ -29,9 +31,30 @@ behavior; do not treat a passing command as proof of requirements it does not ex
 
 ## Local checks
 
-Use Node 26.10.0, pnpm 12.8.1, Python 3.14.8 and uv 0.12.23. The pnpm workspace owns
-frontend/contracts; independently locked Python packages own API/Core and workers. Run from the
-repository root in an isolated worktree:
+Use Node 26.10.0, pnpm 12.8.1, Python 3.14.8 and uv 0.12.23. Verify a change by default with:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check:changed            # against the merge base with the local origin/main
+pnpm check:changed <ref>      # against the merge base with another ref
+pnpm check:changed --list     # print the selected scopes and commands without running them
+```
+
+`check:changed` collects committed, uncommitted and untracked paths since the merge base, classifies
+them with the [CI classifier](../../scripts/ci-changes.mjs) and runs the same
+[`scripts/ci-checks.mjs`](../../scripts/ci-checks.mjs) entries as the selected CI jobs, including
+the CI Scope documentation checks. Fetch `origin` first so the merge base is current. It prints each
+command, then a summary of scopes and step outcomes, and exits nonzero when a step fails. Provision
+the machine yourself; the command does not install dependencies. A step whose tool is not on `PATH`
+or whose service is unconfigured is reported as not run, never as passed: Compose configuration
+needs `podman-compose`, and Catalog worker tests need `WORKER_TEST_DATABASE_URL` for an exclusively
+assigned disposable PostgreSQL 18 database because they otherwise skip. It provides no evidence for
+the manual Application Integration and Android Build workflows, browser, PWA and QR checks,
+container builds or deployment; the sections below own those.
+
+The pnpm workspace owns frontend/contracts; independently locked Python packages own API/Core and
+workers. For a broader pass that includes the full build, run from the repository root in an
+isolated worktree:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -67,7 +90,7 @@ ordinary checks once, then broaden only for changes or unresolved failures.
 
 For local routing or workflow changes, run `node --test scripts/ci-changes.test.mjs` directly. Run
 `CI_EVENT_NAME=pull_request CI_BASE_SHA=<base-sha> CI_HEAD_SHA=<head-sha> node scripts/ci-changes.mjs`
-to inspect selected scopes.
+to inspect the scopes of a specific CI comparison.
 
 For genuine client/API acceptance, supply matching `DATABASE_URL` and `TEST_DATABASE_URL` for an
 exclusively assigned disposable PostgreSQL 18 database. Apply migrations explicitly before tests;
@@ -395,7 +418,13 @@ and manual dispatch. It has four jobs. The short `CI Scope` job first runs the d
 [Markdown width check and fixtures](../../scripts/docs.mjs) for every change. It then runs the
 native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and
 [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies. The
-three substantive jobs depend on successful classification and can run in parallel:
+three substantive jobs depend on successful classification and can run in parallel. Each job
+provisions its tools, then runs
+`node scripts/ci-checks.mjs <scope|application|python-backend|workers>`; that script owns the check
+commands, prints a log group per command and fails the step when any command fails or cannot run.
+Python API/Core and Python Workers pass the CI Scope outputs as `CI_SCOPE` to select their
+conditional package checks. Python commands run through `uvx --from uv==0.12.23 uv`, as the root
+package scripts do:
 
 | Job                | Checks                                                                                                                                            | Automatic scope                                                         |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |

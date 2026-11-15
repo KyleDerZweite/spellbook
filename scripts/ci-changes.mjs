@@ -32,6 +32,7 @@ export function classifyPaths(paths) {
 		if (
 			path.startsWith('.github/') ||
 			path.startsWith('scripts/ci-changes') ||
+			path === 'scripts/ci-checks.mjs' ||
 			path === '.dockerignore' ||
 			path === 'scripts/python.mjs'
 		)
