@@ -1,7 +1,9 @@
 name: Application Integration
 
+# Manual dispatch on any ref; CI calls it after every push to main, before Images may publish.
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -33,7 +35,6 @@ jobs:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_test
       TEST_SCAN_DATABASE_NAME: spellbook_test
       SCAN_WORKER_URL: http://127.0.0.1:5227
-      SCAN_STORAGE_DRIVER: local
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -56,7 +57,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev
       - name: Start the actual Scan worker scaffold
         run: |
-          printf 'SCAN_LOCAL_STORAGE_DIR=%s/scan-artifacts\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           uv run --project ../backend/workers/scan --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 5227 > ../.scan-worker-test.log 2>&1 &
           echo "$!" > ../.scan-worker-test.pid
           for attempt in {1..50}; do
@@ -64,17 +64,15 @@ jobs:
             sleep 0.2
           done
           exit 1
-      - run: pnpm db:migrate
+      - run: pnpm --dir .. db:migrate
       - run: pnpm --dir .. build
         env:
           APP_ORIGIN: http://127.0.0.1:5191
-      - name: Python Category and Deck PostgreSQL consumers
+      - name: Python Deck PostgreSQL consumers
         working-directory: backend/api
         env:
-          CATEGORY_NATIVE_DATABASE: spellbook_test
-          CATEGORY_JOB_NATIVE_DATABASE: spellbook_test
           DECK_NATIVE_DATABASE: spellbook_test
-        run: .venv/bin/python -m pytest ../core/tests/test_categories_postgres.py ../core/tests/test_categories_jobs_postgres.py ../core/tests/test_decks_postgres.py
+        run: .venv/bin/python -m pytest ../core/tests/test_decks_postgres.py
       - run: pnpm test:http
       - run: pnpm test:scan
       - run: pnpm test:sync

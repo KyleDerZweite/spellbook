@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-14
+- Last Reviewed: 2026-11-15
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
@@ -244,7 +244,11 @@ retained data.
 
 ### CI images and release tags
 
-The [Images workflow](../../.github/workflows/images.yml) runs after a successful `main` push CI. It
+The [Images workflow](../../.github/workflows/images.yml) runs after a successful `main` push CI.
+That run includes the [Application Integration suites](./github-automation.md#ci-coverage), so every
+published image belongs to a commit that passed PostgreSQL migrations, the guarded Deck PostgreSQL
+tests and the HTTP, Scan and SavedState suites against the built web and installed API. Browser
+rendering, Android and the guarded suites that CI does not run remain separate evidence. Images
 builds every hosted image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and
 `frontend` to `ghcr.io/kylederzweite/spellbook-<name>:sha-<full SHA>`; `db-migrate` reuses the `api`
 image. Then a serialized job moves the `main` tag to the newest `main` commit whose five images are

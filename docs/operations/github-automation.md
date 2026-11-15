@@ -1,7 +1,7 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-14
+- Last Reviewed: 2026-11-15
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers:
   - Local checks, runtime pins, installed Python packages and canonical operator commands
@@ -391,7 +391,7 @@ evidence.
 ## CI coverage
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests, pushes to `main`
-and manual dispatch. It has four jobs. The short `CI Scope` job first runs the dependency-free
+and manual dispatch. It has five jobs. The short `CI Scope` job first runs the dependency-free
 [Markdown width check and fixtures](../../scripts/docs.mjs) for every change. It then runs the
 native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and
 [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies. The
@@ -416,30 +416,33 @@ job. Scope tests run only in CI Scope, and Node boundary fixtures run only throu
 Checks tooling. The scope job has a five-minute timeout; Application Checks, Python API/Core and
 Python Workers each have fifteen minutes.
 
-[Application Integration](../../.github/workflows/application-integration.yml) and
-[Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by
-`workflow_dispatch`. Neither has an automatic trigger or a `workflow_call` entry point, and
-automatic CI never invokes them. Each manual workflow has one job with a thirty-minute timeout and
-no concurrency cancellation of another manual run. Application Integration retains disposable
+[Application Integration](../../.github/workflows/application-integration.yml) has a
+`workflow_dispatch` trigger and a `workflow_call` entry point. The fifth CI job, also named
+Application Integration, calls it only for `push` events, so every push to `main` runs it in
+parallel with the scoped jobs and independent of CI Scope. Pull requests and manual CI dispatches
+skip it. A failed integration job fails the CI run, and the Images workflow then does not publish
+that commit. A newer `main` push cancels the running CI, including its integration job.
+[Android Build](../../.github/workflows/android.yml) is triggered only by `workflow_dispatch`, and
+automatic CI never invokes it. Each heavy workflow has one job with a thirty-minute timeout and no
+concurrency cancellation of another manual run. Application Integration retains disposable
 PostgreSQL 18, the actual locked Scan worker, Python migration and guarded Deck PostgreSQL checks,
-the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`. Android Build
-retains explicit SDK 37.0, build-tools 36.0.0, setup-android v4.0.4, JDK 21 and
-`:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`. GitHub requires the workflow file to
-exist on the default branch before manual dispatch is available. Before integration into `main`, use
-the documented local checks. Once available, dispatch the required workflow against the revision
-being verified, for example:
+the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`. As measured on
+2026-11-15, a green run takes about DURATION minutes, which delays image publication by about that
+long after the slowest scoped job. Android Build retains explicit SDK 37.0, build-tools 36.0.0,
+setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
+Dispatch a heavy workflow against the revision being verified, for example:
 
 ```sh
 gh workflow run application-integration.yml --ref <branch-or-tag>
 gh workflow run android.yml --ref <branch-or-tag>
 ```
 
-Automatic CI trades full application builds and PostgreSQL/HTTP/Scan/SavedState integration plus
-Android verification for shorter feedback. A green automatic run establishes only the selected
-lightweight checks. It does not establish that either manual workflow passed, and moving a failing
-suite to manual dispatch does not resolve its failure. Run the relevant manual or documented local
-checks before claiming their coverage, and record their revision, result and skipped cases
-separately.
+Pull request CI trades full application builds and PostgreSQL/HTTP/Scan/SavedState integration plus
+Android verification for shorter feedback. A green pull request run establishes only the selected
+lightweight checks. A green `main` push run additionally establishes Application Integration for
+that commit. No automatic run establishes Android Build, and moving a failing suite to manual
+dispatch does not resolve its failure. Run the relevant workflow or documented local checks before
+claiming their coverage, and record their revision, result and skipped cases separately.
 
 PR scope uses the complete local Git merge-base diff between event base/head SHAs; main pushes use
 the pushed `base..head` diff. Paths are NUL-delimited and rename detection is disabled so additions

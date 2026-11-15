@@ -433,16 +433,10 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				scanId = (await created.json()).session.id;
 				scanResource.invalidate();
 				await wait(() => scanCount === 1);
-				const image = new FormData();
-				image.set(
-					'file',
-					new Blob([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])], { type: 'image/png' }),
-					'workspace.png'
-				);
 				const uploaded = await fetch(secondary + `/api/v1/mtg/scan/sessions/${scanId}/frames`, {
 					method: 'POST',
-					headers: { authorization: `Bearer ${a.token}` },
-					body: image
+					headers: { authorization: `Bearer ${a.token}`, 'content-type': 'image/png' },
+					body: Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])
 				});
 				assert.equal(uploaded.status, 200);
 				await wait(() => scanStatus === 'no_match');

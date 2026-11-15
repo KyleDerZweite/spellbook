@@ -1,7 +1,7 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-11-06
+- Last Reviewed: 2026-11-15
 - Source of Truth: code
 - Update Triggers:
   - Credentials, sessions, bearer tokens, origin checks and safe HTTP validation errors
@@ -347,12 +347,12 @@ SvelteKit delegates HTML form-origin checks through `csrf.trustedOrigins: ['*']`
 The API [router guard](../../backend/api/src/spellbook_api/http/auth.py) owns API requests and
 matches native exceptions against explicit API paths. The web API catch-all does not evaluate
 framework route IDs as native exceptions. It requires a matching origin for `POST`, `PUT`, `PATCH`,
-and `DELETE` requests using URL-encoded, multipart, plain-text, or SvelteKit form data, and requests
-without a content type.
+and `DELETE` requests using URL-encoded, multipart, plain-text, or SvelteKit form data, requests
+without a content type, and scan-frame uploads with any content type.
 
 Native clients may omit `Origin` when they carry a well-formed bearer token in these narrow cases:
 
-- Multipart `POST` to the exact scan-frame upload route.
+- `POST` to the exact scan-frame upload route, which accepts raw JPEG, PNG or WebP bodies.
 - Requests with no body and no content type for deck, deck-entry, or inventory-entry `DELETE`,
   scan-session creation, and `/api/v1/auth/logout`.
 

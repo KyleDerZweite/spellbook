@@ -96,6 +96,28 @@ def test_form_foreign_origin_rejected_even_with_bearer(
     auth.validate_session.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"Origin": "https://foreign.test"},
+        {"Origin": "null"},
+        {"Authorization": "malformed", "Cookie": "spellbook_session=" + TOKEN},
+    ],
+)
+def test_raw_image_upload_keeps_origin_guard(
+    routes: tuple[Any, ...], headers: dict[str, str]
+) -> None:
+    auth, scan, client = routes
+    response = client.post(
+        BASE + f"/sessions/{SESSION}/frames",
+        content=PNG,
+        headers={"Content-Type": "image/png", **headers},
+    )
+    assert response.status_code == 403
+    scan.upload_frame.assert_not_awaited()
+    auth.validate_session.assert_not_awaited()
+
+
 def test_cookie_origin_and_invalid_bearer_precedence(routes: tuple[Any, ...]) -> None:
     _auth, _scan, client = routes
     client.headers.pop("authorization")

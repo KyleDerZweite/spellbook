@@ -183,3 +183,9 @@ jobs:
           uv run --no-sync ruff format --check
           uv build
           uv run --no-sync pytest
+
+  # Runs only for pushes to main, so Images publishes only commits whose integration suites passed.
+  application-integration:
+    name: Application Integration
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/application-integration.yml
