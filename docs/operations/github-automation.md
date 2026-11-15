@@ -427,9 +427,9 @@ automatic CI never invokes it. Each heavy workflow has one job with a thirty-min
 concurrency cancellation of another manual run. Application Integration retains disposable
 PostgreSQL 18, the actual locked Scan worker, Python migration and guarded Deck PostgreSQL checks,
 the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`. As measured on
-2026-11-15, a green run takes about DURATION minutes, which delays image publication by about that
-long after the slowest scoped job. Android Build retains explicit SDK 37.0, build-tools 36.0.0,
-setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
+2026-11-15, a green run takes about eight and a half minutes, six and a half of them in `test:sync`,
+and Images starts only after it finishes. Android Build retains explicit SDK 37.0, build-tools
+36.0.0, setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
 Dispatch a heavy workflow against the revision being verified, for example:
 
 ```sh
