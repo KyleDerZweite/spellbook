@@ -113,3 +113,9 @@ jobs:
       - run: node scripts/ci-checks.mjs workers
         env:
           CI_SCOPE: ${{ toJSON(needs.changes.outputs) }}
+
+  # Images publishes only commits whose integration suites passed.
+  application-integration:
+    name: Application Integration
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/application-integration.yml

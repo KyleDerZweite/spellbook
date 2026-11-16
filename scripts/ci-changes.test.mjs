@@ -50,13 +50,13 @@ const job = (source, id) => {
 	return section.split(/^  [\w-]+:\s*$/m)[0];
 };
 
-test('heavy workflows accept only manual dispatch and keep their complete commands', () => {
+test('heavy workflows run on dispatch or CI call and keep their complete commands', () => {
 	const android = workflow('android.yml');
 	const integration = workflow('application-integration.yml');
-	for (const source of [android, integration]) {
-		assert.equal(triggers(source), 'workflow_dispatch:');
+	assert.equal(triggers(android), 'workflow_dispatch:');
+	assert.equal(triggers(integration), 'workflow_dispatch:\n  workflow_call:');
+	for (const source of [android, integration])
 		assert.doesNotMatch(source, /^concurrency:|^    (needs|if):|continue-on-error:/m);
-	}
 	assert.match(android, /uses: actions\/setup-java@v6/);
 	assert.match(android, /distribution: temurin/);
 	assert.match(android, /java-version: '21'/);
@@ -73,14 +73,19 @@ test('heavy workflows accept only manual dispatch and keep their complete comman
 		integration,
 		/uv run --project \.\.\/backend\/workers\/scan --no-sync uvicorn scan_worker\.main:app/
 	);
-	for (const command of ['db:migrate', 'test:http', 'test:scan', 'test:sync'])
+	for (const command of ['--dir .. db:migrate', 'test:http', 'test:scan', 'test:sync'])
 		assert.ok(integration.includes(`- run: pnpm ${command}\n`), command);
+	assert.match(
+		integration,
+		/run: \.venv\/bin\/python -m pytest \.\.\/core\/tests\/test_decks_postgres\.py\n/
+	);
+	assert.doesNotMatch(integration, /SCAN_STORAGE_DRIVER|SCAN_LOCAL_STORAGE_DIR/);
 	assert.match(integration, /run: pnpm --dir \.\. build/);
 	assert.match(integration, /APP_ORIGIN: http:\/\/127\.0\.0\.1:5191/);
 	assert.match(integration, /name: Stop the owned Scan worker\n\s+if: always\(\)/);
 });
 
-test('automatic CI retains scoped checks without invoking a heavy workflow', () => {
+test('automatic CI retains scoped check commands alongside push integration', () => {
 	const source = workflow('ci.yml');
 	const script = readFileSync(new URL('./ci-checks.mjs', import.meta.url), 'utf8');
 	assert.match(triggers(source), /^\s*push:/m);
@@ -91,7 +96,7 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 		assert.doesNotMatch(text, /continue-on-error:/);
 		assert.doesNotMatch(
 			text,
-			/android|gradlew|uvicorn|test:(integration|http|scan|sync)|workflow_call|workflow_run|dispatches|gh workflow run|uses: \.\//
+			/android|gradlew|uvicorn|test:(integration|http|scan|sync)|workflow_call|workflow_run|dispatches|gh workflow run/
 		);
 	}
 	const scope = job(source, 'changes');
@@ -220,14 +225,26 @@ test('only automatic runs cancel superseded work and every job has a bounded tim
 		const jobs = text.split(/^jobs:\n/m)[1];
 		assert.ok(jobs, name);
 		const timeouts = [...jobs.matchAll(/^    timeout-minutes: (\d+)$/gm)];
-		assert.equal(timeouts.length, [...jobs.matchAll(/^  [\w-]+:\n/gm)].length, name);
+		const ids = [...jobs.matchAll(/^  ([\w-]+):\n/gm)].map(([, id]) => id);
+		// A job calling a reusable workflow cannot set a timeout; the called jobs carry their own.
+		const callers = ids.filter((id) => /^    uses: /m.test(job(text, id)));
+		assert.equal(timeouts.length, ids.length - callers.length, name);
 		assert.ok(
 			timeouts.every(([, minutes]) => Number(minutes) > 0 && Number(minutes) <= 30),
 			name
 		);
 		if (/gradlew|test:(integration|http|scan|sync)|uvicorn/.test(text))
-			assert.equal(triggers(text), 'workflow_dispatch:', name);
+			assert.match(triggers(text), /^workflow_dispatch:(\n  workflow_call:)?$/, name);
 	}
+});
+
+test('CI calls Application Integration from one job for pushes only', () => {
+	const source = workflow('ci.yml');
+	assert.equal([...source.matchAll(/^    uses: /gm)].length, 1);
+	const integration = job(source, 'application-integration');
+	assert.match(integration, /^    if: github.event_name == 'push'$/m);
+	assert.match(integration, /^    uses: \.\/\.github\/workflows\/application-integration\.yml$/m);
+	assert.doesNotMatch(integration, /^    (needs|continue-on-error|secrets):/m);
 });
 
 test('source changes select their consumers, including SQL and Scan cross-project consumers', () => {

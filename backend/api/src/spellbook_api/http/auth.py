@@ -47,27 +47,28 @@ def require_same_origin(request: Request, public_origin: str, allow_missing: boo
         raise HttpError(403, "Invalid request origin")
 
 
+FORM_MEDIA = {
+    "application/x-www-form-urlencoded",
+    "multipart/form-data",
+    "text/plain",
+    "application/x-sveltekit-formdata",
+}
+SCAN_FRAME_UPLOAD = "POST /api/v1/mtg/scan/sessions/{sessionId}/frames"
+
+
 def require_form_origin(request: Request, public_origin: str, route_path: str = "") -> None:
-    """Guard browser form mutations, with the existing narrow native bearer exceptions."""
+    """Guard browser form mutations and raw Scan image uploads, with narrow native exceptions."""
     if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
         return
+    route = f"{request.method} {route_path}"
     media = trim((header(request, "content-type") or "").split(";")[0]).lower()
-    if media and media not in {
-        "application/x-www-form-urlencoded",
-        "multipart/form-data",
-        "text/plain",
-        "application/x-sveltekit-formdata",
-    }:
+    if media and media not in FORM_MEDIA and route != SCAN_FRAME_UPLOAD:
         return
     origin = header(request, "origin")
     if origin == public_origin:
         return
     if origin is None and get_bearer_token(request):
-        if (
-            request.method == "POST"
-            and media == "multipart/form-data"
-            and route_path == "/api/v1/mtg/scan/sessions/{sessionId}/frames"
-        ):
+        if route == SCAN_FRAME_UPLOAD:
             return
         bodyless = {
             "DELETE /api/v1/mtg/decks/{deckId}",
@@ -80,7 +81,7 @@ def require_form_origin(request: Request, public_origin: str, route_path: str = 
         has_body = "transfer-encoding" in request.headers or (
             length.isascii() and length.isdigit() and bool(length.lstrip("0"))
         )
-        if not media and not has_body and f"{request.method} {route_path}" in bodyless:
+        if not media and not has_body and route in bodyless:
             return
     raise HttpError(403, f"Cross-site {request.method} form submissions are forbidden")
 

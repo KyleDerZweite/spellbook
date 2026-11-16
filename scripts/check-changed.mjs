@@ -7,7 +7,7 @@ import { classifyPaths } from './ci-changes.mjs';
 import { entries, exitCode, runSteps } from './ci-checks.mjs';
 
 const notCovered =
-	'Not covered: the manual Application Integration and Android Build workflows, browser, PWA and ' +
+	'Not covered: the Application Integration and Android Build workflows, browser, PWA and ' +
 	'QR checks, container builds and deployment (docs/operations/github-automation.md).';
 
 const git = (cwd, ...args) =>
