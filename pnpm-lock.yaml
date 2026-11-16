@@ -280,8 +280,8 @@ importers:
         specifier: ^4.7.8
         version: 4.7.8(picomatch@4.0.7)(svelte@5.57.3)(typescript@6.0.3)
       tailwindcss:
-        specifier: ^4.3.4
-        version: 4.3.4
+        specifier: ^4.3.5
+        version: 4.3.5
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1395,6 +1395,9 @@ packages:
   tailwindcss@4.3.4:
     resolution: {integrity: sha512-PCJZTFFdG+sL3gvnP1Do9o6GbkvH2q0p04xSs3f7cSvmAeK+sttG+/7ncK1fdRwKFfC7n+wDDJaOMBSefkI9ow==}
 
+  tailwindcss@4.3.5:
+    resolution: {integrity: sha512-FcQk9BuffmEHJP2G0XmB2SplU1aLTI7j07Kunk+U74Ny+XiWOtzXz9aujFZ/avntw1e2cOv/3PkgzflQ7gX2vQ==}
+
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
@@ -2411,6 +2414,8 @@ snapshots:
   tabbable@6.5.1: {}
 
   tailwindcss@4.3.4: {}
+
+  tailwindcss@4.3.5: {}
 
   tapable@2.3.3: {}
 
