@@ -303,10 +303,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = "==2.4.1" },
-    { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
+    { name = "psycopg", extras = ["binary"], specifier = "==3.3.9" },
     { name = "psycopg-pool", marker = "extra == 'dev'", specifier = "==3.3.3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==9.2.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.2" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.5" },
 ]
 provides-extras = ["dev"]
 
