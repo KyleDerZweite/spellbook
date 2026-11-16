@@ -13,6 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { classifyPaths, selectChecks } from './ci-changes.mjs';
+import { entries } from './ci-checks.mjs';
 
 const app = {
 	application: true,
@@ -36,19 +37,17 @@ const none = {
 	state_worker: false
 };
 
+// Each command of a ci-checks entry as `<working directory>: <command>`.
+const commands = (entry, scopes = all) =>
+	entries[entry](scopes).flatMap(({ cwd, run }) => run.map((command) => `${cwd}: ${command}`));
 const workflow = (name) =>
 	readFileSync(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8');
 const triggers = (source) => source.match(/^on:\n((?:[ \t].*\n|\n)+)/m)?.[1].trim();
-// Inspect the owning job/step rather than count commands across unrelated packages.
+// Inspect the owning job rather than count commands across unrelated packages.
 const job = (source, id) => {
 	const section = source.split(new RegExp(`^  ${id}:\\s*$`, 'm'))[1];
 	assert.ok(section, id);
 	return section.split(/^  [\w-]+:\s*$/m)[0];
-};
-const step = (source, name) => {
-	const section = source.split(`- name: ${name}\n`)[1];
-	assert.ok(section, name);
-	return section.split(/^      - /m)[0];
 };
 
 test('heavy workflows run on dispatch or CI call and keep their complete commands', () => {
@@ -86,39 +85,42 @@ test('heavy workflows run on dispatch or CI call and keep their complete command
 	assert.match(integration, /name: Stop the owned Scan worker\n\s+if: always\(\)/);
 });
 
-test('automatic CI retains scoped checks without invoking a heavy workflow', () => {
+test('automatic CI retains scoped check commands alongside push integration', () => {
 	const source = workflow('ci.yml');
+	const script = readFileSync(new URL('./ci-checks.mjs', import.meta.url), 'utf8');
 	assert.match(triggers(source), /^\s*push:/m);
 	assert.match(triggers(source), /branches: \[main\]/);
 	assert.match(triggers(source), /^\s*pull_request:/m);
 	assert.match(triggers(source), /^\s*workflow_dispatch:/m);
-	assert.doesNotMatch(source, /continue-on-error:/);
-	assert.doesNotMatch(
-		source,
-		/android|gradlew|uvicorn|test:(integration|http|scan|sync)|workflow_call|workflow_run|dispatches|gh workflow run/
-	);
+	for (const text of [source, script]) {
+		assert.doesNotMatch(text, /continue-on-error:/);
+		assert.doesNotMatch(
+			text,
+			/android|gradlew|uvicorn|test:(integration|http|scan|sync)|workflow_call|workflow_run|dispatches|gh workflow run/
+		);
+	}
 	const scope = job(source, 'changes');
-	assert.match(scope, /run: node --test scripts\/ci-changes.test.mjs/);
+	assert.match(scope, /run: node scripts\/ci-checks.mjs scope\n/);
 	assert.match(scope, /run: node scripts\/ci-changes.mjs/);
+	assert.ok(commands('scope').includes('.: node --test scripts/ci-changes.test.mjs'));
 	const application = job(source, 'frontend-lint-unit');
 	assert.match(application, /needs: changes/);
 	assert.match(application, /if: needs.changes.outputs.application == 'true'/);
-	assert.match(application, /working-directory: frontend/);
+	assert.match(
+		application,
+		/run: pipx install podman-compose==[\d.]+\n\s+- run: node scripts\/ci-checks.mjs application\n/
+	);
 	for (const command of [
 		'lint',
 		'--dir .. check:boundaries',
-		'--dir frontend check',
 		'test:unit',
 		'--dir .. test:tooling',
-		'--dir .. test:contracts'
+		'--dir .. test:contracts',
+		'--dir .. test:compose'
 	])
-		assert.ok(application.includes(`- run: pnpm ${command}\n`), command);
-	assert.match(
-		application,
-		/pipx install podman-compose==[\d.]+\n\s+pnpm --dir \.\. test:compose\n/
-	);
-	assert.match(application, /run: pnpm --dir frontend check\n\s+working-directory: \./);
-	assert.doesNotMatch(application, /run: pnpm check(?:\s|$)/);
+		assert.ok(commands('application').includes(`frontend: pnpm ${command}`), command);
+	assert.ok(commands('application').includes('.: pnpm --dir frontend check'));
+	assert.ok(!commands('application').some((command) => /: pnpm check$/.test(command)));
 	for (const key of ['application', 'worker', 'scan_worker', 'python_backend', 'state_worker'])
 		assert.ok(scope.includes(`${key}: \${{ steps.scope.outputs.${key} }}`), key);
 	assert.match(
@@ -129,19 +131,24 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 		source,
 		/image: \$\{\{ needs.changes.outputs.worker == 'true' && 'postgres:18\.6-bookworm' \|\| '' }}/
 	);
-	assert.match(
-		source,
-		/if: \$\{\{ !cancelled\(\) && needs.changes.outputs.scan_worker == 'true' }}/
-	);
-	for (const [id, name, directory, mypy] of [
-		['python-backend', 'Core package checks', 'backend/core', true],
-		['python-backend', 'API package and compatibility checks', 'backend/api', true],
-		['python-backend', 'State worker package checks', 'backend/workers/state', true],
-		['worker-tests', 'Catalog worker checks', 'backend/workers/catalog', false],
-		['worker-tests', 'Scan worker checks', 'backend/workers/scan', false]
+	for (const [id, entry] of [
+		['python-backend', 'python-backend'],
+		['worker-tests', 'workers']
+	])
+		assert.ok(
+			job(source, id).includes(
+				`run: node scripts/ci-checks.mjs ${entry}\n        env:\n          CI_SCOPE: \${{ toJSON(needs.changes.outputs) }}\n`
+			),
+			id
+		);
+	for (const [entry, directory, mypy] of [
+		['python-backend', 'backend/core', true],
+		['python-backend', 'backend/api', true],
+		['python-backend', 'backend/workers/state', true],
+		['workers', 'backend/workers/catalog', false],
+		['workers', 'backend/workers/scan', false]
 	]) {
-		const checks = step(job(source, id), name);
-		assert.ok(checks.includes(`working-directory: ${directory}`), name);
+		const checks = commands(entry).filter((command) => command.startsWith(`${directory}: `));
 		for (const command of [
 			'uv lock --check',
 			'uv sync --frozen',
@@ -150,21 +157,27 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 			'uv build',
 			'uv run --no-sync pytest'
 		])
-			assert.ok(checks.includes(command), `${name}: ${command}`);
-		if (mypy) assert.ok(checks.includes('uv run --no-sync mypy'), name);
+			assert.ok(
+				checks.some((check) => check.includes(command)),
+				`${directory}: ${command}`
+			);
+		if (mypy)
+			assert.ok(
+				checks.some((check) => check.includes('uv run --no-sync mypy')),
+				directory
+			);
 	}
-	assert.match(
-		step(job(source, 'python-backend'), 'State worker package checks'),
-		/if: needs.changes.outputs.state_worker == 'true'/
-	);
-	assert.match(
-		step(job(source, 'worker-tests'), 'Catalog worker checks'),
-		/if: needs.changes.outputs.worker == 'true'/
-	);
-	assert.match(
-		step(job(source, 'worker-tests'), 'Scan worker checks'),
-		/if: \$\{\{ !cancelled\(\) && needs.changes.outputs.scan_worker == 'true' }}/
-	);
+	const without = (scope) => ({ ...all, [scope]: false });
+	for (const [entry, scope, directory] of [
+		['python-backend', 'state_worker', 'backend/workers/state'],
+		['workers', 'worker', 'backend/workers/catalog'],
+		['workers', 'scan_worker', 'backend/workers/scan']
+	])
+		assert.ok(
+			!commands(entry, without(scope)).some((command) => command.startsWith(directory)),
+			scope
+		);
+	assert.throws(() => entries.workers(), /CI_SCOPE/);
 });
 
 test('lint only formats while tooling owns the Node boundary fixtures', () => {
@@ -273,6 +286,7 @@ test('shared workflow/toolchain and unknown files select every automatic suite',
 		'.github/workflows/ci.yml',
 		'scripts/ci-changes.mjs',
 		'scripts/ci-changes.test.mjs',
+		'scripts/ci-checks.mjs',
 		'.dockerignore',
 		'.prettierignore',
 		'compose.prod.yml',
@@ -458,10 +472,15 @@ test('Python-only API/core changes and shared contracts select Python checks', (
 	const api = job(source, 'python-backend');
 	assert.match(api, /needs: changes/);
 	assert.match(api, /if: needs.changes.outputs.python_backend == 'true'/);
-	const boundary = step(api, 'Python import directions and negative fixtures');
-	assert.doesNotMatch(boundary, /if:/);
-	assert.match(boundary, /python scripts\/check_python_boundaries.py/);
-	assert.match(boundary, /python -m unittest discover -s scripts -p test_python_boundaries.py/);
+	const boundary = commands('python-backend', { ...none, python_backend: true });
+	assert.ok(
+		boundary.some((command) => command.endsWith('python scripts/check_python_boundaries.py'))
+	);
+	assert.ok(
+		boundary.some((command) =>
+			command.endsWith('python -m unittest discover -s scripts -p test_python_boundaries.py')
+		)
+	);
 });
 
 test('a later Python-only edit selects API/core after their first addition', () => {
@@ -484,15 +503,19 @@ test('worker-only edits enforce Python boundaries in the existing worker job', (
 	const source = job(workflow('ci.yml'), 'worker-tests');
 	assert.match(source, /needs: changes/);
 	assert.doesNotMatch(source, /needs:.*python-backend/);
-	const boundary = step(source, 'Worker import directions and negative fixtures');
-	assert.match(boundary, /if: needs.changes.outputs.python_backend != 'true'/);
-	assert.match(
-		boundary,
-		/uv run --no-project --python 3\.14\.8 python scripts\/check_python_boundaries.py/
+	const worker = commands('workers', { ...none, worker: true }).join('\n');
+	assert.ok(
+		worker.includes('uv run --no-project --python 3.14.8 python scripts/check_python_boundaries.py')
 	);
-	assert.match(
-		boundary,
-		/uv run --no-project --python 3\.14\.8 python -m unittest discover -s scripts -p test_python_boundaries.py/
+	assert.ok(
+		worker.includes(
+			'uv run --no-project --python 3.14.8 python -m unittest discover -s scripts -p test_python_boundaries.py'
+		)
+	);
+	assert.ok(
+		!commands('workers', { ...none, worker: true, python_backend: true }).some((command) =>
+			command.includes('check_python_boundaries')
+		)
 	);
 	for (const [paths, workerBoundary] of [
 		[['backend/workers/catalog/src/worker/main.py'], true],
@@ -586,7 +609,11 @@ test('state worker and Core/SQL changes select the packaged state consumer', () 
 		});
 	}
 	assert.equal(classifyPaths(['backend/drizzle/0024_qr_authorizations.sql']).state_worker, true);
-	assert.match(workflow('ci.yml'), /working-directory: backend\/workers\/state/);
+	assert.ok(
+		commands('python-backend', { ...none, python_backend: true, state_worker: true }).some(
+			(command) => command.startsWith('backend/workers/state: ')
+		)
+	);
 });
 
 test('default Compose uses Python API, migrator and sole state scheduler ownership', () => {

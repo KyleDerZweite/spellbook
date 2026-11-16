@@ -32,9 +32,7 @@ jobs:
         with:
           node-version-file: frontend/.node-version
           package-manager-cache: false
-      - run: node --test scripts/docs.test.mjs
-      - run: node scripts/docs.mjs --check
-      - run: node --test scripts/ci-changes.test.mjs
+      - run: node scripts/ci-checks.mjs scope
       - name: Select affected suites
         id: scope
         run: node scripts/ci-changes.mjs
@@ -49,9 +47,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.application == 'true'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -64,17 +59,8 @@ jobs:
           cache: true
           cache_dependency_path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm --dir .. check:boundaries
-      - run: pnpm --dir frontend check
-        working-directory: .
-      - run: pnpm test:unit
-      - run: pnpm --dir .. test:tooling
-      - run: pnpm --dir .. test:contracts
-      - name: Compose configuration
-        run: |
-          pipx install podman-compose==1.6.0
-          pnpm --dir .. test:compose
+      - run: pipx install podman-compose==1.6.0
+      - run: node scripts/ci-checks.mjs application
 
   python-backend:
     name: Python API/Core
@@ -91,43 +77,9 @@ jobs:
       - run: uv python install 3.14.8
       - name: ICU for Core Combo witness ordering
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev
-      - name: Core package checks
-        working-directory: backend/core
-        run: |
-          uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --no-editable
-          uv run --no-sync ruff check
-          uv run --no-sync ruff format --check
-          uv run --no-sync mypy
-          uv build
-          uv run --no-sync pytest
-      - name: API package and compatibility checks
-        working-directory: backend/api
-        run: |
-          uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core --no-editable
-          uv run --no-sync ruff check
-          uv run --no-sync ruff format --check
-          uv run --no-sync mypy
-          uv build
-          uv run --no-sync pytest
-      - name: State worker package checks
-        if: needs.changes.outputs.state_worker == 'true'
-        working-directory: backend/workers/state
-        run: |
-          uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core --no-editable
-          uv run --no-sync ruff check
-          uv run --no-sync ruff format --check
-          uv run --no-sync mypy
-          uv build
-          uv run --no-sync pytest
-      - name: Python import directions and negative fixtures
-        run: |
-          uv run --project backend/api --no-sync ruff check --config backend/api/pyproject.toml scripts/check_python_boundaries.py scripts/test_python_boundaries.py
-          uv run --project backend/api --no-sync ruff format --check --config backend/api/pyproject.toml scripts/check_python_boundaries.py scripts/test_python_boundaries.py
-          uv run --project backend/api --no-sync python scripts/check_python_boundaries.py
-          uv run --project backend/api --no-sync python -m unittest discover -s scripts -p test_python_boundaries.py
+      - run: node scripts/ci-checks.mjs python-backend
+        env:
+          CI_SCOPE: ${{ toJSON(needs.changes.outputs) }}
 
   worker-tests:
     name: Python Workers
@@ -158,33 +110,11 @@ jobs:
           version: '0.12.23'
           enable-cache: true
       - run: uv python install 3.14.8
-      - name: Worker import directions and negative fixtures
-        if: needs.changes.outputs.python_backend != 'true'
-        run: |
-          uv run --no-project --python 3.14.8 python scripts/check_python_boundaries.py
-          uv run --no-project --python 3.14.8 python -m unittest discover -s scripts -p test_python_boundaries.py
-      - name: Catalog worker checks
-        if: needs.changes.outputs.worker == 'true'
-        working-directory: backend/workers/catalog
-        run: |
-          uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --no-editable
-          uv run --no-sync ruff check
-          uv run --no-sync ruff format --check
-          uv build
-          uv run --no-sync pytest
-      - name: Scan worker checks
-        if: ${{ !cancelled() && needs.changes.outputs.scan_worker == 'true' }}
-        working-directory: backend/workers/scan
-        run: |
-          uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --no-editable
-          uv run --no-sync ruff check
-          uv run --no-sync ruff format --check
-          uv build
-          uv run --no-sync pytest
+      - run: node scripts/ci-checks.mjs workers
+        env:
+          CI_SCOPE: ${{ toJSON(needs.changes.outputs) }}
 
-  # Runs only for pushes to main, so Images publishes only commits whose integration suites passed.
+  # Images publishes only commits whose integration suites passed.
   application-integration:
     name: Application Integration
     if: github.event_name == 'push'
