@@ -1,7 +1,7 @@
 # PostgreSQL 17 to 18 upgrade
 
 - Status: Canonical
-- Last Reviewed: 2026-11-07
+- Last Reviewed: 2026-11-18
 - Source of Truth: compose configuration, PostgreSQL tools, disposable migration rehearsal
 - Update Triggers:
   - three-file Compose selection and immutable hosted images
@@ -16,6 +16,13 @@
   - [Postgres architecture](../architecture/postgres.md)
   - [Local authentication](./local-auth.md)
   - [Operations](./README.md)
+
+> **TL;DR**
+>
+> - PostgreSQL 18 uses a **new** volume. Your PostgreSQL 17 data is not migrated automatically.
+> - Steps: stop writers, dump from 17, restore into the empty 18 database, migrate, verify.
+> - Never mount the old 17 data directory as an 18 database.
+> - Keep the old volume and a protected dump until you no longer need a rollback.
 
 The stack now uses PostgreSQL 18.6 with `postgres18_data` mounted at `/var/lib/postgresql`. The
 image stores its database at `/var/lib/postgresql/18/docker`. Existing PostgreSQL 17 data stays in

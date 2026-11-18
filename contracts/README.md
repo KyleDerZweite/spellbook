@@ -1,5 +1,16 @@
 # Backend wire contracts
 
+> **TL;DR**
+>
+> - [`openapi.json`](./openapi.json) is the **only** list of current API routes.
+> - Removed paths return 404. There are no aliases or redirects
+>   ([ADR-0029](../docs/decisions/0029-remove-replaced-interfaces.md)).
+> - [`fixtures/wire.json`](./fixtures/wire.json) holds synthetic wire fixtures, never real account
+>   data.
+> - Also here: the shared [Cardstation sorting DSL](#shared-cardstation-sorting-dsl) schema.
+
+## OpenAPI contract
+
 [`openapi.json`](./openapi.json) is the checked-in OpenAPI 3.1 structural contract. It advertises
 canonical `/api/v1/auth/...`, `/api/v1/account/...`, `/api/v1/mtg/...` and raw-form
 `/api/v1/web/...` operations under [ADR-0028](../docs/decisions/0028-versioned-game-api.md). Backend
@@ -20,6 +31,8 @@ aliases, redirects or fallback dispatch; older clients must update. Browser Auth
 separate API form bridges. The Scan worker's internal methods and generated documentation remain
 outside the public API contract.
 
+## Wire fixtures
+
 [`fixtures/wire.json`](./fixtures/wire.json) contains synthetic public fixtures, never credentials
 or receipts copied from an account. Fingerprint input strings preserve lexical spellings, negative
 zero and escaping for Core serializer checks. Historical transport vectors do not prescribe Node
@@ -31,6 +44,8 @@ They do not prove PostgreSQL locks, persistence or transaction atomicity. The no
 patch/import test crosses the actual mutation normalization seam before replay. Current-version
 retries return the original committed receipt. Historical NULL hashes, NULL acknowledgements and
 cross-version stored formats carry no upgrade guarantee under the pre-release policy.
+
+## Evidence and checks
 
 Python application and guarded PostgreSQL suites own current domain evidence. Fixture tests
 establish parsing, serialization and replay decisions; real PostgreSQL tests establish persistence,
@@ -59,7 +74,7 @@ performance/resource proof prerequisites. The
 [accepted migration contract](../docs/architecture/python-backend-migration.md) owns migration
 architecture and separate production authority.
 
-# Shared Cardstation sorting DSL
+## Shared Cardstation sorting DSL
 
 The [v1 JSON Schema](./schemas/cardstation-sort-rule.v1.schema.json) and
 [golden vectors](./fixtures/cardstation-sort-rule.v1.json) are the canonical cross-language contract

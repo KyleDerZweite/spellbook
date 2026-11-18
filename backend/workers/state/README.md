@@ -1,20 +1,36 @@
 # Python state worker
 
+> **TL;DR**
+>
+> - Runs the daily ValueHistory capture in its own process. The API starts no schedulers.
+> - On by default (`VALUE_HISTORY_ENABLED=true`). `VALUE_HISTORY_TIMEZONE` defaults to
+>   `Europe/Berlin` and must match the API.
+> - Needs `DATABASE_URL` and an already migrated database.
+> - No HTTP listener, broker, migrations or `.env` loading.
+
+## Ownership
+
 `spellbook-state-worker` owns ValueHistory scheduling in one independent process.
 
 HTTP owns synchronous reads and mutations; it imports neither this package nor its schedulers. Core
 owns ValueHistory transactions and advisory leases. This package imports Core, never API, frontend
 or other workers.
 
+## Schedule
+
 ValueHistory starts immediately when `VALUE_HISTORY_ENABLED=true`, default, and keeps the existing
 ten-second cadence without overlapping captures. Core's advisory lease and reporting calendar
 restrict observations to the accepted pre-midnight window; startup never backfills missing dates.
 `VALUE_HISTORY_TIMEZONE` defaults to `Europe/Berlin` and must match API history reads.
 
+## Toolchain
+
 The runtime uses Python 3.14.8 and uv 0.12.23 with an independent frozen lock. Psycopg Pool is the
 only runtime dependency besides Core and owns at most four connections with finite acquisition
 waiting. There is no HTTP listener, password executor, broker, schema migration or environment-file
 loader.
+
+## Run
 
 From the repository root:
 
@@ -32,6 +48,8 @@ Production Compose and `pnpm start` start this independent scheduler after the o
 migrator. API starts no scheduled runner. The previous Python Compose override is folded into the
 normal topology. Actual scheduled daily ValueHistory observation, container acceptance and
 production cutover remain separate checks.
+
+## Tests
 
 Run package Ruff/format, strict Mypy and pytest from this package's working directory using the
 frozen environment. For external production installation, run

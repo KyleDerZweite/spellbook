@@ -1,7 +1,7 @@
 # Reference
 
 - Status: Canonical
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-18
 - Source of Truth: accepted choices, vendor documentation and cited upstream source
 - Update Triggers:
   - power-user search source investigation
@@ -15,16 +15,20 @@
   - [Mana Font](./fonts/mana.md)
   - [Docs Index](../README.md)
 
-Reference documents describe selected dependencies, asset requirements, vendor guidance, evaluated
-external projects and upstream source investigations. The product specification and architecture
-documents own implemented behavior.
+> **TL;DR**
+>
+> - Notes on chosen dependencies, assets, vendor guidance and external projects.
+> - Look here before you use a UI component or icon.
+> - Implemented behavior lives in the [product specification](../product/specification.md) and
+>   [architecture](../architecture/README.md) docs, not here.
 
 ## Files
 
-- [Optional MTG project references](./mtg-projects.md), non-authoritative examples for specific
-  questions.
-- [Bits UI](./bits-ui.md)
-- [Mana font](./fonts/mana.md)
-- [Selected UI components](./ui-libraries.md)
-- [Brand artwork and website icons](./website-icons.md)
-- [t3code power-user search reference](./t3code-search.md)
+| File                                                     | Use it when you...                                      |
+| -------------------------------------------------------- | ------------------------------------------------------- |
+| [Selected UI components](./ui-libraries.md)              | Pick a UI component or library                          |
+| [Bits UI](./bits-ui.md)                                  | Use or integrate a Bits UI component                    |
+| [Brand artwork and website icons](./website-icons.md)    | Change the logo or browser and app icons                |
+| [Mana font](./fonts/mana.md)                             | Render mana, card-type and rarity symbols               |
+| [Optional MTG project references](./mtg-projects.md)     | Want non-authoritative examples for a specific question |
+| [t3code power-user search reference](./t3code-search.md) | Study the upstream source behind the power-user search  |

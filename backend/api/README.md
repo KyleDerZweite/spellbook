@@ -1,5 +1,19 @@
 # Python API
 
+> **TL;DR**
+>
+> - The FastAPI HTTP API. It serves the operations in
+>   [`contracts/openapi.json`](../../contracts/openapi.json).
+> - Toolchain: Python 3.14.8 and uv 0.12.23.
+> - Run it with `spellbook-api`, not bare Uvicorn. It needs `DATABASE_URL`, or
+>   `API_DISCOVERY_ONLY=true` for a resource-free start.
+> - No schedulers or ingestion run here. The [State worker](../workers/state/README.md) and
+>   [Catalog worker](../workers/catalog/README.md) own them.
+> - Checks:
+>   [repository verification](../../docs/operations/github-automation.md#python-api-and-core).
+
+## What it contains
+
 `create_power_search_routes` exposes the optional-session `GET /api/v1/mtg/power-search?query=TEXT`
 read with `Cache-Control: no-store`. The runtime constructs its Core owner from the existing pool
 and SessionAuth; invalid explicit Bearer credentials return 401.
@@ -10,6 +24,8 @@ the normal API in the unmerged candidate, including nineteen Deck routes and all
 commands. Root scripts, Compose and the explicit Python migrator use installed packages. The
 [migration contract](../../docs/architecture/python-backend-migration.md) owns functional acceptance
 and remaining integration work. There are no schedulers or ingestion jobs in this process.
+
+## Toolchain and dependencies
 
 Use Python 3.14.8 and uv 0.12.23, matching CI and the image. The exact direct dependency pins and
 independent `uv.lock` preserve reproducible installation. FastAPI/Uvicorn own HTTP, Psycopg Pool
@@ -22,6 +38,8 @@ Hatchling embeds the canonical schema and unchanged SQL/journal/snapshot assets 
 distributions, including a wheel rebuilt from the sdist. `python-multipart==0.0.32` remains for
 account form parsing. `httpx2` is the runtime dependency for the transient Scan worker handoff. The
 regenerated API lock freezes their transitive dependencies.
+
+## Run locally
 
 From the repository root:
 
@@ -39,6 +57,8 @@ verified task-owned candidate. Use `spellbook-api`, rather than bare Uvicorn, to
 stream shutdown. After changing Core, frozen-reinstall `spellbook-core` because its local path
 dependency is installed as a wheel.
 
+## HTTP contract and adapters
+
 The [neutral artifact](../../contracts/openapi.json) owns the complete structural schema; Discovery
 replaces only `servers` with APP_ORIGIN. Generated framework docs/schema are disabled. The host uses
 `create_catalog_routes`, `create_inventory_routes` and `create_valuation_routes` without singleton
@@ -53,6 +73,8 @@ fields and delegate unchanged retry inputs to Core. Psycopg failures use an expl
 exception handler, returning a safe 500 without closing an otherwise reusable HTTP connection. Logs
 record only the exception type and SQLSTATE for those failures; unrelated unexpected exceptions
 retain the safe 500 and server logging path.
+
+## Authentication, Profile and Dashboard
 
 The host constructs `LocalAuth` with its owned password executor and constructs `Profile` with that
 same authority. `LocalAuth` extends the existing `SessionAuth` actor interface. Registration
@@ -83,6 +105,8 @@ exclusively assigned disposable target. The opt-in `backend/core/tests/test_dash
 case covers real aggregates, exact-first Deck allocation, current/history reads and account
 isolation; Root owns its assigned database execution.
 
+## Routing and request validation
+
 Native APIRouter factories register the 85 canonical operations and Discovery directly. Valuation
 precedes Inventory so literal value reads do not match the Inventory entry parameter. Slashless
 paths are canonical; unknown paths and trailing slashes return 404 without redirects. HEAD and
@@ -96,6 +120,8 @@ replacement cookies, and cache/Robots policy applies to errors. Uvicorn uses its
 protocol with no Node method, path, number or Fetch MIME emulation. The checked-in OpenAPI artifact
 is published without generating a competing schema. The project is pre-release; current-version
 receipt replay matters, but historical wire/stored-data compatibility is not promised.
+
+## Resource limits
 
 One API instance owns a request pool with min 0/max 10, at most 32 pending acquisitions and a
 2-second acquisition timeout. Non-SSE admission allows 32 active plus 32 waiting requests, waits at
@@ -116,11 +142,15 @@ checks remain. Multipart credentials use the maintained Starlette/python-multipa
 native MIME behavior. Last scalar values, binary image bytes, body limits, incomplete-upload
 rejection and file closure remain covered.
 
+## Shutdown
+
 Shutdown closes admission and SSE before Uvicorn drain, then settles listener/Core work, closes the
 Scan worker adapter, settles native work, joins the dedicated executor and closes the request pool
 last. All host shutdown phases share the 15-second deadline, including partial startup cleanup. A
 deadline failure is not permission to force termination. Cancellation never establishes that a
 mutation did not commit.
+
+## Build
 
 Build from the repository root:
 
@@ -142,6 +172,8 @@ owns commands and manual native-host prerequisites. Real PostgreSQL, direct/prox
 SavedState and same-data rollback remain integration evidence owned by Root. Strict P01
 resource/performance proof is retired.
 
+## Database migrator
+
 Run the prepared one-shot migrator only through its explicit operator command:
 
 ```sh
@@ -156,12 +188,16 @@ read the canonical `backend/drizzle`; there is no second checked-in SQL history.
 Core's exact ledger validation, transaction and concurrency semantics; no API startup runs it.
 Production migration ownership and execution remain separately authorized operations.
 
+## Installed wheel check
+
 Run the external install check with
 `SPELLBOOK_TEST_WHEEL=1 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest tests/test_installed_wheel.py`.
 It builds a wheel directly and through the sdist, installs frozen runtime dependencies in a
 temporary environment, compares every bundled asset hash, and verifies configuration and substituted
 no-op/override calls from an external working directory. It starts no PostgreSQL connection and
 establishes no real migrator integration.
+
+## Operator commands
 
 The installed API also provides the prepared operator commands:
 
@@ -183,12 +219,16 @@ owner; `--fixtures-dir` remains available. The external wheel test checks all th
 complete streaming bundle validation after rebuilding from the sdist. It performs no database
 operation.
 
+## Scan worker handoff
+
 With `DATABASE_URL`, the host constructs `HttpScanWorker` and Core `create_scan`, then registers
 `create_scan_routes` once. `SCAN_WORKER_URL` defaults to `http://scan-worker:8080`. No storage
 adapter or S3 configuration exists. Images are bounded raw request bytes passed to the worker, never
 files. No-DB Discovery startup constructs no worker adapter. Request settlement precedes worker
 close and pool close. Tests exercise real HTTP transport and timeout. Production PostgreSQL, proxy
 and independently installed worker acceptance remain separate evidence.
+
+## Scheduled work
 
 The separate [state worker](../workers/state/README.md) owns ValueHistory scheduling. API startup
 does not create the scheduler. Default Compose and launchers select API and independent State

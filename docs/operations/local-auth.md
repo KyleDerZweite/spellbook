@@ -1,7 +1,7 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-11-07
+- Last Reviewed: 2026-11-18
 - Source of Truth: code
 - Update Triggers:
   - Registration policy, account migration and credential recovery operator lifetime
@@ -19,6 +19,15 @@
   - [Catalog](../architecture/catalog.md)
   - [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update)
   - [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
+
+> **TL;DR**
+>
+> - Users register at `/auth/register` and sign in at `/auth/login`.
+> - Set or reset a password: `pnpm operator:password ACCOUNT_ID USERNAME < password-file`. The
+>   password comes from stdin, never an argument.
+> - Existing OIDC accounts keep their data when you assign local credentials. Do not create a
+>   replacement account.
+> - Demo commands only touch databases ending in `_demo` or `_design`.
 
 New users register at `/auth/register` and sign in at `/auth/login`. Registration is public. The
 [authentication contract](../architecture/auth.md) defines credential rules, sessions, and JSON API
