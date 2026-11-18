@@ -1,5 +1,15 @@
 # Python application and SQL package
 
+> **TL;DR**
+>
+> - The typed Python application and SQL package. It holds domain behavior, not a process.
+> - Shared code lives in `spellbook_core`. MTG behavior lives in `spellbook_core.mtg`.
+> - Core never imports FastAPI, the API, workers or clients. The
+>   [boundary checker](../../scripts/check_python_boundaries.py) enforces this.
+> - Unit tests: `uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest`.
+
+## Modules and factories
+
 `create_power_search(pool, auth)` owns the dedicated global reader and independently bounded
 Catalog, Inventory and Deck matches. It borrows the caller-owned pool and revalidates issued
 SessionAuth Actors for private scope.
@@ -33,12 +43,16 @@ synchronous for operator consumers; async callers use `PasswordVerifier.hash`. Q
 migration 0024 and preserves requester-channel separation, terminal retries, live-session fencing
 and one-use redemption.
 
+## Resource ownership
+
 The [Python API](../api/README.md) constructs their concrete dependencies and owns runtime
 resources. Shared Profile preferences depend explicitly on the MTG card and metric projection in
 `spellbook_core.mtg.profile`, retaining the same wire body. Internal consumers import the explicit
 MTG modules; only HTTP paths retain compatibility aliases. Core has no process, image, entrypoint,
 module-global pool or connection owner. Constructors open no resources; explicit start/close methods
 own only the documented Core tasks.
+
+## Toolchain and tests
 
 Psycopg 3.3.6 provides explicit SQL/transactions without an ORM or migration-owner change. The
 binary extra avoids driver compilation in the API image. Python 3.14.8, uv 0.12.23, Hatchling, Ruff
@@ -48,6 +62,8 @@ Psycopg Pool dependency; Core does not acquire a pool dependency. Run the indepe
 suite with `uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest`. SQL history,
 schema/data and Drizzle ownership remain unchanged. Inventory retains Profile FOR UPDATE followed by
 ordinary require_actor, without introducing Deck's separate session FOR SHARE fence.
+
+## SavedState and import boundaries
 
 API owns pool/executor/LISTEN/supervisor/barrier settlement. Core owns account subscriptions,
 generations/epochs, coalesced queues, authority reads and tracked fanout work. Recovery callbacks

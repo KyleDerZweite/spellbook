@@ -1,7 +1,7 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-10
+- Last Reviewed: 2026-11-18
 - Source of Truth: mixed
 - Update Triggers:
   - Documentation ownership, product contracts and section structure
@@ -10,6 +10,7 @@
   - Development, hosted deployment and operational references
   - Historical wiki discovery and source provenance
   - Markdown formatting, metadata, review dates and documentation health
+  - Reader orientation: TL;DR summaries and question-based navigation
 - Related Docs:
   - [Product](./product/README.md)
   - [Architecture](./architecture/README.md)
@@ -19,36 +20,34 @@
   - [Reference](./reference/README.md)
   - [Issue labels](./ISSUE_LABELS.md)
 
-Start with the [product specification](./product/specification.md) for current behavior,
-requirements, and known limits. Use the [historical strategy wiki](./wiki/index.md) for dated
-decisions and preferences; current contracts remain with the owners below. Use the
-[domain glossary](../GLOSSARY.md) for precise MTG and ownership terms. The code, tests, and
-configuration resolve implementation questions.
+> **TL;DR**
+>
+> - New here? Read the [product specification](./product/specification.md) first.
+> - Each topic has **one owning document**. Find it in the tables below.
+> - Unsure about a word? Check the [glossary](../GLOSSARY.md).
+> - Code, tests and configuration settle implementation questions.
+> - Editing docs? Follow [Maintenance](#maintenance) and run `pnpm format:docs` and
+>   `pnpm lint:docs`.
 
-[Value tracking](./product/value-tracking.md) owns market value, coverage and personal Inventory
-history. [Valuation](./architecture/valuation.md) owns implemented reference mechanics, public
-source history and private daily checkpoints.
-[ADR-0020](./decisions/0020-value-only-inventory-history.md) records the value-only scope and
-supersedes the cost-dependent history design.
+## Find a document by question
 
-The [Python migration contract](./architecture/python-backend-migration.md) and
-[ADR-0027](./decisions/0027-python-functional-migration-acceptance.md) own functional porting
-acceptance, retired strict resource gates and the implemented Python source.
-[PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) records current merge status and owner
-acceptance. Production operations remain separate.
+| I want to know...                             | Read                                                                    |
+| --------------------------------------------- | ----------------------------------------------------------------------- |
+| What Spellbook does, and what is planned      | [Product specification](./product/specification.md)                     |
+| What a domain term means                      | [Glossary](../GLOSSARY.md)                                              |
+| How market value and Inventory history work   | [Value tracking](./product/value-tracking.md)                           |
+| How value references and checkpoints are made | [Valuation](./architecture/valuation.md)                                |
+| How web, API and Android are split            | [Independent applications](./architecture/independent-applications.md)  |
+| Which API paths exist                         | [ADR-0028: versioned game API](./decisions/0028-versioned-game-api.md)  |
+| Why old interfaces are removed immediately    | [ADR-0029](./decisions/0029-remove-replaced-interfaces.md)              |
+| How the Python backend migration is accepted  | [Python migration contract](./architecture/python-backend-migration.md) |
+| How to start, build and deploy                | [Deployment](./operations/deployment.md#independent-build-and-start)    |
+| Which checks to run before a pull request     | [Repository verification](./operations/github-automation.md)            |
+| How to label issues                           | [Issue label rules](./ISSUE_LABELS.md)                                  |
+| How to contribute and disclose AI use         | [Contribution policy](../CONTRIBUTING.md)                               |
+| Why a past strategy choice was made           | [Historical strategy wiki](./wiki/index.md)                             |
 
-[ADR-0028](./decisions/0028-versioned-game-api.md) owns the canonical versioned shared/MTG API.
-[ADR-0029](./decisions/0029-remove-replaced-interfaces.md) selects immediate removal of replaced
-interfaces; older clients must update. The
-[independent applications contract](./architecture/independent-applications.md) owns the accepted
-web/API/Android split and implementation status.
-[Deployment](./operations/deployment.md#independent-build-and-start) owns separate runtime commands;
-[verification](./operations/github-automation.md) owns current-artifact evidence and unavailable
-native checks.
-
-Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the
-[contribution policy](../CONTRIBUTING.md) for proposals, pull requests, and AI assistance
-disclosure.
+## Sections
 
 | Section                                  | Owns                                                                                    |
 | ---------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -59,7 +58,36 @@ disclosure.
 | [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                               |
 | [Reference](./reference/README.md)       | Selected components and external dependency documentation                               |
 
+## Good to know
+
+- **Value:** [Value tracking](./product/value-tracking.md) owns market value, coverage and personal
+  Inventory history. [Valuation](./architecture/valuation.md) owns reference mechanics, public
+  source history and private daily checkpoints.
+  [ADR-0020](./decisions/0020-value-only-inventory-history.md) keeps history value-only and
+  supersedes the cost-dependent design.
+- **Python backend:** The [migration contract](./architecture/python-backend-migration.md) and
+  [ADR-0027](./decisions/0027-python-functional-migration-acceptance.md) own functional acceptance
+  and the implemented Python source. [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276)
+  records merge status and owner acceptance. Production operations stay separate.
+- **Interfaces:** [ADR-0028](./decisions/0028-versioned-game-api.md) owns the versioned shared/MTG
+  API. [ADR-0029](./decisions/0029-remove-replaced-interfaces.md) removes replaced interfaces
+  immediately, so older clients must update.
+- **Runtime and evidence:** [Deployment](./operations/deployment.md#independent-build-and-start)
+  owns runtime commands. [Verification](./operations/github-automation.md) owns current-artifact
+  evidence and unavailable native checks.
+- **History vs. current:** The [wiki](./wiki/index.md) keeps dated decisions and preferences.
+  Current contracts stay with the owners above.
+
 ## Maintenance
+
+**Checklist for every documentation change:**
+
+- [ ] Change the owning document. Link to it instead of copying a contract.
+- [ ] Update `Last Reviewed`, `Update Triggers` and `Related Docs`.
+- [ ] Add new files to their section index. Repair links after moves or renames.
+- [ ] Run `pnpm format:docs`, then `pnpm lint:docs`.
+
+The rules in detail:
 
 Update the owning document when behavior, routes, schemas, authentication, environment variables, or
 operator steps change. Keep requirements and planned work distinct from implemented behavior. Link

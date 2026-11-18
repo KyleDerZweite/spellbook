@@ -1,7 +1,7 @@
 # Spellbook Android
 
 - Status: Implemented client, native acceptance pending integration
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-18
 - Source of Truth: this Gradle project and the shared HTTP contracts
 - Update Triggers:
   - canonical versioned API paths
@@ -19,6 +19,18 @@
   - [Mobile design handoff](../docs/product/mobile-app-exploration.md)
   - [Authentication](../docs/architecture/auth.md)
   - [Mobile HTTP](../docs/architecture/mobile-and-scan.md)
+
+> **TL;DR**
+>
+> - Native Android app (Kotlin, Compose). It talks only to the Python API.
+> - Build with JDK 21 and the committed Gradle wrapper. No Node or database needed.
+> - Debug builds reach the API at `http://127.0.0.1:3001` by default. Release builds need an HTTPS
+>   `-Pspellbook.apiBaseUrl`.
+> - Working: Search, Home, Inventory, Boxes, Decks, Profile, Settings.
+> - Not yet: Deck writing, import and export, camera recognition, Card Station hardware and verified
+>   native rendering on a device.
+
+## Overview
 
 This independent Kotlin/Compose application uses the Python API directly. It imports no web or
 database implementation. The API validates authority, Printing identity, Inventory mutations,

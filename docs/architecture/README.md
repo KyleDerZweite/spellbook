@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-18
 - Source of Truth: code and explicitly marked accepted design
 - Update Triggers:
   - managed Category removal
@@ -35,23 +35,32 @@
   - [Migration evidence](./python-migration-evidence-baseline.md)
   - [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
-Architecture documents distinguish implemented boundaries from explicitly marked accepted designs
-and proposals. Use the product specification for requirements and current workflow scope.
+> **TL;DR**
+>
+> - How Spellbook is built: services, data, authentication and contracts.
+> - Start with the [system overview](./system-overview.md).
+> - Docs mark what is **implemented**, what is an **accepted design** and what is a **proposal**.
+> - Requirements live in the [product specification](../product/specification.md), not here.
 
-[Independent applications](./independent-applications.md) owns the independent HTTP boundary, remote
-web adapter and first native Android slice; native target acceptance remains pending.
-[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for API and workers;
-[the evaluation](../integrations/backend-language-evaluation.md) records tradeoffs and the accepted
-migration design. The [accepted migration contract](./python-backend-migration.md) records
-framework, wire/SQL ownership and the implementation merged through
-[PR 276](https://github.com/KyleDerZweite/spellbook/pull/276), including migrator preparation and
-Node server source contraction. Production cutover and productive migrator rollout remain separate
-operations; the merged source uses Python by default. The current migration contract owns
-pre-release compatibility and recovery requirements. The
-[migration evidence baseline](./python-migration-evidence-baseline.md) owns current functional
-evidence responsibilities and retained synthetic fixture ownership.
-[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) replaces strict
-performance/resource prerequisites with functional acceptance and permits domain implementation now.
+## Current state
+
+- **Applications:** [Independent applications](./independent-applications.md) owns the HTTP boundary
+  between web, API and Android, the remote web adapter and the first native Android slice. Native
+  target acceptance is still pending.
+- **Python backend:** [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the
+  API and workers. [The evaluation](../integrations/backend-language-evaluation.md) records the
+  tradeoffs.
+- **Migration:** The [migration contract](./python-backend-migration.md) records framework, wire and
+  SQL ownership, and the implementation merged through
+  [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276). The merged source uses Python by
+  default. It also owns pre-release compatibility and recovery requirements.
+- **Not done here:** Production cutover and productive migrator rollout are separate operations.
+- **Evidence:** The [migration evidence baseline](./python-migration-evidence-baseline.md) owns
+  functional evidence and retained synthetic fixtures.
+  [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) replaces strict
+  performance and resource prerequisites with functional acceptance.
+
+## Documents
 
 | Owner                                                                  | Subject                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -68,5 +77,5 @@ performance/resource prerequisites with functional acceptance and permits domain
 | [Authentication](./auth.md)                                            | Local credentials, sessions, and origin protection                                                                                                                                                                                                                                                                                                                |
 | [Mobile and scan](./mobile-and-scan.md)                                | API validation, retained uploads/review and results, paused Scan entrypoints and future local recognition                                                                                                                                                                                                                                                         |
 
-[Managed authentication evaluation](./auth-provider-evaluation.md) compares future provider options;
-local authentication remains implemented.
+Proposal: [managed authentication evaluation](./auth-provider-evaluation.md) compares future
+provider options. Local authentication remains the implemented method.

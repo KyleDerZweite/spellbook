@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-15
+- Last Reviewed: 2026-11-18
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
@@ -25,6 +25,30 @@
   - [PostgreSQL upgrade](./postgres-upgrade.md)
   - [Catalog](../architecture/catalog.md)
   - [Python direction](../decisions/0025-python-api-and-workers.md)
+
+> **TL;DR**
+>
+> - Three Compose files, no overlays: `compose.yml` (standalone), `compose.dev.yml` (configured
+>   Development), `compose.prod.yml` (hosted Demo, Production and connector).
+> - Just trying it? Read [Standalone self-hosting](#standalone-self-hosting) and stop there.
+> - Hosted rollouts use selected immutable images and never rebuild them.
+> - Never use `down --volumes` on a stack whose data you want to keep.
+> - Keep live domains, accounts and secrets in private operator notes, not here.
+
+| I want to...                                   | Section                                                                                                                                  |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Run Spellbook on my machine without setup      | [Standalone self-hosting](#standalone-self-hosting)                                                                                      |
+| Start or stop Development                      | [Stable server site and optional Development](#stable-server-site-and-optional-development)                                              |
+| Deploy the hosted Demo                         | [Demo deployment](#demo-deployment)                                                                                                      |
+| Understand automatic Demo updates              | [Automatic Demo updates](#automatic-demo-updates)                                                                                        |
+| Find CI images and release tags                | [CI images and release tags](#ci-images-and-release-tags)                                                                                |
+| Build and start web, API or workers separately | [Independent build and start](#independent-build-and-start)                                                                              |
+| Install the PWA or sign in with a QR code      | [PWA installation and QR use](#pwa-installation-and-qr-use)                                                                              |
+| Look up services or environment variables      | [Services and startup](#services-and-startup), [Configuration](#configuration)                                                           |
+| Update, reset or reimport an environment       | [Environment update and reset interface](#environment-update-and-reset-interface)                                                        |
+| Recover Catalog or Inventory data              | [Catalog migration and recovery](#catalog-migration-and-recovery), [Inventory collation and recovery](#inventory-collation-and-recovery) |
+
+## Overview
 
 The repository has exactly three Compose files. [`compose.yml`](../../compose.yml) is standalone
 self-hosting without configuration. [`compose.dev.yml`](../../compose.dev.yml) is configured private

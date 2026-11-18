@@ -1,7 +1,7 @@
 # Operations
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-11-18
 - Source of Truth: mixed
 - Update Triggers:
   - Python functional migration verification
@@ -17,13 +17,24 @@
   - [Repository verification and GitHub automation](./github-automation.md)
   - [Docs index](../README.md)
 
-Use these documents to run Spellbook. Keep live instance values and secrets outside this repository.
-[Repository verification](./github-automation.md#python-api-and-core) owns Python functional checks
-under the [current migration contract](../architecture/python-backend-migration.md); strict P01
-resource proof is retired and production operations remain separate.
+> **TL;DR**
+>
+> - How to run, deploy, recover and verify Spellbook.
+> - Most readers need [Deployment](./deployment.md) first.
+> - Keep live instance values and secrets **outside** this repository.
 
-- [Deployment](./deployment.md)
-- [Local authentication and account recovery](./local-auth.md)
-- [Private instance template](./private-instance-template.md)
-- [Repository verification and GitHub automation](./github-automation.md)
-- [PostgreSQL 17 to 18 upgrade](./postgres-upgrade.md)
+## Pick a guide
+
+| I want to...                                        | Read                                                                    |
+| --------------------------------------------------- | ----------------------------------------------------------------------- |
+| Self-host, develop or deploy Demo and Production    | [Deployment](./deployment.md)                                           |
+| Set or reset a password, run the Demo account setup | [Local authentication and account recovery](./local-auth.md)            |
+| Record my instance's private operator notes         | [Private instance template](./private-instance-template.md)             |
+| Run the checks CI runs, understand automation       | [Repository verification and GitHub automation](./github-automation.md) |
+| Upgrade the database from PostgreSQL 17 to 18       | [PostgreSQL 17 to 18 upgrade](./postgres-upgrade.md)                    |
+
+## Python backend checks
+
+[Repository verification](./github-automation.md#python-api-and-core) owns the Python functional
+checks under the [current migration contract](../architecture/python-backend-migration.md). Strict
+P01 resource proof is retired, and production operations remain separate.

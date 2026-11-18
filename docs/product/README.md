@@ -1,7 +1,7 @@
 # Product docs
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-18
 - Source of Truth: product documents
 - Update Triggers:
   - managed Category removal
@@ -21,26 +21,24 @@
   - [Value tracking](./value-tracking.md)
   - [Docs index](../README.md)
 
-Product docs describe Spellbook's requirements, behavior, and user-facing language. Start with the
-specification; use the other documents for their distinct subjects.
+> **TL;DR**
+>
+> - What Spellbook does for users, and the words it uses.
+> - Start with the [product specification](./specification.md).
+> - Implementation details live in [architecture](../architecture/README.md). Runtime setup lives in
+>   [operations](../operations/README.md).
 
-- [Product specification](./specification.md) owns functional requirements, implementation status,
-  planned capabilities, and acceptance checks.
-- [Domain model](../../GLOSSARY.md) owns card, inventory, deck, availability, and review
-  terminology.
-- [Routes](./routing-and-games.md) lists implemented pages, API paths, and compatibility redirects.
-- [UI design direction](./ui-design-direction.md) owns interaction patterns, component choices, and
-  visual requirements.
-- [Website and Android design handoff](./mobile-app-exploration.md) links the active Android
-  journeys, compact app structure, Cardstation/capture simulations, source references and
-  online-first implementation boundaries.
-- [Card grouping](./card-grouping.md) owns Inventory groups and memberships, Deck type groups and
-  the read-only related Token appendix.
-- [Value tracking](./value-tracking.md) owns current Scryfall/optional references, public source
-  history and product-link presentation and implemented value-only daily Inventory history and
-  selected-Deck estimates. [Market price research](../integrations/market-prices.md) owns provider
-  facts and evaluation.
+## Documents
 
-Internal implementation details belong in [architecture](../architecture/README.md), and runtime
-setup belongs in [operations](../operations/README.md). Superseded product documents belong in git
-history rather than a parallel active archive.
+| Document                                                          | Owns                                                                                                                                          |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Product specification](./specification.md)                       | Functional requirements, implementation status, planned capabilities and acceptance checks                                                    |
+| [Domain model](../../GLOSSARY.md)                                 | Card, inventory, deck, availability and review terminology                                                                                    |
+| [Routes](./routing-and-games.md)                                  | Implemented pages, API paths and compatibility redirects                                                                                      |
+| [UI design direction](./ui-design-direction.md)                   | Interaction patterns, component choices and visual requirements                                                                               |
+| [Website and Android design handoff](./mobile-app-exploration.md) | Active Android journeys, compact app structure, Cardstation/capture simulations, source references and online-first implementation boundaries |
+| [Card grouping](./card-grouping.md)                               | Inventory groups and memberships, Deck type groups and the read-only related Token appendix                                                   |
+| [Value tracking](./value-tracking.md)                             | Scryfall and optional references, public source history, product links, value-only daily Inventory history and selected-Deck estimates        |
+
+[Market price research](../integrations/market-prices.md) owns provider facts and evaluation.
+Superseded product documents live in Git history, not in a parallel archive.
