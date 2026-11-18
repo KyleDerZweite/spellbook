@@ -1,7 +1,7 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-11-14
+- Last Reviewed: 2026-11-18
 - Source of Truth: route handlers and server hooks
 - Update Triggers:
   - Deck import/download/print routes
@@ -135,9 +135,9 @@ takes precedence and an invalid bearer token fails without cookie fallback. Unsa
 cookie-authenticated requests require same-origin protection. The
 [authentication document](../architecture/auth.md) owns credential and session rules.
 
-There is no OIDC callback route, game-switching page, play route, public deck page, MTG card
-camera-capture page or offline workspace. Authorization QR camera scanning belongs to
-`/app/connect`. The public `offline.html` fallback contains no account workspace.
+There is no game-switching page, play route, public deck page, MTG card camera-capture page or
+offline workspace. Authorization QR camera scanning belongs to `/app/connect`. The public
+`offline.html` fallback contains no account workspace.
 
 Public read-only browser endpoints are `GET` and `POST /api/v1/mtg/catalog/search`,
 `GET /api/v1/mtg/catalog/cards/{oracleId}/printings` and

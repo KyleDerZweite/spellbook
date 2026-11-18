@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-11-18
 - Source of Truth: code
 - Update Triggers:
-  - Registration policy, account migration and credential recovery operator lifetime
+  - Registration policy and password recovery
   - Root environment, reverse proxy origin and independent API/web ownership
   - Hosted Demo and production Compose entrypoints and immutable image selection
   - Python operator commands, bundled fixtures and pre-release account scope
@@ -25,25 +25,11 @@
 > - Users register at `/auth/register` and sign in at `/auth/login`.
 > - Set or reset a password: `pnpm operator:password ACCOUNT_ID USERNAME < password-file`. The
 >   password comes from stdin, never an argument.
-> - Existing OIDC accounts keep their data when you assign local credentials. Do not create a
->   replacement account.
 > - Demo commands only touch databases ending in `_demo` or `_design`.
 
 New users register at `/auth/register` and sign in at `/auth/login`. Registration is public. The
 [authentication contract](../architecture/auth.md) defines credential rules, sessions, and JSON API
 login.
-
-## Existing OIDC accounts
-
-Use the current database schema before serving the application. The
-[pre-release policy](../../CONTRIBUTING.md#replacing-interfaces) does not guarantee upgrades from
-historical account or schema formats. For an account supported by the current schema, assigning
-local credentials through the operator preserves its account ID and owned data. Old OIDC sessions
-stop working; historical identity mappings do not provide local credentials.
-
-Enroll each existing account with the operator command below. Do not create a replacement account or
-link an account by matching email. Select the intended `user_profiles.account_id` from the database
-and verify the account owner before assigning credentials.
 
 ## Set or reset a password
 
@@ -57,9 +43,10 @@ Run from the repository root:
 pnpm operator:password ACCOUNT_ID USERNAME < /secure/path/password-file
 ```
 
-The existing account ID and desired local username are arguments. The password is read from standard
-input, not a process argument. Keep the input file private and remove temporary password files after
-use.
+Look up the intended `user_profiles.account_id` and verify the account owner before running the
+command. Pass that ID and the desired local username as arguments. The password is read from
+standard input, not a process argument. Keep the input file private and remove temporary password
+files after use.
 
 The root `operator:password` command invokes the installed Python CLI, which owns arguments and
 bounded stdin intake. It calls the
@@ -88,11 +75,10 @@ assigned username and password. There is no email-based or self-service recovery
 
 ## Deployment settings
 
-OIDC, Zitadel, and `AUTH_SESSION_SECRET` settings are obsolete. Set the public origin through the
-deployment configuration so SvelteKit can enforce same-origin form requests. Compose passes
-`APP_ORIGIN` into the web build and the API runtime. `API_INTERNAL_URL` selects only the private
-transport destination. Rebuild the frontend after changing the public origin; adapter-node 6 does
-not read runtime `ORIGIN`.
+Set the public origin through the deployment configuration so SvelteKit can enforce same-origin form
+requests. Compose passes `APP_ORIGIN` into the web build and the API runtime. `API_INTERNAL_URL`
+selects only the private transport destination. Rebuild the frontend after changing the public
+origin; adapter-node 6 does not read runtime `ORIGIN`.
 
 Behind a proxy, configure web ingress address trust and the explicit API socket-peer allowlist using
 the [deployment procedure](./deployment.md). Without this setting, multiple users can share the

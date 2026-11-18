@@ -3,13 +3,13 @@
 - Status: Accepted; flat-page compatibility redirects superseded by
   [ADR-0029](./0029-remove-replaced-interfaces.md)
 - Date: 2026-10-05
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-18
 - Source of Truth: user requirement and implemented routes
 - Update Triggers:
   - ADR-0029 removal of flat-page aliases
   - game routes
   - supported games and selection behavior
-- Supersedes: [ADR-0004](./0004-flat-routes-with-active-game-state.md) for page routing
+- Supersedes: [ADR-0004](./README.md#decisions) for page routing
 - Related Docs:
   - [Routes](../product/routing-and-games.md)
   - [Design direction](../product/ui-design-direction.md)

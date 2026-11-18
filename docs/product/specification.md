@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-14
+- Last Reviewed: 2026-11-18
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers:
   - Account and platform behavior:
@@ -144,8 +144,7 @@ ordinary session, not a distinct machine identity.
 protocol and [deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use
 steps. Users can register a local account, sign in, use the private workspace, and sign out without
 an external identity provider. Registration is public on the instance; there is no invite-only or
-first-user-only policy. OIDC redirects, discovery, provider tokens, and external identity linking
-are removed from active authentication.
+first-user-only policy.
 
 Signed-in users can choose a local sprite avatar and profile artwork in
 [Settings](./routing-and-games.md). Both choices persist with their account. Registration also
