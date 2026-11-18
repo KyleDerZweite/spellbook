@@ -2,13 +2,13 @@
 
 - Status: Accepted
 - Date: 2026-10-03
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-11-18
 - Source of Truth: code and product decision
 - Update Triggers:
   - authentication strategy
   - registration policy
   - identity migration
-- Supersedes: [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md)
+- Supersedes: [ADR-0006](./README.md#decisions)
 - Related Docs:
   - [Authentication](../architecture/auth.md)
   - [Account recovery](../operations/local-auth.md)

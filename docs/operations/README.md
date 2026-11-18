@@ -12,7 +12,6 @@
 - Related Docs:
   - [Deployment](./deployment.md)
   - [Local authentication](./local-auth.md)
-  - [PostgreSQL upgrade](./postgres-upgrade.md)
   - [Private instance template](./private-instance-template.md)
   - [Repository verification and GitHub automation](./github-automation.md)
   - [Docs index](../README.md)
@@ -31,7 +30,6 @@
 | Set or reset a password, run the Demo account setup | [Local authentication and account recovery](./local-auth.md)            |
 | Record my instance's private operator notes         | [Private instance template](./private-instance-template.md)             |
 | Run the checks CI runs, understand automation       | [Repository verification and GitHub automation](./github-automation.md) |
-| Upgrade the database from PostgreSQL 17 to 18       | [PostgreSQL 17 to 18 upgrade](./postgres-upgrade.md)                    |
 
 ## Python backend checks
 

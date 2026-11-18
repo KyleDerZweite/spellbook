@@ -103,8 +103,9 @@ new factual review. Repair links affected by moves or renames in the same change
 their section index. Remove replaced documentation and rely on git history; do not create archives
 of replaced documents or competing descriptions of the current system. `docs/wiki/` may retain dated
 strategy history with pointers to original sources; current contracts remain with their canonical
-owners. Cite original sources without copying or archiving them in the wiki. Retain decision records
-with explicit supersession status.
+owners. Cite original sources without copying or archiving them in the wiki. Keep decisions that
+still apply in their ADR files. For fully superseded ADRs, retain the index entry and use Git
+history for the original text.
 
 Review documentation health at each milestone or release, or monthly during active development.
 Check claims against code, broken links, orphaned documents, duplicate contracts, and superseded

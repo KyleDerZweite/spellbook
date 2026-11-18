@@ -1,7 +1,7 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-16
+- Last Reviewed: 2026-11-18
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers:
   - Local checks, `check:changed` selection, runtime pins, installed Python packages and canonical
@@ -52,9 +52,8 @@ so run `pnpm setup:python` after Python source changes; CI starts from fresh env
 whose tool is not on `PATH` or whose service is unconfigured is reported as not run, never as
 passed: Compose configuration needs `podman-compose`, and Catalog worker tests need
 `WORKER_TEST_DATABASE_URL` for an exclusively assigned disposable PostgreSQL 18 database because
-they otherwise skip. It provides no evidence for the Application Integration and Android
-Build workflows, browser, PWA and QR checks, container builds or deployment; the sections below own
-those.
+they otherwise skip. It provides no evidence for the Application Integration and Android Build
+workflows, browser, PWA and QR checks, container builds or deployment; the sections below own those.
 
 The pnpm workspace owns frontend/contracts; independently locked Python packages own API/Core and
 workers. For a broader pass that includes the full build, run from the repository root in an
@@ -516,8 +515,8 @@ guarded disposable target. The manual application workflow's database name does 
 `_demo`/`_design` guard, so those transaction checks require separate local evidence. Android Build
 assembles/tests/lints; it does not boot an emulator or establish installation/native journeys.
 Browser workflows, container builds, image publication and deployment also remain explicit checks
-when relevant. [Deployment](./deployment.md) owns container startup and operator verification;
-[database upgrades](./postgres-upgrade.md) owns restore rehearsal and rollback checks.
+when relevant. [Deployment](./deployment.md) owns container startup and operator verification. Its
+[storage guide](./deployment.md#storage-and-upgrades) covers backup and recovery.
 
 ## Proposed workflow improvements
 

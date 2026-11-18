@@ -1,7 +1,7 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-11-15
+- Last Reviewed: 2026-11-18
 - Source of Truth: code
 - Update Triggers:
   - Credentials, sessions, bearer tokens, origin checks and safe HTTP validation errors
@@ -375,7 +375,7 @@ a trusted peer may supply `X-Spellbook-Client-Address`; arbitrary Forwarded/X-Fo
 confer no identity. [Deployment](../operations/deployment.md#configuration) owns both proxy trust
 settings.
 
-## Access and migration
+## Access and recovery
 
 `/mtg/dashboard`, `/mtg/inventory`, `/mtg/decks`, `/mtg/scan`, and `/settings`, including their
 child routes, require authentication. The accepted `/app/connect` and `/auth/approve` pages also
@@ -389,12 +389,7 @@ including a deck selection or `/`. The guard supplies the protected destination 
 rejected values use the inventory default.
 
 Registration is public. Email verification and emailed reset links are not implemented. The
-[operator procedure](../operations/local-auth.md) covers recovery and enrollment of accounts created
-under OIDC.
-
-Migration `0004` adds credentials and sessions without changing account IDs. Historical
-`auth_identities` records remain in the database but do not authenticate requests. OIDC tokens,
-provider configuration, and encrypted legacy sessions are no longer accepted.
+[operator procedure](../operations/local-auth.md) covers password recovery for existing accounts.
 
 ## Agent account creation
 

@@ -8,10 +8,9 @@
   - Compose services, independent images, startup commands and graceful shutdown.
   - Stable server ingress, Development tunnels, loopback ports and origin builds.
   - Database migration ownership, retained data, recovery and operator commands.
-  - CI image publication, release tags and migration compatibility with the previous release.
+  - CI image publication and release tags.
   - Automatic Demo update eligibility, completion evidence, documentation-only restarts and proposed
     workflow improvements.
-  - One-time migration of installations still using Compose overlays.
   - Catalog publication, Demo bundles, private reset and source refresh.
   - Transient Scan processing, worker ownership, value-history scheduling and reporting.
   - Authentication, QR sessions, PWA operation and current runtime acceptance.
@@ -22,7 +21,6 @@
   - [System overview](../architecture/system-overview.md)
   - [Private instance template](./private-instance-template.md)
   - [GitHub automation](./github-automation.md)
-  - [PostgreSQL upgrade](./postgres-upgrade.md)
   - [Catalog](../architecture/catalog.md)
   - [Python direction](../decisions/0025-python-api-and-workers.md)
 
@@ -288,51 +286,8 @@ Version tags mark a commit whose images are already published. Pre-alpha tags us
 `v<major>.<minor>.<patch>-prealpha.<n>`, for example `v0.1.0-prealpha.1`; a hyphenated tag creates a
 GitHub prerelease with generated notes and then moves the `release` tag. The tag job fails when any
 image for the tagged commit is missing. Podman auto-update can follow `main` for Demo and `release`
-for Production. Auto-update restarts one unit at a time, so workers and web can briefly run newer
-code than the API during one update; keep them tolerant of the previous schema and API for one
-update.
-
-### Operator cutover from overlays
-
-This is a one-time migration only for installations whose units or updater still use the old Compose
-overlays or generated image YAML. Ordinary updates after that migration follow
-[Demo deployment](#demo-deployment) and the
-[automatic update completion criteria](#automatic-demo-updates); they do not repeat this cutover.
-
-The repository replacement does not update an existing server's user units or updater. Before its
-next source update, pause the Demo update timer and wait for the current update operation and shared
-backup lock to settle. Inspect the existing `spellbook-site.service`, `spellbook-demo.service`,
-update service/timer, receipt and generated image override in private operator storage. Preserve
-their source revision, actual image IDs, project names, volume names, ingress network and aliases.
-Do not stop containers merely to change configuration references.
-
-Update the connector unit to run `pnpm compose site up` and `pnpm compose site down` from its
-existing checkout. Update the Demo unit to use `pnpm compose demo up` and `pnpm compose demo down`
-with the selected `DEMO_IMAGE_REVISION`. Preserve unit dependencies, working directory, runtime path
-and graceful shutdown behavior. The site unit must never enable the application or Catalog profiles.
-The external network already exists on an established server; retain it unchanged.
-
-Replace the updater's old file list and generated candidate/current/previous image YAML writes with
-explicit launcher calls. After the existing clean-main, expected-remote, newest successful push-CI
-and fast-forward checks, capture the full selected SHA. Run
-`pnpm compose demo build --revision FULL_SHA` only for new images; adopt existing tags without
-rebuilding. Read selected configuration privately through
-`pnpm compose demo config --revision FULL_SHA` when the updater needs database/origin metadata.
-Retain its host/update locks, pre-update database export, failure receipt, previous revision and
-public publication checks. Before restarting the Demo unit, atomically select the new full
-`DEMO_IMAGE_REVISION` in the existing protected `.env` without rewriting other values or file
-permissions. A failure must retain its failure latch and previous revision; recovery selects the
-previous existing immutable images without rebuilding. Retire generated image YAML only after all
-unit/updater readers have migrated and its revision/image information is retained in the existing
-receipt. Do not leave a compatibility overlay or fall back to the old Compose names.
-
-Reload the user manager after editing units, then perform the separately authorized rollout. Verify
-actual image IDs for every running application and the completed `db-migrate` container against the
-selected tags. Check public API health, authenticated Demo login/read/logout, unchanged
-Catalog/Price publication pointers and retained database volumes. Confirm the connector still has
-the same project, ingress network and target aliases, with Production and Development still stopped.
-Only then resume the update timer. For installations still using overlays, these are migration
-dependencies; this document does not establish that a target has completed them.
+for Production. Auto-update restarts one unit at a time. For a release that changes shared
+interfaces, roll out the API, workers and web together with the selected image revision.
 
 ## Prepare a shared UI development session
 
@@ -540,17 +495,11 @@ has no published port. Web forwards `/api/*` and `/openapi.json` to it. Configur
 same-origin ingress through the independent server connector or Development tunnel. Direct API tests
 use their own loopback listener, without broadening production ingress.
 
-For an existing PostgreSQL 17 deployment, complete the
-[database dump/restore upgrade](./postgres-upgrade.md) before starting migrations or API writers.
-The new `postgres18_data` volume is initially empty; the original `postgres_data` volume remains
-available for rollback.
-
 1. Copy `.env.example` to a private `.env` and replace the `PROD_POSTGRES_*` database credentials.
 2. Set `PROD_APP_ORIGIN` to the externally reachable application origin.
 3. Select `PROD_IMAGE_REVISION`, build with `pnpm compose production build`, then run
    `pnpm compose production up`.
-4. Inspect migration and worker logs, then register a local account. Enroll existing accounts using
-   [local authentication operations](./local-auth.md).
+4. Inspect migration and worker logs, then register a local account.
 
 Use `pnpm compose site up` for the independent stable connector and the configured external ingress
 network. Development owns its separate Newt connector. The tunnel transports requests; local
@@ -614,9 +563,8 @@ handlers independently cap streamed bodies at 1 MiB; Scan uploads accept raw ima
 them at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application limits. See
 [request validation](../architecture/mobile-and-scan.md#request-validation).
 
-OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables are no longer used.
 Browser catalog reads are public; account operations and the versioned integration API require
-authentication. Remove obsolete search origins and credentials from deployment configuration.
+authentication.
 
 ## Application and native operator ownership
 
@@ -636,42 +584,18 @@ operator commands from the repository root through `pnpm db:migrate`, `pnpm oper
 `pnpm demo:seed` and `pnpm demo:replace-inventory`. These commands invoke the installed Python
 entrypoints through `scripts/python.mjs`. Replaced frontend forwarders and aliases are removed under
 the [interface replacement policy](../../CONTRIBUTING.md#replacing-interfaces).
-[Local authentication operations](./local-auth.md) owns target guards, enrollment, recovery and
-starter replacement. Migration configuration and SQL/journal/snapshots belong to backend.
+[Local authentication operations](./local-auth.md) owns target guards, password recovery and starter
+replacement. Migration configuration and SQL/journal/snapshots belong to backend.
 
 ## Storage and upgrades
 
-Keep each migration compatible with the previous release's code, so redeploying the previous image
-remains possible. Drop columns, tables or constraints only in a later release, after the running
-code no longer reads or writes them. Image rollback cannot undo an applied migration; restore the
-pre-update dump instead. The previous release's migrator accepts a ledger that is ahead of its
-journal when the known prefix matches and applies nothing, so its image can start again.
+Run the database migrator for the selected application release before starting its writers. Follow
+the [interface replacement policy](../../CONTRIBUTING.md#replacing-interfaces) for schema changes.
+To roll back an applied schema change, restore a verified pre-update dump and redeploy the
+corresponding application release.
 
-Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New
-conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay
-behavior. The [Postgres contract](../architecture/postgres.md#mutation-replay) owns the details.
-
-[Migration 0012](../../backend/drizzle/0012_deck_contracts.sql) adds Deck Description/composition
-revisions and persisted compact acknowledgements, retaining request records after Deck deletion. Run
-the existing migrator for the integrated migration history before starting these Deck contracts.
-[Postgres](../architecture/postgres.md#deck-persistence-and-reads) owns their persistence semantics.
-Existing operator commands, database/image ownership and dependencies are unchanged.
-
-PostgreSQL and worker status use named volumes. Back up account data before migrations and keep a
-tested restore procedure. Image versions and runtime pins live in compose, Dockerfiles, and package
-manifests. Keep these files and lockfiles together when deploying an update.
-
-Runtime support was reviewed on 2026-10-03. The workers pin
-[Python 3.14.8](https://www.python.org/downloads/release/python-3148/), released on 2026-10-01. Its
-[release schedule](https://peps.python.org/pep-0745/) provides regular bugfix releases through
-October 2027 and security releases through October 2030.
-[Python 3.15](https://peps.python.org/pep-0790/) is not adopted yet.
-[Frontend runtime policy](../architecture/frontend.md#runtime-compatibility) owns Node and framework
-compatibility.
-
-PostgreSQL 18 uses the new named volume at `/var/lib/postgresql`, with database files under
-`/var/lib/postgresql/18/docker`. The [database upgrade procedure](./postgres-upgrade.md) owns
-migration, verification, and rollback for existing PostgreSQL 17 installations.
+Compose runs PostgreSQL 18 and mounts `postgres18_data` at `/var/lib/postgresql`. Database files
+live under `/var/lib/postgresql/18/docker`. The Compose files pin the image version.
 
 Scan uploads use only volatile API/worker memory. Neither Compose image has a Scan artifact volume,
 and neither environment has S3 storage configuration. The migration removes the two legacy
@@ -703,19 +627,10 @@ this operator maintenance, then verify page/location ordering against the same r
 the version alone does not rebuild indexes. Catalog set-code equality retains its existing default
 collation as described in [Catalog](../architecture/catalog.md#printing-and-import-identity).
 
-Apply [migration 0014](../../backend/drizzle/0014_inventory_contracts.sql) with the existing
-migrator before starting the updated Inventory mutation application. The integrated journal applies
-it after 0013 SavedState, following 0011 Inventory windows and 0012 Deck contracts. It adds nullable
-JSONB original acknowledgements to Inventory mutation requests without fabricating or backfilling
-old receipts. [Postgres](../architecture/postgres.md) owns the legacy policy.
-
 ## Saved-state streaming
 
-Apply [migration 0013](../../backend/drizzle/0013_saved_state.sql) with the existing migrator before
-starting SSE-capable replicas. The integrated migration journal applies it after 0011 Inventory
-windows and 0012 Deck contracts. It adds commit notification triggers, not table columns. Reserve
-one additional PostgreSQL listener connection per API process beyond request pools. Web has no
-database connection. No new synchronization provider or sticky-session configuration is required.
+Reserve one additional PostgreSQL listener connection per API process beyond request pools. Web has
+no database connection. SavedState uses PostgreSQL commit notifications.
 
 The public proxy, web forwarding and API `/api/v1/account/events` path must pass
 cookies/Authorization, disable response buffering and caching, permit long-lived streaming and use

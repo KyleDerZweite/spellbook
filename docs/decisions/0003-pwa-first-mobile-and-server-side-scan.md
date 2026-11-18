@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-04-17
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-18
 - Source of Truth: recorded decision
 - Update Triggers:
   - ADR-0029 old API hook removal
@@ -11,7 +11,7 @@
   - decision applicability
   - supersession
   - related document changes
-- Supersedes: [ADR-0002](./0002-android-first-mobile-and-server-side-scan.md)
+- Supersedes: [ADR-0002](./README.md#decisions)
 - Partially Superseded By: [ADR-0023](./0023-local-recognition-in-scanner-clients.md) for future
   capture and recognition placement; [ADR-0024](./0024-independent-applications.md) for independent
   Android delivery; [ADR-0029](./0029-remove-replaced-interfaces.md) for removal of old mobile API
