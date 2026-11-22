@@ -16,7 +16,8 @@ const commands = {
 	migrate: 'spellbook-migrate',
 	password: 'spellbook-operator-password',
 	demo: 'spellbook-demo-seed',
-	'replace-inventory': 'spellbook-demo-replace-inventory'
+	'replace-inventory': 'spellbook-demo-replace-inventory',
+	'demo-account': 'spellbook-demo-account'
 };
 const children = new Set();
 let stopping = false;
@@ -99,7 +100,7 @@ try {
 		await run('api', ['run', '--no-sync', commands[action], ...args]);
 	} else
 		throw new Error(
-			'Usage: python.mjs sync|test <package> [...pytestArgs]|start|migrate|password|demo|replace-inventory'
+			'Usage: python.mjs sync|test <package> [...pytestArgs]|start|migrate|password|demo|replace-inventory|demo-account'
 		);
 } catch (error) {
 	console.error(error.message);

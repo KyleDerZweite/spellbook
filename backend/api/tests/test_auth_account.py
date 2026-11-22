@@ -556,6 +556,15 @@ def test_registration_switch_defaults_open_and_rejects_invalid_values() -> None:
             Configuration.from_environment({"APP_ORIGIN": ORIGIN, "REGISTRATION_ENABLED": value})
 
 
+def test_demo_login_switch_defaults_off_and_rejects_invalid_values() -> None:
+    assert not Configuration.from_environment({"APP_ORIGIN": ORIGIN}).demo_login_enabled
+    enabled = {"APP_ORIGIN": ORIGIN, "DEMO_LOGIN_ENABLED": "true"}
+    assert Configuration.from_environment(enabled).demo_login_enabled
+    for value in ("", "True", "1", "yes"):
+        with pytest.raises(ValueError, match="DEMO_LOGIN_ENABLED must be true or false"):
+            Configuration.from_environment({"APP_ORIGIN": ORIGIN, "DEMO_LOGIN_ENABLED": value})
+
+
 def test_qr_browser_origin_and_existing_session_conflicts_precede_creation() -> None:
     d = Dependencies()
     with TestClient(d.app) as client:

@@ -13,7 +13,8 @@
     workflow improvements.
   - Catalog publication, Demo bundles, private reset and source refresh.
   - Transient Scan processing, worker ownership, value-history scheduling and reporting.
-  - Authentication, registration switch, QR sessions, PWA operation and current runtime acceptance.
+  - Authentication, registration and demo login switches, QR sessions, PWA operation and current
+    runtime acceptance.
   - QR approval display code and device confirmation
 - Related Docs:
   - [Postgres](../architecture/postgres.md)
@@ -527,6 +528,7 @@ hosted Development origin.
 | `BODY_SIZE_LIMIT`                                   | Web transport limit; launcher, HTTP harness and web image default to `12M`, preserving explicit overrides. API transport defaults to 12 MiB independently |
 | `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).                                                 |
 | `REGISTRATION_ENABLED`                              | API and web strict `true` or `false`, default `true`; `false` closes self-service registration                                                            |
+| `DEMO_LOGIN_ENABLED`                                | API and web strict `true` or `false`, default `false`; `true` offers the shared `demo` account at `/demo`                                                 |
 | `VALUE_HISTORY_TIMEZONE`                            | API reporting and State observation timezone, default `Europe/Berlin`; invalid names fail API and State startup                                           |
 | `VALUE_HISTORY_ENABLED`                             | State-only strict `true` or `false`, default `true`; disables only observation scheduling                                                                 |
 | `DATABASE_URL`                                      | API, Catalog worker or operator PostgreSQL connection; Compose maps its selected prefixed `POSTGRES_*` keys into the internal connection                  |
@@ -551,6 +553,12 @@ before any proxy rule lets `/api/*` bypass gateway SSO for native bearer clients
 reaching the API could create an account. Changing the value needs no image rebuild, only a
 same-revision rollout (`pnpm compose production up`), which recreates the Production stack
 containers while retaining volumes.
+
+Production Compose passes `DEMO_LOGIN_ENABLED` to API and web from `PROD_DEMO_LOGIN_ENABLED`,
+default `false`. Both the launcher and the services reject values other than `true` or `false`. Seed
+the shared account with `spellbook-demo-account` before enabling it; the
+[shared demo login](./local-auth.md#shared-demo-login) procedure owns the steps. Like registration,
+changing it needs only a same-revision rollout.
 
 For production Compose, set `PROD_APP_ORIGIN`; for Demo use `DEMO_APP_ORIGIN`, and for Development
 use `DEV_APP_ORIGIN`. Native commands continue to accept `APP_ORIGIN`. Changing an origin requires a

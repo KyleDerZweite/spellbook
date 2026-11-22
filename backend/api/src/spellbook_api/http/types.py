@@ -24,6 +24,7 @@ class Configuration:
 
     demo_mode: bool = False
     registration_enabled: bool = True
+    demo_login_enabled: bool = False
     trusted_proxy_addresses: tuple[str, ...] = ()
     value_history_timezone: str = "Europe/Berlin"
     scan_worker_url: str = "http://scan-worker:8080"
@@ -89,6 +90,9 @@ class Configuration:
         registration = env.get("REGISTRATION_ENABLED", "true")
         if registration not in {"true", "false"}:
             raise ValueError("REGISTRATION_ENABLED must be true or false")
+        demo_login = env.get("DEMO_LOGIN_ENABLED", "false")
+        if demo_login not in {"true", "false"}:
+            raise ValueError("DEMO_LOGIN_ENABLED must be true or false")
         return cls(
             public_origin=env.get("APP_ORIGIN", "").strip(),
             host=env.get("API_HOST", "127.0.0.1").strip(),
@@ -96,6 +100,7 @@ class Configuration:
             database_url=env.get("DATABASE_URL") or None,
             demo_mode=env.get("DEMO_MODE") == "true",
             registration_enabled=registration == "true",
+            demo_login_enabled=demo_login == "true",
             scan_worker_url=env.get("SCAN_WORKER_URL", "http://scan-worker:8080"),
             value_history_timezone=env.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
             trusted_proxy_addresses=tuple(

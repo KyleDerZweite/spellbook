@@ -70,12 +70,18 @@ test('Production no longer requires Scan storage configuration', () => {
 			.HOSTED_REGISTRATION_ENABLED,
 		'true'
 	);
-	for (const invalid of ['', 'False', '1', 'yes']) {
-		assert.throws(
-			() => hostedPlan('production', 'up', { ...fixture, PROD_REGISTRATION_ENABLED: invalid }),
-			/PROD_REGISTRATION_ENABLED must be true or false/
-		);
-	}
+	assert.equal(plan.env.HOSTED_DEMO_LOGIN_ENABLED, 'false');
+	assert.equal(
+		hostedPlan('production', 'up', { ...fixture, PROD_DEMO_LOGIN_ENABLED: 'true' }).env
+			.HOSTED_DEMO_LOGIN_ENABLED,
+		'true'
+	);
+	for (const key of ['PROD_REGISTRATION_ENABLED', 'PROD_DEMO_LOGIN_ENABLED'])
+		for (const invalid of ['', 'False', '1', 'yes'])
+			assert.throws(
+				() => hostedPlan('production', 'up', { ...fixture, [key]: invalid }),
+				new RegExp(`${key} must be true or false`)
+			);
 });
 
 test('rollout checks existing local images and never builds or pulls; absent tags stop before Compose', () => {

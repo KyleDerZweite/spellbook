@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-11-22
 - Source of Truth: code
 - Update Triggers:
-  - Registration policy and password recovery
+  - Registration policy, shared demo login and password recovery
   - Root environment, reverse proxy origin and independent API/web ownership
   - Hosted Demo and production Compose entrypoints and immutable image selection
   - Python operator commands, bundled fixtures and pre-release account scope
@@ -26,7 +26,9 @@
 >   by default with `PROD_REGISTRATION_ENABLED=false`.
 > - Set or reset a password: `pnpm operator:password ACCOUNT_ID USERNAME < password-file`. The
 >   password comes from stdin, never an argument.
-> - Demo commands only touch databases ending in `_demo` or `_design`.
+> - Demo commands only touch databases ending in `_demo` or `_design`, except
+>   `spellbook-demo-account`, which adds only the shared `demo` account to any database.
+> - `PROD_DEMO_LOGIN_ENABLED=true` offers that account at `/demo` without affecting other accounts.
 
 New users register at `/auth/register` and sign in at `/auth/login`. Registration is open by
 default; `REGISTRATION_ENABLED=false` closes it, and hosted Production maps
@@ -79,6 +81,42 @@ pnpm compose production run db-migrate /app/backend/api/.venv/bin/spellbook-oper
 
 The frontend runtime image does not include the recovery script. Users then sign in with the
 assigned username and password. There is no email-based or self-service recovery flow.
+
+## Shared demo login
+
+A normal deployment can offer visitors the shared `demo` account with password `demo`, next to
+ordinary accounts. `DEMO_LOGIN_ENABLED=true` in API and web enables it; hosted Production maps
+`PROD_DEMO_LOGIN_ENABLED`, default `false`. The value must be exactly `true` or `false`, or startup
+fails. Unlike `DEMO_MODE`, other accounts, existing sessions, QR sign-in and normal valuation keep
+working.
+
+While enabled:
+
+- `/demo` redirects to `/auth/login/demo`, a sign-in form pre-filled with `demo` / `demo` and a note
+  that the account is shared. Signing in still needs an explicit POST; the page has no automatic
+  sign-in. `/auth/login` links to it and accepts the 4-character password.
+- Only the exact `demo` / `demo` login skips the 12-character rule, and the stored scrypt hash still
+  decides. Every other account keeps the normal password rules.
+- Nobody can change the `demo` account's password, so visitors cannot lock each other out. Other
+  accounts change passwords as usual.
+
+While disabled, both routes return 404 and `demo` / `demo` is rejected like any short password.
+
+Seed the account before enabling the switch. `spellbook-demo-account` works on any migrated database
+whose active Catalog contains the Upgrades Unleashed printings, including Production with other
+accounts. Under the Demo advisory lock it reports `preserved` and writes nothing if a `demo` profile
+already exists, so check that an existing `demo` account is really meant to be shared. Otherwise it
+adds, in one transaction, only the `demo` profile and credentials, the empty Next brew Deck, the MTG
+Inventory, the Upgrades Unleashed Deck and the illustrative Demo history. Other accounts and the
+Catalog stay unchanged. For Production Compose, from the repository root:
+
+```sh
+pnpm compose production run db-migrate /app/backend/api/.venv/bin/spellbook-demo-account
+```
+
+Locally, `pnpm demo:account` runs the same command against `DATABASE_URL`. Then set
+`PROD_DEMO_LOGIN_ENABLED=true` and run `pnpm compose production up`. The disposable-only
+`spellbook-demo-seed` keeps its `_demo`/`_design` and sole-account guards.
 
 ## Deployment settings
 

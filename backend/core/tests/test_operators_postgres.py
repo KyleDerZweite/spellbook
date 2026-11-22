@@ -26,6 +26,7 @@ from spellbook_core.operators.demo import (
     replace_demo_inventory,
     require_demo_database,
     seed_demo,
+    seed_demo_account,
 )
 from spellbook_core.operators.fixtures import Record, legacy_inventory, load_precon, verify_bundle
 from spellbook_core.operators.local_password import set_local_password
@@ -227,6 +228,58 @@ def test_full_seed_preserves_edits_validates_reruns_and_explicitly_resets(
     assert client.execute("SELECT username FROM user_profiles").fetchall() == [
         {"username": "demo"}
     ]
+
+
+def test_demo_account_seed_leaves_other_accounts_and_catalog_untouched(
+    database: tuple[str, Client],
+) -> None:
+    url, client = database
+    precon = load_precon(FIXTURES)
+    owner = account(client, "kyle")
+    session(client, owner)
+    before = snapshot(client)
+    # Without an active Catalog nothing is written.
+    with pytest.raises(OperatorError, match="Active Catalog"):
+        seed_demo_account(url, precon)
+    assert snapshot(client) == before
+    with client.transaction():
+        publish_demo_catalog(client, verify_bundle(FIXTURES))
+    catalog = client.execute("SELECT * FROM catalog_state").fetchall()
+    others = snapshot(client)
+    assert seed_demo_account(url, precon)["status"] == "seeded"
+    after = snapshot(client)
+    assert others and after
+    for table in ("profiles", "credentials", "sessions"):
+        assert [r for r in after[table] if r["account_id"] == owner] == others[table]
+    assert after["sessions"] == others["sessions"]
+    assert client.execute("SELECT * FROM catalog_state").fetchall() == catalog
+    demo = client.execute(
+        """SELECT p.account_id,c.password_hash FROM user_profiles p
+           JOIN local_credentials c USING(account_id) WHERE p.username='demo'"""
+    ).fetchone()
+    assert demo
+    _, salt, digest = demo["password_hash"].split("$")
+    assert _derive("demo", salt, digest, False)
+    assert client.execute(
+        "SELECT name FROM decks WHERE account_id=%s ORDER BY name", (demo["account_id"],)
+    ).fetchall() == [{"name": "Next brew"}, {"name": precon.name}]
+    assert client.execute(
+        """SELECT count(*) entries,sum(quantity)::int copies FROM inventory_cards
+           WHERE account_id=%s""",
+        (demo["account_id"],),
+    ).fetchone() == {"entries": 76, "copies": 101}
+    assert client.execute(
+        "SELECT count(*) n FROM inventory_value_days WHERE account_id=%s", (demo["account_id"],)
+    ).fetchone() == {"n": 30}
+    # Rerunning preserves the existing demo account and its edits without writing anything.
+    client.execute("UPDATE inventory_cards SET notes='visitor edit' WHERE spellbook_position=0")
+    edited = snapshot(client)
+    assert seed_demo_account(url, precon)["status"] == "preserved"
+    assert snapshot(client) == edited
+    # The disposable-only seed keeps refusing a database with other accounts.
+    with pytest.raises(OperatorError, match="transaction rolled back"):
+        seed_demo(url, verify_bundle(FIXTURES), precon)
+    assert snapshot(client) == edited
 
 
 def legacy_setup(client: Client) -> tuple[str, str]:

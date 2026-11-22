@@ -358,6 +358,44 @@ def test_demo_fences_existing_sessions_and_qr_issuance() -> None:
     asyncio.run(scenario())
 
 
+def test_demo_login_switch_admits_shared_demo_beside_normal_accounts() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            from spellbook_core.passwords import hash_password
+
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE user_profiles SET username='demo' WHERE account_id=%s",
+                    (f.second.user.account_id,),
+                )
+                await tx.execute(
+                    "UPDATE local_credentials SET username='demo',password_hash=%s "
+                    "WHERE account_id=%s",
+                    (hash_password("demo"), f.second.user.account_id),
+                )
+            closed = create_local_auth(f.pool, f.auth.passwords, registration_enabled=False)
+            shared = create_local_auth(
+                f.pool, f.auth.passwords, registration_enabled=False, demo_login_enabled=True
+            )
+            assert await closed.authenticate("login", "demo", "demo") is None
+            logged = await shared.authenticate("login", "demo", "demo")
+            assert logged and await shared.validate_session(logged.session.token)
+            # The stored scrypt hash still decides; the bypass is only the length rule.
+            assert await shared.authenticate("login", "demo", "deme") is None
+            assert await shared.change_password(logged.user, "demo", PASSWORD) is None
+            assert await shared.authenticate("login", "demo", "demo")
+            owner = f.first.user.username
+            assert await shared.authenticate("register", "new_owner", PASSWORD) is None
+            assert await shared.authenticate("login", owner, PASSWORD[:4]) is None
+            own = await shared.authenticate("login", owner, PASSWORD)
+            assert own and own.user.username == owner
+            replacement = "replacement-password"
+            assert await shared.change_password(own.user, PASSWORD, replacement)
+            assert await shared.authenticate("login", owner, replacement)
+
+    asyncio.run(scenario())
+
+
 class Clock:
     def __init__(self, now: datetime):
         self.value = now

@@ -226,6 +226,7 @@ class LocalAuth(SessionAuth):
         passwords: PasswordVerifier,
         demo_mode: bool = False,
         registration_enabled: bool = True,
+        demo_login_enabled: bool = False,
         clock: Callable[[], datetime] = _now,
     ):
         from .qr import QrAuth
@@ -233,6 +234,7 @@ class LocalAuth(SessionAuth):
         super().__init__(pool, demo_mode, clock)
         self.passwords = passwords
         self.registration_enabled = registration_enabled
+        self.demo_login_enabled = demo_login_enabled
         self._attempts = AttemptLimiter(20)
         self.qr = QrAuth(pool, self)
         self.devices = DeviceSessions(pool, self)
@@ -241,6 +243,10 @@ class LocalAuth(SessionAuth):
     def registration_open(self) -> bool:
         """Self-service registration; Demo mode and the operator switch both close it."""
         return self.registration_enabled and not self.demo_mode
+
+    def _shared_demo(self, username: str | None) -> bool:
+        """The shared `demo` account in Demo mode or behind the operator switch."""
+        return username == "demo" and (self.demo_mode or self.demo_login_enabled)
 
     def take_auth_attempt(self, address: str) -> None:
         self._attempts.take(address)
@@ -329,12 +335,8 @@ class LocalAuth(SessionAuth):
             or not isinstance(password, str)
             or (
                 not valid_password(password)
-                and not (
-                    self.demo_mode
-                    and mode == "login"
-                    and username == "demo"
-                    and password == "demo"
-                )
+                # Only the shared demo/demo login skips the length rule; scrypt still verifies it.
+                and not (mode == "login" and self._shared_demo(username) and password == "demo")
             )
         ):
             return None
@@ -383,6 +385,8 @@ class LocalAuth(SessionAuth):
         user = await self.require_actor(actor)
         if (
             self.demo_mode
+            # Visitors share this account; a password change would lock the others out.
+            or self._shared_demo(user.username)
             or not current_password
             or utf16_length(current_password) > 128
             or not valid_password(new_password)
@@ -436,5 +440,12 @@ def create_local_auth(
     passwords: PasswordVerifier,
     demo_mode: bool = False,
     registration_enabled: bool = True,
+    demo_login_enabled: bool = False,
 ) -> LocalAuth:
-    return LocalAuth(pool, passwords, demo_mode, registration_enabled=registration_enabled)
+    return LocalAuth(
+        pool,
+        passwords,
+        demo_mode,
+        registration_enabled=registration_enabled,
+        demo_login_enabled=demo_login_enabled,
+    )

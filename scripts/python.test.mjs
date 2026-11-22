@@ -204,7 +204,8 @@ for (const [operator, command] of [
 	['migrate', 'spellbook-migrate'],
 	['password', 'spellbook-operator-password'],
 	['demo', 'spellbook-demo-seed'],
-	['replace-inventory', 'spellbook-demo-replace-inventory']
+	['replace-inventory', 'spellbook-demo-replace-inventory'],
+	['demo-account', 'spellbook-demo-account']
 ]) {
 	test(`root ${operator} forwards arguments and stdin to the installed command`, async (t) => {
 		const args = ['--help', '--fixtures-dir', '/tmp/fixture directory'];

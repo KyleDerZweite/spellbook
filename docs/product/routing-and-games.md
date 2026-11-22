@@ -1,7 +1,7 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: route handlers and server hooks
 - Update Triggers:
   - Deck import/download/print routes
@@ -68,6 +68,8 @@ The [web routes](../../frontend/src/routes/) own pages and the same-origin API p
 | `/settings/profile-card`                   | Authenticated private card editor and artwork save; excluded from indexing        |
 | `/settings/password`                       | Authenticated current-password-confirmed change; disabled in demo mode            |
 | `/auth/login`                              | Local password form; accepted delivery adds QR sign-in alongside it               |
+| `/auth/login/demo`                         | Pre-filled shared `demo` sign-in form; 404 unless demo login or Demo mode is on   |
+| `/demo`                                    | Redirects to `/auth/login/demo`; 404 unless demo login or Demo mode is on         |
 | `/app`                                     | Accepted public PWA launch/install hub and existing account/workspace links       |
 | `/app/connect`                             | Accepted authenticated camera/manual same-instance authorization QR scanner       |
 | `/auth/approve`                            | Accepted authenticated explicit Approve/Deny page, selected by `code` query       |

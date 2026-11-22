@@ -22,6 +22,7 @@ spellbook-migrate = "spellbook_api.migrate:main"
 spellbook-operator-password = "spellbook_api.operators.local_password:main"
 spellbook-demo-seed = "spellbook_api.operators.seed:main"
 spellbook-demo-replace-inventory = "spellbook_api.operators.replace_inventory:main"
+spellbook-demo-account = "spellbook_api.operators.demo_account:main"
 
 [project.optional-dependencies]
 dev = ["mypy==2.4.1", "pytest==9.2.0", "ruff==0.17.2"]
