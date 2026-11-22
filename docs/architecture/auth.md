@@ -1,7 +1,7 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: code
 - Update Triggers:
   - Credentials, sessions, bearer tokens, origin checks and safe HTTP validation errors
@@ -183,10 +183,11 @@ does not reset avatar, artwork, inventory or deck edits.
 contain 3 to 32 ASCII letters, digits, underscores, or hyphens, start with a letter or digit, and
 are trimmed and lowercased. Passwords contain 12 to 128 characters. Explicit `DEMO_MODE=true`
 permits the seeded `demo` account to sign in with `demo`, still using password hashing and ordinary
-sessions. This mode rejects registration and other usernames, rejects existing non-Demo sessions and
-fences QR session issuance. The login page displays the demo credentials; the registration page
-redirects to login. [Demo setup](../operations/local-auth.md#demo-mode) owns seeding and reset
-commands. Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
+sessions. This mode closes registration like `REGISTRATION_ENABLED=false`, rejects other usernames,
+rejects existing non-Demo sessions and fences QR session issuance. The login page displays the demo
+credentials; the registration page redirects to login.
+[Demo setup](../operations/local-auth.md#demo-mode) owns seeding and reset commands. Scrypt uses
+`N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
 
 Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token's SHA-256 digest,
 account ID, creation time, and fixed 30-day expiry. Validation checks the database on each request.
@@ -388,7 +389,16 @@ including a deck selection or `/`. The guard supplies the protected destination 
 `returnTo` must start with one slash and contain no backslashes or control characters; absent or
 rejected values use the inventory default.
 
-Registration is public. Email verification and emailed reset links are not implemented. The
+Registration is public unless the operator sets `REGISTRATION_ENABLED=false` in both API and web.
+The setting accepts only `true` or `false`, defaults to `true`, and invalid values fail startup.
+Demo mode and the switch share one check (`LocalAuth.registration_open` in the API,
+`registrationOpen()` in web). While registration is closed, `POST /api/v1/auth/register` and
+`POST /api/v1/web/auth/register` return HTTP 403 with
+`{"kind": "RegistrationDisabled", "message": "Registration is disabled on this instance."}` after
+the Origin check and before consuming an authentication attempt, parsing the body or writing an
+account. `/auth/register` redirects to login, the login page replaces the sign-up link with a short
+note, and `/llms.txt` omits registration. Login, existing sessions, QR sign-in and the password
+operator keep working. Email verification and emailed reset links are not implemented. The
 [operator procedure](../operations/local-auth.md) covers password recovery for existing accounts.
 
 ## Agent account creation
@@ -397,9 +407,10 @@ Registration is public. Email verification and emailed reset links are not imple
 account registration and credential storage rules for agents. The shared HTML head discovers it
 through `rel="describedby"`, following the [llms.txt proposal](https://llmstxt.org/). `/agents.md`
 permanently redirects to `/llms.txt`. The current JSON API remains the authentication owner, with
-full-account sessions rather than delegated scopes. Demo mode publishes a disabled-registration
-guide. The [provider evaluation](./auth-provider-evaluation.md#future-authmd-integration) records
-the separate future auth.md protocol work.
+full-account sessions rather than delegated scopes. Demo mode and closed registration publish a
+guide without registration. The
+[provider evaluation](./auth-provider-evaluation.md#future-authmd-integration) records the separate
+future auth.md protocol work.
 
 Deck writes acquire the owning Profile lock before the internal `requireActorForWrite` session
 fence. Auth locks the trusted session row `FOR SHARE` and checks live expiry after the wait. A

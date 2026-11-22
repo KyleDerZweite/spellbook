@@ -18,10 +18,11 @@ SessionAuth Actors for private scope.
 DTOs. Shared `spellbook_core` owns typed session authority, database and migration infrastructure,
 local credentials/sessions, passwords, QR authorization, SavedState and account preferences. MTG
 application modules retain the original receipt, transaction, read and valuation behavior.
-`create_local_auth(pool, passwords, demo_mode=False)` extends `SessionAuth` without changing its
-trusted Actor methods. `create_decks(pool, catalog, auth, valuation=None)` owns Deck CRUD, bounded
-Library/locate/choices reads, selected snapshots, ownership/search, legality, Arena import/export
-and entry mutations. `Decks` exposes the corresponding snake-case application methods, including
+`create_local_auth(pool, passwords, demo_mode=False, registration_enabled=True)` extends
+`SessionAuth` without changing its trusted Actor methods.
+`create_decks(pool, catalog, auth, valuation=None)` owns Deck CRUD, bounded Library/locate/choices
+reads, selected snapshots, ownership/search, legality, Arena import/export and entry mutations.
+`Decks` exposes the corresponding snake-case application methods, including
 `add_catalog_card_to_deck`, `change_deck_printing`, `import_into_deck`, `import_deck`,
 `update_deck_card` and `remove_deck_card` for the web command adapter. Original acknowledgements
 replay after subsequent edits and Deck deletion. Unsupported or malformed stored receipts raise a

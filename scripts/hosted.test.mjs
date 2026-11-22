@@ -64,6 +64,18 @@ test('mode validation rejects missing settings, revision drift and unsafe comman
 test('Production no longer requires Scan storage configuration', () => {
 	const plan = hostedPlan('production', 'up', fixture);
 	assert.equal(plan.env.HOSTED_SCAN_STORAGE_DRIVER, undefined);
+	assert.equal(plan.env.HOSTED_REGISTRATION_ENABLED, 'false');
+	assert.equal(
+		hostedPlan('production', 'up', { ...fixture, PROD_REGISTRATION_ENABLED: 'true' }).env
+			.HOSTED_REGISTRATION_ENABLED,
+		'true'
+	);
+	for (const invalid of ['', 'False', '1', 'yes']) {
+		assert.throws(
+			() => hostedPlan('production', 'up', { ...fixture, PROD_REGISTRATION_ENABLED: invalid }),
+			/PROD_REGISTRATION_ENABLED must be true or false/
+		);
+	}
 });
 
 test('rollout checks existing local images and never builds or pulls; absent tags stop before Compose', () => {

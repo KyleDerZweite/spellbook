@@ -294,6 +294,24 @@ def test_qr_redemption_rechecks_approver_expiry_after_session_lock_wait(
     asyncio.run(scenario())
 
 
+def test_closed_registration_writes_no_account_and_keeps_login() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            closed = create_local_auth(f.pool, f.auth.passwords, registration_enabled=False)
+            assert await closed.authenticate("register", "new_owner", PASSWORD) is None
+            async with transaction(f.pool, read_only=True) as tx:
+                row = await (
+                    await tx.execute(
+                        "SELECT count(*) FROM user_profiles WHERE username='new_owner'"
+                    )
+                ).fetchone()
+                assert row and row[0] == 0
+            assert await closed.authenticate("login", f.first.user.username, PASSWORD)
+            assert await closed.validate_session(f.first.session.token)
+
+    asyncio.run(scenario())
+
+
 def test_demo_fences_existing_sessions_and_qr_issuance() -> None:
     async def scenario() -> None:
         async with fixture() as f:

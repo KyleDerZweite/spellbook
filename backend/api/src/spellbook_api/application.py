@@ -53,7 +53,12 @@ class ApplicationResources:
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="spellbook-scrypt")
         self.passwords = create_password_verifier(self.executor)
         self.listener = SavedStateListener(configuration.database_url)
-        self.auth = create_local_auth(self.pool, self.passwords, configuration.demo_mode)
+        self.auth = create_local_auth(
+            self.pool,
+            self.passwords,
+            configuration.demo_mode,
+            configuration.registration_enabled,
+        )
         self.profile = create_profile(self.pool, self.auth, configuration.demo_mode)
         self.catalog = create_catalog(self.pool)
         self.power_search = create_power_search(self.pool, self.auth)

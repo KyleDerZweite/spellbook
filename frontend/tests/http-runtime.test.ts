@@ -52,6 +52,7 @@ test('web environment excludes database, worker, storage and inherited proxy aut
 			PATH: '/bin',
 			PUBLIC_NAME: 'Spellbook',
 			DEMO_MODE: 'true',
+			REGISTRATION_ENABLED: 'false',
 			BODY_SIZE_LIMIT: '24M',
 			DATABASE_URL: 'private',
 			TEST_DATABASE_URL: 'private',
@@ -64,7 +65,13 @@ test('web environment excludes database, worker, storage and inherited proxy aut
 			ADDRESS_HEADER: 'x-forwarded-for',
 			NODE_OPTIONS: '--env-file=.env'
 		}),
-		{ PATH: '/bin', DEMO_MODE: 'true', PUBLIC_NAME: 'Spellbook', BODY_SIZE_LIMIT: '24M' }
+		{
+			PATH: '/bin',
+			DEMO_MODE: 'true',
+			REGISTRATION_ENABLED: 'false',
+			PUBLIC_NAME: 'Spellbook',
+			BODY_SIZE_LIMIT: '24M'
+		}
 	);
 });
 

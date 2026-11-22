@@ -12,6 +12,7 @@ const settings = [
 	'POSTGRES_USER',
 	'POSTGRES_PASSWORD',
 	'FRONTEND_ALIAS',
+	'REGISTRATION_ENABLED',
 	'VALUE_HISTORY_ENABLED',
 	'VALUE_HISTORY_TIMEZONE',
 	'ADDRESS_HEADER',
@@ -59,6 +60,15 @@ export function hostedPlan(mode, action, configuration, environment = {}, revisi
 			...['APP_ORIGIN', 'POSTGRES_PASSWORD', 'FRONTEND_ALIAS'].map((key) => `${prefix}_${key}`)
 		);
 		for (const key of settings) env[`HOSTED_${key}`] = configuration[`${prefix}_${key}`] || '';
+		const registrationKey = `${prefix}_REGISTRATION_ENABLED`;
+		if (Object.hasOwn(configuration, registrationKey)) {
+			const value = configuration[registrationKey];
+			if (value !== 'true' && value !== 'false')
+				throw new Error(`${registrationKey} must be true or false.`);
+			env.HOSTED_REGISTRATION_ENABLED = value;
+		} else {
+			env.HOSTED_REGISTRATION_ENABLED = 'false';
+		}
 		env.HOSTED_DEMO_MODE = String(mode === 'demo');
 		env.HOSTED_POSTGRES_DB ||= mode === 'demo' ? 'spellbook_demo' : 'spellbook';
 		env.HOSTED_POSTGRES_USER ||= 'spellbook';
