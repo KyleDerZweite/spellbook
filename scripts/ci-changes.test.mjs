@@ -247,6 +247,30 @@ test('CI calls Application Integration from one job for pushes only', () => {
 	assert.doesNotMatch(integration, /^    (needs|continue-on-error|secrets):/m);
 });
 
+test('Images publishes only version tags after green main push CI, then moves release', () => {
+	const source = workflow('images.yml');
+	assert.equal(triggers(source), "push:\n    tags: ['v*']");
+	assert.doesNotMatch(source, /workflow_run\b|:main\b|^  promote:/m);
+	assert.match(
+		job(source, 'verify'),
+		/actions\/workflows\/ci\.yml\/runs\?head_sha=\$GITHUB_SHA&event=push&branch=main&per_page=1/
+	);
+	const publish = job(source, 'publish');
+	assert.match(publish, /^    needs: verify$/m);
+	for (const name of ['api', 'state-worker', 'worker', 'scan-worker', 'frontend'])
+		assert.match(publish, new RegExp(`name: ${name},`));
+	assert.match(
+		publish,
+		/docker push "\$IMAGE:sha-\$SHA"\n\s+docker push "\$IMAGE:\$GITHUB_REF_NAME"/
+	);
+	const release = job(source, 'release');
+	assert.match(release, /^    needs: publish$/m);
+	assert.match(release, /group: images-promote-release\n\s+cancel-in-progress: false/);
+	const steps = ['Require published images', 'Create release', 'Point release'];
+	const order = steps.map((step) => release.indexOf(`name: ${step}`));
+	assert.ok(order.every((index, i) => index >= 0 && (i === 0 || index > order[i - 1])));
+});
+
 test('source changes select their consumers, including SQL and Scan cross-project consumers', () => {
 	for (const path of [
 		'frontend/src/page.svelte',

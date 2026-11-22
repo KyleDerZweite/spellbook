@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
@@ -198,9 +198,10 @@ maintenance enabled during normal operation; deliberately disabled Production st
 ### Automatic Demo updates
 
 Since 2026-11-14 the hosted Demo runs the [published GHCR images](#ci-images-and-release-tags) as
-operator-owned Quadlet units and follows `:main` through Podman auto-update, with health-gated
-per-unit rollback. Production keeps the protected updater described below until it follows
-`:release`. The operator repository owns the units, cutover and rollback.
+operator-owned Quadlet units through Podman auto-update, with health-gated per-unit rollback. Images
+publish only for version tags, so `:main` no longer moves; units following it stay on its last image
+until they follow `:release`. Production keeps the protected updater described below until it
+follows `:release`. The operator repository owns the units, cutover and rollback.
 
 The protected updater runs the authorized Production installation with its own target binding,
 deployment receipt, database export, service and timer. It shares the host-backup lock with host
@@ -246,8 +247,9 @@ the rollout unverified; neither state establishes successful deployment.
 
 A Demo update is complete when Podman auto-update reports the units updated rather than rolled back,
 the one-shot migrator succeeded, every running Demo container's `org.opencontainers.image.revision`
-label equals the `:main` commit, and the [Demo deployment verification](#demo-deployment) passes
-through the public origin, including authenticated Demo login/read/logout.
+label equals the commit of the image tag the units follow, and the
+[Demo deployment verification](#demo-deployment) passes through the public origin, including
+authenticated Demo login/read/logout.
 
 The following workflow improvements are proposals, not implemented behavior:
 
@@ -266,28 +268,32 @@ retained data.
 
 ### CI images and release tags
 
-The [Images workflow](../../.github/workflows/images.yml) runs after a successful `main` push CI.
-That run includes the [Application Integration suites](./github-automation.md#ci-coverage), so every
-published image belongs to a commit that passed PostgreSQL migrations, the guarded Deck PostgreSQL
-tests and the HTTP, Scan and SavedState suites against the built web and installed API. Browser
-rendering, Android and the guarded suites that CI does not run remain separate evidence. Images
-builds every hosted image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and
-`frontend` to `ghcr.io/kylederzweite/spellbook-<name>:sha-<full SHA>`; `db-migrate` reuses the `api`
-image. Then a serialized job moves the `main` tag to the newest `main` commit whose five images are
-published, so a failed newer commit leaves `main` on the last complete one. The CI web image is
-built without `APP_ORIGIN`, so the web server derives its Origin from the request `Host` header with
-`https` as default protocol; adapter-node reads `HOST_HEADER` and `PROTOCOL_HEADER` at runtime when
-a proxy needs other headers. Host builds through `scripts/compose.mjs` still embed `APP_ORIGIN`. The
-`api`, `state-worker`, `worker` and `scan-worker` packages pull anonymously, as verified on
-2026-11-14. GHCR may create a new package as private; after a package's first publication, check an
-anonymous pull and set its visibility to public once if needed.
+The [Images workflow](../../.github/workflows/images.yml) runs only when a version tag (`v*`) is
+pushed; `main` pushes publish no images. It first requires the newest `main` push CI run for the
+tagged commit to have succeeded, so an untested, failing, cancelled or still running commit cannot
+be published. That run includes the
+[Application Integration suites](./github-automation.md#ci-coverage), so every published image
+belongs to a commit that passed PostgreSQL migrations, the guarded Deck PostgreSQL tests and the
+HTTP, Scan and SavedState suites against the built web and installed API. Browser rendering, Android
+and the guarded suites that CI does not run remain separate evidence. Images builds every hosted
+image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and `frontend` to
+`ghcr.io/kylederzweite/spellbook-<name>` as `sha-<full SHA>` and as the tag name; `db-migrate`
+reuses the `api` image. No `main` image tag is published or moved. The CI web image is built without
+`APP_ORIGIN`, so the web server derives its Origin from the request `Host` header with `https` as
+default protocol; adapter-node reads `HOST_HEADER` and `PROTOCOL_HEADER` at runtime when a proxy
+needs other headers. Host builds through `scripts/compose.mjs` still embed `APP_ORIGIN`. The `api`,
+`state-worker`, `worker` and `scan-worker` packages pull anonymously, as verified on 2026-11-14.
+GHCR may create a new package as private; after a package's first publication, check an anonymous
+pull and set its visibility to public once if needed.
 
-Version tags mark a commit whose images are already published. Pre-alpha tags use
-`v<major>.<minor>.<patch>-prealpha.<n>`, for example `v0.1.0-prealpha.1`; a hyphenated tag creates a
-GitHub prerelease with generated notes and then moves the `release` tag. The tag job fails when any
-image for the tagged commit is missing. Podman auto-update can follow `main` for Demo and `release`
-for Production. Auto-update restarts one unit at a time. For a release that changes shared
-interfaces, roll out the API, workers and web together with the selected image revision.
+Tag only a `main` commit whose push CI succeeded. Pre-alpha tags use
+`v<major>.<minor>.<patch>-prealpha.<n>`, for example `v0.1.0-prealpha.1`. After all five images are
+published, a serialized release job checks every image for the tagged commit, creates a GitHub
+release with generated notes, a prerelease for a hyphenated tag, and then moves the `release` tag of
+all five images to that commit. A missing image or an existing GitHub release fails the job before
+`release` moves. Podman auto-update can follow `release` for Demo and Production. Auto-update
+restarts one unit at a time. For a release that changes shared interfaces, roll out the API, workers
+and web together with the selected image revision.
 
 ## Prepare a shared UI development session
 
@@ -807,9 +813,9 @@ Build web with the selected environment's origin before recreation. Migration is
 Demo seed preserves existing private state and active public publications. See the
 [reviewed private reset contract](./local-auth.md#reviewed-environment-and-private-reset-contract).
 
-The hosted Demo follows `:main` through Podman auto-update. The hosted Production follows successful
-main CI through the protected updater and is planned to follow `:release`. A new installation stays
-disabled until its deliberate first activation.
+The hosted Demo follows a published image tag through [Podman auto-update](#automatic-demo-updates).
+The hosted Production follows successful main CI through the protected updater and is planned to
+follow `:release`. A new installation stays disabled until its deliberate first activation.
 
 For a full public Demo Catalog refresh in a Compose-based Demo, run the existing one-shot Worker;
 the hosted Demo uses its operator-owned manual worker unit instead:
