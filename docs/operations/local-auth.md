@@ -1,7 +1,7 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: code
 - Update Triggers:
   - Registration policy and password recovery
@@ -22,14 +22,20 @@
 
 > **TL;DR**
 >
-> - Users register at `/auth/register` and sign in at `/auth/login`.
+> - Users register at `/auth/register` and sign in at `/auth/login`. Production closes registration
+>   by default with `PROD_REGISTRATION_ENABLED=false`.
 > - Set or reset a password: `pnpm operator:password ACCOUNT_ID USERNAME < password-file`. The
 >   password comes from stdin, never an argument.
 > - Demo commands only touch databases ending in `_demo` or `_design`.
 
-New users register at `/auth/register` and sign in at `/auth/login`. Registration is public. The
-[authentication contract](../architecture/auth.md) defines credential rules, sessions, and JSON API
-login.
+New users register at `/auth/register` and sign in at `/auth/login`. Registration is open by
+default; `REGISTRATION_ENABLED=false` closes it, and hosted Production maps
+`PROD_REGISTRATION_ENABLED` with default `false`. The password operator below only changes existing
+accounts and does not create new ones. To add an account while registration is closed, set
+`PROD_REGISTRATION_ENABLED=true`, recreate `api` and `frontend` with the current revision, let the
+user register, then set it back to `false` and recreate both again. The
+[authentication contract](../architecture/auth.md#access-and-recovery) defines credential rules,
+registration, sessions, and JSON API login.
 
 ## Set or reset a password
 

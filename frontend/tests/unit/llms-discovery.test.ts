@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const deployment = vi.hoisted(() => ({ demoMode: false }));
+const deployment = vi.hoisted(() => ({ demoMode: false, registrationEnabled: true }));
 vi.mock('#lib/server/auth/demo.ts', () => ({
 	get demoMode() {
 		return deployment.demoMode;
 	}
+}));
+vi.mock('#lib/server/auth/registration.ts', () => ({
+	registrationOpen: () => !deployment.demoMode && deployment.registrationEnabled
 }));
 
 import { GET as guideGet } from '../../src/routes/llms.txt/+server';
@@ -14,6 +17,7 @@ import { GET as legacyGet } from '../../src/routes/agents.md/+server';
 describe('public agent discovery', () => {
 	beforeEach(() => {
 		deployment.demoMode = false;
+		deployment.registrationEnabled = true;
 	});
 
 	it.each(['https://spellbook.test', 'https://private.spellbook.test'])(
@@ -67,6 +71,17 @@ describe('public agent discovery', () => {
 		expect(guide).toContain('shared editable account');
 		expect(guide).toContain('[Demo login](https://demo.test/auth/login)');
 		expect(guide).toContain('[OpenAPI](https://demo.test/openapi.json)');
+		expect(guide).not.toContain('/api/v1/auth/register');
+		expect(guide).not.toContain('/auth/register');
+	});
+
+	it('omits registration when the operator closed it', async () => {
+		deployment.registrationEnabled = false;
+		const response = await guideGet({ url: new URL('https://spellbook.test/llms.txt') } as never);
+		const guide = await response.text();
+
+		expect(guide).toContain('Self-service registration is disabled on this deployment.');
+		expect(guide).toContain('[Sign in](https://spellbook.test/auth/login)');
 		expect(guide).not.toContain('/api/v1/auth/register');
 		expect(guide).not.toContain('/auth/register');
 	});

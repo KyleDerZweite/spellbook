@@ -23,6 +23,7 @@ class Configuration:
     database_url: str | None = field(default=None, repr=False)
 
     demo_mode: bool = False
+    registration_enabled: bool = True
     trusted_proxy_addresses: tuple[str, ...] = ()
     value_history_timezone: str = "Europe/Berlin"
     scan_worker_url: str = "http://scan-worker:8080"
@@ -85,12 +86,16 @@ class Configuration:
         raw_port = env.get("API_PORT", "3001")
         if not re.fullmatch(r"[0-9]+", raw_port):
             raise ValueError("API_PORT must be between 1 and 65535")
+        registration = env.get("REGISTRATION_ENABLED", "true")
+        if registration not in {"true", "false"}:
+            raise ValueError("REGISTRATION_ENABLED must be true or false")
         return cls(
             public_origin=env.get("APP_ORIGIN", "").strip(),
             host=env.get("API_HOST", "127.0.0.1").strip(),
             port=int(raw_port),
             database_url=env.get("DATABASE_URL") or None,
             demo_mode=env.get("DEMO_MODE") == "true",
+            registration_enabled=registration == "true",
             scan_worker_url=env.get("SCAN_WORKER_URL", "http://scan-worker:8080"),
             value_history_timezone=env.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
             trusted_proxy_addresses=tuple(

@@ -166,6 +166,17 @@ test('production retains normal accounts, transient Scan and scheduled Catalog l
 	assert.equal(model.networks.default.driver_opts.isolate, 'true');
 	assert.equal(model.services.newt, undefined);
 	assert.equal(model.services.api.environment.DEMO_MODE, 'false');
+	for (const name of ['api', 'frontend'])
+		assert.equal(model.services[name].environment.REGISTRATION_ENABLED, 'false');
+	const open = hostedPlan('production', 'config', {
+		...fixture,
+		PROD_REGISTRATION_ENABLED: 'true'
+	});
+	for (const name of ['api', 'frontend'])
+		assert.equal(
+			config(open.args, open.env).services[name].environment.REGISTRATION_ENABLED,
+			'true'
+		);
 	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, undefined);
 	assert.equal(model.services.api.volumes, undefined);
 	assert.equal(model.services['scan-worker'].volumes, undefined);

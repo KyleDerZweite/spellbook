@@ -25,6 +25,10 @@ from spellbook_api.http.parsing import drain_request_body, read_form_data, read_
 
 QR_COOKIE = "spellbook_qr_requester"
 QR_COOKIE_PATH = "/api/v1/auth/qr"
+REGISTRATION_DISABLED = {
+    "kind": "RegistrationDisabled",
+    "message": "Registration is disabled on this instance.",
+}
 
 
 async def get_session(request: Request, auth: SessionAuth, public_origin: str) -> Response:
@@ -45,11 +49,13 @@ def create_auth_routes(
     router = APIRouter()
 
     def credential_body(
-        *, form: bool = False
+        *, form: bool = False, register: bool = False
     ) -> Callable[[Request], Awaitable[dict[str, object]]]:
 
         async def parse(request: Request) -> dict[str, object]:
             require_same_origin(request, origin, allow_missing=not form)
+            if register and not auth.registration_open:
+                raise HttpError(403, REGISTRATION_DISABLED)
             auth.take_auth_attempt(client_address(request, trusted_proxy_addresses))
             return dict(await read_form_data(request)) if form else await read_json_object(request)
 
@@ -101,7 +107,7 @@ def create_auth_routes(
         return await authenticate(body, "login")
 
     async def register(
-        body: Annotated[dict[str, object], Depends(credential_body(form=False))],
+        body: Annotated[dict[str, object], Depends(credential_body(register=True))],
     ) -> Response:
         return await authenticate(body, "register")
 
@@ -111,7 +117,7 @@ def create_auth_routes(
         return await authenticate(body, "login", form=True)
 
     async def register_form(
-        body: Annotated[dict[str, object], Depends(credential_body(form=True))],
+        body: Annotated[dict[str, object], Depends(credential_body(form=True, register=True))],
     ) -> Response:
         return await authenticate(body, "register", form=True)
 
