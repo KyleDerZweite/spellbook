@@ -358,6 +358,61 @@ def test_demo_fences_existing_sessions_and_qr_issuance() -> None:
     asyncio.run(scenario())
 
 
+def test_demo_login_switch_admits_shared_demo_beside_normal_accounts() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            from spellbook_core.passwords import hash_password
+
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE user_profiles SET username='demo' WHERE account_id=%s",
+                    (f.second.user.account_id,),
+                )
+                await tx.execute(
+                    "UPDATE local_credentials SET username='demo',password_hash=%s "
+                    "WHERE account_id=%s",
+                    (hash_password("demo"), f.second.user.account_id),
+                )
+            closed = create_local_auth(f.pool, f.auth.passwords, registration_enabled=False)
+            shared = create_local_auth(
+                f.pool, f.auth.passwords, registration_enabled=False, demo_login_enabled=True
+            )
+            assert await closed.authenticate("login", "demo", "demo") is None
+            logged = await shared.authenticate("login", "demo", "demo")
+            assert logged and await shared.validate_session(logged.session.token)
+            # The stored scrypt hash still decides; the bypass is only the length rule.
+            assert await shared.authenticate("login", "demo", "deme") is None
+            assert await shared.password_change_locked(logged.user)
+            assert await shared.change_password(logged.user, "demo", PASSWORD) is None
+            # Switching off keeps existing sessions but not a way to take over the account.
+            off_actor = await closed.validate_session(logged.session.token)
+            assert off_actor and off_actor.username == "demo"
+            assert await closed.password_change_locked(off_actor)
+            assert await closed.change_password(off_actor, "demo", PASSWORD) is None
+            assert await closed.authenticate("login", "demo", PASSWORD) is None
+            # Re-enabled, the shared credentials still work.
+            assert await shared.authenticate("login", "demo", "demo")
+            # Replacing the demo password turns it back into an ordinary, unlocked account.
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "UPDATE local_credentials SET password_hash=%s WHERE account_id=%s",
+                    (hash_password(PASSWORD), f.second.user.account_id),
+                )
+            ordinary_demo = await shared.authenticate("login", "demo", PASSWORD)
+            assert ordinary_demo and not await shared.password_change_locked(ordinary_demo.user)
+            assert await shared.change_password(ordinary_demo.user, PASSWORD, "demo-real-password")
+            owner = f.first.user.username
+            assert await shared.authenticate("register", "new_owner", PASSWORD) is None
+            assert await shared.authenticate("login", owner, PASSWORD[:4]) is None
+            own = await shared.authenticate("login", owner, PASSWORD)
+            assert own and own.user.username == owner
+            replacement = "replacement-password"
+            assert await shared.change_password(own.user, PASSWORD, replacement)
+            assert await shared.authenticate("login", owner, replacement)
+
+    asyncio.run(scenario())
+
+
 class Clock:
     def __init__(self, now: datetime):
         self.value = now

@@ -16,6 +16,7 @@ interface AuthFormFailure {
 }
 export interface PasswordFormFailure {
 	success: false;
+	kind?: string;
 	message: string;
 	errors: { currentPassword?: string; newPassword?: string; confirmPassword?: string };
 }

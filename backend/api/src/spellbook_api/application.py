@@ -58,6 +58,7 @@ class ApplicationResources:
             self.passwords,
             configuration.demo_mode,
             configuration.registration_enabled,
+            configuration.demo_login_enabled,
         )
         self.profile = create_profile(self.pool, self.auth, configuration.demo_mode)
         self.catalog = create_catalog(self.pool)

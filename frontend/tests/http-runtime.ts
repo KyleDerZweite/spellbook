@@ -161,7 +161,8 @@ export function webTestEnvironment(env: NodeJS.ProcessEnv = process.env): NodeJS
 		'LC_ALL',
 		'NODE_ENV',
 		'DEMO_MODE',
-		'REGISTRATION_ENABLED'
+		'REGISTRATION_ENABLED',
+		'DEMO_LOGIN_ENABLED'
 	]) {
 		if (env[name] !== undefined) result[name] = env[name];
 	}

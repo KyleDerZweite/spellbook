@@ -114,6 +114,7 @@ def test_installed_migrator_operators_and_assets_from_external_cwd(tmp_path: Pat
         "spellbook-operator-password",
         "spellbook-demo-seed",
         "spellbook-demo-replace-inventory",
+        "spellbook-demo-account",
     ):
         assert run(str(installed / "bin" / command), "--help").returncode == 0
     cli = str(installed / "bin/spellbook-migrate")
@@ -141,6 +142,7 @@ assert entrypoints['spellbook-demo-seed'] == 'spellbook_api.operators.seed:main'
 assert entrypoints['spellbook-demo-replace-inventory'] == (
     'spellbook_api.operators.replace_inventory:main'
 )
+assert entrypoints['spellbook-demo-account'] == 'spellbook_api.operators.demo_account:main'
 import python_multipart, httpx2
 from spellbook_api.scan_worker import HttpScanWorker
 for package in (spellbook_api, spellbook_core):

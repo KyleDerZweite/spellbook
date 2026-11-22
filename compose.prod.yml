@@ -34,6 +34,7 @@ services:
     profiles: [application]
     environment:
       DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
+      VALUE_HISTORY_TIMEZONE: ${HOSTED_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
       DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
     depends_on:
       postgres:
@@ -94,6 +95,7 @@ services:
       APP_ORIGIN: ${HOSTED_APP_ORIGIN}
       DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
       REGISTRATION_ENABLED: ${HOSTED_REGISTRATION_ENABLED:-false}
+      DEMO_LOGIN_ENABLED: ${HOSTED_DEMO_LOGIN_ENABLED:-false}
       VALUE_HISTORY_TIMEZONE: ${HOSTED_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
       DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
       SCAN_WORKER_URL: http://scan-worker:8080
@@ -141,6 +143,7 @@ services:
       APP_ORIGIN: ${HOSTED_APP_ORIGIN}
       DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
       REGISTRATION_ENABLED: ${HOSTED_REGISTRATION_ENABLED:-false}
+      DEMO_LOGIN_ENABLED: ${HOSTED_DEMO_LOGIN_ENABLED:-false}
       API_INTERNAL_URL: http://127.0.0.1:3001
       ADDRESS_HEADER: ${HOSTED_ADDRESS_HEADER:-}
       XFF_DEPTH: ${HOSTED_XFF_DEPTH:-1}

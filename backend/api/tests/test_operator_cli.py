@@ -13,7 +13,7 @@ from spellbook_core.operators import OperatorError
 from spellbook_core.operators.demo import require_demo_database
 from spellbook_core.passwords import _derive
 
-from spellbook_api.operators import local_password, replace_inventory, seed
+from spellbook_api.operators import demo_account, local_password, replace_inventory, seed
 from spellbook_api.operators.common import fixture_directory
 
 
@@ -39,7 +39,9 @@ def test_stdin_read_is_bounded() -> None:
     assert stream.tell() == 391
 
 
-@pytest.mark.parametrize("main", [local_password.main, seed.main, replace_inventory.main])
+@pytest.mark.parametrize(
+    "main", [local_password.main, seed.main, replace_inventory.main, demo_account.main]
+)
 def test_unrecognized_argv_does_not_echo_secret(
     main: Callable[[Sequence[str] | None], int],
     capsys: pytest.CaptureFixture[str],
@@ -72,6 +74,15 @@ def test_password_cli_missing_environment_does_not_read_stdin(
 ) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     assert local_password.main(["account", "owner"]) == 2
+    assert "DATABASE_URL" in capsys.readouterr().err
+
+
+def test_demo_account_cli_requires_database_url_before_fixture_access(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    assert demo_account.main(["--fixtures-dir", "/nonexistent"]) == 2
     assert "DATABASE_URL" in capsys.readouterr().err
 
 

@@ -226,6 +226,7 @@ class LocalAuth(SessionAuth):
         passwords: PasswordVerifier,
         demo_mode: bool = False,
         registration_enabled: bool = True,
+        demo_login_enabled: bool = False,
         clock: Callable[[], datetime] = _now,
     ):
         from .qr import QrAuth
@@ -233,6 +234,7 @@ class LocalAuth(SessionAuth):
         super().__init__(pool, demo_mode, clock)
         self.passwords = passwords
         self.registration_enabled = registration_enabled
+        self.demo_login_enabled = demo_login_enabled
         self._attempts = AttemptLimiter(20)
         self.qr = QrAuth(pool, self)
         self.devices = DeviceSessions(pool, self)
@@ -241,6 +243,32 @@ class LocalAuth(SessionAuth):
     def registration_open(self) -> bool:
         """Self-service registration; Demo mode and the operator switch both close it."""
         return self.registration_enabled and not self.demo_mode
+
+    def _shared_demo(self, username: str | None) -> bool:
+        """The shared `demo` account in Demo mode or behind the operator switch."""
+        return username == "demo" and (self.demo_mode or self.demo_login_enabled)
+
+    async def password_change_locked(self, actor: Actor) -> bool:
+        """Visitors share the `demo` password; changing it would lock the others out.
+
+        Checks the stored credential rather than the username alone, so an ordinary account named
+        `demo` keeps working while the shared `demo`/`demo` account stays locked even after
+        `DEMO_LOGIN_ENABLED` is switched off.
+        """
+        if self.demo_mode:
+            return True
+        if actor.username != "demo":
+            return False
+        async with transaction(self._pool, read_only=True) as tx:
+            cursor = await tx.execute(
+                "SELECT password_hash FROM local_credentials WHERE account_id=%s",
+                (actor.account_id,),
+            )
+            row = await cursor.fetchone()
+        encoded = str(row[0]) if row else None
+        if encoded is None:
+            return False
+        return await self.passwords.verify("demo", encoded)
 
     def take_auth_attempt(self, address: str) -> None:
         self._attempts.take(address)
@@ -329,12 +357,8 @@ class LocalAuth(SessionAuth):
             or not isinstance(password, str)
             or (
                 not valid_password(password)
-                and not (
-                    self.demo_mode
-                    and mode == "login"
-                    and username == "demo"
-                    and password == "demo"
-                )
+                # Only the shared demo/demo login skips the length rule; scrypt still verifies it.
+                and not (mode == "login" and self._shared_demo(username) and password == "demo")
             )
         ):
             return None
@@ -383,6 +407,7 @@ class LocalAuth(SessionAuth):
         user = await self.require_actor(actor)
         if (
             self.demo_mode
+            or (user.username == "demo" and current_password == "demo")
             or not current_password
             or utf16_length(current_password) > 128
             or not valid_password(new_password)
@@ -436,5 +461,12 @@ def create_local_auth(
     passwords: PasswordVerifier,
     demo_mode: bool = False,
     registration_enabled: bool = True,
+    demo_login_enabled: bool = False,
 ) -> LocalAuth:
-    return LocalAuth(pool, passwords, demo_mode, registration_enabled=registration_enabled)
+    return LocalAuth(
+        pool,
+        passwords,
+        demo_mode,
+        registration_enabled=registration_enabled,
+        demo_login_enabled=demo_login_enabled,
+    )

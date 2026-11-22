@@ -166,17 +166,31 @@ test('production retains normal accounts, transient Scan and scheduled Catalog l
 	assert.equal(model.networks.default.driver_opts.isolate, 'true');
 	assert.equal(model.services.newt, undefined);
 	assert.equal(model.services.api.environment.DEMO_MODE, 'false');
-	for (const name of ['api', 'frontend'])
+	for (const name of ['api', 'frontend']) {
 		assert.equal(model.services[name].environment.REGISTRATION_ENABLED, 'false');
+		assert.equal(model.services[name].environment.DEMO_LOGIN_ENABLED, 'false');
+	}
 	const open = hostedPlan('production', 'config', {
 		...fixture,
-		PROD_REGISTRATION_ENABLED: 'true'
+		PROD_REGISTRATION_ENABLED: 'true',
+		PROD_DEMO_LOGIN_ENABLED: 'true'
 	});
-	for (const name of ['api', 'frontend'])
-		assert.equal(
-			config(open.args, open.env).services[name].environment.REGISTRATION_ENABLED,
-			'true'
-		);
+	for (const name of ['api', 'frontend']) {
+		const { environment } = config(open.args, open.env).services[name];
+		assert.equal(environment.REGISTRATION_ENABLED, 'true');
+		assert.equal(environment.DEMO_LOGIN_ENABLED, 'true');
+	}
+	// Operator commands run in db-migrate, so Demo history uses the configured reporting timezone.
+	for (const name of ['api', 'state-worker', 'db-migrate'])
+		assert.equal(model.services[name].environment.VALUE_HISTORY_TIMEZONE, 'Europe/Berlin');
+	const zoned = hostedPlan('production', 'config', {
+		...fixture,
+		PROD_VALUE_HISTORY_TIMEZONE: 'America/New_York'
+	});
+	assert.equal(
+		config(zoned.args, zoned.env).services['db-migrate'].environment.VALUE_HISTORY_TIMEZONE,
+		'America/New_York'
+	);
 	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, undefined);
 	assert.equal(model.services.api.volumes, undefined);
 	assert.equal(model.services['scan-worker'].volumes, undefined);

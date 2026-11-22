@@ -33,6 +33,7 @@
 		"operator:password": "node --env-file-if-exists=.env scripts/python.mjs password",
 		"demo:seed": "node --env-file-if-exists=.env scripts/python.mjs demo",
 		"demo:replace-inventory": "node --env-file-if-exists=.env scripts/python.mjs replace-inventory",
+		"demo:account": "node --env-file-if-exists=.env scripts/python.mjs demo-account",
 		"compose": "node scripts/compose.mjs",
 		"test:compose": "node --test scripts/compose.test.mjs",
 		"test:contracts": "node --test contracts/tests/*.test.ts"

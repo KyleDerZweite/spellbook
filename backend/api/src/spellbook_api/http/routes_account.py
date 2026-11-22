@@ -18,6 +18,7 @@ from spellbook_api.http.errors import HttpError, json_response
 from spellbook_api.http.parsing import drain_request_body, read_form_data, read_json_object
 
 NO_STORE = {"Cache-Control": "no-store"}
+PASSWORD_CHANGE_DISABLED = "Password changes are disabled for the shared demo account."
 
 
 def create_account_routes(
@@ -47,6 +48,10 @@ def create_account_routes(
             raise HttpError(400, "Invalid password fields")
         current, new = (body["currentPassword"], body["newPassword"])
         assert isinstance(current, str) and isinstance(new, str)
+        if await auth.password_change_locked(actor):
+            raise HttpError(
+                403, {"kind": "PasswordChangeDisabled", "message": PASSWORD_CHANGE_DISABLED}
+            )
         session = await auth.change_password(actor, current, new)
         if session is None:
             raise HttpError(400, "Unable to change password with those details")
@@ -75,6 +80,16 @@ def create_account_routes(
             body.get("newPassword"),
             body.get("confirmPassword"),
         )
+        if await auth.password_change_locked(actor):
+            return json_response(
+                {
+                    "success": False,
+                    "kind": "PasswordChangeDisabled",
+                    "message": PASSWORD_CHANGE_DISABLED,
+                    "errors": errors,
+                },
+                status=403,
+            )
         if not isinstance(current, str) or not current or utf16_length(current) > 128:
             errors["currentPassword"] = "Enter your current password."
         if not valid_password(new):

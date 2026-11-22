@@ -11,7 +11,7 @@ from psycopg.conninfo import conninfo_to_dict
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from spellbook_core.passwords import hash_password
+from spellbook_core.passwords import hash_password, verify_password_hash
 
 from . import OperatorError
 from .fixtures import DemoBundle, Precon, Record, matches_legacy
@@ -37,6 +37,12 @@ def require_demo_database(url: str | None) -> None:
 @contextmanager
 def _client(url: str) -> Iterator[Client]:
     require_demo_database(url)
+    with _connect(url) as connection:
+        yield connection
+
+
+@contextmanager
+def _connect(url: str) -> Iterator[Client]:
     try:
         connection = psycopg.connect(
             url, autocommit=True, row_factory=dict_row, connect_timeout=10
@@ -160,6 +166,94 @@ def insert_precon(client: Client, account: str, inventory: str, precon: Precon) 
     return deck
 
 
+def insert_demo_account(client: Client, precon: Precon, timezone: str) -> str:
+    """Caller owns the transaction. Adds only the `demo` account and its starter data."""
+    from .demo_history import seed_demo_history
+
+    account, inventory = str(uuid4()), str(uuid4())
+    client.execute(
+        "INSERT INTO user_profiles(account_id,username) VALUES(%s,'demo')",
+        (account,),
+    )
+    client.execute(
+        """INSERT INTO local_credentials(account_id,username,password_hash)
+           VALUES(%s,'demo',%s)""",
+        (account, hash_password("demo")),
+    )
+    client.execute(
+        """INSERT INTO decks(id,account_id,game,name,format)
+           VALUES(%s,%s,'mtg','Next brew','Commander')""",
+        (str(uuid4()), account),
+    )
+    client.execute(
+        "INSERT INTO inventories(id,account_id,game) VALUES(%s,%s,'mtg')",
+        (inventory, account),
+    )
+    client.execute("SELECT id FROM inventories WHERE id=%s FOR UPDATE", (inventory,))
+    insert_precon(client, account, inventory, precon)
+    seed_demo_history(client, account, precon, timezone)
+    return account
+
+
+def seed_demo_account(url: str, precon: Precon, *, timezone: str = "Europe/Berlin") -> Record:
+    """Add the shared `demo` account to any migrated database with an active Catalog.
+
+    Unlike `seed_demo`, other accounts may exist. It never changes them or the Catalog. An existing
+    `demo` account is preserved only when its credential matches the shared `demo` password; an
+    ordinary account named `demo` is refused.
+    """
+    with _connect(url) as client:
+        try:
+            with client.transaction():
+                client.execute("SET LOCAL lock_timeout = '5s'")
+                client.execute("SET LOCAL statement_timeout = '120s'")
+                client.execute("SELECT pg_advisory_xact_lock(hashtext('spellbook-demo-seed'))")
+                profiles = client.execute(
+                    "SELECT account_id FROM user_profiles WHERE username='demo'"
+                ).fetchall()
+                credentials = client.execute(
+                    "SELECT account_id,password_hash FROM local_credentials WHERE username='demo'"
+                ).fetchall()
+                if profiles or credentials:
+                    if (
+                        len(profiles) == 1
+                        and len(credentials) == 1
+                        and profiles[0]["account_id"] == credentials[0]["account_id"]
+                        and verify_password_hash("demo", credentials[0]["password_hash"])
+                    ):
+                        return {
+                            "status": "preserved",
+                            "message": "A demo account already exists. Nothing changed.",
+                        }
+                    raise OperatorError(
+                        "An existing demo account does not use the shared demo password."
+                    )
+                # Serialize with Catalog publishers so active_generation stays fixed until commit.
+                client.execute("SELECT pg_advisory_xact_lock(%s,%s)", (1936747619, 1))
+                require_precon_catalog(client, precon)
+                insert_demo_account(client, precon, timezone)
+        except OperatorError:
+            raise
+        except psycopg.Error, ValueError, OSError:
+            raise OperatorError("Demo account seed failed; transaction rolled back.") from None
+    return {"status": "seeded", "message": "Demo account ready. Username: demo. Password: demo."}
+
+
+def require_precon_catalog(client: Client, precon: Precon) -> None:
+    """Every precon Deck identity must exist in the active Catalog generation."""
+    catalog = client.execute(
+        """SELECT count(*) count FROM catalog_printings p
+           JOIN catalog_state s ON s.active_generation=p.generation_id
+           JOIN jsonb_to_recordset(%s::jsonb)
+           e(id uuid,oracle_id uuid,name text,set_code text,lang text,collector_number text)
+           ON p.id=e.id AND p.oracle_id=e.oracle_id AND p.name=e.name AND p.set_code=e.set_code
+           AND p.lang=e.lang AND p.collector_number=e.collector_number""",
+        (Jsonb([e["card"] for e in precon.cards]),),
+    ).fetchone()
+    if catalog is None or catalog["count"] != len(precon.cards):
+        raise OperatorError("Active Catalog does not contain the precon fixture identities.")
+
+
 def seed_demo(
     url: str,
     bundle: DemoBundle,
@@ -206,28 +300,7 @@ def seed_demo(
                         "status": "preserved",
                         "message": "Demo is already seeded. Existing edits preserved.",
                     }
-                account, inventory = str(uuid4()), str(uuid4())
-                client.execute(
-                    "INSERT INTO user_profiles(account_id,username) VALUES(%s,'demo')",
-                    (account,),
-                )
-                client.execute(
-                    """INSERT INTO local_credentials(account_id,username,password_hash)
-                       VALUES(%s,'demo',%s)""",
-                    (account, hash_password("demo")),
-                )
-                client.execute(
-                    """INSERT INTO decks(id,account_id,game,name,format)
-                       VALUES(%s,%s,'mtg','Next brew','Commander')""",
-                    (str(uuid4()), account),
-                )
-                client.execute(
-                    "INSERT INTO inventories(id,account_id,game) VALUES(%s,%s,'mtg')",
-                    (inventory, account),
-                )
-                client.execute("SELECT id FROM inventories WHERE id=%s FOR UPDATE", (inventory,))
-                insert_precon(client, account, inventory, precon)
-                seed_demo_history(client, account, precon, timezone)
+                insert_demo_account(client, precon, timezone)
                 if dashboard_scenario:
                     return seed_dashboard(client)
         except OperatorError, psycopg.Error, ValueError, OSError:
@@ -314,17 +387,7 @@ def replace_in_transaction(
         raise OperatorError(
             "Inventory differs from the original 43-entry, 72-copy starter. Replacement refused."
         )
-    catalog = client.execute(
-        """SELECT count(*) count FROM catalog_printings p
-           JOIN catalog_state s ON s.active_generation=p.generation_id
-           JOIN jsonb_to_recordset(%s::jsonb)
-           e(id uuid,oracle_id uuid,name text,set_code text,lang text,collector_number text)
-           ON p.id=e.id AND p.oracle_id=e.oracle_id AND p.name=e.name AND p.set_code=e.set_code
-           AND p.lang=e.lang AND p.collector_number=e.collector_number""",
-        (Jsonb([e["card"] for e in precon.cards]),),
-    ).fetchone()
-    if catalog is None or catalog["count"] != len(precon.cards):
-        raise OperatorError("Active Catalog does not contain the precon fixture identities.")
+    require_precon_catalog(client, precon)
     if apply:
         client.execute("DELETE FROM inventory_cards WHERE inventory_id=%s", (inventory,))
         insert_precon(client, account, inventory, precon)

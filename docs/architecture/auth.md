@@ -254,9 +254,16 @@ are trimmed and lowercased. Passwords contain 12 to 128 characters. Explicit `DE
 permits the seeded `demo` account to sign in with `demo`, still using password hashing and ordinary
 sessions. This mode closes registration like `REGISTRATION_ENABLED=false`, rejects other usernames,
 rejects existing non-Demo sessions and fences QR session issuance. The login page displays the demo
-credentials; the registration page redirects to login.
-[Demo setup](../operations/local-auth.md#demo-mode) owns seeding and reset commands. Scrypt uses
-`N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
+credentials; the registration page redirects to login. On a normal deployment,
+`DEMO_LOGIN_ENABLED=true` (strict `true` or `false`, default `false`) lets the `demo` account sign
+in with `demo` beside ordinary accounts and refuses password changes for the shared `demo`/`demo`
+account with HTTP 403 `PasswordChangeDisabled` on both `POST /api/v1/account/password` and
+`POST /api/v1/web/password`. The lock checks the stored credential rather than the username alone,
+so an ordinary account named `demo` keeps working and switching `DEMO_LOGIN_ENABLED` off keeps the
+shared account locked until an operator replaces its password.
+[Demo setup](../operations/local-auth.md#demo-mode) and
+[shared demo login](../operations/local-auth.md#shared-demo-login) own seeding and reset commands.
+Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
 
 Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token's SHA-256 digest,
 account ID, creation time and expiry: fixed 30 days for browser and password sessions, sliding for

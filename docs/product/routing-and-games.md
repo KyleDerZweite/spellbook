@@ -1,7 +1,7 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: route handlers and server hooks
 - Update Triggers:
   - Deck import/download/print routes
@@ -51,45 +51,47 @@ The [web routes](../../frontend/src/routes/) own pages and the same-origin API p
 
 ## Pages and account routes
 
-| Route                                      | Access and behavior                                                               |
-| ------------------------------------------ | --------------------------------------------------------------------------------- |
-| `/`                                        | Public landing for signed-out and signed-in users                                 |
-| `/mtg/dashboard`                           | Authenticated account summaries and per-deck availability                         |
-| `/mtg/search`                              | Public catalog search and printing details                                        |
-| `/mtg/inventory/[entryId]`                 | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
-| `/mtg/inventory`                           | Authenticated bounded Inventory pages, GET filters and form actions               |
-| `/mtg/scan`                                | Authenticated image upload, candidate review, and explicit inventory commit       |
-| `/mtg/decks`                               | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
-| `/mtg/decks/import`                        | Authenticated preview and explicit creation of a complete new Deck                |
-| `/mtg/decks/[deckId]/print`                | Authenticated native browser print view of an owned Deck                          |
-| `/mtg/decks/[deckId]/print/cards`          | Authenticated DIN A4 card image sheet of an owned Deck for browser printing       |
-| `/mtg/decks/[deckId]/export`               | Authenticated Arena/simple text, CSV or Spellbook JSON download of an owned Deck  |
-| `/settings`                                | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
-| `/settings/profile-card`                   | Authenticated private card editor and artwork save; excluded from indexing        |
-| `/settings/password`                       | Authenticated current-password-confirmed change; disabled in demo mode            |
-| `/auth/login`                              | Local password form; accepted delivery adds QR sign-in alongside it               |
-| `/app`                                     | Accepted public PWA launch/install hub and existing account/workspace links       |
-| `/app/connect`                             | Accepted authenticated camera/manual same-instance authorization QR scanner       |
-| `/auth/approve`                            | Accepted authenticated explicit Approve/Deny page, selected by `code` query       |
-| `/auth/register`                           | Local account registration page and form action                                   |
-| `/auth/logout`                             | POST revokes the browser session and clears its cookie                            |
-| `/privacy`, `/terms`                       | Public information pages                                                          |
-| `/api/v1/auth/register`                    | POST creates a local account and returns a bearer session                         |
-| `/api/v1/auth/login`                       | POST verifies local credentials and returns a bearer session                      |
-| `/api/v1/auth/qr/requests`                 | POST creates a five-minute browser/device authorization request                   |
-| `/api/v1/auth/qr/requests/[code]`          | Authenticated GET inspects public request status                                  |
-| `/api/v1/auth/qr/requests/[code]/decision` | Authenticated POST explicitly approves or denies                                  |
-| `/api/v1/auth/qr/token`                    | POST redeems with the private requester credential                                |
-| `/api/v1/account/profile`                  | Authenticated GET profile read and PATCH supplied preference/card fields          |
-| `/api/v1/mtg/dashboard`                    | Authenticated GET account aggregates and deck availability summaries              |
-| `/api/v1/account/password`                 | Authenticated POST password rotation and replacement session                      |
-| `/api/v1/account/events`                   | Authenticated GET SavedState event stream                                         |
-| `/api/v1/auth/session`                     | Authenticated GET selected-session inspection                                     |
-| `/api/v1/auth/logout`                      | POST revokes the presented bearer session                                         |
-| `/openapi.json`                            | API description                                                                   |
-| `/llms.txt`                                | Public Markdown overview, application links, and agent registration rules         |
-| `/agents.md`                               | Permanent same-origin redirect to `/llms.txt`                                     |
-| `/robots.txt`, `/sitemap.xml`              | Search-engine metadata                                                            |
+| Route                                      | Access and behavior                                                                                                                                                   |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                        | Public landing for signed-out and signed-in users                                                                                                                     |
+| `/mtg/dashboard`                           | Authenticated account summaries and per-deck availability                                                                                                             |
+| `/mtg/search`                              | Public catalog search and printing details                                                                                                                            |
+| `/mtg/inventory/[entryId]`                 | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                                                                                                      |
+| `/mtg/inventory`                           | Authenticated bounded Inventory pages, GET filters and form actions                                                                                                   |
+| `/mtg/scan`                                | Authenticated image upload, candidate review, and explicit inventory commit                                                                                           |
+| `/mtg/decks`                               | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow`                                                                                     |
+| `/mtg/decks/import`                        | Authenticated preview and explicit creation of a complete new Deck                                                                                                    |
+| `/mtg/decks/[deckId]/print`                | Authenticated native browser print view of an owned Deck                                                                                                              |
+| `/mtg/decks/[deckId]/print/cards`          | Authenticated DIN A4 card image sheet of an owned Deck for browser printing                                                                                           |
+| `/mtg/decks/[deckId]/export`               | Authenticated Arena/simple text, CSV or Spellbook JSON download of an owned Deck                                                                                      |
+| `/settings`                                | Authenticated contact email and Edit avatar dialog; excluded from indexing                                                                                            |
+| `/settings/profile-card`                   | Authenticated private card editor and artwork save; excluded from indexing                                                                                            |
+| `/settings/password`                       | Authenticated current-password-confirmed change; form disabled in disposable Demo mode, and Production rejects changes for the shared `demo` credential on submission |
+| `/auth/login`                              | Local password form; accepted delivery adds QR sign-in alongside it                                                                                                   |
+| `/auth/login/demo`                         | Pre-filled shared `demo` sign-in form; 404 unless demo login or Demo mode is on                                                                                       |
+| `/demo`                                    | Redirects to `/auth/login/demo`; 404 unless demo login or Demo mode is on                                                                                             |
+| `/app`                                     | Accepted public PWA launch/install hub and existing account/workspace links                                                                                           |
+| `/app/connect`                             | Accepted authenticated camera/manual same-instance authorization QR scanner                                                                                           |
+| `/auth/approve`                            | Accepted authenticated explicit Approve/Deny page, selected by `code` query                                                                                           |
+| `/auth/register`                           | Local account registration page and form action                                                                                                                       |
+| `/auth/logout`                             | POST revokes the browser session and clears its cookie                                                                                                                |
+| `/privacy`, `/terms`                       | Public information pages                                                                                                                                              |
+| `/api/v1/auth/register`                    | POST creates a local account and returns a bearer session                                                                                                             |
+| `/api/v1/auth/login`                       | POST verifies local credentials and returns a bearer session                                                                                                          |
+| `/api/v1/auth/qr/requests`                 | POST creates a five-minute browser/device authorization request                                                                                                       |
+| `/api/v1/auth/qr/requests/[code]`          | Authenticated GET inspects public request status                                                                                                                      |
+| `/api/v1/auth/qr/requests/[code]/decision` | Authenticated POST explicitly approves or denies                                                                                                                      |
+| `/api/v1/auth/qr/token`                    | POST redeems with the private requester credential                                                                                                                    |
+| `/api/v1/account/profile`                  | Authenticated GET profile read and PATCH supplied preference/card fields                                                                                              |
+| `/api/v1/mtg/dashboard`                    | Authenticated GET account aggregates and deck availability summaries                                                                                                  |
+| `/api/v1/account/password`                 | Authenticated POST password rotation and replacement session                                                                                                          |
+| `/api/v1/account/events`                   | Authenticated GET SavedState event stream                                                                                                                             |
+| `/api/v1/auth/session`                     | Authenticated GET selected-session inspection                                                                                                                         |
+| `/api/v1/auth/logout`                      | POST revokes the presented bearer session                                                                                                                             |
+| `/openapi.json`                            | API description                                                                                                                                                       |
+| `/llms.txt`                                | Public Markdown overview, application links, and agent registration rules                                                                                             |
+| `/agents.md`                               | Permanent same-origin redirect to `/llms.txt`                                                                                                                         |
+| `/robots.txt`, `/sitemap.xml`              | Search-engine metadata                                                                                                                                                |
 
 The QR API is integrated. The `/app`, `/app/connect`, `/auth/approve` and login presentation rows
 describe the accepted delivery; the PWA pages and navigation are implemented. Target verification is
