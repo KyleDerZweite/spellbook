@@ -1272,5 +1272,6 @@
 	"notice.Device.revoked": "Gerät entfernt.",
 	"notice.This.device.is.no.longer.linked": "Dieses Gerät ist nicht mehr verknüpft.",
 	"notice.Use.1.to.64.characters.without.control.characters": "Verwende 1 bis 64 Zeichen ohne Steuerzeichen.",
-	"notice.Could.not.update.the.device.Try.again": "Das Gerät konnte nicht aktualisiert werden. Versuche es erneut."
+	"notice.Could.not.update.the.device.Try.again": "Das Gerät konnte nicht aktualisiert werden. Versuche es erneut.",
+	"devices.unavailable": "Verknüpfte Geräte konnten nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen."
 }

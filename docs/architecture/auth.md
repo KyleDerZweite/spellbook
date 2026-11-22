@@ -76,15 +76,17 @@ The protocol is:
   use Secure over HTTPS, and omit the secret from JSON. Device requests return the secret to that
   requester. Browser JavaScript never receives the account session token.
 - `GET /api/v1/auth/qr/requests/{code}` requires an authenticated actor and returns only `code`,
-  `kind`, `status` and `expiresAt`, plus `deviceName` and `deviceType` for device requests. An owned
-  account is not selected by client input. The approval page displays the signed-in username,
-  same-instance origin, display code and request time, with a warning before explicit Approve or
-  Deny. Scanning never approves automatically.
+  `kind`, `status`, `createdAt` and `expiresAt`, plus `deviceName` and `deviceType` for device
+  requests. An owned account is not selected by client input. The approval page displays the
+  signed-in username, same-instance origin, display code and request time, with a warning before
+  explicit Approve or Deny. Scanning never approves automatically.
 - `POST /api/v1/auth/qr/requests/{code}/decision` accepts only `{ decision: 'approve' | 'deny' }`
-  from an authenticated actor that is not a linked device session. The first decision is immutable
-  and bound to the approver's exact live session. Identical repeats from that session remain
-  idempotent after consumption and never issue another session; conflicting decisions or a different
-  approver return 409.
+  and an optional boolean `confirmed` from an authenticated actor that is not a linked device
+  session. Approving a device request requires `confirmed: true`; otherwise it returns HTTP 400 with
+  kind `ConfirmationRequired` and leaves the request pending. The first decision is immutable and
+  bound to the approver's exact live session. Identical repeats from that session remain idempotent
+  after consumption and never issue another session; conflicting decisions or a different approver
+  return 409.
 - `POST /api/v1/auth/qr/token` accepts `code` and the device requester's secret, or the matching
   browser secret cookie. Pending requests return `{ status: 'pending' }`. Denied, expired and
   consumed requests return their explicit terminal status. Approved requests issue and consume at
@@ -111,11 +113,11 @@ HTTP 400. [Migration 0028](../../backend/drizzle/0028_linked_device_sessions.sql
 
 **Approval.** The values are self-reported and unverified. `/auth/approve` and the Android request
 screen label the name as reported by the device and show the device type, the display code, the
-request time and the warning "Only approve if this device is in front of you and shows the same
-code." Device approval requires an explicit confirmation checkbox; the web action rejects a device
-approval without it. The display code is the first 8 characters of the public code, grouped as
-`XXXX-XXXX` with case preserved, so the person compares it with the code on the device screen. A
-shared helper per platform formats it.
+request time (`createdAt`) and the warning "Only approve if this device is in front of you and shows
+the same code." Device approval requires an explicit confirmation checkbox. The clients send it as
+`confirmed: true`, and the decision API enforces it for every caller. The display code is the first
+8 characters of the public code, grouped as `XXXX-XXXX` with case preserved, so the person compares
+it with the code on the device screen. A shared helper per platform formats it.
 
 **Session row.** Redemption stores a new random `device_id`, the request's `device_name` and
 `device_type`, and `last_seen_at`. `GET /api/v1/auth/session` returns `device: { id, name, type }`
@@ -125,15 +127,17 @@ for a linked device session and `device: null` otherwise.
 `expires_at = min(now + 90 days, created_at + 365 days)`. Session inspection stays a read-only
 transaction. After a successful read, the credential entry point `inspect_session` renews a device
 session in a separate short write when `last_seen_at` is at least 24 hours old, setting the new
-expiry and `last_seen_at = now`. The write skips a row locked by another transaction and changes
-nothing for a younger `last_seen_at`, so at most one renewal happens per session and day. A device
-session expires after 90 idle days and at the latest 365 days after linking. The migration limits
-the `saved_state_auth` notification to inserts, deletes and updates of other columns, so renewal and
-rename do not revalidate the account's SavedState streams, while revocation still does.
+expiry and `last_seen_at = now`. Renewal is best effort: a database error is logged as a warning
+without token data, and the still valid session is returned unrenewed. The write skips a row locked
+by another transaction and changes nothing for a younger `last_seen_at`, so at most one renewal
+happens per session and day. A device session expires after 90 idle days and at the latest 365 days
+after linking. The migration limits the `saved_state_auth` notification to inserts, deletes and
+updates of other columns, so renewal and rename do not revalidate the account's SavedState streams,
+while revocation still does.
 
 **Limits.** One HTTP guard, `require_account_owner` in the
 [router auth module](../../backend/api/src/spellbook_api/http/auth.py), returns HTTP 403
-`{ kind: 'device_session_forbidden' }` for linked device sessions on password changes (JSON and form
+`{ kind: 'DeviceSessionForbidden' }` for linked device sessions on password changes (JSON and form
 bridge), QR approve/deny decisions and every `/api/v1/account/devices` endpoint. Device sessions
 keep the other account and MTG routes of an ordinary session. Logout, password change and operator
 recovery delete device sessions like any other session.

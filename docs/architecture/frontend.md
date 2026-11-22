@@ -575,7 +575,9 @@ codes, not MTG cards.
 `XXXX-XXXX` display code from `formatQrDisplayCode` in `qr-code.ts`, request time and status, with
 an explicit warning before Approve or Deny. Device requests also show the device name, labelled as
 reported by the device, and the device type, the in-person warning and a required confirmation
-checkbox; the action rejects an unconfirmed device approval.
+checkbox, which the action forwards as `confirmed` to the decision API. The request time comes from
+the inspect response's `createdAt`. If the device list fails to load, Settings still renders and the
+Linked devices section shows an error message.
 [Linked device sessions](./auth.md#linked-device-sessions) own these rules. Safe login return paths
 preserve the request. All `/auth/*` and `/app*` page responses use `no-store` and
 `Referrer-Policy: no-referrer`. The server-only `qr-page.ts` adapter calls remote

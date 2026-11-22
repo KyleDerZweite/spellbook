@@ -36,4 +36,4 @@ export interface LinkedDeviceRename {
 	name: string;
 }
 /** Error kind returned with HTTP 403 when a linked device session calls an owner-only route. */
-export const DEVICE_SESSION_FORBIDDEN = 'device_session_forbidden';
+export const DEVICE_SESSION_FORBIDDEN = 'DeviceSessionForbidden';

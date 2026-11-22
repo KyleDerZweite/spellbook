@@ -8,9 +8,11 @@
 
 	let {
 		devices,
+		unavailable = false,
 		result
 	}: {
 		devices: LinkedDevice[];
+		unavailable?: boolean;
 		result?: { success: boolean; message: string } | null;
 	} = $props();
 	let pending = $state<string | null>(null);
@@ -51,7 +53,9 @@
 		>
 			{language.message(result.message)}
 		</p>{/if}
-	{#if devices.length === 0}
+	{#if unavailable}
+		<p role="alert" class="text-sm text-error">{language.t('devices.unavailable')}</p>
+	{:else if devices.length === 0}
 		<p class="text-sm text-text-secondary">{language.t('devices.empty')}</p>
 	{:else}
 		<ul class="device-list">

@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from spellbook_core.devices import DeviceSessionError
 from spellbook_core.models import SessionDevice, SessionInfo
+from spellbook_core.qr import QrAuthError
 from test_auth_account import ACTOR, CODE, EXPIRES, ORIGIN, TOKEN, Dependencies
 
 BEARER = {"Authorization": f"Bearer {TOKEN}"}
@@ -73,7 +74,7 @@ def test_device_sessions_are_forbidden_on_owner_operations(
     with TestClient(d.app) as client:
         response = client.request(method, path, json=body, headers=BEARER)
     assert response.status_code == 403
-    assert response.json()["kind"] == "device_session_forbidden"
+    assert response.json()["kind"] == "DeviceSessionForbidden"
     d.auth.change_password.assert_not_awaited()
     d.auth.qr.decide.assert_not_awaited()
     d.auth.devices.list.assert_not_awaited()
@@ -95,7 +96,7 @@ def test_device_session_password_form_is_forbidden_and_inspect_is_allowed() -> N
             },
         )
         assert form.status_code == 403
-        assert form.json()["kind"] == "device_session_forbidden"
+        assert form.json()["kind"] == "DeviceSessionForbidden"
         inspect = client.get(f"/api/v1/auth/qr/requests/{CODE}", headers=BEARER)
         assert inspect.status_code == 200
 
@@ -146,3 +147,22 @@ def test_device_domain_errors_keep_kind_and_status(
     for response in (renamed, revoked):
         assert response.status_code == status
         assert response.json() == {"kind": kind, "message": "failure", "status": status}
+
+
+def test_device_confirmation_is_forwarded_and_type_checked() -> None:
+    d = Dependencies()
+    with TestClient(d.app) as client:
+        path = f"/api/v1/auth/qr/requests/{CODE}/decision"
+        ok = client.post(path, json={"decision": "approve", "confirmed": True}, headers=BEARER)
+        assert ok.status_code == 200
+        d.auth.qr.decide.assert_awaited_once_with(ACTOR, CODE, "approve", "testclient", True)
+        bad = client.post(path, json={"decision": "approve", "confirmed": "yes"}, headers=BEARER)
+        assert bad.status_code == 400
+        d.auth.qr.decide.side_effect = QrAuthError("ConfirmationRequired", "Confirm it.")
+        required = client.post(path, json={"decision": "approve"}, headers=BEARER)
+    assert required.status_code == 400
+    assert required.json() == {
+        "kind": "ConfirmationRequired",
+        "message": "Confirm it.",
+        "status": 400,
+    }

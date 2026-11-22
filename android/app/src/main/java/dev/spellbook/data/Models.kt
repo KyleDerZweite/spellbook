@@ -77,14 +77,12 @@ val WireJson = Json { ignoreUnknownKeys = true; encodeDefaults = true; explicitN
 /** Device requests also carry self-reported [deviceName] and [deviceType]; browser requests omit them. */
 @Serializable data class QrRequest(
     val code: String, val kind: String, val status: String, val expiresAt: String,
-    val deviceName: String? = null, val deviceType: String? = null,
+    val createdAt: String? = null, val deviceName: String? = null, val deviceType: String? = null,
 )
-/** QR requests live five minutes on the server, so the request time precedes expiry by that lifetime. */
-const val QR_REQUEST_LIFETIME_SECONDS = 300L
 /** The comparison code shown on both screens: the first 8 characters as `XXXX-XXXX`, case preserved. */
 fun qrDisplayCode(code: String): String = "${code.take(4)}-${code.drop(4).take(4)}"
-fun qrRequestedAt(expiresAt: String): java.time.Instant? =
-    runCatching { java.time.Instant.parse(expiresAt).minusSeconds(QR_REQUEST_LIFETIME_SECONDS) }.getOrNull()
+fun qrRequestedAt(createdAt: String?): java.time.Instant? =
+    createdAt?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() }
 
 @Serializable data class AddDraft(
     val printing: Printing, val quantity: String = "1", val finish: String = "nonfoil",

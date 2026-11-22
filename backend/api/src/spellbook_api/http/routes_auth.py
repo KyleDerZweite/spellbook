@@ -178,13 +178,16 @@ def create_auth_routes(
                 raise HttpError(400, "Invalid QR code")
             if operation == "inspect":
                 return json_response(await auth.qr.inspect(actor, code, address), headers=headers)
-            body = await qr_body(request, {"decision"})
+            body = await qr_body(request, {"decision", "confirmed"})
             decision = body.get("decision")
             if decision not in ("approve", "deny"):
                 raise HttpError(400, "Invalid QR decision")
+            confirmed = body.get("confirmed", False)
+            if not isinstance(confirmed, bool):
+                raise HttpError(400, "Invalid QR confirmation")
             assert isinstance(decision, str)
             return json_response(
-                await auth.qr.decide(actor, code, decision, address), headers=headers
+                await auth.qr.decide(actor, code, decision, address, confirmed), headers=headers
             )
         body = await qr_body(request, {"code", "requesterSecret"})
         token_code = body.get("code")

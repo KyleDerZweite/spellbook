@@ -429,7 +429,7 @@ def test_qr_signed_in_routes_validate_code_and_require_explicit_decision(
                 json={"decision": "approve"},
                 headers=headers,
             )
-            d.auth.qr.decide.assert_awaited_once_with(ACTOR, CODE, "approve", "testclient")
+            d.auth.qr.decide.assert_awaited_once_with(ACTOR, CODE, "approve", "testclient", False)
         assert response.status_code == 200
         encoded = client.get("/api/v1/auth/qr/requests/%62" + CODE[1:], headers=headers)
         assert encoded.status_code == 200

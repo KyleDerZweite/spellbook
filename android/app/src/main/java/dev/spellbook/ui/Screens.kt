@@ -331,13 +331,13 @@ import kotlin.math.sin
             Text(stringResource(R.string.qr_device_type, deviceTypeLabel(request.deviceType) ?: notReported))
         }
         Text(stringResource(R.string.qr_code_label, qrDisplayCode(request.code)), style = MaterialTheme.typography.titleLarge, fontFamily = FontFamily.Monospace)
-        qrRequestedAt(request.expiresAt)?.let {
+        qrRequestedAt(request.createdAt)?.let {
             Text(stringResource(R.string.qr_requested_at, DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT).withZone(ZoneId.systemDefault()).format(it)))
         }
         Muted("API: ${model.backend}\nKind: ${request.kind}\nStatus: ${request.status}\nExpires: ${request.expiresAt}")
         Text(if (device) stringResource(R.string.qr_device_warning) else "Approve only if you initiated this request on a device you trust.")
         Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(confirmed, { confirmed = it }); Text(if (device) stringResource(R.string.qr_device_confirm) else "I reviewed this account and request") }
-        Action("Approve sign-in", confirmed && request.status == "pending") { confirmed = false; model.decideQr(request.code, "approve") }
+        Action("Approve sign-in", confirmed && request.status == "pending") { confirmed = false; model.decideQr(request.code, "approve", confirmed = true) }
         TextButton(onClick = { model.decideQr(request.code, "deny") }, enabled = request.status == "pending") { Text("Deny") }
     }
 }

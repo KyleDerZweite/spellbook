@@ -68,7 +68,12 @@ export class DescriptionConflictError extends ValidationError {
 }
 export class QrAuthError extends RemoteError {
 	declare readonly kind:
-		'ValidationFailed' | 'NotFound' | 'Conflict' | 'Unauthenticated' | 'RateLimited';
+		| 'ValidationFailed'
+		| 'ConfirmationRequired'
+		| 'NotFound'
+		| 'Conflict'
+		| 'Unauthenticated'
+		| 'RateLimited';
 }
 
 export type ErrorDomain = 'inventory' | 'decks' | 'qr';

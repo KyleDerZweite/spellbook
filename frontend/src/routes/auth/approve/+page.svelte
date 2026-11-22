@@ -64,8 +64,8 @@
 				<div>
 					<dt class="text-text-secondary">{language.t('qr.requestedAt')}</dt>
 					<dd>
-						<time datetime={data.requestedAt}
-							>{language.date(new Date(data.requestedAt), {
+						<time datetime={request.createdAt}
+							>{language.date(new Date(request.createdAt), {
 								dateStyle: 'medium',
 								timeStyle: 'short'
 							})}</time

@@ -9,9 +9,10 @@ class QrDisplayTest {
         assertEquals("Zz9--QqWw", qrDisplayCode("Zz9-QqWwEe"))
     }
 
-    @Test fun `request time precedes expiry by the five minute lifetime`() {
-        assertEquals(java.time.Instant.parse("2026-11-22T10:00:00Z"), qrRequestedAt("2026-11-22T10:05:00.000Z"))
+    @Test fun `request time comes from the server createdAt`() {
+        assertEquals(java.time.Instant.parse("2026-11-22T10:00:00Z"), qrRequestedAt("2026-11-22T10:00:00.000Z"))
         assertNull(qrRequestedAt("not a timestamp"))
+        assertNull(qrRequestedAt(null))
     }
 
     @Test fun `device fields decode and browser requests omit them`() {

@@ -164,7 +164,11 @@
 				</p>{/if}
 		</div>
 	</div>
-	<LinkedDevices devices={data.devices} result={form?.deviceId === undefined ? null : form} />
+	<LinkedDevices
+		devices={data.devices}
+		unavailable={data.devicesError}
+		result={form?.deviceId === undefined ? null : form}
+	/>
 </div>
 
 <style>

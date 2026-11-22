@@ -233,10 +233,10 @@ export function createRemoteApplication(client: () => RemoteClient) {
 	const qr: Pick<QrAuthApplication, 'inspect' | 'decide'> = {
 		inspect: (_actor, code) =>
 			client().request(`/api/v1/auth/qr/requests/${id(code)}`, { domain: 'qr' }),
-		decide: (_actor, code, decision) =>
+		decide: (_actor, code, decision, _address, confirmed) =>
 			client().request(`/api/v1/auth/qr/requests/${id(code)}/decision`, {
 				method: 'POST',
-				body: { decision },
+				body: confirmed === undefined ? { decision } : { decision, confirmed },
 				domain: 'qr'
 			})
 	};

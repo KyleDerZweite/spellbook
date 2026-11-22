@@ -101,7 +101,7 @@ async def require_mobile_auth(request: Request, auth: SessionAuth, public_origin
 
 
 DEVICE_SESSION_FORBIDDEN = {
-    "kind": "device_session_forbidden",
+    "kind": "DeviceSessionForbidden",
     "message": "Linked device sessions cannot perform this action.",
 }
 

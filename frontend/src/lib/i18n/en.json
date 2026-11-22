@@ -1272,5 +1272,6 @@
 	"notice.Device.revoked": "Device revoked.",
 	"notice.This.device.is.no.longer.linked": "This device is no longer linked.",
 	"notice.Use.1.to.64.characters.without.control.characters": "Use 1 to 64 characters without control characters.",
-	"notice.Could.not.update.the.device.Try.again": "Could not update the device. Try again."
+	"notice.Could.not.update.the.device.Try.again": "Could not update the device. Try again.",
+	"devices.unavailable": "Linked devices could not be loaded. Reload the page to try again."
 }

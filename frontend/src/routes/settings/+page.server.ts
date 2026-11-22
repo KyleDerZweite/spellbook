@@ -12,11 +12,12 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) redirect(303, '/auth/login?returnTo=/settings');
+	// A failing device list must not break the rest of Settings.
 	const [settings, linked] = await Promise.all([
 		getProfileSettings(locals.user),
-		application.devices.list()
+		application.devices.list().catch(() => null)
 	]);
-	return { ...settings, devices: linked.devices };
+	return { ...settings, devices: linked?.devices ?? [], devicesError: linked === null };
 };
 
 async function deviceAction(

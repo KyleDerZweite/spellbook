@@ -111,7 +111,7 @@ def test_browser_qr_cookie_jar_completes_flow_and_clears_requester_cookie() -> N
             headers=headers,
         )
         assert approved.status_code == 200
-        d.auth.qr.decide.assert_awaited_once_with(ACTOR, CODE, "approve", "testclient")
+        d.auth.qr.decide.assert_awaited_once_with(ACTOR, CODE, "approve", "testclient", False)
         d.auth.qr.redeem.return_value = Redemption(
             "browser", "authenticated", TokenSession(TOKEN, EXPIRES)
         )

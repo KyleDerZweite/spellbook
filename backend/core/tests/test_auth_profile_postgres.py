@@ -157,9 +157,9 @@ def test_qr_one_use_replay_decision_conflict_and_approver_revocation() -> None:
             code, secret = await challenge(f)
             requester = Requester(requester_secret=secret)
             assert (await qr.redeem(code, requester, "fixture")).status == "pending"
-            await qr.decide(f.first.user, code, "approve", "fixture")
+            await qr.decide(f.first.user, code, "approve", "fixture", True)
             with pytest.raises(QrAuthError, match="already has a decision"):
-                await qr.decide(f.second.user, code, "approve", "fixture")
+                await qr.decide(f.second.user, code, "approve", "fixture", True)
             results = await asyncio.gather(
                 qr.redeem(code, requester, "fixture"), qr.redeem(code, requester, "fixture")
             )
@@ -168,11 +168,11 @@ def test_qr_one_use_replay_decision_conflict_and_approver_revocation() -> None:
             assert granted
             user = await f.auth.validate_session(granted.token)
             assert user and user.account_id == f.first.user.account_id
-            assert (await qr.decide(f.first.user, code, "approve", "fixture"))[
+            assert (await qr.decide(f.first.user, code, "approve", "fixture", True))[
                 "status"
             ] == "consumed"
             second_code, second_secret = await challenge(f)
-            await qr.decide(f.first.user, second_code, "approve", "fixture")
+            await qr.decide(f.first.user, second_code, "approve", "fixture", True)
             await f.auth.revoke_session(f.first.session.token)
             assert (
                 await qr.redeem(second_code, Requester(requester_secret=second_secret), "fixture")
@@ -214,7 +214,7 @@ def test_qr_browser_binding_expiry_and_terminal_denial() -> None:
                     "WHERE code_hash=%s",
                     (hash_session_token(expired),),
                 )
-            assert (await qr.decide(f.first.user, expired, "approve", "fixture"))[
+            assert (await qr.decide(f.first.user, expired, "approve", "fixture", True))[
                 "status"
             ] == "expired"
             assert (
@@ -265,7 +265,7 @@ def test_qr_redemption_rechecks_approver_expiry_after_session_lock_wait(
     async def scenario() -> None:
         async with fixture() as f:
             code, secret = await challenge(f)
-            await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+            await f.auth.qr.decide(f.first.user, code, "approve", "fixture", True)
             reached_session = asyncio.Event()
             original = f.auth.qr._live_session
 
@@ -317,7 +317,7 @@ def test_demo_fences_existing_sessions_and_qr_issuance() -> None:
                 assert await demo.create_session(f.first.user.account_id, str(row[0]), tx) is None
             assert await f.auth.authenticate("login", f.first.user.username, PASSWORD)
             code, secret = await challenge(f)
-            await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+            await f.auth.qr.decide(f.first.user, code, "approve", "fixture", True)
             with pytest.raises(QrAuthError):
                 await demo.qr.redeem(code, Requester(requester_secret=secret), "fixture")
             from spellbook_core.passwords import hash_password
@@ -354,7 +354,12 @@ async def device_token(f: Fixture) -> str:
     f.codes.append(code)
     inspected = await f.auth.qr.inspect(f.first.user, code, "fixture")
     assert (inspected["deviceName"], inspected["deviceType"]) == ("Desk robot", "cardstation")
-    await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+    assert isinstance(inspected["createdAt"], str)
+    with pytest.raises(QrAuthError) as unconfirmed:
+        await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+    assert unconfirmed.value.kind == "ConfirmationRequired"
+    assert (await f.auth.qr.inspect(f.first.user, code, "fixture"))["status"] == "pending"
+    await f.auth.qr.decide(f.first.user, code, "approve", "fixture", True)
     redeemed = await f.auth.qr.redeem(code, Requester(requester_secret=secret), "fixture")
     assert redeemed.session is not None
     return redeemed.session.token
@@ -435,8 +440,19 @@ def test_renewal_and_rename_do_not_notify_but_revocation_does() -> None:
                 await auth.inspect_session(token)
                 renewed = await session_row(f.pool, token)
                 assert renewed and renewed[5] != row[5]
+                assert await drained() == []  # renewal
                 await f.auth.devices.rename(f.first.user, str(row[0]), "Renamed")
-                assert await drained() == []
+                assert await drained() == []  # rename
+                # Positive controls: other column updates and inserts still notify.
+                async with transaction(f.pool) as tx:
+                    await tx.execute(
+                        "UPDATE auth_sessions SET created_at=created_at - interval '1 second' "
+                        "WHERE token_hash=%s",
+                        (hash_session_token(token),),
+                    )
+                assert [json.loads(n)["topic"] for n in await drained()] == ["auth"]
+                await device_token(f)
+                assert "auth" in [json.loads(n)["topic"] for n in await drained()]
                 await f.auth.devices.revoke(f.first.user, str(row[0]))
                 assert [json.loads(note)["topic"] for note in await drained()] == ["auth"]
             finally:

@@ -349,13 +349,13 @@ class AppModel(application: Application) : AndroidViewModel(application) {
             if (restore) { startEvents(); startExpiry() }
         })
     }
-    fun decideQr(code: String, decision: String) {
+    fun decideQr(code: String, decision: String, confirmed: Boolean = false) {
         qr?.cancel()
         val owner = epoch
         val target = route
         qr = scope().launch {
             try {
-                apiOrFail().request("/api/v1/auth/qr/requests/${query(code)}/decision", privateToken(), "POST", jsonBody { put("decision", decision) })
+                apiOrFail().request("/api/v1/auth/qr/requests/${query(code)}/decision", privateToken(), "POST", jsonBody { put("decision", decision); if (confirmed) put("confirmed", true) })
                 if (owner != epoch || !isActive || route != target) return@launch
                 update { it.copy(notice = if (decision == "approve") "Anmeldung freigegeben." else "Request denied.") }; refresh()
             } catch (cancelled: CancellationException) { throw cancelled }

@@ -205,10 +205,13 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				const publicPath = `/api/v1/auth/qr/requests/${result.code}`;
 				assert.equal((await request(publicPath)).status, 401);
 				const inspected = await request(publicPath, undefined, { authorization });
-				assert.deepEqual(await inspected.json(), {
+				const inspectedBody = await inspected.json();
+				assert.ok(Date.parse(inspectedBody.createdAt) < Date.parse(result.expiresAt));
+				assert.deepEqual(inspectedBody, {
 					code: result.code,
 					kind: 'browser',
 					status: 'pending',
+					createdAt: inspectedBody.createdAt,
 					expiresAt: result.expiresAt
 				});
 				assert.equal(
@@ -221,8 +224,13 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					{ status: 'pending' }
 				);
 				assert.equal(
-					(await request(`${publicPath}/decision`, { decision: 'approve' }, { authorization }))
-						.status,
+					(
+						await request(
+							`${publicPath}/decision`,
+							{ decision: 'approve', confirmed: true },
+							{ authorization }
+						)
+					).status,
 					200
 				);
 				const authenticated = await request(
@@ -273,7 +281,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				);
 				await request(
 					`/api/v1/auth/qr/requests/${result.code}/decision`,
-					{ decision: 'approve' },
+					{ decision: 'approve', confirmed: true },
 					{ authorization }
 				);
 				const redemption = await request(
@@ -321,7 +329,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 						(
 							await request(
 								`${path}/decision`,
-								{ decision: 'approve' },
+								{ decision: 'approve', confirmed: true },
 								{ origin: supplied, authorization }
 							)
 						).status,
@@ -348,7 +356,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					(
 						await request(
 							`${path}/decision`,
-							{ decision: 'approve' },
+							{ decision: 'approve', confirmed: true },
 							{ cookie: `${SESSION_COOKIE}=${approver.token}` }
 						)
 					).status,
@@ -371,7 +379,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 						(
 							await request(
 								`${path}/decision`,
-								{ decision: 'approve' },
+								{ decision: 'approve', confirmed: true },
 								{ ...browser, authorization: bad }
 							)
 						).status,
@@ -382,14 +390,20 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					(
 						await request(
 							`${path}/decision`,
-							{ decision: 'approve' },
+							{ decision: 'approve', confirmed: true },
 							{ ...browser, authorization }
 						)
 					).status,
 					200
 				);
 				assert.equal(
-					(await request(`${path}/decision`, { decision: 'approve' }, { authorization })).status,
+					(
+						await request(
+							`${path}/decision`,
+							{ decision: 'approve', confirmed: true },
+							{ authorization }
+						)
+					).status,
 					200
 				);
 				assert.equal(
@@ -400,7 +414,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					(
 						await request(
 							`${path}/decision`,
-							{ decision: 'approve' },
+							{ decision: 'approve', confirmed: true },
 							{ authorization: `Bearer ${other.token}` }
 						)
 					).status,
@@ -434,7 +448,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				const code = first.result.code;
 				await request(
 					`/api/v1/auth/qr/requests/${code}/decision`,
-					{ decision: 'approve' },
+					{ decision: 'approve', confirmed: true },
 					{ authorization }
 				);
 				assert.equal(
@@ -585,6 +599,18 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 						},
 						body: new URLSearchParams({ decision: 'approve', review, ...fields })
 					});
+				const apiUnconfirmed = await request(
+					`/api/v1/auth/qr/requests/${result.code}/decision`,
+					{ decision: 'approve' },
+					{ authorization }
+				);
+				assert.equal(apiUnconfirmed.status, 400);
+				assert.equal((await apiUnconfirmed.json()).kind, 'ConfirmationRequired');
+				const inspected = await (
+					await request(`/api/v1/auth/qr/requests/${result.code}`, undefined, { authorization })
+				).json();
+				assert.equal(inspected.status, 'pending');
+				assert.ok(Date.parse(inspected.createdAt) < Date.parse(inspected.expiresAt));
 				const unconfirmed = await decide({});
 				assert.equal(unconfirmed.status, 400);
 				assert.match(await unconfirmed.text(), /Confirm that the device is in front of you/);
@@ -606,7 +632,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.equal(owner.device, null);
 				const forbidden = await request('/api/v1/account/devices', undefined, device);
 				assert.equal(forbidden.status, 403);
-				assert.equal((await forbidden.json()).kind, 'device_session_forbidden');
+				assert.equal((await forbidden.json()).kind, 'DeviceSessionForbidden');
 				const listed = await (
 					await request('/api/v1/account/devices', undefined, { authorization })
 				).json();

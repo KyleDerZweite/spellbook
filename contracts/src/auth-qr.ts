@@ -12,6 +12,7 @@ export interface QrRequestInfo {
 	kind: QrKind;
 	status: QrStatus;
 	expiresAt: string;
+	createdAt: string;
 	/** Present for device requests only; self-reported by the requesting device. */
 	deviceName?: string | null;
 	deviceType?: DeviceType | null;
@@ -40,6 +41,8 @@ export interface QrCreateResponse {
 }
 export interface QrDecisionRequest {
 	decision: 'approve' | 'deny';
+	/** Required as true to approve a device request (in-person comparison); else 400 ConfirmationRequired. */
+	confirmed?: boolean;
 }
 export interface QrTokenRequest {
 	code: string;
@@ -66,7 +69,8 @@ export interface QrAuthApplication {
 		actor: AuthUser,
 		code: string,
 		decision: 'approve' | 'deny',
-		address: string
+		address: string,
+		confirmed?: boolean
 	): Promise<QrRequestInfo>;
 	redeem(code: string, requester: QrRequester, address: string): Promise<QrRedemption>;
 }

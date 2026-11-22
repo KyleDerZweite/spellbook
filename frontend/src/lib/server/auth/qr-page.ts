@@ -20,13 +20,9 @@ function reviewMarker(event: RequestEvent, code: string) {
 	// A code-scoped proof binds native and enhanced forms to the exact reviewed session.
 	return createHmac('sha256', token).update(`qr-review:${code}`).digest('base64url');
 }
-// QR requests live five minutes (Core QrAuth.create); the approval page shows their request time.
-const QR_REQUEST_LIFETIME_MS = 5 * 60 * 1000;
-const requestedAt = (expiresAt: string) =>
-	new Date(Date.parse(expiresAt) - QR_REQUEST_LIFETIME_MS).toISOString();
-
 const statuses = {
 	ValidationFailed: 400,
+	ConfirmationRequired: 400,
 	Unauthenticated: 401,
 	NotFound: 404,
 	Conflict: 409,
@@ -41,14 +37,8 @@ export async function loadQrApproval(event: RequestEvent) {
 			`/auth/login?returnTo=${encodeURIComponent(event.url.pathname + event.url.search)}`
 		);
 	try {
-		const request = await application.auth.qr.inspect(
-			event.locals.user,
-			code,
-			event.getClientAddress()
-		);
 		return {
-			request,
-			requestedAt: requestedAt(request.expiresAt),
+			request: await application.auth.qr.inspect(event.locals.user, code, event.getClientAddress()),
 			origin: event.url.origin,
 			review: reviewMarker(event, code),
 			reviewedUsername: event.locals.user.username
@@ -81,22 +71,14 @@ export async function submitQrApproval(event: RequestEvent) {
 			message: 'Your sign-in session changed. Review the account shown before approving again.'
 		});
 	try {
-		// Device approval additionally requires the explicit in-person comparison checkbox.
-		if (
-			decision === 'approve' &&
-			form.get('confirmed') !== 'yes' &&
-			(await application.auth.qr.inspect(event.locals.user, code, event.getClientAddress()))
-				.kind === 'device'
-		)
-			return fail(400, {
-				message: 'Confirm that the device is in front of you and shows the same code.'
-			});
 		return {
 			request: await application.auth.qr.decide(
 				event.locals.user,
 				code,
 				decision,
-				event.getClientAddress()
+				event.getClientAddress(),
+				// The API requires this in-person confirmation for device approvals.
+				form.get('confirmed') === 'yes'
 			)
 		};
 	} catch (cause) {

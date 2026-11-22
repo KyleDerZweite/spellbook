@@ -52,6 +52,7 @@ def error_response(cause: Exception) -> Response:
     if isinstance(cause, QrAuthError):
         status = {
             "ValidationFailed": 400,
+            "ConfirmationRequired": 400,
             "Unauthenticated": 401,
             "NotFound": 404,
             "Conflict": 409,

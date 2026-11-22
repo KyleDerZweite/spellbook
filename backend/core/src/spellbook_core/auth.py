@@ -1,6 +1,7 @@
 """Session-bound actors issued only after a fresh PostgreSQL session/profile read."""
 
 import hashlib
+import logging
 import re
 import secrets
 from collections.abc import Callable, Mapping
@@ -10,6 +11,7 @@ from typing import Literal
 from uuid import UUID, uuid4
 from weakref import WeakKeyDictionary
 
+from psycopg import Error as PsycopgError
 from psycopg.errors import UniqueViolation
 from psycopg.rows import class_row
 
@@ -28,6 +30,7 @@ from .passwords import PasswordVerifier
 from .validation import js_trim, js_utf8, utf16_length, valid_password
 
 ARTWORK_IDS = ("grove", "tide", "ember", "astral")
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +114,21 @@ class SessionAuth:
         expires = device_renewal(row.created_at, row.last_seen_at, now)
         if expires is None:
             return row
+        try:
+            renewed = await self._write_renewal(digest, expires, now)
+        except PsycopgError as cause:
+            # Best effort: the session is still valid; the next request retries renewal.
+            logger.warning(
+                "Device session renewal failed: %s (SQLSTATE %s)",
+                type(cause).__name__,
+                cause.sqlstate,
+            )
+            return row
+        if not renewed:
+            return row
+        return replace(row, expires_at=expires, last_seen_at=now)
+
+    async def _write_renewal(self, digest: str, expires: datetime, now: datetime) -> bool:
         async with transaction(self._pool) as tx:
             cursor = await tx.execute(
                 "UPDATE auth_sessions SET expires_at=%s,last_seen_at=%s WHERE token_hash=("
@@ -119,10 +137,7 @@ class SessionAuth:
                 "FOR NO KEY UPDATE SKIP LOCKED) RETURNING expires_at",
                 (expires, now, digest, now, now - DEVICE_RENEWAL_INTERVAL),
             )
-            renewed = await cursor.fetchone()
-        if renewed is None:
-            return row
-        return replace(row, expires_at=expires, last_seen_at=now)
+            return await cursor.fetchone() is not None
 
     async def _inspect(self, digest: str, tx: Transaction | None = None) -> SessionInfo | None:
         if tx is not None:

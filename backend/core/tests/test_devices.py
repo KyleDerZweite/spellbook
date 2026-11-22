@@ -68,6 +68,8 @@ def test_inspection_returns_device_fields_only_for_device_requests() -> None:
     assert _info(CODE, device)["deviceType"] == "cardstation"
     assert "deviceName" not in _info(CODE, challenge("browser"))
     assert _info(CODE, challenge("device"))["deviceName"] is None
+    created = replace(device, created_at=datetime(2026, 1, 1, tzinfo=UTC))
+    assert _info(CODE, created)["createdAt"] == "2026-01-01T00:00:00.000Z"
 
 
 def test_sliding_renewal_throttle_and_absolute_cap() -> None:
@@ -80,3 +82,37 @@ def test_sliding_renewal_throttle_and_absolute_cap() -> None:
     assert device_renewal(CREATED, near_cap - timedelta(days=2), near_cap) == CREATED + timedelta(
         days=365
     )
+
+
+def test_device_renewal_failure_is_best_effort(caplog: pytest.LogCaptureFixture) -> None:
+    import asyncio
+    from uuid import uuid4
+
+    from psycopg import OperationalError
+
+    from spellbook_core.auth import SessionAuth, _SessionRow
+
+    now = CREATED + timedelta(days=5)
+    auth = SessionAuth(None, clock=lambda: now)  # type: ignore[arg-type]
+
+    async def failing(*_: object) -> bool:
+        raise OperationalError("connection lost")
+
+    auth._write_renewal = failing  # type: ignore[assignment]
+    row = _SessionRow(
+        "account",
+        "user",
+        "",
+        "wizard",
+        "grove",
+        CREATED + timedelta(days=90),
+        CREATED,
+        uuid4(),
+        "Station",
+        "cardstation",
+        CREATED,
+    )
+    with caplog.at_level("WARNING"):
+        assert asyncio.run(auth._renew_device("secret-digest", row)) is row
+    assert "Device session renewal failed" in caplog.text
+    assert "secret-digest" not in caplog.text

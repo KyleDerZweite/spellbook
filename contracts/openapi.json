@@ -941,7 +941,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1582,7 +1582,7 @@
 						}
 					},
 					"400": {
-						"description": "Invalid QR request fields",
+						"description": "Invalid decision fields, or a device approval without confirmed: true (kind ConfirmationRequired)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1602,7 +1602,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7788,7 +7788,7 @@
 		"/api/v1/account/devices": {
 			"get": {
 				"summary": "List the current account's linked device sessions, newest first",
-				"description": "Linked device sessions themselves receive 403 device_session_forbidden. Responses use Cache-Control: no-store.",
+				"description": "Linked device sessions themselves receive 403 DeviceSessionForbidden. Responses use Cache-Control: no-store.",
 				"tags": ["account"],
 				"security": [
 					{
@@ -7820,7 +7820,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7908,7 +7908,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7986,7 +7986,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -8264,9 +8264,14 @@
 							}
 						],
 						"description": "Present for device requests."
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "Request creation time."
 					}
 				},
-				"required": ["code", "kind", "status", "expiresAt"],
+				"required": ["code", "kind", "status", "expiresAt", "createdAt"],
 				"additionalProperties": false
 			},
 			"QrDecisionRequest": {
@@ -8274,6 +8279,10 @@
 				"properties": {
 					"decision": {
 						"enum": ["approve", "deny"]
+					},
+					"confirmed": {
+						"type": "boolean",
+						"description": "Must be true to approve a device request; otherwise 400 with kind ConfirmationRequired. Denials and browser approvals ignore it."
 					}
 				},
 				"required": ["decision"],
