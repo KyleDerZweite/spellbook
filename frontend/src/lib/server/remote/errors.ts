@@ -70,6 +70,7 @@ export class QrAuthError extends RemoteError {
 	declare readonly kind:
 		| 'ValidationFailed'
 		| 'ConfirmationRequired'
+		| 'DeviceSessionForbidden'
 		| 'NotFound'
 		| 'Conflict'
 		| 'Unauthenticated'

@@ -20,14 +20,6 @@ function reviewMarker(event: RequestEvent, code: string) {
 	// A code-scoped proof binds native and enhanced forms to the exact reviewed session.
 	return createHmac('sha256', token).update(`qr-review:${code}`).digest('base64url');
 }
-const statuses = {
-	ValidationFailed: 400,
-	ConfirmationRequired: 400,
-	Unauthenticated: 401,
-	NotFound: 404,
-	Conflict: 409,
-	RateLimited: 429
-} as const;
 
 export async function loadQrApproval(event: RequestEvent) {
 	const code = requestCode(event.url);
@@ -44,7 +36,7 @@ export async function loadQrApproval(event: RequestEvent) {
 			reviewedUsername: event.locals.user.username
 		};
 	} catch (cause) {
-		if (cause instanceof QrAuthError) error(statuses[cause.kind], cause.message);
+		if (cause instanceof QrAuthError) error(cause.status, cause.message);
 		throw cause;
 	}
 }
@@ -82,7 +74,7 @@ export async function submitQrApproval(event: RequestEvent) {
 			)
 		};
 	} catch (cause) {
-		if (cause instanceof QrAuthError) return fail(statuses[cause.kind], { message: cause.message });
+		if (cause instanceof QrAuthError) return fail(cause.status, { message: cause.message });
 		throw cause;
 	}
 }

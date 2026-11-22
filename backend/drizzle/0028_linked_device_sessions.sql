@@ -7,6 +7,9 @@ ALTER TABLE "qr_authorizations" ADD CONSTRAINT "qr_authorizations_device_type_ch
 --> statement-breakpoint
 ALTER TABLE "qr_authorizations" ADD CONSTRAINT "qr_authorizations_device_metadata_check" CHECK ("qr_authorizations"."kind" = 'device' or ("qr_authorizations"."device_name" is null and "qr_authorizations"."device_type" is null));
 --> statement-breakpoint
+-- Pre-migration device requests were approved without in-person confirmation; expire any still open.
+UPDATE "qr_authorizations" SET "expires_at" = now() - interval '1 second' WHERE "kind" = 'device' AND "status" IN ('pending', 'approved') AND "expires_at" > now();
+--> statement-breakpoint
 ALTER TABLE "auth_sessions" ADD COLUMN "device_id" uuid;
 --> statement-breakpoint
 ALTER TABLE "auth_sessions" ADD COLUMN "device_name" text;

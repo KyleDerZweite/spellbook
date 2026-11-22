@@ -54,6 +54,8 @@ async function deviceAction(
 			return failure(404, 'notice.This.device.is.no.longer.linked');
 		if (cause instanceof RemoteError && cause.status === 400)
 			return failure(400, 'notice.Use.1.to.64.characters.without.control.characters');
+		if (cause instanceof RemoteError && cause.status >= 500)
+			return failure(cause.status, 'notice.Could.not.update.the.device.Try.again');
 		throw cause;
 	}
 	return {

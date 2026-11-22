@@ -14,10 +14,6 @@ export function normalizeDeviceName(value: unknown): string | null {
 	return name;
 }
 
-export function isDeviceType(value: unknown): value is DeviceType {
-	return (DEVICE_TYPES as readonly unknown[]).includes(value);
-}
-
 /** Device identity of the current session; null for browser and password sessions. */
 export interface SessionDevice {
 	id: string;
@@ -35,5 +31,3 @@ export interface LinkedDeviceList {
 export interface LinkedDeviceRename {
 	name: string;
 }
-/** Error kind returned with HTTP 403 when a linked device session calls an owner-only route. */
-export const DEVICE_SESSION_FORBIDDEN = 'DeviceSessionForbidden';

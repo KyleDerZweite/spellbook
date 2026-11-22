@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isDeviceType, normalizeDeviceName } from '../src/devices.ts';
+import { normalizeDeviceName } from '../src/devices.ts';
 
 test('device names match the Core validation rules', () => {
 	assert.equal(normalizeDeviceName('  Cardstation  '), 'Cardstation');
@@ -20,9 +20,4 @@ test('device names match the Core validation rules', () => {
 		42
 	])
 		assert.equal(normalizeDeviceName(invalid), null);
-});
-
-test('device types are a closed set', () => {
-	assert.ok(isDeviceType('cardstation'));
-	assert.ok(!isDeviceType('robot'));
 });
