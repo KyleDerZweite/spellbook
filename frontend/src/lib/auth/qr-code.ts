@@ -19,3 +19,8 @@ export function parseQrAuthorizationInput(value: string, origin: string): string
 		return null;
 	}
 }
+
+/** The comparison code shown on both screens: the first 8 characters as `XXXX-XXXX`, case preserved. */
+export function formatQrDisplayCode(code: string): string {
+	return `${code.slice(0, 4)}-${code.slice(4, 8)}`;
+}

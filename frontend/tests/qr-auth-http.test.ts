@@ -534,6 +534,110 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				);
 			}
 		);
+		await t.test(
+			'device approval shows self-reported metadata, requires confirmation and links a device',
+			async () => {
+				assert.equal(
+					(
+						await request(
+							'/api/v1/auth/qr/requests',
+							{ kind: 'browser', deviceName: 'Browser' },
+							{ origin }
+						)
+					).status,
+					400
+				);
+				assert.equal(
+					(await request('/api/v1/auth/qr/requests', { kind: 'device', deviceName: 'a\nb' }))
+						.status,
+					400
+				);
+				const created = await request('/api/v1/auth/qr/requests', {
+					kind: 'device',
+					deviceName: ' HTTP Station ',
+					deviceType: 'cardstation'
+				});
+				assert.equal(created.status, 201);
+				const result = await created.json();
+				codes.push(hashSessionToken(result.code));
+				const path = `/auth/approve?code=${result.code}`;
+				const headers = { cookie: `${SESSION_COOKIE}=${approver.token}` };
+				const html = await (await request(path, undefined, headers)).text();
+				assert.match(html, /HTTP Station/);
+				assert.match(html, /Device name \(reported by the device\)/);
+				assert.match(html, /Cardstation/);
+				assert.ok(html.includes(`${result.code.slice(0, 4)}-${result.code.slice(4, 8)}`));
+				assert.match(
+					html,
+					/Only approve if this device is in front of you and shows the same code\./
+				);
+				assert.match(html, /name="confirmed"/);
+				const review = reviewMarker(html);
+				const decide = (fields: Record<string, string>) =>
+					fetch(origin + path, {
+						method: 'POST',
+						redirect: 'manual',
+						headers: {
+							accept: 'text/html',
+							cookie: headers.cookie,
+							origin,
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({ decision: 'approve', review, ...fields })
+					});
+				const unconfirmed = await decide({});
+				assert.equal(unconfirmed.status, 400);
+				assert.match(await unconfirmed.text(), /Confirm that the device is in front of you/);
+				assert.equal((await decide({ confirmed: 'yes' })).status, 200);
+				const redeemed = await (
+					await request('/api/v1/auth/qr/token', {
+						code: result.code,
+						requesterSecret: result.requesterSecret
+					})
+				).json();
+				assert.equal(redeemed.status, 'authenticated');
+				const device = { authorization: `Bearer ${redeemed.token}` };
+				const session = await (await request('/api/v1/auth/session', undefined, device)).json();
+				assert.equal(session.device.name, 'HTTP Station');
+				assert.equal(session.device.type, 'cardstation');
+				const owner = await (
+					await request('/api/v1/auth/session', undefined, { authorization })
+				).json();
+				assert.equal(owner.device, null);
+				const forbidden = await request('/api/v1/account/devices', undefined, device);
+				assert.equal(forbidden.status, 403);
+				assert.equal((await forbidden.json()).kind, 'device_session_forbidden');
+				const listed = await (
+					await request('/api/v1/account/devices', undefined, { authorization })
+				).json();
+				// Earlier device approvals by this account are listed too; the newest comes first.
+				assert.equal(listed.devices[0].id, session.device.id);
+				assert.equal(listed.devices[0].name, 'HTTP Station');
+				assert.equal(
+					(
+						await request('/api/v1/account/devices', undefined, {
+							authorization: `Bearer ${other.token}`
+						}).then((r) => r.json())
+					).devices.length,
+					0
+				);
+				const target = `${origin}/api/v1/account/devices/${session.device.id}`;
+				const foreign = await fetch(target, {
+					method: 'DELETE',
+					headers: { authorization: `Bearer ${other.token}` }
+				});
+				assert.equal(foreign.status, 404);
+				const renamed = await fetch(target, {
+					method: 'PATCH',
+					headers: { authorization, 'content-type': 'application/json' },
+					body: JSON.stringify({ name: 'Sorter' })
+				});
+				assert.equal((await renamed.json()).name, 'Sorter');
+				const revoked = await fetch(target, { method: 'DELETE', headers: { authorization } });
+				assert.equal(revoked.status, 204);
+				assert.equal((await request('/api/v1/auth/session', undefined, device)).status, 401);
+			}
+		);
 	} finally {
 		if (child) await stopHttpApplication(child);
 		await pool.query('DELETE FROM qr_authorizations WHERE code_hash=ANY($1::text[])', [codes]);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseQrAuthorizationInput } from '#lib/auth/qr-code.ts';
+import { formatQrDisplayCode, parseQrAuthorizationInput } from '#lib/auth/qr-code.ts';
 
 const origin = 'https://spellbook.test';
 const code = 'a'.repeat(43);
@@ -28,5 +28,12 @@ describe('QR sign-in link parsing', () => {
 			'a'.repeat(42)
 		])
 			expect(parseQrAuthorizationInput(value, origin)).toBeNull();
+	});
+});
+
+describe('QR display code', () => {
+	it('groups the first eight characters and preserves case', () => {
+		expect(formatQrDisplayCode('AbCd_-12xyzREST' + 'a'.repeat(28))).toBe('AbCd-_-12');
+		expect(formatQrDisplayCode('Zz9-QqWwEe')).toBe('Zz9--QqWw');
 	});
 });

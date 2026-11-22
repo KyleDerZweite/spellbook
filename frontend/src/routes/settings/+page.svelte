@@ -7,6 +7,7 @@
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
+	import LinkedDevices from '#lib/components/auth/LinkedDevices.svelte';
 	import { getAvatar } from '#lib/profile/avatars.ts';
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
@@ -163,6 +164,7 @@
 				</p>{/if}
 		</div>
 	</div>
+	<LinkedDevices devices={data.devices} result={form?.deviceId === undefined ? null : form} />
 </div>
 
 <style>
