@@ -499,7 +499,8 @@ use their own loopback listener, without broadening production ingress.
 2. Set `PROD_APP_ORIGIN` to the externally reachable application origin.
 3. Select `PROD_IMAGE_REVISION`, build with `pnpm compose production build`, then run
    `pnpm compose production up`.
-4. Inspect migration and worker logs, then register a local account.
+4. Inspect migration and worker logs, then open registration briefly to create the first local
+   account as described in [local authentication](./local-auth.md).
 
 Use `pnpm compose site up` for the independent stable connector and the configured external ingress
 network. Development owns its separate Newt connector. The tunnel transports requests; local
@@ -545,8 +546,9 @@ Production Compose passes `REGISTRATION_ENABLED` to API and web from `PROD_REGIS
 default `false`, so a Production instance accepts no self-service accounts unless the operator opts
 in. Demo already closes registration through `DEMO_MODE`. Closed registration is a prerequisite
 before any proxy rule lets `/api/*` bypass gateway SSO for native bearer clients; without it, anyone
-reaching the API could create an account. Changing the value needs only a recreate of `api` and
-`frontend` with the same revision, not a rebuild.
+reaching the API could create an account. Changing the value needs no image rebuild, only a
+same-revision rollout (`pnpm compose production up`), which recreates the Production stack
+containers while retaining volumes.
 
 For production Compose, set `PROD_APP_ORIGIN`; for Demo use `DEMO_APP_ORIGIN`, and for Development
 use `DEV_APP_ORIGIN`. Native commands continue to accept `APP_ORIGIN`. Changing an origin requires a

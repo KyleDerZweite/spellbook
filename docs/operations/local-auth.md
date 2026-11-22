@@ -32,8 +32,9 @@ New users register at `/auth/register` and sign in at `/auth/login`. Registratio
 default; `REGISTRATION_ENABLED=false` closes it, and hosted Production maps
 `PROD_REGISTRATION_ENABLED` with default `false`. The password operator below only changes existing
 accounts and does not create new ones. To add an account while registration is closed, set
-`PROD_REGISTRATION_ENABLED=true`, recreate `api` and `frontend` with the current revision, let the
-user register, then set it back to `false` and recreate both again. The
+`PROD_REGISTRATION_ENABLED=true`, run a same-revision rollout (`pnpm compose production up`, which
+recreates the Production stack containers while retaining volumes), let the user register, then set
+it back to `false` and run `pnpm compose production up` again. The
 [authentication contract](../architecture/auth.md#access-and-recovery) defines credential rules,
 registration, sessions, and JSON API login.
 
