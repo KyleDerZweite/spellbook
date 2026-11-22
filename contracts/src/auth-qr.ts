@@ -1,4 +1,5 @@
 import type { AuthSession, AuthUser } from './auth.ts';
+import type { DeviceType } from './devices.ts';
 
 export function validQrCredential(value: unknown): value is string {
 	return typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
@@ -11,6 +12,10 @@ export interface QrRequestInfo {
 	kind: QrKind;
 	status: QrStatus;
 	expiresAt: string;
+	createdAt: string;
+	/** Present for device requests only; self-reported by the requesting device. */
+	deviceName?: string | null;
+	deviceType?: DeviceType | null;
 }
 export interface QrCreated {
 	code: string;
@@ -21,6 +26,10 @@ export interface QrCreated {
 }
 export interface QrCreateRequest {
 	kind: QrKind;
+	/** Device requests only: trimmed 1 to 64 characters without control characters. */
+	deviceName?: string;
+	/** Device requests only; defaults to 'other' when deviceName is given. */
+	deviceType?: DeviceType;
 }
 export interface QrCreateResponse {
 	code: string;
@@ -32,6 +41,8 @@ export interface QrCreateResponse {
 }
 export interface QrDecisionRequest {
 	decision: 'approve' | 'deny';
+	/** Required as true to approve a device request (in-person comparison); else 400 ConfirmationRequired. */
+	confirmed?: boolean;
 }
 export interface QrTokenRequest {
 	code: string;
@@ -58,7 +69,8 @@ export interface QrAuthApplication {
 		actor: AuthUser,
 		code: string,
 		decision: 'approve' | 'deny',
-		address: string
+		address: string,
+		confirmed?: boolean
 	): Promise<QrRequestInfo>;
 	redeem(code: string, requester: QrRequester, address: string): Promise<QrRedemption>;
 }

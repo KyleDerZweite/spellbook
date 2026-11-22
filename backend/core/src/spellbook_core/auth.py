@@ -1,26 +1,36 @@
 """Session-bound actors issued only after a fresh PostgreSQL session/profile read."""
 
 import hashlib
+import logging
 import re
 import secrets
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 from weakref import WeakKeyDictionary
 
+from psycopg import Error as PsycopgError
 from psycopg.errors import UniqueViolation
 from psycopg.rows import class_row
 
 from .auth_attempts import AttemptLimiter
 from .db import ConnectionPool, Transaction, iso_timestamp, transaction
+from .devices import (
+    DEVICE_RENEWAL_INTERVAL,
+    DeviceMetadata,
+    DeviceSessions,
+    device_expiry,
+    device_renewal,
+)
 from .errors import ActorError
-from .models import Actor, SessionInfo
+from .models import Actor, SessionDevice, SessionInfo
 from .passwords import PasswordVerifier
 from .validation import js_trim, js_utf8, utf16_length, valid_password
 
 ARTWORK_IDS = ("grove", "tide", "ember", "astral")
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +41,11 @@ class _SessionRow:
     avatar_id: str
     artwork_id: str
     expires_at: datetime
+    created_at: datetime
+    device_id: UUID | None
+    device_name: str | None
+    device_type: str | None
+    last_seen_at: datetime | None
 
 
 def _now() -> datetime:
@@ -47,9 +62,15 @@ def valid_session_token(token: object) -> bool:
 
 
 class SessionAuth:
-    def __init__(self, pool: ConnectionPool, demo_mode: bool = False):
+    def __init__(
+        self,
+        pool: ConnectionPool,
+        demo_mode: bool = False,
+        clock: Callable[[], datetime] = _now,
+    ):
         self._pool = pool
         self.demo_mode = demo_mode
+        self.now = clock
         # Like Node's WeakMap: identity, not DTO fields, establishes the issuer binding.
         # Only a digest is retained, and neither the digest nor token enters Actor/SessionInfo.
         self.__actors: WeakKeyDictionary[Actor, str] = WeakKeyDictionary()
@@ -57,23 +78,66 @@ class SessionAuth:
     def _trust(self, row: _SessionRow, digest: str) -> SessionInfo:
         actor = Actor(row.account_id, row.username, row.email, row.avatar_id, row.artwork_id)
         self.__actors[actor] = digest
-        return SessionInfo(actor, iso_timestamp(row.expires_at))
+        device = (
+            SessionDevice(str(row.device_id), row.device_name, row.device_type)
+            if row.device_id is not None
+            else None
+        )
+        return SessionInfo(actor, iso_timestamp(row.expires_at), device)
 
-    async def _read(self, digest: str, tx: Transaction) -> SessionInfo | None:
+    async def _row(self, digest: str, tx: Transaction) -> _SessionRow | None:
         async with tx.cursor(row_factory=class_row(_SessionRow)) as cursor:
             await cursor.execute(
                 "SELECT p.account_id, p.username, p.email, p.avatar_id, p.artwork_id, "
-                "s.expires_at "
+                "s.expires_at, s.created_at, s.device_id, s.device_name, s.device_type, "
+                "s.last_seen_at "
                 "FROM auth_sessions s JOIN user_profiles p ON p.account_id=s.account_id "
                 "WHERE s.token_hash=%s AND s.expires_at>%s LIMIT 1",
-                (digest, _now()),
+                (digest, self.now()),
             )
             row = await cursor.fetchone()
-        return (
-            self._trust(row, digest)
-            if row and (not self.demo_mode or row.username == "demo")
-            else None
-        )
+        return row if row and (not self.demo_mode or row.username == "demo") else None
+
+    async def _read(self, digest: str, tx: Transaction) -> SessionInfo | None:
+        row = await self._row(digest, tx)
+        return self._trust(row, digest) if row else None
+
+    async def _renew_device(self, digest: str, row: _SessionRow) -> _SessionRow:
+        """Throttled sliding renewal in its own short write, outside read-only inspection.
+
+        At most one write per renewal interval; a concurrently locked row is skipped, and
+        the migration keeps these column-only updates from notifying SavedState streams.
+        """
+        if row.device_id is None or row.last_seen_at is None:
+            return row
+        now = self.now()
+        expires = device_renewal(row.created_at, row.last_seen_at, now)
+        if expires is None:
+            return row
+        try:
+            renewed = await self._write_renewal(digest, expires, now)
+        except PsycopgError as cause:
+            # Best effort: the session is still valid; the next request retries renewal.
+            logger.warning(
+                "Device session renewal failed: %s (SQLSTATE %s)",
+                type(cause).__name__,
+                cause.sqlstate,
+            )
+            return row
+        if not renewed:
+            return row
+        return replace(row, expires_at=expires, last_seen_at=now)
+
+    async def _write_renewal(self, digest: str, expires: datetime, now: datetime) -> bool:
+        async with transaction(self._pool) as tx:
+            cursor = await tx.execute(
+                "UPDATE auth_sessions SET expires_at=%s,last_seen_at=%s WHERE token_hash=("
+                "SELECT token_hash FROM auth_sessions WHERE token_hash=%s "
+                "AND device_id IS NOT NULL AND expires_at>%s AND last_seen_at<=%s "
+                "FOR NO KEY UPDATE SKIP LOCKED) RETURNING expires_at",
+                (expires, now, digest, now, now - DEVICE_RENEWAL_INTERVAL),
+            )
+            return await cursor.fetchone() is not None
 
     async def _inspect(self, digest: str, tx: Transaction | None = None) -> SessionInfo | None:
         if tx is not None:
@@ -82,9 +146,15 @@ class SessionAuth:
             return await self._read(digest, connection)
 
     async def inspect_session(self, token: str | None) -> SessionInfo | None:
+        """Credential entry point; device sessions renew here at most once per interval."""
         if token is None or not valid_session_token(token):
             return None
-        return await self._inspect(hash_session_token(token))
+        digest = hash_session_token(token)
+        async with transaction(self._pool, read_only=True) as connection:
+            row = await self._row(digest, connection)
+        if row is None:
+            return None
+        return self._trust(await self._renew_device(digest, row), digest)
 
     async def validate_session(self, token: str | None) -> Actor | None:
         session = await self.inspect_session(token)
@@ -99,7 +169,7 @@ class SessionAuth:
     async def actor_session(self, actor: Actor) -> SessionInfo:
         session = await self._inspect(self._digest(actor))
         # Node actorSession checks expiry again after the database read has returned.
-        if session is None or datetime.fromisoformat(session.expires_at) <= _now():
+        if session is None or datetime.fromisoformat(session.expires_at) <= self.now():
             raise ActorError()
         return session
 
@@ -119,7 +189,7 @@ class SessionAuth:
         if not row or not isinstance(row[0], datetime):
             raise ActorError()
         expiry = row[0].replace(microsecond=row[0].microsecond // 1000 * 1000)
-        if expiry <= _now():
+        if expiry <= self.now():
             raise ActorError()
         return await self.require_actor(actor, tx)
 
@@ -156,14 +226,16 @@ class LocalAuth(SessionAuth):
         passwords: PasswordVerifier,
         demo_mode: bool = False,
         registration_enabled: bool = True,
+        clock: Callable[[], datetime] = _now,
     ):
         from .qr import QrAuth
 
-        super().__init__(pool, demo_mode)
+        super().__init__(pool, demo_mode, clock)
         self.passwords = passwords
         self.registration_enabled = registration_enabled
         self._attempts = AttemptLimiter(20)
         self.qr = QrAuth(pool, self)
+        self.devices = DeviceSessions(pool, self)
 
     @property
     def registration_open(self) -> bool:
@@ -174,7 +246,11 @@ class LocalAuth(SessionAuth):
         self._attempts.take(address)
 
     async def _issue(
-        self, account_id: str, expected_hash: str, tx: Transaction
+        self,
+        account_id: str,
+        expected_hash: str,
+        tx: Transaction,
+        device: DeviceMetadata | None = None,
     ) -> TokenSession | None:
         profile = await tx.execute(
             "SELECT account_id,username FROM user_profiles WHERE account_id=%s FOR UPDATE",
@@ -190,20 +266,43 @@ class LocalAuth(SessionAuth):
         if not credential or credential[0] != expected_hash:
             return None
         token = secrets.token_urlsafe(32)
-        expires = _now() + timedelta(seconds=SESSION_LIFETIME_SECONDS)
-        await tx.execute(
-            "INSERT INTO auth_sessions(token_hash,account_id,expires_at) VALUES (%s,%s,%s)",
-            (hash_session_token(token), account_id, expires),
-        )
+        now = self.now()
+        if device is None:
+            expires = now + timedelta(seconds=SESSION_LIFETIME_SECONDS)
+            await tx.execute(
+                "INSERT INTO auth_sessions(token_hash,account_id,expires_at) VALUES (%s,%s,%s)",
+                (hash_session_token(token), account_id, expires),
+            )
+        else:
+            expires = device_expiry(now, now)
+            await tx.execute(
+                "INSERT INTO auth_sessions(token_hash,account_id,expires_at,created_at,"
+                "device_id,device_name,device_type,last_seen_at) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    hash_session_token(token),
+                    account_id,
+                    expires,
+                    now,
+                    uuid4(),
+                    device.name,
+                    device.type,
+                    now,
+                ),
+            )
         return TokenSession(token, iso_timestamp(expires))
 
     async def create_session(
-        self, account_id: str, expected_password_hash: str, tx: Transaction | None = None
+        self,
+        account_id: str,
+        expected_password_hash: str,
+        tx: Transaction | None = None,
+        device: DeviceMetadata | None = None,
     ) -> TokenSession | None:
         if tx is not None:
-            return await self._issue(account_id, expected_password_hash, tx)
+            return await self._issue(account_id, expected_password_hash, tx, device)
         async with transaction(self._pool) as connection:
-            return await self._issue(account_id, expected_password_hash, connection)
+            return await self._issue(account_id, expected_password_hash, connection, device)
 
     async def revoke_session(self, token: str | None) -> None:
         if token:
@@ -338,4 +437,4 @@ def create_local_auth(
     demo_mode: bool = False,
     registration_enabled: bool = True,
 ) -> LocalAuth:
-    return LocalAuth(pool, passwords, demo_mode, registration_enabled)
+    return LocalAuth(pool, passwords, demo_mode, registration_enabled=registration_enabled)

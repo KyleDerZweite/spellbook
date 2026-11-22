@@ -1,7 +1,7 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-11-14
+- Last Reviewed: 2026-11-22
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
 - Update Triggers:
   - Website shell and presentation:
@@ -43,6 +43,7 @@
     - Backend application/transport interfaces and framework lifecycle hooks.
     - Root environment, local/build origins and relocated code references.
     - Accepted design contracts and implementation evidence.
+  - Linked device approval details and the Settings Linked devices section
 - Related Docs:
   - [System overview](./system-overview.md)
   - [Auth](./auth.md)
@@ -570,12 +571,20 @@ stops when scanning ends or the page loses its active scanning lifetime. Manual 
 available when camera access is unavailable or denied. This camera workflow decodes authorization QR
 codes, not MTG cards.
 
-`/auth/approve` requires sign-in and displays the signed-in username, instance origin, request code
-prefix and status, with an explicit warning before Approve or Deny. Safe login return paths preserve
-the request. All `/auth/*` and `/app*` page responses use `no-store` and
+`/auth/approve` requires sign-in and displays the signed-in username, instance origin, the
+`XXXX-XXXX` display code from `formatQrDisplayCode` in `qr-code.ts`, request time and status, with
+an explicit warning before Approve or Deny. Device requests also show the device name, labelled as
+reported by the device, and the device type, the in-person warning and a required confirmation
+checkbox, which the action forwards as `confirmed` to the decision API. The request time comes from
+the inspect response's `createdAt`. If the device list fails to load, Settings still renders and the
+Linked devices section shows an error message.
+[Linked device sessions](./auth.md#linked-device-sessions) own these rules. Safe login return paths
+preserve the request. All `/auth/*` and `/app*` page responses use `no-store` and
 `Referrer-Policy: no-referrer`. The server-only `qr-page.ts` adapter calls remote
 `auth.qr.inspect`/`decide` and maps the local `QrAuthError` to page errors/form failures. Pages
-import no backend internals. Backend Auth owns the decision and session binding described in
+import no backend internals. `/settings` renders the Linked devices section from
+`LinkedDevices.svelte`, with rename and confirmed revoke form intents. Backend Auth owns the
+decision and session binding described in
 [authentication](./auth.md#pwa-and-qr-sign-in-implementation-contract).
 
 Desktop login displays a locally rendered QR beside the existing password form. Polling follows the

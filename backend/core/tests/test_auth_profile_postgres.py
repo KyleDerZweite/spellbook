@@ -1,14 +1,17 @@
 """Opt-in real Auth/Profile/QR transactions on the existing guarded disposable pool."""
 
 import asyncio
+import json
 import os
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from typing import NamedTuple
 from uuid import uuid4
 
 import pytest
+from psycopg import AsyncConnection
 from test_postgres import native_pool
 
 from spellbook_core.auth import (
@@ -18,7 +21,8 @@ from spellbook_core.auth import (
     create_local_auth,
     hash_session_token,
 )
-from spellbook_core.db import ConnectionPool, Transaction, transaction
+from spellbook_core.db import ConnectionPool, Transaction, iso_timestamp, transaction
+from spellbook_core.devices import DeviceSessionError
 from spellbook_core.errors import ActorError, ProfileError
 from spellbook_core.models import Actor
 from spellbook_core.passwords import create_password_verifier
@@ -153,9 +157,9 @@ def test_qr_one_use_replay_decision_conflict_and_approver_revocation() -> None:
             code, secret = await challenge(f)
             requester = Requester(requester_secret=secret)
             assert (await qr.redeem(code, requester, "fixture")).status == "pending"
-            await qr.decide(f.first.user, code, "approve", "fixture")
+            await qr.decide(f.first.user, code, "approve", "fixture", True)
             with pytest.raises(QrAuthError, match="already has a decision"):
-                await qr.decide(f.second.user, code, "approve", "fixture")
+                await qr.decide(f.second.user, code, "approve", "fixture", True)
             results = await asyncio.gather(
                 qr.redeem(code, requester, "fixture"), qr.redeem(code, requester, "fixture")
             )
@@ -164,11 +168,11 @@ def test_qr_one_use_replay_decision_conflict_and_approver_revocation() -> None:
             assert granted
             user = await f.auth.validate_session(granted.token)
             assert user and user.account_id == f.first.user.account_id
-            assert (await qr.decide(f.first.user, code, "approve", "fixture"))[
+            assert (await qr.decide(f.first.user, code, "approve", "fixture", True))[
                 "status"
             ] == "consumed"
             second_code, second_secret = await challenge(f)
-            await qr.decide(f.first.user, second_code, "approve", "fixture")
+            await qr.decide(f.first.user, second_code, "approve", "fixture", True)
             await f.auth.revoke_session(f.first.session.token)
             assert (
                 await qr.redeem(second_code, Requester(requester_secret=second_secret), "fixture")
@@ -210,7 +214,7 @@ def test_qr_browser_binding_expiry_and_terminal_denial() -> None:
                     "WHERE code_hash=%s",
                     (hash_session_token(expired),),
                 )
-            assert (await qr.decide(f.first.user, expired, "approve", "fixture"))[
+            assert (await qr.decide(f.first.user, expired, "approve", "fixture", True))[
                 "status"
             ] == "expired"
             assert (
@@ -261,7 +265,7 @@ def test_qr_redemption_rechecks_approver_expiry_after_session_lock_wait(
     async def scenario() -> None:
         async with fixture() as f:
             code, secret = await challenge(f)
-            await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+            await f.auth.qr.decide(f.first.user, code, "approve", "fixture", True)
             reached_session = asyncio.Event()
             original = f.auth.qr._live_session
 
@@ -331,7 +335,7 @@ def test_demo_fences_existing_sessions_and_qr_issuance() -> None:
                 assert await demo.create_session(f.first.user.account_id, str(row[0]), tx) is None
             assert await f.auth.authenticate("login", f.first.user.username, PASSWORD)
             code, secret = await challenge(f)
-            await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+            await f.auth.qr.decide(f.first.user, code, "approve", "fixture", True)
             with pytest.raises(QrAuthError):
                 await demo.qr.redeem(code, Requester(requester_secret=secret), "fixture")
             from spellbook_core.passwords import hash_password
@@ -350,5 +354,165 @@ def test_demo_fences_existing_sessions_and_qr_issuance() -> None:
             assert logged and await demo.validate_session(logged.session.token)
             assert await demo.authenticate("login", "demo", PASSWORD) is None
             assert await demo.change_password(logged.user, "demo", PASSWORD) is None
+
+    asyncio.run(scenario())
+
+
+class Clock:
+    def __init__(self, now: datetime):
+        self.value = now
+
+    def __call__(self) -> datetime:
+        return self.value
+
+
+async def device_token(f: Fixture) -> str:
+    result = await f.auth.qr.create("device", "fixture", " Desk robot ", "cardstation")
+    code, secret = str(result["code"]), str(result["requesterSecret"])
+    f.codes.append(code)
+    inspected = await f.auth.qr.inspect(f.first.user, code, "fixture")
+    assert (inspected["deviceName"], inspected["deviceType"]) == ("Desk robot", "cardstation")
+    assert isinstance(inspected["createdAt"], str)
+    with pytest.raises(QrAuthError) as unconfirmed:
+        await f.auth.qr.decide(f.first.user, code, "approve", "fixture")
+    assert unconfirmed.value.kind == "ConfirmationRequired"
+    assert (await f.auth.qr.inspect(f.first.user, code, "fixture"))["status"] == "pending"
+    await f.auth.qr.decide(f.first.user, code, "approve", "fixture", True)
+    redeemed = await f.auth.qr.redeem(code, Requester(requester_secret=secret), "fixture")
+    assert redeemed.session is not None
+    return redeemed.session.token
+
+
+async def session_row(pool: ConnectionPool, token: str) -> tuple[object, ...] | None:
+    async with transaction(pool, read_only=True) as tx:
+        cursor = await tx.execute(
+            "SELECT device_id,device_name,device_type,created_at,last_seen_at,expires_at "
+            "FROM auth_sessions WHERE token_hash=%s",
+            (hash_session_token(token),),
+        )
+        return await cursor.fetchone()
+
+
+def test_device_redemption_sliding_renewal_and_absolute_cap() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            browser = await session_row(f.pool, f.first.session.token)
+            assert browser and browser[0] is None and browser[4] is None
+            assert isinstance(browser[3], datetime) and isinstance(browser[5], datetime)
+            assert browser[5] - browser[3] >= timedelta(days=29, hours=23)
+            token = await device_token(f)
+            row = await session_row(f.pool, token)
+            assert row and row[0] is not None and row[1:3] == ("Desk robot", "cardstation")
+            created = row[3]
+            assert isinstance(created, datetime) and row[4] == created
+            assert row[5] == created + timedelta(days=90)
+            clock = Clock(created + timedelta(hours=23))
+            auth = LocalAuth(f.pool, f.auth.passwords, clock=clock)
+            info = await auth.inspect_session(token)
+            assert info and info.device and info.device.name == "Desk robot"
+            assert info.device.id == str(row[0]) and info.device.type == "cardstation"
+            assert (await session_row(f.pool, token)) == row  # throttled: no write
+            for days in (80, 160, 240, 320):
+                clock.value = created + timedelta(days=days)
+                info = await auth.inspect_session(token)
+                assert info and info.expires_at == iso_timestamp(
+                    min(clock.value + timedelta(days=90), created + timedelta(days=365))
+                )
+                renewed = await session_row(f.pool, token)
+                assert renewed and renewed[4] == clock.value
+                clock.value += timedelta(hours=12)
+                await auth.inspect_session(token)
+                assert (await session_row(f.pool, token)) == renewed
+            clock.value = created + timedelta(days=364)
+            info = await auth.inspect_session(token)
+            assert info and info.expires_at == iso_timestamp(created + timedelta(days=365))
+            clock.value = created + timedelta(days=365, seconds=1)
+            assert await auth.inspect_session(token) is None
+
+    asyncio.run(scenario())
+
+
+def test_renewal_and_rename_do_not_notify_but_revocation_does() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            token = await device_token(f)
+            row = await session_row(f.pool, token)
+            assert row and isinstance(row[3], datetime)
+            account = f.first.user.account_id
+            listener = await AsyncConnection.connect(
+                os.environ["TEST_DATABASE_URL"], autocommit=True
+            )
+            try:
+                await listener.execute("LISTEN spellbook_saved_state")
+
+                async def drained() -> list[str]:
+                    notes = [
+                        note.payload
+                        async for note in listener.notifies(timeout=0.5)
+                        if account in note.payload
+                    ]
+                    return notes
+
+                assert await drained() == []
+                auth = LocalAuth(f.pool, f.auth.passwords, clock=Clock(row[3] + timedelta(days=2)))
+                await auth.inspect_session(token)
+                renewed = await session_row(f.pool, token)
+                assert renewed and renewed[5] != row[5]
+                assert await drained() == []  # renewal
+                await f.auth.devices.rename(f.first.user, str(row[0]), "Renamed")
+                assert await drained() == []  # rename
+                # Positive controls: other column updates and inserts still notify.
+                async with transaction(f.pool) as tx:
+                    await tx.execute(
+                        "UPDATE auth_sessions SET created_at=created_at - interval '1 second' "
+                        "WHERE token_hash=%s",
+                        (hash_session_token(token),),
+                    )
+                assert [json.loads(n)["topic"] for n in await drained()] == ["auth"]
+                await device_token(f)
+                assert "auth" in [json.loads(n)["topic"] for n in await drained()]
+                await f.auth.devices.revoke(f.first.user, str(row[0]))
+                assert [json.loads(note)["topic"] for note in await drained()] == ["auth"]
+            finally:
+                await listener.close()
+
+    asyncio.run(scenario())
+
+
+def test_linked_device_list_rename_revoke_and_account_isolation() -> None:
+    async def scenario() -> None:
+        async with fixture() as f:
+            devices = f.auth.devices
+            first_token, second_token = await device_token(f), await device_token(f)
+            listed = (await devices.list(f.first.user))["devices"]
+            assert isinstance(listed, list) and len(listed) == 2
+            newest, oldest = listed
+            assert newest["createdAt"] >= oldest["createdAt"]
+            assert set(newest) == {"id", "name", "type", "createdAt", "lastSeenAt", "expiresAt"}
+            assert (await devices.list(f.second.user)) == {"devices": []}
+            target = str(oldest["id"])
+            for call in (
+                devices.rename(f.second.user, target, "Mine"),
+                devices.revoke(f.second.user, target),
+                devices.rename(f.first.user, str(uuid4()), "Unknown"),
+                devices.revoke(f.first.user, "not-a-uuid"),
+            ):
+                with pytest.raises(DeviceSessionError) as error:
+                    await call
+                assert error.value.kind == "NotFound"
+            with pytest.raises(DeviceSessionError) as invalid:
+                await devices.rename(f.first.user, target, "bad\nname")
+            assert invalid.value.kind == "ValidationFailed"
+            renamed = await devices.rename(f.first.user, target, "  Sorter  ")
+            assert renamed["name"] == "Sorter" and renamed["id"] == target
+            await devices.revoke(f.first.user, target)
+            remaining = (await devices.list(f.first.user))["devices"]
+            assert isinstance(remaining, list) and [d["id"] for d in remaining] == [newest["id"]]
+            tokens = {first_token, second_token}
+            alive = [t for t in tokens if await f.auth.validate_session(t)]
+            assert len(alive) == 1
+            # Password rotation revokes device sessions with every other session.
+            await f.auth.change_password(f.first.user, PASSWORD, "rotated-password-value")
+            assert await f.auth.validate_session(alive[0]) is None
 
     asyncio.run(scenario())

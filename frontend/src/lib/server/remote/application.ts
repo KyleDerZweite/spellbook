@@ -1,5 +1,6 @@
 import type { AuthUser, SessionInfo } from '@spellbook/contracts/auth.ts';
 import type { QrAuthApplication } from '@spellbook/contracts/auth-qr.ts';
+import type { LinkedDevice, LinkedDeviceList } from '@spellbook/contracts/devices.ts';
 import type { CatalogApplication } from '@spellbook/contracts/catalog.ts';
 import type { InventoryApplication } from '@spellbook/contracts/inventory.ts';
 import type { InventoryValueApplication } from '@spellbook/contracts/inventory-value.ts';
@@ -232,12 +233,22 @@ export function createRemoteApplication(client: () => RemoteClient) {
 	const qr: Pick<QrAuthApplication, 'inspect' | 'decide'> = {
 		inspect: (_actor, code) =>
 			client().request(`/api/v1/auth/qr/requests/${id(code)}`, { domain: 'qr' }),
-		decide: (_actor, code, decision) =>
+		decide: (_actor, code, decision, _address, confirmed) =>
 			client().request(`/api/v1/auth/qr/requests/${id(code)}/decision`, {
 				method: 'POST',
-				body: { decision },
+				body: confirmed === undefined ? { decision } : { decision, confirmed },
 				domain: 'qr'
 			})
+	};
+	const devices = {
+		list: () => client().request<LinkedDeviceList>('/api/v1/account/devices'),
+		rename: (deviceId: string, name: string) =>
+			client().request<LinkedDevice>(`/api/v1/account/devices/${id(deviceId)}`, {
+				method: 'PATCH',
+				body: { name }
+			}),
+		revoke: (deviceId: string) =>
+			client().request<void>(`/api/v1/account/devices/${id(deviceId)}`, { method: 'DELETE' })
 	};
 	const auth = {
 		qr,
@@ -255,7 +266,7 @@ export function createRemoteApplication(client: () => RemoteClient) {
 				await client().request('/api/v1/auth/logout', { method: 'POST', token, bearer: true });
 		}
 	};
-	return { catalog, inventory, decks, profile, dashboard, inventoryValues, auth };
+	return { catalog, inventory, decks, profile, dashboard, inventoryValues, devices, auth };
 }
 
 function webSource(source: string | undefined) {

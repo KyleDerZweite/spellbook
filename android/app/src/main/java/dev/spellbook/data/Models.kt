@@ -74,7 +74,15 @@ val WireJson = Json { ignoreUnknownKeys = true; encodeDefaults = true; explicitN
 @Serializable data class AvailabilityEntry(val entryId: String, val required: Long, val exact: Long, val alternate: Long, val missing: Long)
 @Serializable data class DeckAvailability(val deckId: String, val entries: List<AvailabilityEntry>, val totals: AvailabilityTotals)
 @Serializable data class Profile(val user: User, val card: JsonObject, val totals: Totals?, val statsError: String?)
-@Serializable data class QrRequest(val code: String, val kind: String, val status: String, val expiresAt: String)
+/** Device requests also carry self-reported [deviceName] and [deviceType]; browser requests omit them. */
+@Serializable data class QrRequest(
+    val code: String, val kind: String, val status: String, val expiresAt: String,
+    val createdAt: String? = null, val deviceName: String? = null, val deviceType: String? = null,
+)
+/** The comparison code shown on both screens: the first 8 characters as `XXXX-XXXX`, case preserved. */
+fun qrDisplayCode(code: String): String = "${code.take(4)}-${code.drop(4).take(4)}"
+fun qrRequestedAt(createdAt: String?): java.time.Instant? =
+    createdAt?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() }
 
 @Serializable data class AddDraft(
     val printing: Printing, val quantity: String = "1", val finish: String = "nonfoil",

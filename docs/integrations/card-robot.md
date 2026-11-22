@@ -1,7 +1,7 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-22
 - Source of Truth: product requirements, scan API code, maintainer scope brief and supplied hardware
   concept
 - Update Triggers:
@@ -21,6 +21,7 @@
   - local scanner recognition and device-login direction
   - client feature parity
   - browser scanning and phone computation-core variants
+  - linked device sessions for machine login
 - Related Docs:
   - [Product specification](../product/specification.md)
   - [Domain model](../../GLOSSARY.md)
@@ -207,11 +208,11 @@ point while the intake strategy is unresolved.
 
 ## Backend, phone and device responsibilities
 
-Spellbook owns Accounts, Catalog, Inventory, Decks and their authorized mutations today. Machines,
-boxes, device sessions, physical locations and movements are planned extensions. Public reference
-preparation may include images, features, embeddings and versioned indices for local recognition;
-preparation and distribution contracts are unbuilt. It concerns known reference data, not processing
-user captures on the server.
+Spellbook owns Accounts, Catalog, Inventory, Decks, linked device sessions and their authorized
+mutations today. Machines, boxes, physical locations and movements are planned extensions. Public
+reference preparation may include images, features, embeddings and versioned indices for local
+recognition; preparation and distribution contracts are unbuilt. It concerns known reference data,
+not processing user captures on the server.
 
 The Android-first phone app should offer the website's product functions plus app-specific QR
 authorization and individual-card local scanning, as clarified on 2026-10-15. During a sort run it
@@ -221,10 +222,13 @@ sorter obtains an authorized machine session and synchronizes authorized state. 
 ownership, the active account and the current machine session distinct. Guest/shared use and resale
 are future considerations, not required Version 0 features. The accepted
 [Auth contract](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) now supplies
-five-minute, session-bound, one-use browser/device challenges. The backend device API returns an
-ordinary account bearer session after explicit approval; it does not establish machine enrollment or
-scoped device authority. Synchronization scope, machine credentials and offline recovery remain
-open. No passwords, requester secrets or existing bearer tokens belong in a public QR.
+five-minute, session-bound, one-use browser/device challenges. After explicit approval the backend
+returns a bearer token for a [linked device session](../architecture/auth.md#linked-device-sessions)
+of the approving account. The session carries a device ID and the self-reported device name and
+type, slides for 90 idle days up to one year, appears in Settings for rename and revoke, and cannot
+change the password, decide QR requests or manage linked devices. It is not machine enrollment,
+ownership or scoped data authority. Synchronization scope and offline recovery remain open. No
+passwords, requester secrets or existing bearer tokens belong in a public QR.
 
 The existing website and Dashboard remain useful for Inventory, Deck and later machine/job
 management. QR and individual-card camera workflows are intended for the app presentation, with the

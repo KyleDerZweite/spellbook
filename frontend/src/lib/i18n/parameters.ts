@@ -229,4 +229,9 @@ export interface MessageParameters {
 	'sentence.Saved.changes.synchronization.is.p0': { p0: string | number };
 	'profile.manaHelp': { examples: string | number };
 	'profile.rulesHelp': { examples: string | number };
+	'devices.linked': { date: string | number };
+	'devices.lastSeen': { date: string | number };
+	'devices.rename.aria': { name: string | number };
+	'devices.revoke.aria': { name: string | number };
+	'devices.revoke.title': { name: string | number };
 }

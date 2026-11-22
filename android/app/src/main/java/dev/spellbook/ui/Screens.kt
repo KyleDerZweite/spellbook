@@ -19,6 +19,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import dev.spellbook.R
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import dev.spellbook.data.*
 import dev.spellbook.feature.*
 import kotlinx.serialization.json.*
@@ -318,12 +324,28 @@ import kotlin.math.sin
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Review sign-in request", style = MaterialTheme.typography.titleMedium)
         Text("Account: ${state.session?.user?.username}")
-        Muted("API: ${model.backend}\nRequest: ${request.code.take(12)}\nKind: ${request.kind}\nStatus: ${request.status}\nExpires: ${request.expiresAt}")
-        Text("Approve only if you initiated this request on a device you trust.")
-        Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(confirmed, { confirmed = it }); Text("I reviewed this account and request") }
-        Action("Approve sign-in", confirmed && request.status == "pending") { confirmed = false; model.decideQr(request.code, "approve") }
+        val device = request.kind == "device"
+        val notReported = stringResource(R.string.qr_device_not_reported)
+        if (device) {
+            Text(stringResource(R.string.qr_device_name, request.deviceName ?: notReported))
+            Text(stringResource(R.string.qr_device_type, deviceTypeLabel(request.deviceType) ?: notReported))
+        }
+        Text(stringResource(R.string.qr_code_label, qrDisplayCode(request.code)), style = MaterialTheme.typography.titleLarge, fontFamily = FontFamily.Monospace)
+        qrRequestedAt(request.createdAt)?.let {
+            Text(stringResource(R.string.qr_requested_at, DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT).withZone(ZoneId.systemDefault()).format(it)))
+        }
+        Muted("API: ${model.backend}\nKind: ${request.kind}\nStatus: ${request.status}\nExpires: ${request.expiresAt}")
+        Text(if (device) stringResource(R.string.qr_device_warning) else "Approve only if you initiated this request on a device you trust.")
+        Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(confirmed, { confirmed = it }); Text(if (device) stringResource(R.string.qr_device_confirm) else "I reviewed this account and request") }
+        Action("Approve sign-in", confirmed && request.status == "pending") { confirmed = false; model.decideQr(request.code, "approve", confirmed = true) }
         TextButton(onClick = { model.decideQr(request.code, "deny") }, enabled = request.status == "pending") { Text("Deny") }
     }
+}
+@Composable private fun deviceTypeLabel(type: String?): String? = when (type) {
+    "cardstation" -> stringResource(R.string.device_type_cardstation)
+    "scanner" -> stringResource(R.string.device_type_scanner)
+    "other" -> stringResource(R.string.device_type_other)
+    else -> null
 }
 @Composable private fun SearchInput(value: String, label: String, change: (String) -> Unit, submit: () -> Unit) {
     val keyboard = LocalSoftwareKeyboardController.current
