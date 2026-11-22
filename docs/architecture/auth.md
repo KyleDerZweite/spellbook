@@ -1,12 +1,13 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: code
 - Update Triggers:
   - Credentials, sessions, bearer tokens, origin checks and safe HTTP validation errors
   - Versioned account APIs, module ownership, Python runtime and interface removal
   - QR challenges, session-bound decisions, requester cookies and PWA delivery
+  - Linked device sessions, device metadata, sliding device lifetime and device limits
   - Trusted actor authority, protected routes, agent discovery and post-login destinations
   - Preferences, profile validation, password changes and summary failure reporting
   - Workspace and application resource lifetime, native operators and SavedState authority
@@ -65,7 +66,9 @@ semantics remain authoritative. No external identity provider is introduced.
 
 The protocol is:
 
-- `POST /api/v1/auth/qr/requests` accepts only `{ kind: 'browser' | 'device' }`. It creates a
+- `POST /api/v1/auth/qr/requests` accepts `{ kind: 'browser' | 'device' }`. Device requests may add
+  self-reported `deviceName` and `deviceType`, described under
+  [linked device sessions](#linked-device-sessions); browser requests reject them. It creates a
   five-minute request with independent random 32-byte public `code` and private `requesterSecret`.
   Only their digests persist. Response includes `code`, `kind`, `expiresAt`, `interval: 3` and
   same-instance `verificationUri`. Browser requests store the code-bound private credential in the
@@ -73,19 +76,81 @@ The protocol is:
   use Secure over HTTPS, and omit the secret from JSON. Device requests return the secret to that
   requester. Browser JavaScript never receives the account session token.
 - `GET /api/v1/auth/qr/requests/{code}` requires an authenticated actor and returns only `code`,
-  `kind`, `status` and `expiresAt`. An owned account is not selected by client input. The approval
-  page displays the signed-in username, same-instance origin and request code prefix, with a warning
-  before explicit Approve or Deny. Scanning never approves automatically.
+  `kind`, `status` and `expiresAt`, plus `deviceName` and `deviceType` for device requests. An owned
+  account is not selected by client input. The approval page displays the signed-in username,
+  same-instance origin, display code and request time, with a warning before explicit Approve or
+  Deny. Scanning never approves automatically.
 - `POST /api/v1/auth/qr/requests/{code}/decision` accepts only `{ decision: 'approve' | 'deny' }`
-  from an authenticated actor. The first decision is immutable and bound to the approver's exact
-  live session. Identical repeats from that session remain idempotent after consumption and never
-  issue another session; conflicting decisions or a different approver return 409.
+  from an authenticated actor that is not a linked device session. The first decision is immutable
+  and bound to the approver's exact live session. Identical repeats from that session remain
+  idempotent after consumption and never issue another session; conflicting decisions or a different
+  approver return 409.
 - `POST /api/v1/auth/qr/token` accepts `code` and the device requester's secret, or the matching
   browser secret cookie. Pending requests return `{ status: 'pending' }`. Denied, expired and
   consumed requests return their explicit terminal status. Approved requests issue and consume at
   most one new session in one transaction. Browser success writes the normal session cookie and
-  returns `{ status: 'authenticated', expiresAt }`; device success additionally returns `token`. It
-  never grants a session to a caller knowing only the public QR code.
+  returns `{ status: 'authenticated', expiresAt }`; device success additionally returns `token` and
+  creates a linked device session. It never grants a session to a caller knowing only the public QR
+  code.
+
+## Linked device sessions
+
+A card sorting robot such as the Cardstation signs in through the device QR flow and receives a
+session for the approving person's own account.
+[Issue #199](https://github.com/KyleDerZweite/spellbook/issues/199) tracks this design. A linked
+device session is an `auth_sessions` row with a `device_id`; browser and password sessions keep the
+device columns null.
+
+**Device metadata.** A device request may send `deviceName`, trimmed to 1 to 64 UTF-16 units without
+control, format (including bidirectional overrides) or line/paragraph separator characters, and
+`deviceType` (`cardstation`, `scanner` or `other`). `deviceType` defaults to `other` when a name is
+given and is otherwise null. Null values count as omitted. Browser requests with either field return
+HTTP 400. [Migration 0028](../../backend/drizzle/0028_linked_device_sessions.sql) stores both on
+`qr_authorizations`. The [devices module](../../backend/core/src/spellbook_core/devices.py) and the
+[contract](../../contracts/src/devices.ts) own the shared validation.
+
+**Approval.** The values are self-reported and unverified. `/auth/approve` and the Android request
+screen label the name as reported by the device and show the device type, the display code, the
+request time and the warning "Only approve if this device is in front of you and shows the same
+code." Device approval requires an explicit confirmation checkbox; the web action rejects a device
+approval without it. The display code is the first 8 characters of the public code, grouped as
+`XXXX-XXXX` with case preserved, so the person compares it with the code on the device screen. A
+shared helper per platform formats it.
+
+**Session row.** Redemption stores a new random `device_id`, the request's `device_name` and
+`device_type`, and `last_seen_at`. `GET /api/v1/auth/session` returns `device: { id, name, type }`
+for a linked device session and `device: null` otherwise.
+
+**Lifetime.** Browser and password sessions keep the fixed 30-day expiry. Device sessions slide:
+`expires_at = min(now + 90 days, created_at + 365 days)`. Session inspection stays a read-only
+transaction. After a successful read, the credential entry point `inspect_session` renews a device
+session in a separate short write when `last_seen_at` is at least 24 hours old, setting the new
+expiry and `last_seen_at = now`. The write skips a row locked by another transaction and changes
+nothing for a younger `last_seen_at`, so at most one renewal happens per session and day. A device
+session expires after 90 idle days and at the latest 365 days after linking. The migration limits
+the `saved_state_auth` notification to inserts, deletes and updates of other columns, so renewal and
+rename do not revalidate the account's SavedState streams, while revocation still does.
+
+**Limits.** One HTTP guard, `require_account_owner` in the
+[router auth module](../../backend/api/src/spellbook_api/http/auth.py), returns HTTP 403
+`{ kind: 'device_session_forbidden' }` for linked device sessions on password changes (JSON and form
+bridge), QR approve/deny decisions and every `/api/v1/account/devices` endpoint. Device sessions
+keep the other account and MTG routes of an ordinary session. Logout, password change and operator
+recovery delete device sessions like any other session.
+
+**Management.** These routes accept a bearer token or browser cookie like the other account routes:
+
+- `GET /api/v1/account/devices` returns
+  `{ devices: [{ id, name, type, createdAt, lastSeenAt, expiresAt }] }` for the current account's
+  live device sessions, newest first.
+- `PATCH /api/v1/account/devices/{id}` accepts exactly `{ name }` with the same name validation and
+  returns the updated device.
+- `DELETE /api/v1/account/devices/{id}` deletes that session and returns HTTP 204. Bearer callers
+  may omit Origin without a body.
+- Unknown, malformed and other accounts' IDs return HTTP 404.
+
+The `/settings` page lists linked devices with name, type, linked date and last activity, and offers
+rename and revoke. Revocation asks for confirmation first.
 
 Browser creation/redemption rejects an already authenticated browser rather than silently switching
 accounts. An unsigned requester cannot assert a desired account; account choice happens on the
@@ -189,9 +254,10 @@ redirects to login. [Demo setup](../operations/local-auth.md#demo-mode) owns see
 commands. Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
 
 Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token's SHA-256 digest,
-account ID, creation time, and fixed 30-day expiry. Validation checks the database on each request.
-Logout revokes the current session. Operator password recovery and self-service password changes
-revoke every old session for that account.
+account ID, creation time and expiry: fixed 30 days for browser and password sessions, sliding for
+[linked device sessions](#linked-device-sessions), which also store their device columns. Validation
+checks the database on each request. Logout revokes the current session. Operator password recovery
+and self-service password changes revoke every old session for that account.
 
 `user_profiles.avatar_id` stores the account's selected sprite, with `wizard` as the default.
 Migration `0007_profile_avatar.sql` adds this field for existing accounts without changing their
@@ -273,8 +339,8 @@ field errors and the submitted draft. This includes changes committed between th
 the backend write. The editor keeps the submitted fields available for correction and retry.
 
 `GET /api/v1/mtg/dashboard` returns the [DashboardSummary](../../contracts/src/dashboard.ts)
-contract. `GET /api/v1/auth/session` returns `{ user, expiresAt }` for the selected validated
-session, without its token or stored hash. `POST /api/v1/account/password` accepts only
+contract. `GET /api/v1/auth/session` returns `{ user, expiresAt, device }` for the selected
+validated session, without its token or stored hash. `POST /api/v1/account/password` accepts only
 `currentPassword` and `newPassword`, rotates through backend Auth and returns
 `{ token, expiresAt }`. Expiry is an ISO string. Cookie callers receive a replacement cookie; bearer
 callers receive the replacement token without a cookie. Incorrect passwords or invalid fields return
@@ -313,7 +379,7 @@ revalidation, expiry, queues and listener recovery.
 
 | Endpoint                                                       | Behavior                                                              |
 | -------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `/settings`                                                    | Contact email and avatar load and separate form intents               |
+| `/settings`                                                    | Contact email, avatar and linked devices with separate form intents   |
 | `/settings/profile-card`                                       | Private card definition and artwork load and form action              |
 | `/settings/password`                                           | Current-password-confirmed change and fresh browser session           |
 | `/auth/register`                                               | Local account registration page and form action                       |
@@ -331,6 +397,9 @@ revalidation, expiry, queues and listener recovery.
 | `POST /api/v1/account/password`                                | Rotate credentials and return a replacement session                   |
 | `GET /api/v1/account/events`                                   | Session-bound SavedState event stream                                 |
 | `GET /api/v1/auth/session`                                     | Inspect the selected authenticated session                            |
+| `GET /api/v1/account/devices`                                  | List the account's linked device sessions                             |
+| `PATCH /api/v1/account/devices/{id}`                           | Rename a linked device                                                |
+| `DELETE /api/v1/account/devices/{id}`                          | Revoke a linked device session and return HTTP 204                    |
 | `POST /api/v1/auth/logout`                                     | Revoke the supplied bearer token and return HTTP 204                  |
 
 JSON credentials have `username` and `password` fields. Registration also accepts the optional
@@ -354,7 +423,7 @@ Native clients may omit `Origin` when they carry a well-formed bearer token in t
 
 - `POST` to the exact scan-frame upload route, which accepts raw JPEG, PNG or WebP bodies.
 - Requests with no body and no content type for deck, deck-entry, or inventory-entry `DELETE`,
-  scan-session creation, and `/api/v1/auth/logout`.
+  scan-session creation, `/api/v1/auth/logout` and linked-device `DELETE`.
 
 The route then validates the token against the session database. An invalid token returns HTTP 401
 even if a valid browser cookie is present. For guarded requests, a foreign or literal `null` origin

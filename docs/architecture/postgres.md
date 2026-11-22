@@ -1,7 +1,7 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-22
 - Source of Truth: code
 - Update Triggers:
   - managed Category removal
@@ -25,6 +25,7 @@
   - SavedState notification triggers
   - private value checkpoints and frozen evidence
   - public price publication and retention
+  - Linked device session columns and SavedState auth notification scope
 - Related Docs:
   - [System Overview](./system-overview.md)
   - [Auth](./auth.md)
@@ -95,7 +96,10 @@ expiry, revocation and idempotent decisions.
 - `user_profiles.profile_card` stores a nullable typed JSONB card definition; additive migration
   `0009_profile_card.sql` leaves existing rows null and writes no preset or resolved metric values
 - `local_credentials` maps normalized usernames to account IDs and stores password hashes
-- `auth_sessions` stores hashed opaque tokens and their expiry
+- `auth_sessions` stores hashed opaque tokens and their expiry; linked device sessions add
+  `device_id`, `device_name`, `device_type` and `last_seen_at` (migration
+  `0028_linked_device_sessions.sql`), and `qr_authorizations` stores the self-reported device name
+  and type of device requests
 - `auth_identities` retains historical provider mappings but is no longer used for authentication
 - MTG is the only implemented adapter today
 - `inventories` and `decks` are the current canonical domain objects

@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers:
   - Account and platform behavior:
@@ -24,6 +24,7 @@
     - Scan capability, priorities and physical-card integration requirements.
     - Local recognition and client responsibilities.
     - Browser scanning and phone computation-host evaluation.
+  - Linked device sessions for QR device sign-in
 - Related Docs:
   - [Domain model](../../GLOSSARY.md)
   - [Routes](./routing-and-games.md)
@@ -138,8 +139,10 @@ not establish hardware or per-copy tracking support.
 ## Account access and ownership
 
 The application uses local usernames and passwords. The accepted QR journey lets an already
-signed-in account explicitly authorize a new browser or a future device client. It issues an
-ordinary session, not a distinct machine identity.
+signed-in account explicitly authorize a new browser or a device client. A device receives a
+[linked device session](../architecture/auth.md#linked-device-sessions) for the approving account,
+with a self-reported name and type, a sliding lifetime and a Settings entry for rename and revoke.
+It is not a separate machine account or ownership record.
 [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns the
 protocol and [deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use
 steps. Users can register a local account, sign in, use the private workspace, and sign out without

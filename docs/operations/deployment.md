@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
@@ -14,6 +14,7 @@
   - Catalog publication, Demo bundles, private reset and source refresh.
   - Transient Scan processing, worker ownership, value-history scheduling and reporting.
   - Authentication, QR sessions, PWA operation and current runtime acceptance.
+  - QR approval display code and device confirmation
 - Related Docs:
   - [Postgres](../architecture/postgres.md)
   - [Operations](./README.md)
@@ -386,9 +387,10 @@ The accepted install/use journey is:
 3. On the phone, open `/app/connect`. Start the camera and grant permission, or enter the
    same-instance approval link/public request code manually. Camera denial or lack of support leaves
    manual entry available.
-4. Check the signed-in username, instance origin and request code prefix on `/auth/approve`. Read
-   the access warning, then explicitly approve or deny. Scanning alone grants no session. Approval
-   lets the requesting browser receive its normal session cookie.
+4. Check the signed-in username, instance origin and `XXXX-XXXX` display code on `/auth/approve`.
+   For a device, also check that it is in front of you and shows the same code, and tick the
+   confirmation. Read the access warning, then explicitly approve or deny. Scanning alone grants no
+   session. Approval lets the requesting browser receive its normal session cookie.
 5. Start a new request after expiry, denial or a consumed request whose successful response was
    lost. QR requests last five minutes. Password sign-in remains available.
 
