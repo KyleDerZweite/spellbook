@@ -6,10 +6,10 @@ export function parseRegistrationEnabled(value: string | undefined): boolean {
 	throw new Error('REGISTRATION_ENABLED must be true or false');
 }
 
+/** Parsed once at module load so an invalid value fails server startup (imported by hooks.server). */
+export const registrationEnabled = parseRegistrationEnabled(process.env.REGISTRATION_ENABLED);
+
 /** Self-service registration. Demo mode and the operator switch both close it. */
-export function registrationOpen(
-	enabled = parseRegistrationEnabled(process.env.REGISTRATION_ENABLED),
-	demo = demoMode
-): boolean {
+export function registrationOpen(enabled = registrationEnabled, demo = demoMode): boolean {
 	return enabled && !demo;
 }

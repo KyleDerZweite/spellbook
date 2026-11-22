@@ -26,6 +26,7 @@ describe('registration switch', () => {
 
 	it('redirects the registration page to sign-in when closed', async () => {
 		vi.stubEnv('REGISTRATION_ENABLED', 'false');
+		vi.resetModules(); // the flag is parsed at module load
 		try {
 			const { load } = await import('../../src/routes/auth/register/+page.server');
 			const url = new URL('https://spellbook.test/auth/register?returnTo=/mtg/decks');
