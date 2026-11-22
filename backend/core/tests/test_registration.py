@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import MagicMock
 
 import pytest
+
 from spellbook_core.auth import create_local_auth
 
 

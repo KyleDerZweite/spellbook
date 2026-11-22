@@ -301,7 +301,9 @@ def test_closed_registration_writes_no_account_and_keeps_login() -> None:
             assert await closed.authenticate("register", "new_owner", PASSWORD) is None
             async with transaction(f.pool, read_only=True) as tx:
                 row = await (
-                    await tx.execute("SELECT count(*) FROM user_profiles WHERE username='new_owner'")
+                    await tx.execute(
+                        "SELECT count(*) FROM user_profiles WHERE username='new_owner'"
+                    )
                 ).fetchone()
                 assert row and row[0] == 0
             assert await closed.authenticate("login", f.first.user.username, PASSWORD)
