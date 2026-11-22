@@ -286,14 +286,17 @@ needs other headers. Host builds through `scripts/compose.mjs` still embed `APP_
 GHCR may create a new package as private; after a package's first publication, check an anonymous
 pull and set its visibility to public once if needed.
 
-Tag only a `main` commit whose push CI succeeded. Pre-alpha tags use
-`v<major>.<minor>.<patch>-prealpha.<n>`, for example `v0.1.0-prealpha.1`. After all five images are
-published, a serialized release job checks every image for the tagged commit, creates a GitHub
-release with generated notes, a prerelease for a hyphenated tag, and then moves the `release` tag of
-all five images to that commit. A missing image or an existing GitHub release fails the job before
-`release` moves. Podman auto-update can follow `release` for Demo and Production. Auto-update
-restarts one unit at a time. For a release that changes shared interfaces, roll out the API, workers
-and web together with the selected image revision.
+Tag only a `main` commit whose push CI succeeded, using Docker-safe tags matching
+`^v[0-9A-Za-z._-]{1,127}$` (no `+` build metadata). Pre-alpha and alpha tags use
+`v<major>.<minor>.<patch>-prealpha.<n>` or `-alpha.<n>`, for example `v0.1.0-alpha.1`. Before
+building images, `verify` rejects invalid tags and tags that already have a GitHub release so a
+rerun cannot overwrite published digests. After all five images are published, a serialized release
+job checks every image for the tagged commit, creates a GitHub release with generated notes, a
+prerelease for a hyphenated tag, and then moves the `release` tag of all five images to that
+commit. A missing image or an existing GitHub release fails the job before `release` moves. Podman
+auto-update can follow `release` for Production. Auto-update restarts one unit at a time. For a
+release that changes shared interfaces, roll out the API, workers and web together with the selected
+image revision.
 
 ## Prepare a shared UI development session
 
