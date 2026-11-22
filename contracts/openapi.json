@@ -1952,7 +1952,7 @@
 						}
 					},
 					"403": {
-						"description": "Invalid request origin",
+						"description": "Invalid request origin or registration disabled",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7079,7 +7079,7 @@
 						}
 					},
 					"403": {
-						"description": "Invalid request origin",
+						"description": "Invalid request origin or registration disabled",
 						"content": {
 							"application/json": {
 								"schema": {

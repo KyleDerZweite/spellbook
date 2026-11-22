@@ -225,15 +225,22 @@ class LocalAuth(SessionAuth):
         pool: ConnectionPool,
         passwords: PasswordVerifier,
         demo_mode: bool = False,
+        registration_enabled: bool = True,
         clock: Callable[[], datetime] = _now,
     ):
         from .qr import QrAuth
 
         super().__init__(pool, demo_mode, clock)
         self.passwords = passwords
+        self.registration_enabled = registration_enabled
         self._attempts = AttemptLimiter(20)
         self.qr = QrAuth(pool, self)
         self.devices = DeviceSessions(pool, self)
+
+    @property
+    def registration_open(self) -> bool:
+        """Self-service registration; Demo mode and the operator switch both close it."""
+        return self.registration_enabled and not self.demo_mode
 
     def take_auth_attempt(self, address: str) -> None:
         self._attempts.take(address)
@@ -312,10 +319,10 @@ class LocalAuth(SessionAuth):
         preferences: Mapping[str, object] | None = None,
     ) -> Authenticated | None:
         artwork = (preferences or {}).get("artworkId", "grove")
-        if mode == "register" and artwork not in ARTWORK_IDS:
+        if mode == "register" and (not self.registration_open or artwork not in ARTWORK_IDS):
             return None
         username = normalize_username(username_input)
-        if self.demo_mode and (mode != "login" or username != "demo" or password != "demo"):
+        if self.demo_mode and (username != "demo" or password != "demo"):
             return None
         if (
             not username
@@ -425,6 +432,9 @@ def normalize_username(value: object) -> str | None:
 
 
 def create_local_auth(
-    pool: ConnectionPool, passwords: PasswordVerifier, demo_mode: bool = False
+    pool: ConnectionPool,
+    passwords: PasswordVerifier,
+    demo_mode: bool = False,
+    registration_enabled: bool = True,
 ) -> LocalAuth:
-    return LocalAuth(pool, passwords, demo_mode)
+    return LocalAuth(pool, passwords, demo_mode, registration_enabled=registration_enabled)

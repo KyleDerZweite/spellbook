@@ -5,6 +5,8 @@ import { RemoteClient } from '#lib/server/remote/client.ts';
 import { remoteConfiguration } from '#lib/server/remote/config.ts';
 import { RemoteError } from '#lib/server/remote/errors.ts';
 import { requireFormOrigin } from '#lib/server/auth/csrf.ts';
+// Side effect: validates REGISTRATION_ENABLED at startup.
+import '#lib/server/auth/registration.ts';
 import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '#lib/seo/site.ts';
 import { SESSION_COOKIE, clearSessionCookie, validateSession } from '#lib/server/auth/session.ts';
 import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isAvailableGame } from '#lib/state/activeGame.svelte.ts';

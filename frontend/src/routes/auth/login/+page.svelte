@@ -75,10 +75,12 @@
 			>{pending ? language.t('ui.Please.wait') : language.t('ui.Sign.in')}</button
 		>
 	</form>
-	{#if !data.demoMode}<p class="auth-switch">
+	{#if data.registrationOpen}<p class="auth-switch">
 			{language.t('ui.New.to.Spellbook')}
 			<a href={`/auth/register?returnTo=${encodeURIComponent(data.returnTo)}`}
 				>{language.t('ui.Sign.up')}</a
 			>
+		</p>{:else if !data.demoMode}<p class="auth-switch">
+			{language.t('ui.Registration.disabled.Ask.operator')}
 		</p>{/if}
 </AccountLayout>

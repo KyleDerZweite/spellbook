@@ -1,5 +1,6 @@
 import type { RequestHandler } from './$types';
 import { demoMode } from '#lib/server/auth/demo.ts';
+import { registrationOpen } from '#lib/server/auth/registration.ts';
 
 export const GET: RequestHandler = ({ url }) => {
 	const origin = url.origin;
@@ -21,7 +22,17 @@ For personal registration, ask the user for their intended non-demo Spellbook de
 
 - [Demo login](${origin}/auth/login): Sign in only when the user requests exploration of the shared demo.
 `
-		: `
+		: !registrationOpen()
+			? `
+Self-service registration is disabled on this deployment. Do not call the registration API or claim that you created an account here. Ask the user to request an account from the operator, then sign in with the credentials they provide.
+
+## Account entry points
+
+- [Login API](${origin}/api/v1/auth/login): POST JSON credentials to receive a session with HTTP 200.
+- [Logout API](${origin}/api/v1/auth/logout): POST with the stored Authorization: Bearer header to revoke the current token.
+- [Sign in](${origin}/auth/login): Browser login for an existing account.
+`
+			: `
 Use this guide only when the user asks you to create your own new account on this Spellbook deployment. This is ordinary local account registration, not an OAuth delegation or the auth.md protocol.
 
 Keep registration and login requests on this origin. Do not forward credentials or authorization headers to another origin, including redirects.

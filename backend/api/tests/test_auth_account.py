@@ -32,10 +32,17 @@ ACTOR = Actor("fixture-account", "alice", "", "wizard", "grove")
 
 
 class Dependencies:
-    def __init__(self, *, demo_mode: bool = False, trusted: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self,
+        *,
+        demo_mode: bool = False,
+        registration_open: bool = True,
+        trusted: tuple[str, ...] = (),
+    ) -> None:
         self.auth: Any = create_autospec(LocalAuth, instance=True)
         self.auth.qr = create_autospec(QrAuth, instance=True)
         self.auth.demo_mode = demo_mode
+        self.auth.registration_open = registration_open
         self.auth.validate_session.side_effect = lambda token: ACTOR if token == TOKEN else None
         self.auth.require_actor.return_value = ACTOR
         self.auth.inspect_session.return_value = SessionInfo(ACTOR, EXPIRES)
@@ -333,6 +340,36 @@ def test_native_password_bridge_retains_errors_never_passwords_and_demo_is_immut
     demo.auth.take_auth_attempt.assert_not_called()
 
 
+def test_closed_registration_rejects_before_attempts_parsing_or_account_writes() -> None:
+    d = Dependencies(registration_open=False)
+    expected = {
+        "kind": "RegistrationDisabled",
+        "message": "Registration is disabled on this instance.",
+        "status": 403,
+    }
+    with TestClient(d.app) as client:
+        json_body = client.post(
+            "/api/v1/auth/register",
+            json={"username": "second", "password": "valid-password"},
+            headers={"Origin": ORIGIN},
+        )
+        form = client.post(
+            "/api/v1/web/auth/register",
+            data={"username": "second", "password": "valid-password"},
+            headers={"Origin": ORIGIN},
+        )
+        login = client.post(
+            "/api/v1/auth/login",
+            json={"username": "alice", "password": "valid-password"},
+            headers={"Origin": ORIGIN},
+        )
+    assert json_body.status_code == form.status_code == 403
+    assert json_body.json() == form.json() == expected
+    assert login.status_code == 200
+    d.auth.authenticate.assert_awaited_once_with("login", "alice", "valid-password", {})
+    d.auth.take_auth_attempt.assert_called_once()
+
+
 def test_qr_browser_cookie_secrecy_order_and_terminal_cleanup() -> None:
     d = Dependencies()
     with TestClient(d.app) as client:
@@ -502,11 +539,21 @@ def test_trusted_proxy_configuration_rejects_chains_and_keeps_valid_ipv6_forms()
         }
     )
     assert config.demo_mode
+    assert config.registration_enabled
     assert config.trusted_proxy_addresses == ("192.0.2.1", "::ffff:c000:201", "::1")
     with pytest.raises(ValueError, match="IP addresses only"):
         Configuration.from_environment(
             {"APP_ORIGIN": ORIGIN, "API_TRUSTED_PROXY_ADDRESSES": "localhost"}
         )
+
+
+def test_registration_switch_defaults_open_and_rejects_invalid_values() -> None:
+    assert Configuration.from_environment({"APP_ORIGIN": ORIGIN}).registration_enabled
+    closed = {"APP_ORIGIN": ORIGIN, "REGISTRATION_ENABLED": "false"}
+    assert not Configuration.from_environment(closed).registration_enabled
+    for value in ("", "False", "0", "yes"):
+        with pytest.raises(ValueError, match="REGISTRATION_ENABLED must be true or false"):
+            Configuration.from_environment({"APP_ORIGIN": ORIGIN, "REGISTRATION_ENABLED": value})
 
 
 def test_qr_browser_origin_and_existing_session_conflicts_precede_creation() -> None:
