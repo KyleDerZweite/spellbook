@@ -15,6 +15,7 @@ from spellbook_api.http.auth import (
     client_address,
     get_bearer_token,
     read_cookie,
+    require_account_owner,
     require_mobile_auth,
     require_same_origin,
     selected_token,
@@ -34,7 +35,11 @@ async def get_session(request: Request, auth: SessionAuth, public_origin: str) -
     if session is None:
         raise HttpError(401, "Authentication required")
     return json_response(
-        {"user": current.to_dto(), "expiresAt": session.expires_at},
+        {
+            "user": current.to_dto(),
+            "expiresAt": session.expires_at,
+            "device": session.device.to_dto() if session.device else None,
+        },
         headers={"Cache-Control": "no-store"},
     )
 
@@ -138,7 +143,7 @@ def create_auth_routes(
         require_same_origin(request, origin, allow_missing=True)
         address = client_address(request, trusted_proxy_addresses)
         if operation == "create":
-            body = await qr_body(request, {"kind"})
+            body = await qr_body(request, {"kind", "deviceName", "deviceType"})
             kind = body.get("kind")
             if kind not in ("browser", "device"):
                 raise HttpError(400, "Invalid QR kind")
@@ -147,7 +152,9 @@ def create_auth_routes(
                 if await browser_authenticated(request):
                     raise HttpError(409, "This browser is already signed in.")
             assert isinstance(kind, str)
-            created = await auth.qr.create(kind, address)
+            created = await auth.qr.create(
+                kind, address, body.get("deviceName"), body.get("deviceType")
+            )
             secret = str(created.pop("requesterSecret"))
             response = json_response(
                 {
@@ -164,7 +171,8 @@ def create_auth_routes(
                 )
             return response
         if operation in {"inspect", "decide"}:
-            actor = await require_mobile_auth(request, auth, origin)
+            guard = require_account_owner if operation == "decide" else require_mobile_auth
+            actor = await guard(request, auth, origin)
             code = params["code"]
             if not valid_session_token(code):
                 raise HttpError(400, "Invalid QR code")

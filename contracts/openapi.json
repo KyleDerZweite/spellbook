@@ -941,7 +941,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1602,7 +1602,7 @@
 						}
 					},
 					"403": {
-						"description": "Invalid request origin",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -6597,9 +6597,24 @@
 				"requestBody": {
 					"required": true,
 					"content": {
-						"image/png": { "schema": { "type": "string", "format": "binary" } },
-						"image/jpeg": { "schema": { "type": "string", "format": "binary" } },
-						"image/webp": { "schema": { "type": "string", "format": "binary" } }
+						"image/png": {
+							"schema": {
+								"type": "string",
+								"format": "binary"
+							}
+						},
+						"image/jpeg": {
+							"schema": {
+								"type": "string",
+								"format": "binary"
+							}
+						},
+						"image/webp": {
+							"schema": {
+								"type": "string",
+								"format": "binary"
+							}
+						}
 					}
 				}
 			}
@@ -7769,6 +7784,239 @@
 					}
 				}
 			}
+		},
+		"/api/v1/account/devices": {
+			"get": {
+				"summary": "List the current account's linked device sessions, newest first",
+				"description": "Linked device sessions themselves receive 403 device_session_forbidden. Responses use Cache-Control: no-store.",
+				"tags": ["account"],
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Linked devices",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LinkedDeviceList"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "A valid session cookie or bearer token is required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/account/devices/{deviceId}": {
+			"parameters": [
+				{
+					"name": "deviceId",
+					"in": "path",
+					"required": true,
+					"schema": {
+						"type": "string"
+					},
+					"description": "Linked device ID. Unknown, malformed and foreign IDs return 404."
+				}
+			],
+			"patch": {
+				"summary": "Rename a linked device",
+				"tags": ["account"],
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LinkedDeviceRename"
+							}
+						}
+					},
+					"description": "A JSON object, at most 1 KiB."
+				},
+				"responses": {
+					"200": {
+						"description": "Renamed device",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LinkedDevice"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid device name or fields",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "A valid session cookie or bearer token is required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Unknown linked device",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "JSON request body exceeds 1 KiB",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"415": {
+						"description": "Use application/json",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"summary": "Revoke a linked device session",
+				"description": "Bearer callers may omit Origin when the request has no body and no content type.",
+				"tags": ["account"],
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "Device session revoked"
+					},
+					"401": {
+						"description": "A valid session cookie or bearer token is required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind device_session_forbidden)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Unknown linked device",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	},
 	"components": {
@@ -7931,10 +8179,28 @@
 				"properties": {
 					"kind": {
 						"enum": ["browser", "device"]
+					},
+					"deviceName": {
+						"type": ["string", "null"],
+						"minLength": 1,
+						"maxLength": 64,
+						"description": "Device requests only. Self-reported and shown as such on approval. Trimmed, 1 to 64 UTF-16 units, without control, format or line/paragraph separator characters."
+					},
+					"deviceType": {
+						"oneOf": [
+							{
+								"$ref": "#/components/schemas/DeviceType"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Device requests only. Defaults to other when deviceName is given."
 					}
 				},
 				"required": ["kind"],
-				"additionalProperties": false
+				"additionalProperties": false,
+				"description": "Browser requests reject non-null deviceName and deviceType."
 			},
 			"QrCreated": {
 				"type": "object",
@@ -7983,6 +8249,21 @@
 					"expiresAt": {
 						"type": "string",
 						"format": "date-time"
+					},
+					"deviceName": {
+						"type": ["string", "null"],
+						"description": "Present for device requests. Self-reported by the requesting device."
+					},
+					"deviceType": {
+						"oneOf": [
+							{
+								"$ref": "#/components/schemas/DeviceType"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Present for device requests."
 					}
 				},
 				"required": ["code", "kind", "status", "expiresAt"],
@@ -8287,9 +8568,20 @@
 					"expiresAt": {
 						"type": "string",
 						"format": "date-time"
+					},
+					"device": {
+						"oneOf": [
+							{
+								"$ref": "#/components/schemas/SessionDevice"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Linked device identity for sessions issued by QR device requests; null for browser and password sessions."
 					}
 				},
-				"required": ["user", "expiresAt"]
+				"required": ["user", "expiresAt", "device"]
 			},
 			"PasswordChange": {
 				"type": "object",
@@ -13352,6 +13644,95 @@
 						]
 					}
 				}
+			},
+			"DeviceType": {
+				"enum": ["cardstation", "scanner", "other"]
+			},
+			"SessionDevice": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"name": {
+						"type": ["string", "null"]
+					},
+					"type": {
+						"oneOf": [
+							{
+								"$ref": "#/components/schemas/DeviceType"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": ["id", "name", "type"],
+				"additionalProperties": false
+			},
+			"LinkedDevice": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"name": {
+						"type": ["string", "null"]
+					},
+					"type": {
+						"oneOf": [
+							{
+								"$ref": "#/components/schemas/DeviceType"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastSeenAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": ["id", "name", "type", "createdAt", "lastSeenAt", "expiresAt"],
+				"additionalProperties": false
+			},
+			"LinkedDeviceList": {
+				"type": "object",
+				"properties": {
+					"devices": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/LinkedDevice"
+						}
+					}
+				},
+				"required": ["devices"],
+				"additionalProperties": false
+			},
+			"LinkedDeviceRename": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"description": "Trimmed, 1 to 64 UTF-16 units, without control, format or line/paragraph separator characters."
+					}
+				},
+				"required": ["name"],
+				"additionalProperties": false
 			}
 		}
 	},

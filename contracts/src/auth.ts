@@ -1,4 +1,5 @@
 import type { QrAuthApplication } from './auth-qr.ts';
+import type { SessionDevice } from './devices.ts';
 export type * from './auth-qr.ts';
 export { validQrCredential } from './auth-qr.ts';
 export interface AuthUser {
@@ -40,6 +41,7 @@ export interface LocalAuthApplication {
 export interface SessionInfo {
 	user: AuthUser;
 	expiresAt: string;
+	device: SessionDevice | null;
 }
 export interface PasswordChange {
 	currentPassword: string;

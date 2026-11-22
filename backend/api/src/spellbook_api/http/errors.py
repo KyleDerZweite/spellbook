@@ -6,6 +6,7 @@ from logging import getLogger
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from psycopg import Error as PsycopgError
+from spellbook_core.devices import DeviceSessionError
 from spellbook_core.errors import (
     ActorError,
     AuthError,
@@ -56,6 +57,9 @@ def error_response(cause: Exception) -> Response:
             "Conflict": 409,
             "RateLimited": 429,
         }[cause.kind]
+        cause = HttpError(status, dict(kind=cause.kind, message=str(cause)))
+    elif isinstance(cause, DeviceSessionError):
+        status = {"ValidationFailed": 400, "NotFound": 404}[cause.kind]
         cause = HttpError(status, dict(kind=cause.kind, message=str(cause)))
     elif isinstance(cause, ProfileError):
         cause = HttpError(400, dict(kind=cause.kind, message=str(cause), fields=cause.fields))
@@ -149,6 +153,7 @@ def install_error_handlers(http: FastAPI) -> None:
         SummaryRangeError,
         ScanError,
         QrAuthError,
+        DeviceSessionError,
         ProfileError,
         PriceReadUnavailable,
         InventoryPriceNotFound,

@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from spellbook_core.auth import Authenticated, LocalAuth, TokenSession
 from spellbook_core.auth_attempts import AttemptLimiter
+from spellbook_core.devices import DeviceSessions
 from spellbook_core.errors import AuthError, ProfileError
 from spellbook_core.models import Actor, SessionInfo
 from spellbook_core.mtg.catalog import Catalog
@@ -38,9 +39,11 @@ class Dependencies:
         self.auth.validate_session.side_effect = lambda token: ACTOR if token == TOKEN else None
         self.auth.require_actor.return_value = ACTOR
         self.auth.inspect_session.return_value = SessionInfo(ACTOR, EXPIRES)
+        self.auth.actor_session.return_value = SessionInfo(ACTOR, EXPIRES)
+        self.auth.devices = create_autospec(DeviceSessions, instance=True)
         self.auth.authenticate.return_value = Authenticated(ACTOR, TokenSession(TOKEN, EXPIRES))
         self.auth.change_password.return_value = TokenSession(TOKEN, EXPIRES)
-        self.auth.qr.create.side_effect = lambda kind, address: {
+        self.auth.qr.create.side_effect = lambda kind, address, name=None, device_type=None: {
             "code": CODE,
             "kind": kind,
             "requesterSecret": SECRET,

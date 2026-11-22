@@ -76,6 +76,7 @@ def require_form_origin(request: Request, public_origin: str, route_path: str = 
             "DELETE /api/v1/mtg/inventory/{entryId}",
             "POST /api/v1/mtg/scan/sessions",
             "POST /api/v1/auth/logout",
+            "DELETE /api/v1/account/devices/{deviceId}",
         }
         length = header(request, "content-length") or "0"
         has_body = "transfer-encoding" in request.headers or (
@@ -96,6 +97,23 @@ async def require_mobile_auth(request: Request, auth: SessionAuth, public_origin
         raise HttpError(401, "Authentication required")
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         require_same_origin(request, public_origin)
+    return actor
+
+
+DEVICE_SESSION_FORBIDDEN = {
+    "kind": "device_session_forbidden",
+    "message": "Linked device sessions cannot perform this action.",
+}
+
+
+async def require_account_owner(request: Request, auth: SessionAuth, public_origin: str) -> Actor:
+    """Authenticate like require_mobile_auth, then reject linked device sessions.
+
+    Guards credential changes, QR decisions and linked-device management.
+    """
+    actor = await require_mobile_auth(request, auth, public_origin)
+    if (await auth.actor_session(actor)).device is not None:
+        raise HttpError(403, DEVICE_SESSION_FORBIDDEN)
     return actor
 
 

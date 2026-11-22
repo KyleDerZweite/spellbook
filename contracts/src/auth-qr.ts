@@ -1,4 +1,5 @@
 import type { AuthSession, AuthUser } from './auth.ts';
+import type { DeviceType } from './devices.ts';
 
 export function validQrCredential(value: unknown): value is string {
 	return typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
@@ -11,6 +12,9 @@ export interface QrRequestInfo {
 	kind: QrKind;
 	status: QrStatus;
 	expiresAt: string;
+	/** Present for device requests only; self-reported by the requesting device. */
+	deviceName?: string | null;
+	deviceType?: DeviceType | null;
 }
 export interface QrCreated {
 	code: string;
@@ -21,6 +25,10 @@ export interface QrCreated {
 }
 export interface QrCreateRequest {
 	kind: QrKind;
+	/** Device requests only: trimmed 1 to 64 characters without control characters. */
+	deviceName?: string;
+	/** Device requests only; defaults to 'other' when deviceName is given. */
+	deviceType?: DeviceType;
 }
 export interface QrCreateResponse {
 	code: string;

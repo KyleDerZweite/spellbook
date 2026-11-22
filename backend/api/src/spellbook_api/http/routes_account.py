@@ -9,12 +9,15 @@ from starlette.responses import Response
 
 from spellbook_api.http.auth import (
     client_address,
+    require_account_owner,
     require_mobile_auth,
     require_same_origin,
     write_session_cookie,
 )
 from spellbook_api.http.errors import HttpError, json_response
-from spellbook_api.http.parsing import read_form_data, read_json_object
+from spellbook_api.http.parsing import drain_request_body, read_form_data, read_json_object
+
+NO_STORE = {"Cache-Control": "no-store"}
 
 
 def create_account_routes(
@@ -33,7 +36,7 @@ def create_account_routes(
         return json_response(result, headers={"Cache-Control": "no-store"})
 
     async def password(request: Request) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+        actor = await require_account_owner(request, auth, origin)
         auth.take_auth_attempt(client_address(request, trusted_proxy_addresses))
         body = await read_json_object(request)
         if (
@@ -54,7 +57,7 @@ def create_account_routes(
 
     async def password_form(request: Request) -> Response:
         require_same_origin(request, origin)
-        actor = await require_mobile_auth(request, auth, origin)
+        actor = await require_account_owner(request, auth, origin)
         errors: dict[str, str] = {}
         if auth.demo_mode:
             return json_response(
@@ -107,8 +110,42 @@ def create_account_routes(
             write_session_cookie(response, session.token, origin)
         return response
 
+    async def list_devices(request: Request) -> Response:
+        actor = await require_account_owner(request, auth, origin)
+        return json_response(await auth.devices.list(actor), headers=NO_STORE)
+
+    async def rename_device(request: Request, deviceId: str) -> Response:
+        actor = await require_account_owner(request, auth, origin)
+        body = await read_json_object(request, 1024)
+        if body.keys() != {"name"}:
+            raise HttpError(400, "Invalid device fields")
+        return json_response(
+            await auth.devices.rename(actor, deviceId, body["name"]), headers=NO_STORE
+        )
+
+    async def revoke_device(request: Request, deviceId: str) -> Response:
+        actor = await require_account_owner(request, auth, origin)
+        await drain_request_body(request)
+        await auth.devices.revoke(actor, deviceId)
+        return Response(status_code=204, headers=NO_STORE)
+
     router.add_api_route(
         "/api/v1/account/profile", get_profile, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/account/devices", list_devices, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/account/devices/{deviceId}",
+        rename_device,
+        methods=["PATCH"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/account/devices/{deviceId}",
+        revoke_device,
+        methods=["DELETE"],
+        response_model=None,
     )
     router.add_api_route(
         "/api/v1/account/profile", patch_profile, methods=["PATCH"], response_model=None

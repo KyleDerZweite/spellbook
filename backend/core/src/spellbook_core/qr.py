@@ -10,6 +10,7 @@ from psycopg.rows import class_row
 from .auth import LocalAuth, TokenSession, _now, hash_session_token, valid_session_token
 from .auth_attempts import AttemptLimiter
 from .db import ConnectionPool, Transaction, iso_timestamp, transaction
+from .devices import DEVICE_TYPES, DeviceMetadata, normalize_device_name
 from .errors import AuthError
 from .models import Actor
 from .validation import MISSING, Missing
@@ -50,6 +51,8 @@ class _Challenge:
     approver_account_id: str | None
     approver_session_hash: str | None
     expires_at: datetime
+    device_name: str | None = None
+    device_type: str | None = None
 
 
 def _code_hash(code: str) -> str:
@@ -59,12 +62,32 @@ def _code_hash(code: str) -> str:
 
 
 def _info(code: str, row: _Challenge) -> dict[str, object]:
-    return {
+    info: dict[str, object] = {
         "code": code,
         "kind": row.kind,
         "status": _status(row),
         "expiresAt": iso_timestamp(row.expires_at),
     }
+    if row.kind == "device":
+        # Self-reported by the requesting device; the approval screen labels it as such.
+        info["deviceName"] = row.device_name
+        info["deviceType"] = row.device_type
+    return info
+
+
+def device_metadata(kind: str, name_input: object, type_input: object) -> DeviceMetadata:
+    """Validate optional self-reported device fields; null counts as omitted."""
+    if kind != "device":
+        if name_input is not None or type_input is not None:
+            raise QrAuthError("ValidationFailed", "Browser requests accept no device fields")
+        return DeviceMetadata(None, None)
+    name = None if name_input is None else normalize_device_name(name_input)
+    if name_input is not None and name is None:
+        raise QrAuthError("ValidationFailed", "Invalid device name")
+    if type_input is not None and type_input not in DEVICE_TYPES:
+        raise QrAuthError("ValidationFailed", "Invalid device type")
+    device_type = type_input if isinstance(type_input, str) else None
+    return DeviceMetadata(name, device_type or ("other" if name is not None else None))
 
 
 def _status(row: _Challenge) -> str:
@@ -106,7 +129,7 @@ class QrAuth:
         async with tx.cursor(row_factory=class_row(_Challenge)) as cursor:
             await cursor.execute(
                 "SELECT code_hash,secret_hash,kind,status,approver_account_id,"
-                "approver_session_hash,expires_at "
+                "approver_session_hash,expires_at,device_name,device_type "
                 "FROM qr_authorizations WHERE code_hash=%s" + (" FOR UPDATE" if lock else ""),
                 (_code_hash(code),),
             )
@@ -132,10 +155,17 @@ class QrAuth:
             row and row[0] == account_id and isinstance(row[1], datetime) and row[1] > _now()
         )
 
-    async def create(self, kind: str, address: str) -> dict[str, object]:
+    async def create(
+        self,
+        kind: str,
+        address: str,
+        device_name: object = None,
+        device_type: object = None,
+    ) -> dict[str, object]:
         self._attempt(self._creation, address)
         if kind not in {"browser", "device"}:
             raise QrAuthError("ValidationFailed", "Invalid QR request kind")
+        device = device_metadata(kind, device_name, device_type)
         code, secret = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
         expires = _now() + timedelta(minutes=5)
         async with transaction(self._pool) as tx:
@@ -146,9 +176,16 @@ class QrAuth:
                 "ORDER BY expires_at LIMIT 100 FOR UPDATE SKIP LOCKED)"
             )
             await tx.execute(
-                "INSERT INTO qr_authorizations(code_hash,secret_hash,kind,expires_at) "
-                "VALUES (%s,%s,%s,%s)",
-                (hash_session_token(code), hash_session_token(secret), kind, expires),
+                "INSERT INTO qr_authorizations(code_hash,secret_hash,kind,expires_at,"
+                "device_name,device_type) VALUES (%s,%s,%s,%s,%s,%s)",
+                (
+                    hash_session_token(code),
+                    hash_session_token(secret),
+                    kind,
+                    expires,
+                    device.name,
+                    device.type,
+                ),
             )
         return {
             "code": code,
@@ -230,7 +267,10 @@ class QrAuth:
             if not credential:
                 raise QrAuthError("Unauthenticated", "Authentication required")
             session = await self._auth.create_session(
-                row.approver_account_id, str(credential[0]), tx
+                row.approver_account_id,
+                str(credential[0]),
+                tx,
+                DeviceMetadata(row.device_name, row.device_type) if row.kind == "device" else None,
             )
             if session is None:
                 raise QrAuthError("Unauthenticated", "Authentication required")

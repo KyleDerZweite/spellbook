@@ -37,10 +37,29 @@ class Actor:
         }
 
 
+class SessionDeviceDTO(TypedDict):
+    id: str
+    name: str | None
+    type: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class SessionDevice:
+    """Linked device identity of a session issued by a QR device request."""
+
+    id: str
+    name: str | None
+    type: str | None
+
+    def to_dto(self) -> SessionDeviceDTO:
+        return {"id": self.id, "name": self.name, "type": self.type}
+
+
 @dataclass(frozen=True, slots=True)
 class SessionInfo:
     user: Actor
     expires_at: str
+    device: SessionDevice | None = None
 
     def to_dto(self) -> SessionDTO:
         return {"user": self.user.to_dto(), "expiresAt": self.expires_at}
