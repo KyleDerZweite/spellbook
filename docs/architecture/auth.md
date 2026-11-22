@@ -256,7 +256,11 @@ sessions. This mode closes registration like `REGISTRATION_ENABLED=false`, rejec
 rejects existing non-Demo sessions and fences QR session issuance. The login page displays the demo
 credentials; the registration page redirects to login. On a normal deployment,
 `DEMO_LOGIN_ENABLED=true` (strict `true` or `false`, default `false`) lets the `demo` account sign
-in with `demo` beside ordinary accounts and refuses password changes for it.
+in with `demo` beside ordinary accounts and refuses password changes for the shared `demo`/`demo`
+account with HTTP 403 `PasswordChangeDisabled` on both `POST /api/v1/account/password` and
+`POST /api/v1/web/password`. The lock checks the stored credential rather than the username alone,
+so an ordinary account named `demo` keeps working and switching `DEMO_LOGIN_ENABLED` off keeps the
+shared account locked until an operator replaces its password.
 [Demo setup](../operations/local-auth.md#demo-mode) and
 [shared demo login](../operations/local-auth.md#shared-demo-login) own seeding and reset commands.
 Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.

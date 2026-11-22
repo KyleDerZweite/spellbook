@@ -11,7 +11,7 @@ from psycopg.conninfo import conninfo_to_dict
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from spellbook_core.passwords import hash_password
+from spellbook_core.passwords import hash_password, verify_password_hash
 
 from . import OperatorError
 from .fixtures import DemoBundle, Precon, Record, matches_legacy
@@ -198,8 +198,9 @@ def insert_demo_account(client: Client, precon: Precon, timezone: str) -> str:
 def seed_demo_account(url: str, precon: Precon, *, timezone: str = "Europe/Berlin") -> Record:
     """Add the shared `demo` account to any migrated database with an active Catalog.
 
-    Unlike `seed_demo`, other accounts may exist. It never changes them or the Catalog, and an
-    existing `demo` profile is preserved untouched.
+    Unlike `seed_demo`, other accounts may exist. It never changes them or the Catalog. An existing
+    `demo` account is preserved only when its credential matches the shared `demo` password; an
+    ordinary account named `demo` is refused.
     """
     with _connect(url) as client:
         try:
@@ -207,14 +208,28 @@ def seed_demo_account(url: str, precon: Precon, *, timezone: str = "Europe/Berli
                 client.execute("SET LOCAL lock_timeout = '5s'")
                 client.execute("SET LOCAL statement_timeout = '120s'")
                 client.execute("SELECT pg_advisory_xact_lock(hashtext('spellbook-demo-seed'))")
-                existing = client.execute(
-                    "SELECT 1 FROM user_profiles WHERE username='demo'"
-                ).fetchone()
-                if existing:
-                    return {
-                        "status": "preserved",
-                        "message": "A demo account already exists. Nothing changed.",
-                    }
+                profiles = client.execute(
+                    "SELECT account_id FROM user_profiles WHERE username='demo'"
+                ).fetchall()
+                credentials = client.execute(
+                    "SELECT account_id,password_hash FROM local_credentials WHERE username='demo'"
+                ).fetchall()
+                if profiles or credentials:
+                    if (
+                        len(profiles) == 1
+                        and len(credentials) == 1
+                        and profiles[0]["account_id"] == credentials[0]["account_id"]
+                        and verify_password_hash("demo", credentials[0]["password_hash"])
+                    ):
+                        return {
+                            "status": "preserved",
+                            "message": "A demo account already exists. Nothing changed.",
+                        }
+                    raise OperatorError(
+                        "An existing demo account does not use the shared demo password."
+                    )
+                # Serialize with Catalog publishers so active_generation stays fixed until commit.
+                client.execute("SELECT pg_advisory_xact_lock(%s,%s)", (1936747619, 1))
                 require_precon_catalog(client, precon)
                 insert_demo_account(client, precon, timezone)
         except OperatorError:

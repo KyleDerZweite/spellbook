@@ -941,7 +941,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, the caller is a linked device session (kind DeviceSessionForbidden), or the shared demo account password is locked (kind PasswordChangeDisabled)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7234,7 +7234,7 @@
 						}
 					},
 					"403": {
-						"description": "Invalid public Origin or password changes disabled in Demo",
+						"description": "Invalid public Origin, password changes disabled in Demo, or the shared demo account password is locked",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -8643,6 +8643,9 @@
 					"success": {
 						"const": false
 					},
+					"kind": {
+						"type": "string"
+					},
 					"message": {
 						"type": "string"
 					},
@@ -9189,9 +9192,18 @@
 					},
 					"password": {
 						"type": "string",
-						"minLength": 12,
-						"maxLength": 128,
-						"writeOnly": true
+						"writeOnly": true,
+						"description": "12 to 128 characters for normal accounts. Only the shared `demo` account may send `demo`, and only when `DEMO_MODE=true` or `DEMO_LOGIN_ENABLED=true`.",
+						"anyOf": [
+							{
+								"type": "string",
+								"minLength": 12,
+								"maxLength": 128
+							},
+							{
+								"const": "demo"
+							}
+						]
 					}
 				},
 				"required": ["username", "password"]

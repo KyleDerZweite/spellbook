@@ -30,7 +30,7 @@ from spellbook_core.operators.demo import (
 )
 from spellbook_core.operators.fixtures import Record, legacy_inventory, load_precon, verify_bundle
 from spellbook_core.operators.local_password import set_local_password
-from spellbook_core.passwords import _derive
+from spellbook_core.passwords import _derive, hash_password
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("SPELLBOOK_OPERATORS_NATIVE_DATABASE"),
@@ -276,10 +276,19 @@ def test_demo_account_seed_leaves_other_accounts_and_catalog_untouched(
     edited = snapshot(client)
     assert seed_demo_account(url, precon)["status"] == "preserved"
     assert snapshot(client) == edited
+    # An existing demo account with another password is refused instead of treated as shared.
+    client.execute(
+        "UPDATE local_credentials SET password_hash=%s WHERE account_id=%s",
+        (hash_password("ordinary-demo-password"), demo["account_id"]),
+    )
+    ordinary = snapshot(client)
+    with pytest.raises(OperatorError, match="does not use the shared demo password"):
+        seed_demo_account(url, precon)
+    assert snapshot(client) == ordinary
     # The disposable-only seed keeps refusing a database with other accounts.
     with pytest.raises(OperatorError, match="transaction rolled back"):
         seed_demo(url, verify_bundle(FIXTURES), precon)
-    assert snapshot(client) == edited
+    assert snapshot(client) == ordinary
 
 
 def legacy_setup(client: Client) -> tuple[str, str]:

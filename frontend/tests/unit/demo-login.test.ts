@@ -19,7 +19,8 @@ vi.mock('#lib/server/auth/forms.ts', () => ({ submitAuthForm }));
 /** The flags are parsed at module load, so each case imports fresh route modules. */
 async function routes(env: { DEMO_LOGIN_ENABLED?: string; DEMO_MODE?: string }) {
 	vi.resetModules();
-	for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+	vi.stubEnv('DEMO_LOGIN_ENABLED', env.DEMO_LOGIN_ENABLED ?? 'false');
+	vi.stubEnv('DEMO_MODE', env.DEMO_MODE ?? 'false');
 	return {
 		demo: await import('../../src/routes/demo/+page.server'),
 		login: await import('../../src/routes/auth/login/demo/+page.server')
@@ -103,13 +104,30 @@ describe('shared demo login', () => {
 					form: null
 				} as never
 			}).body;
+		// The standard form keeps the 12-character rule; the link leads to the demo form.
 		const enabled = page(true);
 		expect(enabled).toContain(
 			`href="/auth/login/demo?returnTo=${encodeURIComponent('/mtg/decks')}"`
 		);
-		expect(enabled).toContain('minlength="4"');
+		expect(enabled).toContain('minlength="12"');
 		const disabled = page(false);
 		expect(disabled).not.toContain('/auth/login/demo');
 		expect(disabled).toContain('minlength="12"');
+	});
+
+	it('keeps /settings/password usable outside Demo mode so an ordinary demo account is not locked', async () => {
+		vi.resetModules();
+		vi.stubEnv('DEMO_LOGIN_ENABLED', 'true');
+		vi.stubEnv('DEMO_MODE', 'false');
+		const normal = await import('../../src/routes/settings/password/+page.server');
+		await expect(normal.load({ locals: { user: { username: 'demo' } } } as never)).resolves.toEqual(
+			{ demoMode: false }
+		);
+		vi.resetModules();
+		vi.stubEnv('DEMO_MODE', 'true');
+		const demo = await import('../../src/routes/settings/password/+page.server');
+		await expect(demo.load({ locals: { user: { username: 'demo' } } } as never)).resolves.toEqual({
+			demoMode: true
+		});
 	});
 });

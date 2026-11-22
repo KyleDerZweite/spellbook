@@ -24,7 +24,7 @@
 			{language.t('ui.Just.looking.around')}
 			<a href={demoLink}>{language.t('ui.Try.the.shared.Demo.account')}</a>
 		</p>{/if}
-	<LoginForm {form} passwordMinlength={data.demoMode || data.demoLoginEnabled ? 4 : 12} />
+	<LoginForm {form} passwordMinlength={data.demoMode ? 4 : 12} />
 	{#if data.registrationOpen}<p class="auth-switch">
 			{language.t('ui.New.to.Spellbook')}
 			<a href={`/auth/register?returnTo=${encodeURIComponent(data.returnTo)}`}

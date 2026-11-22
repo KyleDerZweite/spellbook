@@ -180,6 +180,17 @@ test('production retains normal accounts, transient Scan and scheduled Catalog l
 		assert.equal(environment.REGISTRATION_ENABLED, 'true');
 		assert.equal(environment.DEMO_LOGIN_ENABLED, 'true');
 	}
+	// Operator commands run in db-migrate, so Demo history uses the configured reporting timezone.
+	for (const name of ['api', 'state-worker', 'db-migrate'])
+		assert.equal(model.services[name].environment.VALUE_HISTORY_TIMEZONE, 'Europe/Berlin');
+	const zoned = hostedPlan('production', 'config', {
+		...fixture,
+		PROD_VALUE_HISTORY_TIMEZONE: 'America/New_York'
+	});
+	assert.equal(
+		config(zoned.args, zoned.env).services['db-migrate'].environment.VALUE_HISTORY_TIMEZONE,
+		'America/New_York'
+	);
 	assert.equal(model.services.api.environment.SCAN_STORAGE_DRIVER, undefined);
 	assert.equal(model.services.api.volumes, undefined);
 	assert.equal(model.services['scan-worker'].volumes, undefined);

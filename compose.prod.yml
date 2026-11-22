@@ -34,6 +34,7 @@ services:
     profiles: [application]
     environment:
       DEMO_MODE: ${HOSTED_DEMO_MODE:-false}
+      VALUE_HISTORY_TIMEZONE: ${HOSTED_VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
       DATABASE_URL: postgres://${HOSTED_POSTGRES_USER:-spellbook}:${HOSTED_POSTGRES_PASSWORD:-}@postgres:5432/${HOSTED_POSTGRES_DB:-spellbook}
     depends_on:
       postgres:

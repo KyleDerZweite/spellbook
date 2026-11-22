@@ -248,6 +248,28 @@ class LocalAuth(SessionAuth):
         """The shared `demo` account in Demo mode or behind the operator switch."""
         return username == "demo" and (self.demo_mode or self.demo_login_enabled)
 
+    async def password_change_locked(self, actor: Actor) -> bool:
+        """Visitors share the `demo` password; changing it would lock the others out.
+
+        Checks the stored credential rather than the username alone, so an ordinary account named
+        `demo` keeps working while the shared `demo`/`demo` account stays locked even after
+        `DEMO_LOGIN_ENABLED` is switched off.
+        """
+        if self.demo_mode:
+            return True
+        if actor.username != "demo":
+            return False
+        async with transaction(self._pool, read_only=True) as tx:
+            cursor = await tx.execute(
+                "SELECT password_hash FROM local_credentials WHERE account_id=%s",
+                (actor.account_id,),
+            )
+            row = await cursor.fetchone()
+        encoded = str(row[0]) if row else None
+        if encoded is None:
+            return False
+        return await self.passwords.verify("demo", encoded)
+
     def take_auth_attempt(self, address: str) -> None:
         self._attempts.take(address)
 
@@ -385,8 +407,7 @@ class LocalAuth(SessionAuth):
         user = await self.require_actor(actor)
         if (
             self.demo_mode
-            # Visitors share this account; a password change would lock the others out.
-            or self._shared_demo(user.username)
+            or (user.username == "demo" and current_password == "demo")
             or not current_password
             or utf16_length(current_password) > 128
             or not valid_password(new_password)

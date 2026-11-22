@@ -50,6 +50,7 @@ class Dependencies:
         self.auth.devices = create_autospec(DeviceSessions, instance=True)
         self.auth.authenticate.return_value = Authenticated(ACTOR, TokenSession(TOKEN, EXPIRES))
         self.auth.change_password.return_value = TokenSession(TOKEN, EXPIRES)
+        self.auth.password_change_locked.return_value = False
         self.auth.qr.create.side_effect = lambda kind, address, name=None, device_type=None: {
             "code": CODE,
             "kind": kind,
@@ -338,6 +339,42 @@ def test_native_password_bridge_retains_errors_never_passwords_and_demo_is_immut
         response = client.post("/api/v1/web/password", data={}, headers=headers)
     assert response.status_code == 403
     demo.auth.take_auth_attempt.assert_not_called()
+
+
+def test_shared_demo_password_lock_returns_explicit_403_on_both_bridges() -> None:
+    d = Dependencies()
+    d.auth.password_change_locked.return_value = True
+    message = "Password changes are disabled for the shared demo account."
+    headers = {"Cookie": "spellbook_session=" + TOKEN, "Origin": ORIGIN}
+    with TestClient(d.app) as client:
+        native = client.post(
+            "/api/v1/account/password",
+            json={"currentPassword": "demo", "newPassword": "new-valid-password"},
+            headers=headers,
+        )
+        form = client.post(
+            "/api/v1/web/password",
+            data={
+                "currentPassword": "demo",
+                "newPassword": "new-valid-password",
+                "confirmPassword": "new-valid-password",
+            },
+            headers=headers,
+        )
+    assert native.status_code == 403
+    assert native.json() == {"kind": "PasswordChangeDisabled", "message": message, "status": 403}
+    assert form.status_code == 403
+    assert form.json() == {
+        "success": False,
+        "kind": "PasswordChangeDisabled",
+        "message": message,
+        "errors": {},
+    }
+    assert d.auth.password_change_locked.call_args_list == [
+        ((ACTOR,),),
+        ((ACTOR,),),
+    ]
+    d.auth.change_password.assert_not_awaited()
 
 
 def test_closed_registration_rejects_before_attempts_parsing_or_account_writes() -> None:

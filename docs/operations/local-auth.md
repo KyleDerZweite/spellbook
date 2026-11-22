@@ -94,21 +94,28 @@ While enabled:
 
 - `/demo` redirects to `/auth/login/demo`, a sign-in form pre-filled with `demo` / `demo` and a note
   that the account is shared. Signing in still needs an explicit POST; the page has no automatic
-  sign-in. `/auth/login` links to it and accepts the 4-character password.
+  sign-in. `/auth/login` links to it and keeps its 12-character client-side rule.
 - Only the exact `demo` / `demo` login skips the 12-character rule, and the stored scrypt hash still
   decides. Every other account keeps the normal password rules.
-- Nobody can change the `demo` account's password, so visitors cannot lock each other out. Other
-  accounts change passwords as usual.
+- Nobody can change the shared `demo` account's password, so visitors cannot lock each other out.
+  Both password APIs check the stored credential rather than the username alone and return HTTP 403
+  with `kind: PasswordChangeDisabled` when the account uses the shared `demo` password;
+  `/settings/password` stays usable for ordinary accounts (including one named `demo`) and shows the
+  localized 403 error if the shared account submits it. Other accounts change passwords as usual.
 
 While disabled, both routes return 404 and `demo` / `demo` is rejected like any short password.
+Existing `demo` sessions stay valid, and the password lock stays in effect because it checks the
+stored credential, so switching off and on again keeps the shared credentials. To retire the account
+for good, set a new password with the [password operator](#set-or-reset-a-password).
 
 Seed the account before enabling the switch. `spellbook-demo-account` works on any migrated database
 whose active Catalog contains the Upgrades Unleashed printings, including Production with other
-accounts. Under the Demo advisory lock it reports `preserved` and writes nothing if a `demo` profile
-already exists, so check that an existing `demo` account is really meant to be shared. Otherwise it
-adds, in one transaction, only the `demo` profile and credentials, the empty Next brew Deck, the MTG
-Inventory, the Upgrades Unleashed Deck and the illustrative Demo history. Other accounts and the
-Catalog stay unchanged. For Production Compose, from the repository root:
+accounts. Under the Demo advisory lock it reports `preserved` and writes nothing if an existing
+`demo` account already uses the shared `demo` password, and refuses with an error if an ordinary
+account named `demo` uses another password. Otherwise it adds, in one transaction, only the `demo`
+profile and credentials, the empty Next brew Deck, the MTG Inventory, the Upgrades Unleashed Deck
+and the illustrative Demo history. Other accounts and the Catalog stay unchanged. For Production
+Compose, from the repository root:
 
 ```sh
 pnpm compose production run db-migrate /app/backend/api/.venv/bin/spellbook-demo-account

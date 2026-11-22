@@ -186,3 +186,11 @@ def hash_password(password: str) -> str:
         maxmem=64 * 1024 * 1024,
     )
     return f"scrypt${salt}${key.hex()}"
+
+
+def verify_password_hash(password: str, encoded_hash: str | None) -> bool:
+    """Verify the existing scrypt encoding synchronously. Call off-loop in async applications."""
+    if encoded_hash is None or not _HASH.fullmatch(encoded_hash):
+        return False
+    _, salt, expected = encoded_hash.split("$")
+    return _derive(password, salt, expected, False)
