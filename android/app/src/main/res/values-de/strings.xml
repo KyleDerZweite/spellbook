@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="qr_code_label">Code: %1$s</string>
+    <string name="qr_requested_at">Angefragt: %1$s</string>
+    <string name="qr_device_name">Gerätename (vom Gerät gemeldet): %1$s</string>
+    <string name="qr_device_type">Gerätetyp: %1$s</string>
+    <string name="qr_device_not_reported">Nicht angegeben</string>
+    <string name="qr_device_warning">Bestätige nur, wenn dieses Gerät vor dir steht und denselben Code anzeigt.</string>
+    <string name="qr_device_confirm">Dieses Gerät steht vor mir und zeigt denselben Code</string>
+    <string name="device_type_cardstation">Cardstation</string>
+    <string name="device_type_scanner">Scanner</string>
+    <string name="device_type_other">Anderes Gerät</string>
+</resources>

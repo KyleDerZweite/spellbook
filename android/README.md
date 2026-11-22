@@ -1,7 +1,7 @@
 # Spellbook Android
 
 - Status: Implemented client, native acceptance pending integration
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: this Gradle project and the shared HTTP contracts
 - Update Triggers:
   - canonical versioned API paths
@@ -14,6 +14,7 @@
   - streamed response bounds
   - reviewed deletion
   - account intent lifetime and acceptance evidence
+  - QR request display code and device request details
 - Related Docs:
   - [Independent applications](../docs/architecture/independent-applications.md)
   - [Mobile design handoff](../docs/product/mobile-app-exploration.md)
@@ -130,8 +131,11 @@ Deck Library uses the bounded directory endpoint. Selected Deck uses `selectedOn
 actual composition, ownership projection and a separate Availability read. Requirements remain
 separate from owned quantities. Profile shows the actual account's saved card fields and totals.
 Settings supports appearance, account entry, explicit logout, Card Station and manual QR request
-inspection/Approve/Deny. A failed logout retains credentials until server revocation succeeds or the
-user explicitly removes local sign-in.
+inspection/Approve/Deny. The request screen shows the `XXXX-XXXX` display code (`qrDisplayCode`) and
+request time. For device requests it also shows the self-reported device name and type, the warning
+to approve only a device in front of the user that shows the same code, and a device-specific
+confirmation checkbox. These new strings have English and German resources. A failed logout retains
+credentials until server revocation succeeds or the user explicitly removes local sign-in.
 
 Card Station states that no device connection is available. Its eight-box circle and central input
 are a design representation with no fabricated identity, content, activity or successful job. Phone
