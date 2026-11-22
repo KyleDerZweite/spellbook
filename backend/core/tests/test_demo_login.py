@@ -21,9 +21,7 @@ class CredentialLookup(Exception):
 def local_auth(*, enabled: bool, demo_mode: bool = False) -> LocalAuth:
     pool = MagicMock()
     pool.connection.side_effect = CredentialLookup
-    return create_local_auth(
-        pool, MagicMock(), demo_mode=demo_mode, demo_login_enabled=enabled
-    )
+    return create_local_auth(pool, MagicMock(), demo_mode=demo_mode, demo_login_enabled=enabled)
 
 
 def auth_with_stored_hash(stored_hash: str | None, *, enabled: bool) -> LocalAuth:
@@ -77,7 +75,9 @@ def test_password_change_lock_distinguishes_shared_and_ordinary_demo_accounts(
     demo_actor = Actor("demo-id", "demo", "", "wizard", "grove")
     kyle_actor = Actor("kyle-id", "kyle", "", "wizard", "grove")
 
-    assert asyncio.run(local_auth(enabled=False, demo_mode=True).password_change_locked(kyle_actor))
+    assert asyncio.run(
+        local_auth(enabled=False, demo_mode=True).password_change_locked(kyle_actor)
+    )
     assert not asyncio.run(local_auth(enabled=enabled).password_change_locked(kyle_actor))
     # Shared demo account stays locked whether DEMO_LOGIN_ENABLED is on or off.
     assert asyncio.run(
@@ -131,9 +131,10 @@ def test_seed_demo_account_refuses_ordinary_demo_account_and_preserves_shared_de
             return seed_demo_account("postgresql://unused/spellbook", MagicMock())
 
     shared = hash_password("demo")
-    assert run_with(
-        [{"account_id": "a1"}], [{"account_id": "a1", "password_hash": shared}]
-    )["status"] == "preserved"
+    assert (
+        run_with([{"account_id": "a1"}], [{"account_id": "a1", "password_hash": shared}])["status"]
+        == "preserved"
+    )
 
     ordinary = hash_password("ordinary-user-password")
     with pytest.raises(OperatorError, match="does not use the shared demo password"):
@@ -182,7 +183,9 @@ def test_seed_demo_account_holds_catalog_publisher_lock_across_validation_and_in
             side_effect=lambda *_a: events.append("insert_demo"),
         ),
     ):
-        assert seed_demo_account("postgresql://unused/spellbook", MagicMock())["status"] == "seeded"
+        assert (
+            seed_demo_account("postgresql://unused/spellbook", MagicMock())["status"] == "seeded"
+        )
 
     assert events == [
         "tx_enter",

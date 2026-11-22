@@ -392,7 +392,7 @@ def test_demo_login_switch_admits_shared_demo_beside_normal_accounts() -> None:
             assert await closed.authenticate("login", "demo", PASSWORD) is None
             # Re-enabled, the shared credentials still work.
             assert await shared.authenticate("login", "demo", "demo")
-            # Replacing the demo password turns it back into an ordinary account that is not locked.
+            # Replacing the demo password turns it back into an ordinary, unlocked account.
             async with transaction(f.pool) as tx:
                 await tx.execute(
                     "UPDATE local_credentials SET password_hash=%s WHERE account_id=%s",
