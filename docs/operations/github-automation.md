@@ -1,7 +1,7 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-22
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers:
   - Local checks, `check:changed` selection, runtime pins, installed Python packages and canonical
@@ -435,34 +435,36 @@ package scripts do:
 | Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, Core/API unit/host/Discovery tests, package builds and negative Python import checks          | API, Core, neutral contracts, migrations and shared Python tooling      |
 | Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                                    | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
-The separate [Images workflow](../../.github/workflows/images.yml) runs only after a successful
-`main` push CI and for version tags; [deployment](./deployment.md#ci-images-and-release-tags) owns
-its images and tag policy. Migration asset/ledger consistency runs in Python Core/API tests. Root
-`test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.
-The two worker projects share their existing job/toolchain setup, retaining separate project
-environments; its PostgreSQL service starts only when Catalog worker tests are selected. Python
-API/Core runs the repository Python import checker and six negative unittest cases. The worker job
-runs the same checker and fixtures with the pinned interpreter only when Python API/Core is
-unselected. Worker-only edits therefore enforce dependency rules without depending on the API/Core
-job. Scope tests run only in CI Scope, and Node boundary fixtures run only through Application
-Checks tooling. The scope job has a five-minute timeout; Application Checks, Python API/Core and
-Python Workers each have fifteen minutes.
+The separate [Images workflow](../../.github/workflows/images.yml) runs only for version tags and
+publishes only after the tagged commit's newest `main` push CI run succeeded;
+[deployment](./deployment.md#ci-images-and-release-tags) owns its images and tag policy. Migration
+asset/ledger consistency runs in Python Core/API tests. Root `test:tooling` includes launcher and
+packaging tests, so CI does not invoke those suites separately. The two worker projects share their
+existing job/toolchain setup, retaining separate project environments; its PostgreSQL service starts
+only when Catalog worker tests are selected. Python API/Core runs the repository Python import
+checker and six negative unittest cases. The worker job runs the same checker and fixtures with the
+pinned interpreter only when Python API/Core is unselected. Worker-only edits therefore enforce
+dependency rules without depending on the API/Core job. Scope tests run only in CI Scope, and Node
+boundary fixtures run only through Application Checks tooling. The scope job has a five-minute
+timeout; Application Checks, Python API/Core and Python Workers each have fifteen minutes.
 
 [Application Integration](../../.github/workflows/application-integration.yml) has a
 `workflow_dispatch` trigger and a `workflow_call` entry point. The fifth CI job, also named
 Application Integration, calls it only for `push` events, so every push to `main` runs it in
 parallel with the scoped jobs and independent of CI Scope. Pull requests and manual CI dispatches
-skip it. A failed integration job fails the CI run, and the Images workflow then does not publish
-that commit. A newer `main` push cancels the running CI, including its integration job.
+skip it. A failed integration job fails the CI run, and the Images workflow then refuses to publish
+a version tag on that commit. A newer `main` push cancels the running CI, including its integration
+job, so the cancelled commit cannot be published either.
 [Android Build](../../.github/workflows/android.yml) is triggered only by `workflow_dispatch`, and
 automatic CI never invokes it. Each heavy workflow has one job with a thirty-minute timeout and no
 concurrency cancellation of another manual run. Application Integration retains disposable
 PostgreSQL 18, the actual locked Scan worker, Python migration and guarded Deck PostgreSQL checks,
 the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`. As measured on
 2026-11-15, a green run takes about eight and a half minutes, six and a half of them in `test:sync`,
-and Images starts only after it finishes. Android Build retains explicit SDK 37.0, build-tools
-36.0.0, setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
-Dispatch a heavy workflow against the revision being verified, for example:
+and a version tag can publish images only after it succeeds. Android Build retains explicit SDK
+37.0, build-tools 36.0.0, setup-android v4.0.4, JDK 21 and
+`:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`. Dispatch a heavy workflow against the
+revision being verified, for example:
 
 ```sh
 gh workflow run application-integration.yml --ref <branch-or-tag>

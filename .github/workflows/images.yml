@@ -1,13 +1,9 @@
 name: Images
 
-# Builds hosted images once in CI after green main CI and publishes them to GHCR as
-# sha-<full commit>, then moves `main` to that commit. Version tags create a GitHub (pre)release
-# for an already published commit and move `release`. Podman auto-update follows the moving tags.
+# Version tags publish hosted images to GHCR as sha-<full commit> and <tag> once the tagged commit's
+# newest main push CI run succeeded, then create a GitHub (pre)release and move `release`. Podman
+# auto-update follows the moving tag.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   push:
     tags: ['v*']
 
@@ -15,12 +11,47 @@ permissions:
   contents: read
 
 jobs:
+  verify:
+    name: Require green main CI
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Validate version tag and require no existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9A-Za-z._-]{1,127}$ ]]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' must match ^v[0-9A-Za-z._-]{1,127}$ (Docker-safe tag, no '+')"
+            exit 1
+          fi
+          code="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")"
+          case "$code" in
+            404) ;;
+            200) echo "::error::GitHub release '$GITHUB_REF_NAME' already exists"; exit 1 ;;
+            *) echo "::error::GitHub API answered $code checking release '$GITHUB_REF_NAME'"; exit 1 ;;
+          esac
+      - name: Require the tagged commit's newest main push CI run to have succeeded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The list is newest first and reports each run's latest attempt, so an older green run
+          # cannot hide a newer failed, cancelled or pending one.
+          result="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=push&branch=main&per_page=1" \
+            --jq '.workflow_runs[0] | "\(.status) \(.conclusion)"')"
+          if [[ "$result" != 'completed success' ]]; then
+            echo "::error::Newest main push CI for $GITHUB_SHA is '${result:-missing}', not 'completed success'"
+            exit 1
+          fi
+
   publish:
     name: Build ${{ matrix.name }}
-    if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push'
+    needs: verify
     timeout-minutes: 30
     runs-on: ubuntu-latest
     permissions:
@@ -47,15 +78,13 @@ jobs:
           # Built without APP_ORIGIN: the web server derives its Origin from the request Host.
           - { name: frontend, context: ., file: frontend/Dockerfile, push: true }
     env:
-      SHA: ${{ github.event.workflow_run.head_sha }}
+      SHA: ${{ github.sha }}
       IMAGE: ghcr.io/kylederzweite/spellbook-${{ matrix.name }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Build
         run: >-
-          docker build --file "${{ matrix.file }}" --tag "$IMAGE:sha-$SHA"
+          docker build --file "${{ matrix.file }}" --tag "$IMAGE:$GITHUB_REF_NAME"
           --label org.opencontainers.image.source=https://github.com/${{ github.repository }}
           --label org.opencontainers.image.revision="$SHA"
           "${{ matrix.context }}"
@@ -63,72 +92,28 @@ jobs:
         if: matrix.push
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker push "$IMAGE:sha-$SHA"
-
-  promote:
-    name: Move main tag
-    needs: publish
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    # Serialized; each run moves :main to the newest main commit whose five images are published,
-    # so replaced pending runs, late older runs or a failed newer commit cannot leave it stale.
-    concurrency:
-      group: images-promote-main
-      cancel-in-progress: false
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Point main at the newest fully published main commit
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          names=(api state-worker worker scan-worker frontend)
-          accept='application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json'
-          # 0 = all five published, 1 = confirmed missing (404); any other answer fails the job
-          # without retagging, so registry errors can never move :main backwards.
-          published() {
-            for name in "${names[@]}"; do
-              repo="kylederzweite/spellbook-$name"
-              token="$(curl -fsS -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
-                "https://ghcr.io/token?scope=repository:$repo:pull" | jq -r .token)"
-              code="$(curl -sS -o /dev/null -w '%{http_code}' --head -H "Accept: $accept" \
-                -H "Authorization: Bearer $token" "https://ghcr.io/v2/$repo/manifests/sha-$1")"
-              case "$code" in
-                200) ;;
-                404) return 1 ;;
-                *) echo "::error::GHCR answered $code for $repo:sha-$1"; exit 1 ;;
-              esac
-            done
-          }
-          for sha in $(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=30" --jq '.[].sha'); do
-            if published "$sha"; then
-              for name in "${names[@]}"; do
-                image="ghcr.io/kylederzweite/spellbook-$name"
-                docker buildx imagetools create --tag "$image:main" "$image:sha-$sha"
-              done
-              echo ":main -> $sha"
-              exit 0
-            fi
-          done
-          echo "::error::No fully published commit among the 30 newest main commits"
-          exit 1
+          docker push "$IMAGE:$GITHUB_REF_NAME"
 
   release:
     name: Release
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: publish
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    concurrency:
+      group: images-promote-release
+      queue: max
     permissions:
       contents: write
       packages: write
     steps:
-      - name: Require published images for the tagged commit
+      # Every version-tagged image is checked before the release exists, and both `sha-<commit>`
+      # and `release` move from `$GITHUB_REF_NAME` only after the release is created, so concurrent
+      # tags on the same commit cannot mix digests and failures leave `release` untouched.
+      - name: Require published images for the release tag
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           for name in api state-worker worker scan-worker frontend; do
-            docker manifest inspect "ghcr.io/kylederzweite/spellbook-$name:sha-$GITHUB_SHA" > /dev/null
+            docker manifest inspect "ghcr.io/kylederzweite/spellbook-$name:$GITHUB_REF_NAME" > /dev/null
           done
       - name: Create release
         env:
@@ -138,9 +123,9 @@ jobs:
           [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease=(--prerelease)
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
             --generate-notes "${prerelease[@]}"
-      - name: Point release at the tagged commit
+      - name: Point release at the tagged images
         run: |
           for name in api state-worker worker scan-worker frontend; do
             image="ghcr.io/kylederzweite/spellbook-$name"
-            docker buildx imagetools create --tag "$image:release" "$image:sha-$GITHUB_SHA"
+            docker buildx imagetools create --tag "$image:sha-$GITHUB_SHA" --tag "$image:release" "$image:$GITHUB_REF_NAME"
           done
