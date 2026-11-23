@@ -12,7 +12,7 @@ dependencies = [
     "pydantic==2.14.3",
     "uvicorn==0.54.0",
     "psycopg-pool==3.3.3",
-    "httpx2==2.16.0",
+    "httpx2==2.16.2",
     "python-multipart==0.0.33",
 ]
 
