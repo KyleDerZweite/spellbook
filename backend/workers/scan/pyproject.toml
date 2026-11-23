@@ -16,7 +16,7 @@ dependencies = [
 dev = [
     "httpx2>=2.16.0",
     "pytest>=9.2.0",
-    "ruff>=0.17.5",
+    "ruff>=0.17.6",
 ]
 
 [tool.hatch.build.targets.wheel]
