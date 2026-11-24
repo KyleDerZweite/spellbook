@@ -69,6 +69,7 @@ expiry, revocation and idempotent decisions.
 - `inventory_cards`
 - `inventory_groups`
 - `inventory_group_memberships`
+- `physical_boxes`
 - `decks`
 - `deck_cards`
 - `scan_sessions`
@@ -88,6 +89,10 @@ expiry, revocation and idempotent decisions.
 - `inventory_value_references`
 
 ## Current Model Notes
+
+- [Migration 0029](../../backend/drizzle/0029_physical_boxes.sql) adds account-owned Physical Boxes
+  with stable IDs, optional sort conditions and account-scoped create replay keys. The table stores
+  no Inventory quantities.
 
 - inventory, deck, and scan session rows retain an MTG `game` field
 - `user_profiles.account_id` is the internal Spellbook account key

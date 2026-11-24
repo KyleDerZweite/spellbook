@@ -63,6 +63,8 @@ def test_registry_lifecycle_is_account_scoped() -> None:
             assert linked is not None
             assert await boxes.get(linked, box_id) == {**box, "name": "Azure"}
             with pytest.raises(ActorError):
+                await boxes.list(linked)
+            with pytest.raises(ActorError):
                 await boxes.update(linked, box_id, {"name": "Device"})
 
     asyncio.run(scenario())

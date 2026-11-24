@@ -61,6 +61,9 @@ class PhysicalBoxes:
             yield tx, account
 
     async def list(self, actor: Actor) -> list[PhysicalBox]:
+        session = await self._auth.actor_session(actor)
+        if session.device is not None:
+            raise ActorError()
         async with transaction(self._pool, read_only=True) as tx:
             owner = await self._auth.require_actor(actor, tx)
             cursor = await tx.execute(

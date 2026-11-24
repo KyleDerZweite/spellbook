@@ -22,18 +22,18 @@ export const GET: RequestHandler = async ({ params, locals, setHeaders }) => {
 		margin: 4,
 		width: 160
 	});
-	// Set a printable width for each line, including wide glyphs and font fallbacks.
+	// Wrap before wide glyphs approach the page edges while keeping natural spacing.
 	const letters = Array.from(new Intl.Segmenter().segment(box.name), ({ segment }) => segment);
 	const lines: string[] = [];
-	for (let offset = 0; offset < letters.length; offset += 20) {
-		const part = letters.slice(offset, offset + 20);
+	for (let offset = 0; offset < letters.length; offset += 14) {
+		const part = letters.slice(offset, offset + 14);
 		const text = part
 			.join('')
 			.replaceAll('&', '&amp;')
 			.replaceAll('<', '&lt;')
 			.replaceAll('>', '&gt;');
 		lines.push(
-			`<text x="120" y="${181 + lines.length * 18}" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" xml:space="preserve" textLength="${part.length * 11}" lengthAdjust="spacingAndGlyphs">${text}</text>`
+			`<text x="120" y="${181 + lines.length * 18}" font-family="sans-serif" font-size="13" font-weight="bold" text-anchor="middle" xml:space="preserve">${text}</text>`
 		);
 	}
 	const height = 194 + lines.length * 18;
