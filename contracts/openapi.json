@@ -8017,6 +8017,338 @@
 					}
 				}
 			}
+		},
+		"/api/v1/mtg/physical-boxes": {
+			"get": {
+				"summary": "List account-owned Physical Boxes",
+				"description": "Linked device sessions are forbidden.",
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Physical Box registry result",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "private, no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/PhysicalBox"
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Account owner required or invalid request origin",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"summary": "Create a Physical Box",
+				"description": "Linked device sessions are forbidden. The same requestId and name return the original creation result within an account.",
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["name", "requestId"],
+								"properties": {
+									"requestId": { "type": "string", "format": "uuid" },
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 64
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Physical Box registry result",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "private, no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PhysicalBox"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Account owner required or invalid request origin",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request ID already used for a different name",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mtg/physical-boxes/{boxId}": {
+			"get": {
+				"summary": "Resolve an account-owned Physical Box",
+				"description": "Same-account linked device sessions are accepted. Missing and foreign IDs return the same 404.",
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "boxId",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Physical Box registry result",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "private, no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PhysicalBox"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Physical Box not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"patch": {
+				"summary": "Rename a Physical Box or set or clear its condition",
+				"description": "Linked device sessions are forbidden.",
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "boxId",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 64
+									},
+									"condition": {
+										"anyOf": [
+											{
+												"$ref": "#/components/schemas/PhysicalBoxCondition"
+											},
+											{
+												"type": "null"
+											}
+										]
+									}
+								},
+								"minProperties": 1
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Physical Box registry result",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "private, no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PhysicalBox"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Account owner required or invalid request origin",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Physical Box not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	},
 	"components": {
@@ -13754,6 +14086,97 @@
 				},
 				"required": ["name"],
 				"additionalProperties": false
+			},
+			"PhysicalBox": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "name", "condition"],
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"condition": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/PhysicalBoxCondition"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"PhysicalBoxCondition": {
+				"type": "array",
+				"minItems": 1,
+				"maxItems": 3,
+				"items": {
+					"oneOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["field", "oneOf"],
+							"properties": {
+								"field": {
+									"const": "printedColor"
+								},
+								"oneOf": {
+									"type": "array",
+									"minItems": 1,
+									"uniqueItems": true,
+									"items": {
+										"enum": ["white", "blue", "black", "red", "green", "multicolor", "colorless"]
+									}
+								}
+							}
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["field", "oneOf"],
+							"properties": {
+								"field": {
+									"const": "rarity"
+								},
+								"oneOf": {
+									"type": "array",
+									"minItems": 1,
+									"uniqueItems": true,
+									"items": {
+										"enum": ["common", "uncommon", "rare", "mythic", "special", "bonus"]
+									}
+								}
+							}
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["field", "oneOf"],
+							"properties": {
+								"field": {
+									"const": "setCode"
+								},
+								"oneOf": {
+									"type": "array",
+									"minItems": 1,
+									"uniqueItems": true,
+									"items": {
+										"type": "string",
+										"pattern": "^[a-z0-9]{2,6}$"
+									}
+								}
+							}
+						}
+					]
+				},
+				"description": "Sort Rule v1 predicates. Each field occurs at most once."
 			}
 		}
 	},

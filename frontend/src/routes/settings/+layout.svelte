@@ -7,7 +7,8 @@
 	const links = $derived([
 		{ href: '/settings', label: language.t('ui.Profile') },
 		{ href: '/settings/profile-card', label: language.t('ui.Profile.Card') },
-		{ href: '/settings/password', label: language.t('ui.Password') }
+		{ href: '/settings/password', label: language.t('ui.Password') },
+		{ href: '/settings/physical-boxes', label: language.t('physicalBoxes.title') }
 	]);
 </script>
 

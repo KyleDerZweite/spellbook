@@ -1,13 +1,13 @@
 # Spellbook
 
 - Status: Canonical domain glossary
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-24
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account
   repositories
 - Update Triggers:
   - Deck type groups and related Tokens
   - card identity
-  - inventory grouping
+  - inventory grouping and Physical Box identity
   - deck roles
   - reference values
   - coverage and personal Inventory history
@@ -174,10 +174,10 @@ a location. _Avoid_: Re-sorting, physical relocation
 physical Boxes without adding to total ownership. Unknown source or placement requires review.
 _Avoid_: Inventory intake, automatic ownership increase
 
-**Physical box**: A proposed real storage container with a stable identity independent of its sorter
-slot. Future tracking allocates **quantities per Inventory entry and physical box**, not individual
-IDs to each physical copy. No physical Box registry or per-Box quantities are implemented. _Avoid_:
-Virtual Inventory Box, Inventory group, display position, Inventory entry
+**Physical box**: An account-owned real storage container with a stable identity independent of its
+sorter slot. Spellbook records its name and optional sort condition for Cardstation preview. Future
+tracking allocates quantities per Inventory entry and Physical Box. _Avoid_: Virtual Inventory Box,
+Inventory group, display position, Inventory entry
 
 **Unallocated quantity**: A proposed portion of an owned Inventory entry not yet assigned to a known
 physical Box. It is not a new owned copy or proof of its current physical location. _Avoid_: Missing
@@ -187,9 +187,8 @@ Inventory, automatically available source
 values to physical output slots. A filter is a configuration snapshot, not an Inventory group,
 physical Box identity or assertion of placement. _Avoid_: Inventory search filter, ownership
 
-**Box QR marker**: A proposed printed marker identifying a physical Box by stable reference. It is
-not the existing short-lived QR authentication credential, an access grant, a capacity sensor or
-proof of card placement. The payload format remains undecided. _Avoid_: QR login token
+**Box QR marker**: A printable label identifying a Physical Box by format version and stable UUID.
+Account authorization governs lookup. _Avoid_: QR login token
 
 **Eject**: An output concept from the earlier straight-path sorter design. The current circular
 eight-slot Cardstation does not assume an extra fixed Eject. Offline sorting instead requires an

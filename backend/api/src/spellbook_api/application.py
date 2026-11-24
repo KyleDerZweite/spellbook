@@ -15,6 +15,7 @@ from spellbook_core.mtg.dashboard import create_dashboard
 from spellbook_core.mtg.decks import create_decks
 from spellbook_core.mtg.inventory import create_inventory
 from spellbook_core.mtg.inventory_value import create_inventory_values
+from spellbook_core.mtg.physical_boxes import PhysicalBoxes
 from spellbook_core.mtg.power_search import create_power_search
 from spellbook_core.mtg.scan import create_scan
 from spellbook_core.mtg.valuation import create_valuation
@@ -74,6 +75,7 @@ class ApplicationResources:
         )
         self.dashboard = create_dashboard(self.pool, self.auth, self.inventory_values)
         self.inventory = create_inventory(self.pool, self.catalog, self.auth)
+        self.physical_boxes = PhysicalBoxes(self.pool, self.auth)
         self.decks = create_decks(self.pool, self.catalog, self.auth, self.valuation)
         self.scan_worker = HttpScanWorker(configuration.scan_worker_url)
         self.scan = create_scan(
@@ -169,6 +171,7 @@ def create_application(configuration: Configuration) -> ApplicationLifetime:
             catalog=resources.catalog,
             power_search=resources.power_search,
             inventory=resources.inventory,
+            physical_boxes=resources.physical_boxes,
             valuation=resources.valuation,
             dashboard=resources.dashboard,
             scan=resources.scan,

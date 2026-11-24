@@ -1,10 +1,12 @@
 # Cardstation filter and physical Box label interface
 
-- Status: Proposed interface; no implemented Box registry, label generator or device API
-- Last Reviewed: 2026-11-11
+- Status: Physical Box preview interface implemented; quantity allocation and online sorting
+  proposed
+- Last Reviewed: 2026-11-24
 - Source of Truth: accepted Cardstation modes in
   [ADR-0030](../decisions/0030-cardstation-physical-storage.md), current Inventory group behavior,
-  current Scan/Auth contracts and open integration issues
+  [OpenAPI](../../contracts/openapi.json), and the accepted preview scope in
+  [Spellbook #197](https://github.com/KyleDerZweite/spellbook/issues/197)
 - Update Triggers:
   - Offline filter editor and actual output-slot count
   - Physical Box registration, quantity allocation and authorization
@@ -19,17 +21,16 @@
   - [QR Auth](../architecture/auth.md)
   - [Cardstation ADR-0001](https://github.com/KyleDerZweite/spellbook-cardstation/blob/main/docs/adr/0001-offline-first-operating-modes.md)
 
-This document prepares the interface and proposed data shapes. It does **not** select a persistent
-Box schema, commit an API endpoint or start online functionality. The local offline filter interface
-belongs to the Cardstation repository. Spellbook's future website/Android screens own authenticated
-physical Box management.
+Spellbook owns the account's Physical Box registry and printable labels for Cardstation preview.
+Cardstation owns the local offline editor, slot confirmation and preview. Quantity allocation and
+online sorting are deferred.
 
 ## Current UI and strict separation
 
 | User-facing concept                    | Currently available                                              | Proposed later responsibility                                       |
 | -------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
 | **Boxes** in Inventory                 | Virtual, overlapping groups of whole entries                     | Keep unchanged and separately named                                 |
-| **Physical Boxes** / storage locations | Not implemented                                                  | Authorized Box register, quantity allocations and label printing    |
+| **Physical Boxes** / storage locations | Account-owned registry, sort conditions and SVG labels           | Quantity allocation and reconciliation                              |
 | **Sort filters**                       | Inventory/Catalog search filters exist, but are query predicates | Device-executable rule snapshots with explicit slot mapping         |
 | **QR sign-in**                         | Short-lived, one-use credential for authentication               | Never reuse as physical Box identification                          |
 | **Scan review**                        | Authenticated upload, result and explicit new-inventory commit   | Reuse review concepts for new-only intake, not as location transfer |
@@ -80,55 +81,50 @@ and arbitrary executable code are rejected. Neither a preview nor a JSON match p
 physical output occurred. This shared configuration format is **not yet** an authenticated API, an
 editor UI, a physical Box assignment or an Inventory operation.
 
-## Later: authenticated physical Box management
+## Physical Box registry for preview
 
-A separate **Physical Boxes** area in Spellbook could provide:
+In **Settings > Physical Boxes**, an account owner can list and create Boxes, rename them, set or
+clear their sort conditions, and download printable SVG labels. Spellbook assigns an immutable UUID
+on creation and trims the name to 1 to 64 characters. A Box belongs to one account. Its identity is
+independent of the sort condition and the Cardstation slot.
 
-1. Create a Box with human-readable name and optional note. Spellbook creates an immutable,
-   account-scoped Box ID. Nothing is added to owned Inventory or allocated on creation.
-2. View and print a label with the Box name, short human-readable identifier and QR.
-3. Scan the QR from the signed-in website/phone client to open that physical Box **after** Account
-   authorization. A QR must not select or reveal another Account's Box.
-4. Edit the displayed name without changing the QR identity. Retire/replace a damaged label after
-   authorization. Reprinting the same identity does not create another Box.
-5. Show **recorded** quantities, `unallocated / location unknown`, and unresolved reconciliation.
-   Never imply that a QR scan proves the Box is present, not full or contains the recorded cards.
+`GET /api/v1/mtg/physical-boxes/{boxId}` returns:
 
-A Box has a **stable identity**; a device slot is a **temporary placement**. A sorting rule is a
-**job/preset binding**, not part of the Box identity. This avoids reprinting Box labels whenever
-filters change and prevents a virtual Inventory group from becoming a location by accident.
+```json
+{
+  "id": "6f107d8b-8f65-4f4e-9834-70b5d4b86612",
+  "name": "Blue cards",
+  "condition": [{ "field": "printedColor", "oneOf": ["blue"] }]
+}
+```
 
-### Proposed QR contract, not yet accepted
+`condition` is `null` when unset. A condition uses one to three
+[Sort Rule v1 predicates](./cardstation-sort-rule-v1.md#document). Fields are unique and joined with
+AND. Each predicate matches any of its `oneOf` values. The Box condition ends at the predicate list.
+Cardstation resolves each label with its linked bearer session, confirms the slot with the operator
+and adds an explicit Reject destination. Conflicts require explicit ordering or a revised mapping
+before preview.
 
-A candidate short text payload is `sbx:1:<lowercase-uuid>`, for example:
+The lookup accepts same-account sessions, including linked device bearer sessions. Missing and
+foreign UUIDs receive the same 404. An account owner's session can also list Boxes with
+`GET /api/v1/mtg/physical-boxes`, create one with `POST` and `{ "name": "Blue cards" }`, and update
+it with `PATCH /api/v1/mtg/physical-boxes/{boxId}`. PATCH accepts `name`, `condition`, or both. An
+explicit `null` clears the condition and omitted fields retain their values. Registry responses use
+`Cache-Control: private, no-store`.
+
+### QR payload
+
+The printable SVG encodes exactly `sbx:1:<canonical lowercase uuid>`, for example:
 
 ```text
 sbx:1:6f107d8b-8f65-4f4e-9834-70b5d4b86612
 ```
 
-Version and Box ID are public identifiers, **not credentials**. Do not encode Account IDs,
-authentication tokens, collection contents, a filter expression or a mutable slot number. Parsing
-must reject unknown versions, invalid UUIDs, unexpected fields and URL redirects. A copied QR must
-not authorize a read or write. Server-side Actor checks are mandatory when Box APIs exist.
+Renaming a Box or changing its condition leaves the QR payload unchanged. The label carries the
+format version and Box ID only. It grants no access and provides no evidence of physical presence,
+capacity, contents or placement. Authentication uses the separate linked-device session flow.
 
-An Account-origin URL embedded in the label may be convenient, but a non-host-specific marker
-supports self-hosting and a local device that cannot resolve web links. Choose the exact QR
-namespace, print size, error correction and optional human-readable short code with
-[Spellbook #197](https://github.com/KyleDerZweite/spellbook/issues/197). The existing one-time QR
-Auth flow is a **different protocol**.
-
-### Future wire/domain shapes for review
-
-These are conceptual names, **not added contracts or routes**:
-
-| Concept              | Minimum fields                                                       | Invariant                                         |
-| -------------------- | -------------------------------------------------------------------- | ------------------------------------------------- |
-| `PhysicalBox`        | `id`, `owner` (from Auth), `name`, `revision`                        | Identity independent of Group, rule and slot      |
-| `BoxLabel`           | `boxId`, `formatVersion`                                             | No authorization or mutable filter in QR          |
-| `SortRulePreset`     | `id`, `revision`, `rule: CardstationSortRuleV1`                      | A job freezes the validated DSL document          |
-| `SlotBinding`        | `jobId`, `slot`, optional `boxId`, `observationVersion`              | Binding is not proof that a card arrived          |
-| `QuantityAllocation` | `entryId`, `boxId` or unknown location, `quantity`                   | Sum across locations never exceeds owned quantity |
-| `Relocation`         | Request/event IDs, source, destination, observed quantities, outcome | One authorized, atomic and idempotent effect      |
+### Future quantity allocation
 
 Inventory entries already own Printing, Finish and Condition; allocation should reference that
 identity rather than invent individual Physical Copy IDs. For each Inventory entry, the future
@@ -145,19 +141,16 @@ must not quietly subtract from an arbitrary Box. Box candidate matching around 9
 
 ## Screen states and acceptance
 
-| Screen                          | Draft / success                                                 | Uncertain / blocked behavior                                                      |
-| ------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Offline rule editor             | Dirty draft, preview, validated snapshot, running read-only     | Unknown classifier value routes to configured fallback; missing slot blocks Start |
-| Physical Box directory (future) | Create, rename, print/reprint, archived label                   | Account mismatch denied without revealing metadata                                |
-| Physical Box detail (future)    | Recorded quantity and last reconciled observation               | Show stale, unknown or unresolved counts separately                               |
-| Job setup (future)              | Select existing box IDs and saved preset, inspect rule snapshot | Missing/ambiguous QR or moved Box requires operator attention                     |
-| Completion/review (future)      | Explicit confirmed relocation and unchanged Inventory total     | Jam, duplicate event, uncertain source or output cannot commit silently           |
+| Screen                       | Draft / success                                                 | Uncertain / blocked behavior                                                      |
+| ---------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Offline rule editor          | Dirty draft, preview, validated snapshot, running read-only     | Unknown classifier value routes to configured fallback; missing slot blocks Start |
+| Physical Box directory       | Create, rename, set or clear condition, and print an SVG label  | Account mismatch denied without revealing metadata                                |
+| Physical Box detail (future) | Recorded quantity and last reconciled observation               | Show stale, unknown or unresolved counts separately                               |
+| Job setup (future)           | Select existing box IDs and saved preset, inspect rule snapshot | Missing/ambiguous QR or moved Box requires operator attention                     |
+| Completion/review (future)   | Explicit confirmed relocation and unchanged Inventory total     | Jam, duplicate event, uncertain source or output cannot commit silently           |
 
-The future Box UI should use the existing site's dialog, list, action and localization patterns.
-Actual implementation will require English/German strings, keyboard/focus checks, mobile layout, and
-authorized API tests. The Cardstation's local web UI has its own device-state semantics. Avoid
-implementing one interface that pretends to manage both the independent device and Spellbook Account
-state.
+The Spellbook registry has English and German UI. Cardstation preview uses its local UI for slot
+confirmation and rules.
 
 ## Delivery boundary
 
@@ -166,11 +159,12 @@ state.
   [local web issue #5](https://github.com/KyleDerZweite/spellbook-cardstation/issues/5).
 - **Later:** New-card intake under
   [Cardstation #27](https://github.com/KyleDerZweite/spellbook-cardstation/issues/27).
-- **Later:** Authenticated physical Box management, QR labels, per-Box quantities and online
-  relocation under
+- **Preview:** Physical Box registry, conditions, labels and account-scoped lookup under
+  [Spellbook #197](https://github.com/KyleDerZweite/spellbook/issues/197). Preview does not actuate,
+  allocate stock or transfer Inventory.
+- **Later:** Per-Box quantities and online relocation under
   [Cardstation #28](https://github.com/KyleDerZweite/spellbook-cardstation/issues/28) and existing
   Spellbook issues [#196](https://github.com/KyleDerZweite/spellbook/issues/196),
-  [#197](https://github.com/KyleDerZweite/spellbook/issues/197),
   [#199](https://github.com/KyleDerZweite/spellbook/issues/199),
   [#200](https://github.com/KyleDerZweite/spellbook/issues/200) and
   [#201](https://github.com/KyleDerZweite/spellbook/issues/201).
