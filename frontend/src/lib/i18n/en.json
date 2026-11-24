@@ -1279,5 +1279,19 @@
 	"notice.This.device.is.no.longer.linked": "This device is no longer linked.",
 	"notice.Use.1.to.64.characters.without.control.characters": "Use 1 to 64 characters without control characters.",
 	"notice.Could.not.update.the.device.Try.again": "Could not update the device. Try again.",
-	"devices.unavailable": "Linked devices could not be loaded. Reload the page to try again."
+	"devices.unavailable": "Linked devices could not be loaded. Reload the page to try again.",
+	"physicalBoxes.title": "Physical Boxes",
+	"physicalBoxes.create": "Create Physical Box",
+	"physicalBoxes.empty": "No Physical Boxes yet.",
+	"physicalBoxes.label": "Download printable QR label (SVG)",
+	"physicalBoxes.condition": "Sort condition",
+	"physicalBoxes.conditionHelp": "A card must match at least one value in every field you fill in.",
+	"physicalBoxes.printedColor": "Printed color",
+	"physicalBoxes.setCodes": "Set codes (lowercase, separated by commas)",
+	"physicalBoxes.clear": "Clear condition",
+	"physicalBoxes.createConflict": "This form already created a different box. Review the list before creating another.",
+	"physicalBoxes.nameError": "Could not save the name. Use 1 to 64 printable characters.",
+	"physicalBoxes.conditionError": "Could not save the condition. Use unique set codes with 2 to 6 lowercase letters or digits.",
+	"rarity.special": "Special",
+	"rarity.bonus": "Bonus"
 }

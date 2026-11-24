@@ -1,7 +1,7 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-24
 - Source of Truth: product requirements, scan API code, maintainer scope brief and supplied hardware
   concept
 - Update Triggers:
@@ -48,9 +48,10 @@ supersede the open-ended modes and controller choices below:
 - **Online sorting is deferred** and moves quantities of already owned cards between physical Boxes;
   it must not increase ownership. A roughly 90% matching Box is only a source suggestion that
   requires confirmation, especially for partial stacks.
-- Current Inventory **Boxes** are virtual overlapping whole-entry groups. A future physical Box has
-  an independent stable identity and quantity allocations. Output slots are temporary device
-  positions, not Inventory Boxes. There is no implemented physical Box registry.
+- Current Inventory **Boxes** are virtual overlapping whole-entry groups. The
+  [Physical Box registry](./cardstation-filter-box-interface.md#physical-box-registry-for-preview)
+  stores stable Box identities and conditions for preview. Output slots are temporary device
+  positions. Quantity allocations are deferred.
 - The current circular concept has eight output slots. Do not invent a ninth Reject position. The
   first sorting criterion and fallback assignment still need hardware confirmation.
 
@@ -122,10 +123,10 @@ selected Deck. Card colour is distinct from Commander colour identity. A Deck ma
 copies or assemble that Deck. The current Inventory query has neither colour nor Deck predicates;
 this is a prototype proposal, not an implemented filtering service.
 
-Keep three identities separate: the implemented virtual Inventory Box, the **independent** proposed
-physical Box, and the temporary device position. An optional future navigation link does not convert
-a Group into a location. Matching Inventory is not observed physical content. Previewing a rule or
-linking a container does not change owned quantities, establish placement or activate a device rule.
+Keep three identities separate: the implemented virtual Inventory Box, the **independent** physical
+Box, and the temporary device position. An optional future navigation link does not convert a Group
+into a location. Matching Inventory is not observed physical content. Previewing a rule or linking a
+container does not change owned quantities, establish placement or activate a device rule.
 Overlapping views must not inflate Inventory totals.
 
 The prototype explores filter preview/confirmation/cancellation and physical link/unlink. Automatic
@@ -156,17 +157,10 @@ device handling; a straight path alone does not prove a safe outcome in those ca
 
 ## Box identity and availability
 
-A proposed physical Box has a durable identity independent of its device position. The accepted
-direction separates that identity from the **sort filter preset** and its per-job slot binding.
-Candidate future filters include printed colour, colour identity, set, rarity, card type and
-selected Deck membership. Overlaps, priority, unknown values and changes during a job require a
-later contract; they are not required for the first local filter editor.
-
-The concept puts a QR marker on the rear inner wall, viewed at an angle. One camera or reader per
-position is an idea, not a selected part. QR may carry a filter or reference a versioned
-configuration. An ID/config-reference design permits a stored rule to change without reprinting the
-marker, but offline evaluation requires that configuration on the device. QR payload, optional
-signatures and configuration activation remain open.
+The
+[Physical Box preview interface](./cardstation-filter-box-interface.md#physical-box-registry-for-preview)
+defines the registry, identity-only QR and authenticated lookup. The concept puts a QR marker on the
+rear inner wall, viewed at an angle. One camera or reader per position remains a design option.
 
 The proposed availability rule uses a visible, recognized QR as evidence that the box is available.
 In the earlier straight-path concept, cards hiding the QR cause further matching cards to go to

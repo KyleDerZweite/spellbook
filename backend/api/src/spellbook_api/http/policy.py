@@ -16,6 +16,8 @@ HOST_BODY_BYTES = 12 * 1024 * 1024
 
 
 def cache_policy(path: str) -> str | None:
+    if path == "/api/v1/mtg/physical-boxes" or path.startswith("/api/v1/mtg/physical-boxes/"):
+        return "private, no-store"
     if path in {
         "/api/v1/mtg/inventory/value",
         "/api/v1/mtg/inventory/value-history",

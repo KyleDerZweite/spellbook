@@ -28,7 +28,7 @@ def write_journal(directory: Path, sqls: tuple[bytes, ...]) -> None:
 def test_real_history_hashes_timestamps_and_breakpoints() -> None:
     migrations = read_migrations(SQL_DIRECTORY)
     journal = json.loads((SQL_DIRECTORY / "meta/_journal.json").read_bytes())
-    assert len(migrations) == 29
+    assert len(migrations) == 30
     for migration, entry in zip(migrations, journal["entries"], strict=True):
         raw = (SQL_DIRECTORY / f"{entry['tag']}.sql").read_bytes()
         assert migration.created_at == entry["when"]

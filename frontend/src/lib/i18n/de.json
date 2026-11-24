@@ -1279,5 +1279,19 @@
 	"notice.This.device.is.no.longer.linked": "Dieses Gerät ist nicht mehr verknüpft.",
 	"notice.Use.1.to.64.characters.without.control.characters": "Verwende 1 bis 64 Zeichen ohne Steuerzeichen.",
 	"notice.Could.not.update.the.device.Try.again": "Das Gerät konnte nicht aktualisiert werden. Versuche es erneut.",
-	"devices.unavailable": "Verknüpfte Geräte konnten nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen."
+	"devices.unavailable": "Verknüpfte Geräte konnten nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen.",
+	"physicalBoxes.title": "Physische Boxen",
+	"physicalBoxes.create": "Physische Box anlegen",
+	"physicalBoxes.empty": "Es gibt noch keine physischen Boxen.",
+	"physicalBoxes.label": "Druckbares QR-Etikett herunterladen (SVG)",
+	"physicalBoxes.condition": "Sortierbedingung",
+	"physicalBoxes.conditionHelp": "Eine Karte muss in jedem ausgefüllten Feld mindestens einen Wert erfüllen.",
+	"physicalBoxes.printedColor": "Gedruckte Farbe",
+	"physicalBoxes.setCodes": "Set-Codes (kleingeschrieben, durch Kommas getrennt)",
+	"physicalBoxes.clear": "Bedingung entfernen",
+	"physicalBoxes.createConflict": "Dieses Formular hat bereits eine andere Box angelegt. Prüfe die Liste, bevor du eine weitere Box anlegst.",
+	"physicalBoxes.nameError": "Der Name konnte nicht gespeichert werden. Verwende 1 bis 64 druckbare Zeichen.",
+	"physicalBoxes.conditionError": "Die Bedingung konnte nicht gespeichert werden. Verwende eindeutige Set-Codes mit 2 bis 6 Kleinbuchstaben oder Ziffern.",
+	"rarity.special": "Spezial",
+	"rarity.bonus": "Bonus"
 }

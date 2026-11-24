@@ -1,7 +1,7 @@
 # Cardstation sort-rule DSL v1
 
 - Status: Proposed contract for offline phase 1; runtime integration is not implemented
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-24
 - Source of Truth: [JSON Schema](../../contracts/schemas/cardstation-sort-rule.v1.schema.json),
   [cross-language fixtures](../../contracts/fixtures/cardstation-sort-rule.v1.json)
 - Update Triggers:
@@ -64,10 +64,9 @@ future authenticated device-job API. Until that API is specified, **this DSL def
 exchanged configuration document**. Offline Cardstation must not fetch a rule from Spellbook to
 start.
 
-Virtual Spellbook Boxes remain overlapping Inventory Groups. Physical Boxes are account-owned
-storage locations in a later phase, with quantities per physical Box. A future Box QR label contains
-a stable Box identifier, never this rule, credentials or account Inventory data. Label registration,
-permissions, and device delivery are separate contracts.
+The [Physical Box registry](./cardstation-filter-box-interface.md#physical-box-registry-for-preview)
+reuses the v1 `when` predicate list as a per-Box condition. Cardstation binds conditions to
+operator-confirmed slots when preparing a preview. The offline editor remains independent.
 
 ## Synchronizing two repos
 

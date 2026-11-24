@@ -10,6 +10,7 @@ from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.dashboard import Dashboard
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.inventory import Inventory
+from spellbook_core.mtg.physical_boxes import PhysicalBoxes
 from spellbook_core.mtg.power_search import PowerSearch
 from spellbook_core.mtg.scan import Scan
 from spellbook_core.mtg.valuation import Valuation
@@ -25,6 +26,7 @@ from spellbook_api.http.mtg import (
     routes_dashboard,
     routes_decks,
     routes_inventory,
+    routes_physical_boxes,
     routes_power_search,
     routes_scan,
     routes_valuation,
@@ -48,6 +50,7 @@ def create_http_application(
     dashboard: Dashboard | None = None,
     scan: Scan | None = None,
     decks: Decks | None = None,
+    physical_boxes: PhysicalBoxes | None = None,
 ) -> FastAPI:
     resource = files("spellbook_api").joinpath("openapi.json")
     schema_text = (
@@ -97,6 +100,14 @@ def create_http_application(
         assert auth is not None
         http.include_router(
             routes_inventory.create_inventory_routes(auth, inventory, configuration.public_origin)
+        )
+    if physical_boxes is not None:
+        if auth is None:
+            raise ValueError("Physical Box routes require Auth")
+        http.include_router(
+            routes_physical_boxes.create_physical_box_routes(
+                auth, physical_boxes, configuration.public_origin
+            )
         )
     if scan is not None:
         if auth is None:

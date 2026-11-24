@@ -51,6 +51,29 @@ function matches(field: SortField, value: unknown): value is string {
 	return restriction instanceof RegExp ? restriction.test(value) : restriction.includes(value);
 }
 
+export function parseSortPredicates(input: unknown): SortPredicate[] {
+	if (!Array.isArray(input) || input.length < 1 || input.length > 3)
+		throw new ValidationError('Each Sort rule needs 1 to 3 predicates');
+	const seen = new Set<SortField>();
+	return input.map((entry) => {
+		const condition = object(entry, ['field', 'oneOf']);
+		const field = condition.field;
+		if (typeof field !== 'string' || !Object.hasOwn(allowed, field))
+			throw new ValidationError('Unknown Sort DSL field');
+		const typedField = field as SortField;
+		if (seen.has(typedField)) throw new ValidationError('Repeated field in one rule');
+		seen.add(typedField);
+		if (
+			!Array.isArray(condition.oneOf) ||
+			condition.oneOf.length < 1 ||
+			condition.oneOf.some((value) => !matches(typedField, value)) ||
+			new Set(condition.oneOf).size !== condition.oneOf.length
+		)
+			throw new ValidationError('Invalid Sort predicate values');
+		return { field: typedField, oneOf: [...condition.oneOf] };
+	});
+}
+
 export function parseCardstationSortRule(input: unknown): CardstationSortRuleV1 {
 	const document = object(input, ['dsl', 'version', 'name', 'rules', 'fallbackSlot']);
 	if (document.dsl !== 'spellbook.cardstation.sort' || document.version !== 1)
@@ -61,26 +84,7 @@ export function parseCardstationSortRule(input: unknown): CardstationSortRuleV1 
 		throw new ValidationError('Invalid Sort DSL rules');
 	const rules: SortRule[] = document.rules.map((entry) => {
 		const rule = object(entry, ['when', 'slot']);
-		if (!Array.isArray(rule.when) || rule.when.length < 1 || rule.when.length > 3)
-			throw new ValidationError('Each Sort rule needs 1 to 3 predicates');
-		const seen = new Set<SortField>();
-		const when: SortPredicate[] = rule.when.map((entry) => {
-			const condition = object(entry, ['field', 'oneOf']);
-			const field = condition.field;
-			if (typeof field !== 'string' || !(field in allowed))
-				throw new ValidationError('Unknown Sort DSL field');
-			const typedField = field as SortField;
-			if (seen.has(typedField)) throw new ValidationError('Repeated field in one rule');
-			seen.add(typedField);
-			if (
-				!Array.isArray(condition.oneOf) ||
-				condition.oneOf.length < 1 ||
-				condition.oneOf.some((value) => !matches(typedField, value)) ||
-				new Set(condition.oneOf).size !== condition.oneOf.length
-			)
-				throw new ValidationError('Invalid Sort predicate values');
-			return { field: typedField, oneOf: [...condition.oneOf] };
-		});
+		const when = parseSortPredicates(rule.when);
 		return { when, slot: slot(rule.slot) };
 	});
 	return {
