@@ -5,6 +5,7 @@ function fixture(hasWaitingWorker = true) {
 	const display = Object.assign(new EventTarget(), { matches: false });
 	const worker = { postMessage: vi.fn() };
 	const registration = Object.assign(new EventTarget(), {
+		update: vi.fn().mockResolvedValue(undefined),
 		waiting: hasWaitingWorker ? worker : null,
 		installing: null as (EventTarget & { state: string }) | null
 	});
@@ -61,52 +62,30 @@ describe('PWA browser lifecycle', () => {
 		expect(current.state.online).toBe(false);
 	});
 
-	it('never activates or reloads a waiting worker without an explicit choice', async () => {
+	it('checks once at startup and applies a waiting update without reloading', async () => {
 		await settle();
-		expect(current.state.updateReady).toBe(true);
-		expect(current.worker.postMessage).not.toHaveBeenCalled();
-		current.serviceWorker.dispatchEvent(new Event('controllerchange'));
-		expect(current.window.location.reload).not.toHaveBeenCalled();
-		current.state.reloadForUpdate();
+		expect(current.registration.update).toHaveBeenCalledTimes(1);
 		expect(current.worker.postMessage).toHaveBeenCalledExactlyOnceWith({ type: 'SKIP_WAITING' });
-		expect(current.state.updating).toBe(true);
+		current.serviceWorker.dispatchEvent(new Event('controllerchange'));
 		expect(current.window.location.reload).not.toHaveBeenCalled();
-		current.serviceWorker.dispatchEvent(new Event('controllerchange'));
-		current.serviceWorker.dispatchEvent(new Event('controllerchange'));
-		expect(current.window.location.reload).toHaveBeenCalledTimes(1);
 	});
 
-	it('notices an update installed later and keeps activation errors recoverable', async () => {
+	it('checks periodically while online without activating updates in an open tab', async () => {
 		current.stop();
+		vi.useFakeTimers();
 		current = fixture(false);
 		await settle();
-		expect(current.state.updateReady).toBe(false);
-		const installing = Object.assign(new EventTarget(), { state: 'installing' });
-		current.registration.installing = installing;
-		current.registration.dispatchEvent(new Event('updatefound'));
 		current.registration.waiting = current.worker;
-		installing.state = 'installed';
-		installing.dispatchEvent(new Event('statechange'));
-		expect(current.state.updateReady).toBe(true);
-		current.worker.postMessage.mockImplementationOnce(() => {
-			throw new Error('unavailable');
-		});
-		current.state.reloadForUpdate();
-		expect(current.state.updating).toBe(false);
-		expect(current.state.updateError).toContain('Try again');
-		current.state.reloadForUpdate();
-		expect(current.state.updating).toBe(true);
-	});
-
-	it('times out a stuck activation without reloading or losing the retry', async () => {
-		vi.useFakeTimers();
-		await settle();
-		current.state.reloadForUpdate();
-		vi.advanceTimersByTime(15_000);
-		expect(current.state.updating).toBe(false);
-		expect(current.state.updateError).toContain('Try again');
-		current.serviceWorker.dispatchEvent(new Event('controllerchange'));
-		expect(current.window.location.reload).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(30 * 60_000);
+		expect(current.registration.update).toHaveBeenCalledTimes(2);
+		expect(current.worker.postMessage).not.toHaveBeenCalled();
+		current.navigator.onLine = false;
+		current.window.dispatchEvent(new Event('offline'));
+		await vi.advanceTimersByTimeAsync(30 * 60_000);
+		expect(current.registration.update).toHaveBeenCalledTimes(2);
+		current.stop();
+		await vi.advanceTimersByTimeAsync(30 * 60_000);
+		expect(current.registration.update).toHaveBeenCalledTimes(2);
 	});
 
 	it('defers the native install prompt to a user action and consumes it once', async () => {
@@ -140,9 +119,10 @@ describe('PWA browser lifecycle', () => {
 
 	it('ignores registration promises that resolve after Shell is destroyed', async () => {
 		current.stop();
+		current = fixture();
+		current.stop();
 		await settle();
-		expect(current.state.updateReady).toBe(false);
-		current.state.reloadForUpdate();
+		expect(current.registration.update).not.toHaveBeenCalled();
 		expect(current.worker.postMessage).not.toHaveBeenCalled();
 	});
 });

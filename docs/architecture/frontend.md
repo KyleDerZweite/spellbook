@@ -610,8 +610,8 @@ network navigation receives the offline fallback; HTTP errors pass through. No a
 queue is available offline.
 
 Shell owns the shared [PWA state](../../frontend/src/lib/pwa/state.svelte.ts) listeners for
-installation, display mode, connectivity and waiting updates. A waiting worker presents an explicit
-reload action; it does not force an update over a draft. Save work before selecting reload. Install
+installation, display mode and connectivity. A fresh page checks for updates and activates a
+worker that was already waiting. Open pages check every 30 minutes without reloading. Install
 guidance uses the browser's available prompt or manual install instructions. HTTPS outside localhost
 is required. [Deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use
 steps.

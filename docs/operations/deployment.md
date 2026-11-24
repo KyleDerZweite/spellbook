@@ -408,7 +408,8 @@ Installation is online-first. Only immutable JavaScript/CSS, existing public ico
 `offline.html` enter the service-worker cache. Account/API/auth/QR responses and card artifacts
 remain network-only. A network navigation failure displays public reconnect guidance; HTTP error
 responses retain their original behavior. There are no offline account writes or MTG recognition
-assets. When an update is waiting, save drafts and choose the explicit reload action.
+assets. Fresh pages check for updates and activate a waiting worker. Open pages check every 30
+minutes without reloading.
 
 These steps describe the accepted delivery. The PWA pages and navigation are implemented. Deployed
 HTTPS and physical Android acceptance remain separate from implementation checks.

@@ -185,8 +185,9 @@ public hosting retains its proxy rate-limit requirement.
 The service worker caches only build-listed immutable JavaScript/CSS, existing public app icons/logo
 and `offline.html`. Navigations use the network, with the public fallback only on a network error;
 HTTP error responses retain their status and body. Private SSR pages, API responses, authentication,
-QR state and card artifacts remain network-only. Updates require an explicit reload when a worker is
-waiting, preserving drafts until the user chooses it. The PWA uses HTTPS outside localhost.
+QR state and card artifacts remain network-only. A fresh page activates a waiting worker and checks
+for updates. Open pages check every 30 minutes and keep their drafts. The PWA uses HTTPS outside
+localhost.
 Installation does not establish offline Inventory writes or recognition support.
 
 The backend QR transport, manifest and service worker are integrated. The PWA pages and navigation
