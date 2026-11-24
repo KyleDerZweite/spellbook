@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	import type { PageProps } from './$types';
 
@@ -20,7 +21,15 @@
 
 <svelte:head><title>{language.t('physicalBoxes.title')} | Spellbook</title></svelte:head>
 <div class="page-title"><h1>{language.t('physicalBoxes.title')}</h1></div>
-<form use:enhance method="POST" action="?/create">
+<form
+	use:enhance={() =>
+		async ({ result, update }) => {
+			if (result.type === 'failure' && result.status === 409) await invalidateAll();
+			await update();
+		}}
+	method="POST"
+	action="?/create"
+>
 	<input
 		type="hidden"
 		name="requestId"
