@@ -107,10 +107,17 @@ before preview.
 
 The lookup accepts same-account sessions, including linked device bearer sessions. Missing and
 foreign UUIDs receive the same 404. An account owner's session can also list Boxes with
-`GET /api/v1/mtg/physical-boxes`, create one with `POST` and `{ "name": "Blue cards" }`, and update
-it with `PATCH /api/v1/mtg/physical-boxes/{boxId}`. PATCH accepts `name`, `condition`, or both. An
-explicit `null` clears the condition and omitted fields retain their values. Registry responses use
-`Cache-Control: private, no-store`.
+`GET /api/v1/mtg/physical-boxes`, create one with `POST`, and update it with
+`PATCH /api/v1/mtg/physical-boxes/{boxId}`.
+
+```json
+{ "name": "Blue cards", "requestId": "efe8899c-ef69-44d8-b07c-021a87631c61" }
+```
+
+Retrying the same name and request UUID under the same account returns the original creation
+result. Changing the name with the same request UUID returns 409. PATCH accepts `name`,
+`condition`, or both. An explicit `null` clears the condition and omitted fields retain their
+values. Registry responses use `Cache-Control: private, no-store`.
 
 ### QR payload
 
@@ -120,9 +127,10 @@ The printable SVG encodes exactly `sbx:1:<canonical lowercase uuid>`, for exampl
 sbx:1:6f107d8b-8f65-4f4e-9834-70b5d4b86612
 ```
 
-Renaming a Box or changing its condition leaves the QR payload unchanged. The label carries the
-format version and Box ID only. It grants no access and provides no evidence of physical presence,
-capacity, contents or placement. Authentication uses the separate linked-device session flow.
+Renaming a Box or changing its condition leaves the QR payload unchanged. The label shows the name
+and a short ID. The QR payload carries the format version and Box ID. It grants no access and
+provides no evidence of physical presence, capacity, contents or placement. Authentication uses the
+separate linked-device session flow.
 
 ### Future quantity allocation
 

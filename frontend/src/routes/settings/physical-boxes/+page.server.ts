@@ -3,7 +3,7 @@ import { parseSortPredicates, type SortField } from '@spellbook/contracts/cardst
 import { isPhysicalBoxId, type PhysicalBox } from '@spellbook/contracts/physical-boxes.ts';
 import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { requireSameOrigin } from '#lib/server/auth/local.ts';
-import { RemoteError } from '#lib/server/remote/errors.ts';
+import { RemoteError, RequestConflictError } from '#lib/server/remote/errors.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const isValidation = (status: number) => status === 400 || status === 422;
@@ -20,6 +20,7 @@ export const load: PageServerLoad = async ({ locals, setHeaders }) => {
 };
 
 function saveFailure(cause: unknown) {
+	if (cause instanceof RequestConflictError) return 409;
 	if (cause instanceof ValidationError) return 400;
 	if (cause instanceof RemoteError) return cause.status;
 	throw cause;

@@ -31,7 +31,6 @@
 		id="new-box-name"
 		name="name"
 		required
-		maxlength="64"
 		value={form?.intent === 'create' ? form.name : ''}
 	/>
 	<button type="submit">{language.t('physicalBoxes.create')}</button>
@@ -72,13 +71,7 @@
 		<form use:enhance method="POST" action="?/rename">
 			<input type="hidden" name="id" value={box.id} />
 			<label for={`name-${box.id}`}>{language.t('ui.Name')}</label>
-			<input
-				id={`name-${box.id}`}
-				name="name"
-				required
-				maxlength="64"
-				value={renameError?.name ?? box.name}
-			/>
+			<input id={`name-${box.id}`} name="name" required value={renameError?.name ?? box.name} />
 			<button type="submit">{language.t('ui.Rename')}</button>
 			{#if renameError}<p role="alert">
 					{language.t(
