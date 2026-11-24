@@ -42,7 +42,7 @@ self.addEventListener('activate', (event) => {
 	);
 });
 
-// A waiting update stays waiting until the user explicitly chooses to reload.
+// A fresh page can activate a prepared worker without reloading open pages.
 self.addEventListener('message', (event) => {
 	if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
 });

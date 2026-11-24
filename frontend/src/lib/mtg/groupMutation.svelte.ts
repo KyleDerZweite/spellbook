@@ -39,8 +39,11 @@ export class GroupMutation {
 					if (!write.current() || account !== this.account()) return;
 					await this.refresh();
 					if (write.current() && account === this.account()) this.onSuccess();
-				} else if (result.type === 'redirect') await update({ reset: false });
-				else
+				} else if (result.type === 'redirect') {
+					this.pendingRequests.delete(payload);
+					await update({ reset: false });
+					if (write.current() && account === this.account()) this.onSuccess();
+				} else
 					this.error =
 						result.type === 'failure' && typeof result.data?.message === 'string'
 							? result.data.message

@@ -363,8 +363,8 @@ Rendered desktop and narrow journeys must cover password fallback, QR pending/ex
 sign-in return to approval, manual input and foreign-instance rejection, camera
 denial/unavailability and stream cleanup. Verify installation from `/app`, standalone/narrow-only
 App, Search, Inventory, Decks and Connect bottom navigation, offline navigation without cached
-private data, and a waiting update that reloads only on explicit action. Check draft retention
-before reload and no unsolicited reload when another window activates an update. Use deployed
+private data, and silent update checks on fresh entry and at 30-minute intervals. Check that a
+fresh page activates a waiting worker and another open page retains its draft. Use deployed
 same-origin HTTPS for physical phone camera/install acceptance.
 
 Attempt Android Studio/emulator checks only with already installed tools. If those tools are absent

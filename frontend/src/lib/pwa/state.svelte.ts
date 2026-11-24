@@ -10,13 +10,9 @@ export function createPwaState() {
 	let online = $state(true);
 	let canInstall = $state(false);
 	let installing = $state(false);
-	let updateReady = $state(false);
-	let updating = $state(false);
-	let updateError = $state('');
 	let installPrompt: InstallPrompt | undefined;
 	let registration: ServiceWorkerRegistration | undefined;
 	let stop: (() => void) | undefined;
-	let reloadForUpdate = () => {};
 
 	return {
 		get standalone() {
@@ -31,20 +27,9 @@ export function createPwaState() {
 		get installing() {
 			return installing;
 		},
-		get updateReady() {
-			return updateReady;
-		},
-		get updating() {
-			return updating;
-		},
-		get updateError() {
-			return updateError;
-		},
 		start() {
 			if (stop) return stop;
 			let active = true;
-			let reloadRequested = false;
-			let updateTimeout: ReturnType<typeof setTimeout> | undefined;
 			const cleanups: Array<() => void> = [];
 			const display = window.matchMedia('(display-mode: standalone)');
 			const updateDisplay = () => {
@@ -80,72 +65,38 @@ export function createPwaState() {
 				window.removeEventListener('beforeinstallprompt', beforeInstall);
 				window.removeEventListener('appinstalled', installed);
 			});
-			const observe = (value: ServiceWorkerRegistration | undefined) => {
-				if (!active || !value || registration === value) return;
-				registration = value;
-				const waiting = () => {
-					updateReady = !!value.waiting;
-				};
-				const watchInstalling = () => {
-					const worker = value.installing;
-					if (!worker) return;
-					worker.addEventListener('statechange', waiting);
-					cleanups.push(() => worker.removeEventListener('statechange', waiting));
-				};
-				value.addEventListener('updatefound', watchInstalling);
-				cleanups.push(() => value.removeEventListener('updatefound', watchInstalling));
-				waiting();
-				watchInstalling();
-			};
 			if ('serviceWorker' in navigator) {
-				// SvelteKit owns registration. This observes both existing and first-load registrations.
-				void navigator.serviceWorker
-					.getRegistration()
-					.then(observe)
-					.catch(() => {});
-				void navigator.serviceWorker.ready.then(observe).catch(() => {});
-				const controllerChanged = () => {
-					if (reloadRequested) {
-						reloadRequested = false;
-						clearTimeout(updateTimeout);
-						window.location.reload();
+				let checking = false;
+				const check = async () => {
+					if (!registration || !online || checking) return;
+					checking = true;
+					try {
+						await registration.update();
+					} catch {
+						// A transient network failure can be retried at the next check.
+					} finally {
+						checking = false;
 					}
-					updateReady = !!registration?.waiting;
 				};
-				navigator.serviceWorker.addEventListener('controllerchange', controllerChanged);
-				cleanups.push(() =>
-					navigator.serviceWorker.removeEventListener('controllerchange', controllerChanged)
-				);
+				// SvelteKit owns registration. Apply an already prepared worker on fresh entry only.
+				void navigator.serviceWorker.ready
+					.then((value) => {
+						if (!active) return;
+						registration = value;
+						void check();
+						value.waiting?.postMessage({ type: 'SKIP_WAITING' });
+					})
+					.catch(() => {});
+				const timer = setInterval(() => void check(), 30 * 60_000);
+				cleanups.push(() => clearInterval(timer));
 			}
-			reloadForUpdate = () => {
-				const worker = registration?.waiting;
-				if (!worker || updating) return;
-				updating = true;
-				updateError = '';
-				reloadRequested = true;
-				const failed = () => {
-					reloadRequested = false;
-					updating = false;
-					updateError = 'The update could not finish. Try again when connected.';
-				};
-				try {
-					worker.postMessage({ type: 'SKIP_WAITING' });
-					updateTimeout = setTimeout(failed, 15_000);
-				} catch {
-					failed();
-				}
-			};
 			stop = () => {
 				active = false;
-				clearTimeout(updateTimeout);
 				cleanups.forEach((cleanup) => cleanup());
 				installPrompt = undefined;
 				registration = undefined;
 				canInstall = false;
-				updateReady = false;
-				updating = false;
 				stop = undefined;
-				reloadForUpdate = () => {};
 			};
 			return stop;
 		},
@@ -162,9 +113,6 @@ export function createPwaState() {
 			} finally {
 				installing = false;
 			}
-		},
-		reloadForUpdate() {
-			reloadForUpdate();
 		}
 	};
 }

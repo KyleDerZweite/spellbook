@@ -198,6 +198,18 @@
 				throw new Error(language.t('ui.Sign.in.again.to.load.inventory'));
 			}
 			const result = await response.json();
+			if (
+				response.status === 404 &&
+				result.kind === 'GroupNotFound' &&
+				input.group &&
+				new URLSearchParams(effectiveInventoryUrl(page).search).get('group')?.toLowerCase() ===
+					input.group &&
+				publication() &&
+				account === page.data.user?.accountId &&
+				!signal.aborted
+			) {
+				await goto(viewHref('groups'), { replace: true });
+			}
 			if (!response.ok && result.kind !== 'RevisionChanged')
 				throw new Error(result.message ?? language.t('ui.Could.not.load.inventory.Try.again'));
 			return result;
@@ -1321,6 +1333,14 @@
 				<a href={viewHref('groups')}>{language.t('ui.All.boxes')}</a><span aria-hidden="true"
 					>/</span
 				><strong>{selectedGroup.name}</strong>
+				{#if hydrated}
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={(event) => removeGroup(selectedGroup!, event.currentTarget)}
+						>{language.t('ui.Delete.box')}</Button
+					>
+				{/if}
 			</div>{/if}
 		{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
 				{language.message(mutationError || form?.message)}
