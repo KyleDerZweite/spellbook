@@ -1,7 +1,7 @@
 # Spellbook
 
 - Status: Canonical domain glossary
-- Last Reviewed: 2026-11-24
+- Last Reviewed: 2026-11-25
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account
   repositories
 - Update Triggers:
@@ -105,7 +105,17 @@ It is not a physical binder, box, or tray location. _Avoid_: Physical location, 
 
 **Deck**: An account-owned named decklist with a format, description, and deck entries. It expresses
 card requirements without establishing ownership or physical assignment. _Avoid_: Inventory,
-assembled physical deck
+assembled physical deck, reference deck
+
+**Reference deck**: A shared, account-independent decklist indexed from an external or local deck
+source (such as a metagame feed) for browsing, inspiration, and discovery against an account's
+inventory. Copying a reference deck creates a separate account-owned Deck. _Avoid_: Deck, Catalog,
+Inventory
+
+**Assembled deck**: An account-owned Deck marked as currently built in physical form. Spellbook
+virtually claims its required quantities across the owner's Inventory to distinguish free copies
+from copies currently in use, without linking individual Inventory entries or Physical Boxes.
+_Avoid_: Physical box allocation, Inventory group, Deck entry
 
 **Deck entry**: A required quantity of one printing in one deck role. _Avoid_: Owned card, inventory
 entry
