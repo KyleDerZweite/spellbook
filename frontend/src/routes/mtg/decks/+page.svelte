@@ -34,6 +34,7 @@
 	import type { SubmitFunction } from '$app/forms';
 	import type { PageProps } from './$types';
 	import DeckDialog from '#lib/components/decks/DeckDialog.svelte';
+	import MissingCardsDialog from '#lib/components/decks/MissingCardsDialog.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import { DEFAULT_PHASE_RS_URL, getPhaseRsUrl } from '#lib/phase-rs.ts';
@@ -348,6 +349,8 @@
 	let importOpen = $state(false);
 	let deleteOpen = $state(false);
 	let pendingExport = $state<{ label: string; href: string } | null>(null);
+	let missingExportOpen = $state(false);
+	let missingExportTrigger = $state<HTMLElement | null>(null);
 	let actionsTrigger = $state<HTMLButtonElement | null>(null);
 	function exportAction(label: string, href: string) {
 		if (savedDecks.warnings.length > 0) {
@@ -555,6 +558,7 @@
 			editOpen = false;
 			importOpen = false;
 			deleteOpen = false;
+			missingExportOpen = false;
 			inspected = null;
 			const editor = nativeEditor(data.flow);
 			if (editor) saveLifecycle.open(editor);
@@ -816,6 +820,13 @@
 								`/mtg/decks/${selectedDeck.id}/export?format=json`
 							),
 							{
+								label: language.t('missingExport.action'),
+								onSelect: () => {
+									missingExportTrigger = actionsTrigger;
+									missingExportOpen = true;
+								}
+							},
+							{
 								label: language.t('deck.phaseRs.action'),
 								onSelect: () => openPhaseRsDialog(selectedDeck.id)
 							},
@@ -837,7 +848,8 @@
 								importOpen ||
 								deleteOpen ||
 								pendingExport ||
-								phaseRsOpen
+								phaseRsOpen ||
+								missingExportOpen
 							)
 								event.preventDefault();
 						}}
@@ -1396,6 +1408,16 @@
 				aria-pressed={missingOnly}
 				onclick={() => (missingOnly = !missingOnly)}>{missing} {language.t('ui.missing')}</Button
 			>
+			{#if missing > 0}
+				<Button
+					variant="secondary"
+					onclick={(event) => {
+						missingExportTrigger =
+							event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+						missingExportOpen = true;
+					}}>{language.t('missingExport.actionShort')}</Button
+				>
+			{/if}
 			<a
 				href="#format-checks"
 				class={[
@@ -1543,6 +1565,14 @@
 		</div>
 	{:else}<DeckLibrary page={data.deckLibrary} accountId={data.user?.accountId ?? ''} />{/if}
 </div>
+
+{#if selectedDeck}
+	<MissingCardsDialog
+		bind:open={missingExportOpen}
+		deckIds={[selectedDeck.id]}
+		returnFocus={missingExportTrigger}
+	/>
+{/if}
 
 {#snippet discovery()}<DeckDiscovery
 		deckId={selectedDeck?.id}

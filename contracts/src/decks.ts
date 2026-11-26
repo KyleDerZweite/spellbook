@@ -149,6 +149,51 @@ export interface DeckBulkInput {
 	operations: DeckOperation[];
 }
 export type DeckExchangeFormat = 'arena' | 'dec' | 'dck' | 'simple' | 'csv' | 'json';
+export type MissingExportMode = 'sum' | 'max';
+export type MissingExportFormat = 'cardmarket' | 'tcgplayer' | 'text';
+export const MAX_MISSING_EXPORT_DECKS = 50;
+
+export interface MissingDeckSummary {
+	id: string;
+	name: string;
+}
+
+export interface MissingCardItem {
+	canonicalCardId: string;
+	catalogCardId: string;
+	name: string;
+	setCode: string;
+	collectorNumber: string;
+	quantity: number;
+	isBasicLand: boolean;
+	unitPriceEur: string | null;
+}
+
+export interface MissingCardExports {
+	cardmarket: string;
+	tcgplayer: string;
+	text: string;
+}
+
+export interface MissingCardsExportRequest {
+	deckIds: string[];
+	mode?: MissingExportMode;
+	includePrinting?: boolean;
+}
+
+export interface MissingCardsExportResponse {
+	deckIds: string[];
+	decks: MissingDeckSummary[];
+	mode: MissingExportMode;
+	includePrinting: boolean;
+	totalMissingCopies: number;
+	uniqueMissingCards: number;
+	missingBasicLandCopies: number;
+	missingBudgetCardCopies: number;
+	bulkHintEligible: boolean;
+	items: MissingCardItem[];
+	exports: MissingCardExports;
+}
 
 export interface PortableDeckV1 {
 	schema: 'spellbook.deck';

@@ -291,4 +291,15 @@ export interface MessageParameters {
 	'playtest.card.counterIncrease': { name: string | number };
 	'playtest.status.drew': { name: string | number };
 	'playtest.status.mulliganed': { count: string | number };
+	'missingExport.selectedCount.one': { count: string | number };
+	'missingExport.selectedCount.other': { count: string | number };
+	'missingExport.selectDeckAria': { name: string | number };
+	'missingExport.decksIncluded.one': { count: string | number; names: string | number };
+	'missingExport.decksIncluded.other': { count: string | number; names: string | number };
+	'missingExport.summary': { copies: string | number; unique: string | number };
+	'missingExport.bulkHintLands': { lands: string | number };
+	'missingExport.bulkHintBudget': { budget: string | number };
+	'missingExport.bulkHintBoth': { lands: string | number; budget: string | number };
+	'missingExport.bulkHintLink': { domain: string | number };
+	'missingExport.selectionLimit': { max: string | number };
 }

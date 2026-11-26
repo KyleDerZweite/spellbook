@@ -1,6 +1,7 @@
 """Deck snapshots retain one read-only repeatable-read ownership/value snapshot."""
 
 import asyncio
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal, cast
 
@@ -12,6 +13,7 @@ from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.catalog_tokens import read_transaction_token_facts
 from spellbook_core.mtg.decks.common import (
     aggregate_quantity,
+    card_dto,
     deck_dto,
     first,
     game,
@@ -20,6 +22,13 @@ from spellbook_core.mtg.decks.common import (
     rows,
 )
 from spellbook_core.mtg.decks.exchange import export_deck
+from spellbook_core.mtg.decks.missing import (
+    MAX_MISSING_EXPORT_DECKS,
+    MissingCardsExport,
+    MissingDeckSummary,
+    MissingExportMode,
+    build_missing_cards_export,
+)
 from spellbook_core.mtg.decks.models import (
     AssembledDeckRequirement,
     DeckCard,
@@ -34,7 +43,7 @@ from spellbook_core.mtg.decks.rules import (
     legality_warnings,
 )
 from spellbook_core.mtg.decks.tokens import related_tokens
-from spellbook_core.mtg.errors import DeckNotFoundError
+from spellbook_core.mtg.errors import CatalogPrintingNotFoundError, DeckNotFoundError
 from spellbook_core.mtg.inventory_value import estimate_holdings, pair_key
 from spellbook_core.mtg.models import CardDocument
 from spellbook_core.mtg.valuation import PriceReadUnavailable, Valuation
@@ -320,4 +329,139 @@ class DeckReads:
             cards,
             documents,
             cast(Literal["arena", "dec", "dck", "simple", "csv", "json"], format),
+        )
+
+    async def _resolve_best_effort(self, cards: Sequence[DeckCard]) -> dict[str, CardDocument]:
+        ids = list(dict.fromkeys(c["catalogCardId"] for c in cards))
+        result: dict[str, CardDocument] = {}
+
+        async def fetch(printing_id: str) -> CardDocument | None:
+            try:
+                return await self.catalog.get_catalog_printing(printing_id)
+            except CatalogPrintingNotFoundError:
+                return None
+
+        for offset in range(0, len(ids), 8):
+            documents = await asyncio.gather(*(fetch(i) for i in ids[offset : offset + 8]))
+            for document in documents:
+                if document is not None:
+                    result[document["id"]] = document
+        return result
+
+    async def export_missing_cards(
+        self,
+        actor: Actor,
+        deck_ids: Sequence[str],
+        *,
+        mode: str = "sum",
+        include_printing: bool = False,
+    ) -> MissingCardsExport:
+        if mode not in ("sum", "max"):
+            raise ValidationError("mode must be 'sum' or 'max'")
+        if not isinstance(include_printing, bool):
+            raise ValidationError("includePrinting must be a boolean")
+        if not isinstance(deck_ids, Sequence) or isinstance(deck_ids, str | bytes) or not deck_ids:
+            raise ValidationError("Select at least one Deck to export missing cards.")
+        normalized_ids = list(dict.fromkeys(assert_uuid(value, "deckIds") for value in deck_ids))
+        if len(normalized_ids) > MAX_MISSING_EXPORT_DECKS:
+            raise ValidationError(
+                f"Missing-cards export supports at most {MAX_MISSING_EXPORT_DECKS} Decks."
+            )
+        account = (await self.auth.require_actor(actor)).account_id
+        async with transaction(self.pool, read_only=True, repeatable_read=True) as tx:
+            clock = await first(tx, "SELECT statement_timestamp() AS as_of")
+            deck_rows = await rows(
+                tx,
+                (
+                    "SELECT id::text, name FROM decks "
+                    "WHERE account_id=%s AND game='mtg' AND id=ANY(%s::uuid[])"
+                ),
+                (account, normalized_ids),
+            )
+            decks_by_id = {row["id"].lower(): row["name"] for row in deck_rows}
+            if len(decks_by_id) != len(normalized_ids):
+                raise DeckNotFoundError()
+            ordered_decks = [
+                MissingDeckSummary(id=deck_id, name=decks_by_id[deck_id])
+                for deck_id in normalized_ids
+            ]
+            card_rows = await rows(
+                tx,
+                (
+                    "SELECT * FROM deck_cards "
+                    "WHERE account_id=%s AND game='mtg' AND deck_id=ANY(%s::uuid[]) "
+                    "ORDER BY deck_id, role, name, id"
+                ),
+                (account, normalized_ids),
+            )
+            cards_by_deck_id: dict[str, list[DeckCard]] = {
+                deck_id: [] for deck_id in normalized_ids
+            }
+            all_cards: list[DeckCard] = []
+            for row in card_rows:
+                card = card_dto(row)
+                cards_by_deck_id[card["deckId"].lower()].append(card)
+                all_cards.append(card)
+            owned_printings = await owned(
+                tx, account, list(dict.fromkeys(c["canonicalCardId"] for c in all_cards))
+            )
+            deck_cards_by_deck = [cards_by_deck_id[deck_id] for deck_id in normalized_ids]
+            # Collect candidate printings that have missing copies to keep valuation reads bounded.
+            missing_printing_ids: list[str] = []
+            seen_printings: set[str] = set()
+            if all_cards:
+                if mode == "sum":
+                    allocs = allocate_deck_availability(all_cards, owned_printings)
+                    for card in all_cards:
+                        if (
+                            allocs[card["id"]]["missing"] > 0
+                            and card["catalogCardId"] not in seen_printings
+                        ):
+                            seen_printings.add(card["catalogCardId"])
+                            missing_printing_ids.append(card["catalogCardId"])
+                else:
+                    for cards in deck_cards_by_deck:
+                        allocs = allocate_deck_availability(cards, owned_printings)
+                        for card in cards:
+                            if (
+                                allocs[card["id"]]["missing"] > 0
+                                and card["catalogCardId"] not in seen_printings
+                            ):
+                                seen_printings.add(card["catalogCardId"])
+                                missing_printing_ids.append(card["catalogCardId"])
+            price_references: dict[tuple[str, str], Document] = {}
+            if missing_printing_ids:
+                pairs = [
+                    dict(printingId=printing_id, finish="nonfoil")
+                    for printing_id in missing_printing_ids
+                ]
+                await tx.execute("SAVEPOINT missing_cards_prices")
+                try:
+                    for offset in range(0, len(pairs), 100):
+                        frozen = await self.valuation.freeze_in_transaction(
+                            tx, pairs[offset : offset + 100], clock["as_of"]
+                        )
+                        price_references.update(
+                            (pair_key(r), r) for r in frozen["response"]["results"]
+                        )
+                except Exception:
+                    await tx.execute("ROLLBACK TO SAVEPOINT missing_cards_prices")
+                    price_references = {}
+                await tx.execute("RELEASE SAVEPOINT missing_cards_prices")
+        missing_cards_for_catalog = [
+            card for card in all_cards if card["catalogCardId"] in seen_printings
+        ]
+        documents = (
+            await self._resolve_best_effort(missing_cards_for_catalog)
+            if missing_cards_for_catalog
+            else {}
+        )
+        return build_missing_cards_export(
+            ordered_decks,
+            deck_cards_by_deck,
+            owned_printings,
+            mode=cast(MissingExportMode, mode),
+            include_printing=include_printing,
+            documents=documents,
+            price_references=price_references,
         )

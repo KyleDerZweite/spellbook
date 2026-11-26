@@ -1,7 +1,7 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-26
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope
   clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19
   independent Android design clarification
@@ -9,7 +9,7 @@
   - Client scope, parity, PWA delivery, QR authentication and independent Android design
   - Versioned API ownership, Python runtime assembly, adapters and operator responsibilities
   - Inventory and Deck bounded reads, revisions, availability and wire contracts
-  - Portable Deck exchange, complete import rejection and Deck choice reads
+  - Portable Deck exchange, missing-cards export, complete import rejection and Deck choice reads
   - Transient Scan uploads, validation, limits, metadata and receipt replay
   - Recognition pipelines, fixtures, device limits, local recognition and computation-host
     evaluation
@@ -262,6 +262,12 @@ header requires the caller's name. Empty portable Decks are supported. Imports a
 bounded to 100,000 UTF-16 code units, 1,000 card records and quantities from 1 through 10,000 per
 record. Merged quantities remain subject to the existing command limit. Web uploads additionally
 require UTF-8, at most 400,000 file bytes and a total form body of at most 1 MiB.
+
+`POST /decks/missing-export` accepts `{ deckIds, mode?, includePrinting? }` (1 to 50 owned Deck
+UUIDs; `mode` defaults to `"sum"` and accepts `"max"`; `includePrinting` defaults to `false`) and
+returns `Cache-Control: no-store` JSON containing aggregated missing items, Basic Land and budget
+(`unitPriceEur < 0.50`) copy counts, `bulkHintEligible`, and formatted `cardmarket`, `tcgplayer` and
+`text` outputs.
 
 There is no PDF API, MTGO `.dek` adapter, hosted-URL fetch or share-code import. These formats have
 parser/roundtrip coverage, not verified external-client acceptance. The
