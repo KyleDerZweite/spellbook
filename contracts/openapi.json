@@ -7446,6 +7446,9 @@
 													},
 													"format": {
 														"type": "string"
+													},
+													"assembled": {
+														"type": "boolean"
 													}
 												},
 												"required": ["game", "name", "description", "format"],
@@ -10174,6 +10177,10 @@
 					"format": {
 						"type": "string",
 						"default": "Commander"
+					},
+					"assembled": {
+						"type": "boolean",
+						"default": false
 					}
 				},
 				"required": ["name"]
@@ -10193,6 +10200,9 @@
 					"descriptionRevision": {
 						"type": "string",
 						"pattern": "^[0-9]+$"
+					},
+					"assembled": {
+						"type": "boolean"
 					}
 				},
 				"required": []
@@ -12397,6 +12407,23 @@
 					}
 				}
 			},
+			"AssembledDeckShare": {
+				"type": "object",
+				"properties": {
+					"deckId": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"deckName": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"minimum": 1
+					}
+				},
+				"required": ["deckId", "deckName", "quantity"]
+			},
 			"AvailabilityCounts": {
 				"type": "object",
 				"properties": {
@@ -12415,9 +12442,29 @@
 					"missing": {
 						"type": "integer",
 						"minimum": 0
+					},
+					"free": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"inOtherDecks": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"conflict": {
+						"type": "integer",
+						"minimum": 0
 					}
 				},
-				"required": ["required", "exact", "alternate", "missing"]
+				"required": [
+					"required",
+					"exact",
+					"alternate",
+					"missing",
+					"free",
+					"inOtherDecks",
+					"conflict"
+				]
 			},
 			"DeckAvailability": {
 				"type": "object",
@@ -12439,9 +12486,23 @@
 										"entryId": {
 											"type": "string",
 											"format": "uuid"
+										},
+										"ownedCanonical": {
+											"type": "integer",
+											"minimum": 0
+										},
+										"assembledRequired": {
+											"type": "integer",
+											"minimum": 0
+										},
+										"sharedWith": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/AssembledDeckShare"
+											}
 										}
 									},
-									"required": ["entryId"]
+									"required": ["entryId", "ownedCanonical", "assembledRequired", "sharedWith"]
 								}
 							]
 						}
@@ -12562,6 +12623,9 @@
 					"format": {
 						"type": "string"
 					},
+					"assembled": {
+						"type": "boolean"
+					},
 					"createdAt": {
 						"type": "string",
 						"format": "date-time"
@@ -12577,29 +12641,19 @@
 						"type": "string"
 					},
 					"availability": {
-						"type": "object",
-						"properties": {
-							"required": {
-								"type": "integer",
-								"minimum": 0
-							},
-							"exact": {
-								"type": "integer",
-								"minimum": 0
-							},
-							"alternate": {
-								"type": "integer",
-								"minimum": 0
-							},
-							"missing": {
-								"type": "integer",
-								"minimum": 0
-							}
-						},
-						"required": ["required", "exact", "alternate", "missing"]
+						"$ref": "#/components/schemas/AvailabilityCounts"
 					}
 				},
-				"required": ["id", "name", "format", "createdAt", "updatedAt", "quantity", "imageUri"]
+				"required": [
+					"id",
+					"name",
+					"format",
+					"assembled",
+					"createdAt",
+					"updatedAt",
+					"quantity",
+					"imageUri"
+				]
 			},
 			"DeckLibraryPage": {
 				"type": "object",
@@ -12725,6 +12779,7 @@
 					"name",
 					"description",
 					"format",
+					"assembled",
 					"descriptionRevision",
 					"compositionRevision",
 					"createdAt",
@@ -12749,6 +12804,9 @@
 					},
 					"format": {
 						"type": "string"
+					},
+					"assembled": {
+						"type": "boolean"
 					},
 					"descriptionRevision": {
 						"type": "string",
@@ -12849,16 +12907,55 @@
 				"type": "object",
 				"properties": {
 					"exact": {
-						"type": "integer"
+						"type": "integer",
+						"minimum": 0
 					},
 					"alternate": {
-						"type": "integer"
+						"type": "integer",
+						"minimum": 0
 					},
 					"missing": {
-						"type": "integer"
+						"type": "integer",
+						"minimum": 0
+					},
+					"free": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"inOtherDecks": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"conflict": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"ownedCanonical": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"assembledRequired": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"sharedWith": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/AssembledDeckShare"
+						}
 					}
 				},
-				"required": ["exact", "alternate", "missing"]
+				"required": [
+					"exact",
+					"alternate",
+					"missing",
+					"free",
+					"inOtherDecks",
+					"conflict",
+					"ownedCanonical",
+					"assembledRequired",
+					"sharedWith"
+				]
 			},
 			"DeckSnapshot": {
 				"type": "object",

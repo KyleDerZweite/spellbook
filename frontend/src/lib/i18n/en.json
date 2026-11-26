@@ -1321,5 +1321,21 @@
 	"deck.legality.status.not_legal": "not legal",
 	"deck.legality.status.banned": "banned",
 	"deck.export.warningDescription": "This deck has format warnings. Warnings never block exports, so you can still continue with {target}.",
-	"deck.export.continue": "Export anyway"
+	"deck.export.continue": "Export anyway",
+	"deck.assembled": "Assembled",
+	"deck.assembled.draft": "Draft",
+	"deck.assembled.toggle.label": "Assembled deck",
+	"deck.assembled.toggle.help": "Physically built; virtually claims its cards across your inventory.",
+	"deck.assembled.mark": "Mark as assembled",
+	"deck.assembled.unmark": "Mark as draft",
+	"deck.allocation.conflict": "{owned} owned, {needed} needed across assembled decks — shared with {decks}",
+	"deck.allocation.conflict.short": "{count} conflict",
+	"deck.allocation.inOtherDecks": "In {decks} (swap / proxy)",
+	"deck.allocation.inOtherDecks.short": "{count} in other decks",
+	"deck.allocation.missingAndConflict": "{missing} missing; {owned} owned, {needed} needed across assembled decks — shared with {decks}",
+	"deck.allocation.missingAndInOther": "{missing} missing; in {decks} (swap / proxy)",
+	"deck.allocation.summary.conflicts": "{count} over-allocated across assembled decks",
+	"deck.allocation.summary.inOtherDecks": "{count} in other assembled decks",
+	"notice.Deck.marked.assembled": "Deck marked as assembled.",
+	"notice.Deck.marked.draft": "Deck marked as draft."
 }

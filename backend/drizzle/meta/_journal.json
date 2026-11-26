@@ -211,6 +211,13 @@
 			"when": 1795478400000,
 			"tag": "0029_physical_boxes",
 			"breakpoints": true
+		},
+		{
+			"idx": 30,
+			"version": "7",
+			"when": 1795651200000,
+			"tag": "0030_assembled_decks",
+			"breakpoints": true
 		}
 	]
 }

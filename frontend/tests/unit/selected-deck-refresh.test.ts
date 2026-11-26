@@ -27,6 +27,7 @@ const deck: Deck = {
 	name: 'Saved',
 	format: 'Modern',
 	description: 'Saved text',
+	assembled: false,
 	descriptionRevision: '2',
 	compositionRevision: '3',
 	createdAt: '',
@@ -87,7 +88,19 @@ function snapshot(): DeckSnapshot {
 		deckCards: [{ ...card }],
 		deckTotals: { deck: 4 },
 		deckCovers: {},
-		availability: { entry: { exact: 1, alternate: 1, missing: 2 } },
+		availability: {
+			entry: {
+				exact: 1,
+				alternate: 1,
+				missing: 2,
+				free: 2,
+				inOtherDecks: 0,
+				conflict: 0,
+				ownedCanonical: 2,
+				assembledRequired: 0,
+				sharedWith: []
+			}
+		},
 		ownedPrintings: [{ catalogCardId: 'printing', canonicalCardId: 'oracle', quantity: 1 }],
 		ownedByCanonical: { oracle: 2 },
 		valueEstimates: {

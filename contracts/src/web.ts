@@ -16,6 +16,7 @@ export interface WebCommandInputs {
 		name: string;
 		description: string;
 		format: string;
+		assembled?: boolean;
 	};
 	'decks.addCatalogCard': {
 		deckId: string;

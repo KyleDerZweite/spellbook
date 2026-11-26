@@ -6,17 +6,19 @@ const mocks = vi.hoisted(() => ({
 	library: vi.fn(),
 	search: vi.fn(),
 	legality: vi.fn(),
-	add: vi.fn()
+	add: vi.fn(),
+	updateDeck: vi.fn(),
+	createDeckRecord: vi.fn()
 }));
 vi.mock('../../src/lib/server/data/decks', async () => ({
 	...(await vi.importActual<typeof import('../../src/lib/server/data/decks')>(
 		'#lib/server/remote/errors.ts'
 	)),
 	getDeckSnapshot: mocks.snapshot,
-	createDeckRecord: vi.fn(),
+	createDeckRecord: mocks.createDeckRecord,
 	deleteDeck: vi.fn(),
 	removeDeckCard: vi.fn(),
-	updateDeck: vi.fn(),
+	updateDeck: mocks.updateDeck,
 	updateDeckCard: vi.fn()
 }));
 vi.mock('../../src/lib/server/mtg/deck-builder', () => ({
@@ -61,6 +63,7 @@ beforeEach(() => {
 				game: 'mtg',
 				name: 'Owned Deck',
 				description: '',
+				assembled: false,
 				descriptionRevision: '0',
 				compositionRevision: '0',
 				createdAt: '2026-10-08T00:00:00Z',
@@ -175,5 +178,22 @@ describe('web deck boundaries', () => {
 				requestId: 'retry'
 			}
 		);
+	});
+	it('toggles assembled status on a deck via toggleAssembled action', async () => {
+		mocks.updateDeck.mockResolvedValue({
+			id: 'owned',
+			assembled: true
+		});
+		const result = await actions.toggleAssembled(
+			event('http://localhost/mtg/decks?/toggleAssembled', {
+				deckId: 'owned',
+				assembled: 'true'
+			})
+		);
+		expect(mocks.updateDeck).toHaveBeenCalledWith(
+			{ accountId: 'owner', username: 'Owner', email: 'owner@example.test' },
+			{ deckId: 'owned', assembled: true }
+		);
+		expect(result).toMatchObject({ success: true, savedDetails: { id: 'owned', assembled: true } });
 	});
 });

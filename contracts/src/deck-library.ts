@@ -13,7 +13,10 @@ export type DeckLibraryInput = Partial<DeckLibraryQuery> & {
 	limit?: number;
 	expectedRevision?: string;
 };
-export type DeckLibraryItem = Pick<Deck, 'id' | 'name' | 'format' | 'createdAt' | 'updatedAt'> & {
+export type DeckLibraryItem = Pick<
+	Deck,
+	'id' | 'name' | 'format' | 'assembled' | 'createdAt' | 'updatedAt'
+> & {
 	quantity: number;
 	imageUri: string;
 	availability?: {
@@ -21,6 +24,9 @@ export type DeckLibraryItem = Pick<Deck, 'id' | 'name' | 'format' | 'createdAt' 
 		exact: number;
 		alternate: number;
 		missing: number;
+		free: number;
+		inOtherDecks: number;
+		conflict: number;
 	};
 };
 export type DeckLibraryPage = {

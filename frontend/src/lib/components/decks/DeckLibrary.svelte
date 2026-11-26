@@ -769,6 +769,7 @@
 			</div>
 			<div class="deck-name">
 				<strong>{item.name}</strong>
+				{#if item.assembled}<span class="assembled-badge">{language.t('deck.assembled')}</span>{/if}
 			</div>
 			<span class="deck-format"
 				><i
@@ -781,7 +782,16 @@
 					>{language.t('sentence.p0.cards', { p0: String(' ') })}</span
 				></span
 			>
-			{#if item.availability}<OwnershipProgress {...item.availability} />{/if}
+			{#if item.availability}<OwnershipProgress {...item.availability} />
+				{#if item.availability.conflict > 0}<span class="library-conflict"
+						>{language.t('deck.allocation.conflict.short', {
+							count: item.availability.conflict.toLocaleString(language.locale)
+						})}</span
+					>{:else if item.availability.inOtherDecks > 0}<span class="library-in-other"
+						>{language.t('deck.allocation.inOtherDecks.short', {
+							count: item.availability.inOtherDecks.toLocaleString(language.locale)
+						})}</span
+					>{/if}{/if}
 			<small class="deck-edited"
 				>{language.t('ui.Edited')} {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
 			>
@@ -985,6 +995,31 @@
 		padding: 3rem 1rem;
 		text-align: center;
 		color: var(--color-text-secondary);
+	}
+	.assembled-badge {
+		display: inline-block;
+		margin-left: 0.375rem;
+		padding: 0.0625rem 0.375rem;
+		border-radius: 999px;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		font-size: 0.625rem;
+		font-weight: 500;
+		color: var(--color-text-primary);
+		vertical-align: middle;
+	}
+	.library-conflict,
+	.library-in-other {
+		display: block;
+		margin-top: 0.25rem;
+		font-size: 0.6875rem;
+		font-weight: 500;
+	}
+	.library-conflict {
+		color: var(--color-destructive, var(--color-danger, var(--color-warning)));
+	}
+	.library-in-other {
+		color: var(--color-warning);
 	}
 	.virtual {
 		display: block;

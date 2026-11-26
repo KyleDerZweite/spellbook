@@ -12,6 +12,7 @@ from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import read_transaction_catalog_printing
 from spellbook_core.mtg.decks.common import (
     authorize_write,
+    boolean,
     card_identity,
     deck_dto,
     first,
@@ -212,13 +213,14 @@ class DeckMutations:
 
     async def create_deck_record(self, actor: Actor, input: Document) -> Deck:
         game(input["game"])
+        assembled = boolean(input.get("assembled", MISSING), "assembled", False)
         async with transaction(self.pool) as tx:
             account = await authorize_write(tx, self.auth, actor)
             deck = await first(
                 tx,
                 (
-                    "INSERT INTO decks(id,account_id,game,name,description,format) "
-                    "VALUES(%s::uuid,%s,'mtg',%s,%s,%s) RETURNING *"
+                    "INSERT INTO decks(id,account_id,game,name,description,format,assembled) "
+                    "VALUES(%s::uuid,%s,'mtg',%s,%s,%s,%s) RETURNING *"
                 ),
                 (
                     str(uuid4()),
@@ -226,6 +228,7 @@ class DeckMutations:
                     text(input.get("name"), "name", 200),
                     text(input.get("description"), "description", 4000, ""),
                     text(input.get("format"), "format", 100, "Commander"),
+                    assembled,
                 ),
             )
             await advance_deck_library_revision(tx, account)
@@ -256,13 +259,24 @@ class DeckMutations:
                 if "description" in input
                 else deck["description"]
             )
-            if (name, format, description) == (deck["name"], deck["format"], deck["description"]):
+            current_assembled = bool(deck.get("assembled", False))
+            assembled = (
+                boolean(input["assembled"], "assembled")
+                if "assembled" in input
+                else current_assembled
+            )
+            if (name, format, description, assembled) == (
+                deck["name"],
+                deck["format"],
+                deck["description"],
+                current_assembled,
+            ):
                 return deck_dto(deck)
             updated = await first(
                 tx,
                 (
                     "UPDATE decks SET "
-                    "name=%s,format=%s,description=%s,"
+                    "name=%s,format=%s,description=%s,assembled=%s,"
                     "description_revision=description_revision+%s,updated_at=%s"
                     " WHERE id=%s::uuid RETURNING *"
                 ),
@@ -270,6 +284,7 @@ class DeckMutations:
                     name,
                     format,
                     description,
+                    assembled,
                     int(description != deck["description"]),
                     datetime.now(UTC),
                     deck["id"],

@@ -21,7 +21,7 @@ from spellbook_core.mtg.decks.models import (
     DeckChoicePage,
     Document,
 )
-from spellbook_core.mtg.decks.read import owned
+from spellbook_core.mtg.decks.read import assembled_requirements, owned
 from spellbook_core.mtg.decks.rules import allocate_deck_availability
 from spellbook_core.validation import assert_uuid, js_trim, utf16_length
 
@@ -173,9 +173,9 @@ class DeckLibrary:
             )
             items = await rows(
                 tx,
-                f"""SELECT d.id,d.name,d.format,d.created_at,d.updated_at,
+                f"""SELECT d.id,d.name,d.format,d.assembled,d.created_at,d.updated_at,
             COALESCE(s.quantity,'0') AS quantity,COALESCE(s.image_uri,'') AS image_uri
-            FROM (SELECT d.id,d.name,d.format,d.created_at,d.updated_at
+            FROM (SELECT d.id,d.name,d.format,d.assembled,d.created_at,d.updated_at
             FROM decks d WHERE {where} ORDER BY {order} LIMIT %s OFFSET %s) d
             LEFT JOIN LATERAL(SELECT sum(e.quantity)::text AS quantity,
             (array_agg(e.image_uri ORDER BY CASE WHEN e.role='commander' THEN 0 ELSE 1
@@ -190,11 +190,12 @@ class DeckLibrary:
                 "WHERE account_id=%s AND deck_id=ANY(%s::uuid[])",
                 (account, [r["id"] for r in items]),
             )
-            holdings = await owned(
-                tx, account, list({r["canonical_card_id"] for r in requirements})
-            )
+            canonical_ids = list({r["canonical_card_id"] for r in requirements})
+            holdings = await owned(tx, account, canonical_ids)
+            assembled_reqs = await assembled_requirements(tx, account, canonical_ids)
             availability = {}
             for item in items:
+                item_id = str(item["id"])
                 cards: list[AvailabilityRequirement] = [
                     AvailabilityRequirement(
                         id=str(r["id"]),
@@ -205,12 +206,21 @@ class DeckLibrary:
                     for r in requirements
                     if r["deck_id"] == item["id"]
                 ]
-                allocations = allocate_deck_availability(cards, holdings)
-                availability[str(item["id"])] = dict(
+                other_assembled = [r for r in assembled_reqs if r["deckId"] != item_id]
+                allocations = allocate_deck_availability(
+                    cards,
+                    holdings,
+                    other_assembled=other_assembled,
+                    assembled=bool(item.get("assembled", False)),
+                )
+                availability[item_id] = dict(
                     required=sum(c["quantity"] for c in cards),
                     exact=sum(a["exact"] for a in allocations.values()),
                     alternate=sum(a["alternate"] for a in allocations.values()),
                     missing=sum(a["missing"] for a in allocations.values()),
+                    free=sum(a["free"] for a in allocations.values()),
+                    inOtherDecks=sum(a["inOtherDecks"] for a in allocations.values()),
+                    conflict=sum(a["conflict"] for a in allocations.values()),
                 )
             return dict(
                 query=query,
@@ -225,6 +235,7 @@ class DeckLibrary:
                         id=str(r["id"]),
                         name=r["name"],
                         format=r["format"],
+                        assembled=bool(r.get("assembled", False)),
                         createdAt=iso_timestamp(r["created_at"]),
                         updatedAt=iso_timestamp(r["updated_at"]),
                         quantity=database_integer(r["quantity"]),

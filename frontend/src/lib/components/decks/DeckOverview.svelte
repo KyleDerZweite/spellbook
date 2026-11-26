@@ -33,10 +33,12 @@
 					result.exact += entry.exact;
 					result.alternate += entry.alternate;
 					result.missing += entry.missing;
+					result.conflict += entry.conflict;
+					result.inOtherDecks += entry.inOtherDecks;
 				} else result.unknown += card.quantity;
 				return result;
 			},
-			{ exact: 0, alternate: 0, missing: 0, unknown: 0 }
+			{ exact: 0, alternate: 0, missing: 0, unknown: 0, conflict: 0, inOtherDecks: 0 }
 		)
 	);
 	const segments = $derived([
@@ -118,6 +120,19 @@
 						: language.t('ui.No.cards.yet')}{#if totals.alternate}
 				· {totals.alternate.toLocaleString(language.locale)} {language.t('ui.alternate')}{/if}
 		</p>
+		{#if totals.conflict > 0}
+			<p class="allocation-alert conflict" role="status">
+				{language.t('deck.allocation.summary.conflicts', {
+					count: totals.conflict.toLocaleString(language.locale)
+				})}
+			</p>
+		{:else if totals.inOtherDecks > 0}
+			<p class="allocation-alert in-other-decks">
+				{language.t('deck.allocation.summary.inOtherDecks', {
+					count: totals.inOtherDecks.toLocaleString(language.locale)
+				})}
+			</p>
+		{/if}
 	</div>
 	<ValueSummary
 		title={language.t('ui.Deck.estimate')}
@@ -200,6 +215,17 @@
 		margin-top: 0.75rem;
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary);
+	}
+	.allocation-alert {
+		margin-top: 0.375rem;
+		font-size: 0.6875rem;
+		font-weight: 500;
+	}
+	.allocation-alert.conflict {
+		color: var(--color-destructive, var(--color-danger, var(--color-warning)));
+	}
+	.allocation-alert.in-other-decks {
+		color: var(--color-warning);
 	}
 	.deck-overview :global(.value-summary) {
 		flex: 1 1 10rem;

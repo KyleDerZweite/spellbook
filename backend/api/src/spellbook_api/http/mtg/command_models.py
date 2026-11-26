@@ -41,6 +41,7 @@ class DeckCreateInput(TypedDict):
     name: str
     description: str
     format: str
+    assembled: NotRequired[bool]
 
 
 @with_config(_INPUT_CONFIG)

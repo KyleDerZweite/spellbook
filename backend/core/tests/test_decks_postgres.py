@@ -319,11 +319,21 @@ def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> Non
                         ),
                     )
             state = await f.decks.get_deck(f.actor, deck_id)
-            assert state["availability"][entry] == dict(exact=1, alternate=1, missing=1)
+            assert state["availability"][entry] == dict(
+                exact=1,
+                alternate=1,
+                missing=1,
+                free=2,
+                inOtherDecks=0,
+                conflict=0,
+                ownedCanonical=2,
+                assembledRequired=0,
+                sharedWith=[],
+            )
             assert state["ownedByCanonical"] == {f.canonical: 2}
             assert state["valuationError"] is None and state["valueEstimates"] is not None
             assert (await f.decks.availability(f.actor, deck_id))["totals"] == dict(
-                required=3, exact=1, alternate=1, missing=1
+                required=3, exact=1, alternate=1, missing=1, free=2, inOtherDecks=0, conflict=0
             )
             assert (await f.decks.get_deck_legality(f.actor, deck_id))["deckDocuments"][
                 f.printing
@@ -334,10 +344,11 @@ def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> Non
             )
             page = await f.decks.get_deck_library(f.actor)
             assert page["items"][0]["id"] == deck_id
+            assert page["items"][0]["assembled"] is False
             assert page["matchingTotal"] == page["globalTotal"] == 1
             assert page["items"][0]["quantity"] == 3
             assert page["items"][0]["availability"] == dict(
-                required=3, exact=1, alternate=1, missing=1
+                required=3, exact=1, alternate=1, missing=1, free=2, inOtherDecks=0, conflict=0
             )
             assert (await f.decks.get_deck_library(f.actor, dict(ownership="complete")))[
                 "matchingTotal"
