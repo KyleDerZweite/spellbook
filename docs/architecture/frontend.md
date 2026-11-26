@@ -1,7 +1,7 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-26
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
 - Update Triggers:
   - Website shell and presentation:
@@ -103,18 +103,21 @@ import, inventory comparison, internal public deck page or live synchronization.
 boundaries.
 
 The root [Shell](../../frontend/src/lib/components/layout/Shell.svelte) renders the same
-[Nav](../../frontend/src/lib/components/layout/Nav.svelte), scrolling content and footer for every
-page, including login, registration, legal and error pages. There is no separate authentication
-header. The full-width header places the brand left, navigation in the center, and game, theme and
-account controls right. Shared `nav-link` styles cover navigation and the direct Sign in entry; the
-current entry uses the same underline state. Search, Inventory, Decks, Scan and Settings share
-`.workspace-container`, with width `min(calc(100% - 2rem), var(--layout-wide-width))`. The regular
-Dashboard retains the container base but uses a route-owned wider four-column composition, capped at
-100rem, with narrow-screen gutters. The shared outer limit is `clamp(72rem, 84vw, 150rem)`. The
-landing uses this limit with responsive padding. Public home and hero use column flex layouts to
-fill the space remaining after the header and actual footer content. Short viewports scroll
-naturally. Background tiles and the deckbox scale within separate bounds, while action text stays at
-its normal size.
+[Nav](../../frontend/src/lib/components/layout/Nav.svelte), scrolling content and
+[Footer](../../frontend/src/lib/components/layout/Footer.svelte) for every page, including login,
+registration, legal and error pages. The footer always links to the Spellbook GitHub repository and
+renders optional configured social links (such as `SOCIAL_DISCORD_URL`) only when set, with no empty
+placeholders. Third-party project attributions belong in `README.md`, not the website footer. There
+is no separate authentication header. The full-width header places the brand left, navigation in the
+center, and game, theme and account controls right. Shared `nav-link` styles cover navigation and
+the direct Sign in entry; the current entry uses the same underline state. Search, Inventory, Decks,
+Scan and Settings share `.workspace-container`, with width
+`min(calc(100% - 2rem), var(--layout-wide-width))`. The regular Dashboard retains the container base
+but uses a route-owned wider four-column composition, capped at 100rem, with narrow-screen gutters.
+The shared outer limit is `clamp(72rem, 84vw, 150rem)`. The landing uses this limit with responsive
+padding. Public home and hero use column flex layouts to fill the space remaining after the header
+and actual footer content. Short viewports scroll naturally. Background tiles and the deckbox scale
+within separate bounds, while action text stays at its normal size.
 
 [AccountLayout](../../frontend/src/lib/components/auth/AccountLayout.svelte) owns the shared login
 and registration form frame, selected logo and functional heading. Its narrow content centers within
@@ -610,11 +613,10 @@ network navigation receives the offline fallback; HTTP errors pass through. No a
 queue is available offline.
 
 Shell owns the shared [PWA state](../../frontend/src/lib/pwa/state.svelte.ts) listeners for
-installation, display mode and connectivity. A fresh page checks for updates and activates a
-worker that was already waiting. Open pages check every 30 minutes without reloading. Install
-guidance uses the browser's available prompt or manual install instructions. HTTPS outside localhost
-is required. [Deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use
-steps.
+installation, display mode and connectivity. A fresh page checks for updates and activates a worker
+that was already waiting. Open pages check every 30 minutes without reloading. Install guidance uses
+the browser's available prompt or manual install instructions. HTTPS outside localhost is required.
+[Deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use steps.
 
 The backend transport, manifest and worker are integrated. The PWA pages and navigation are
 implemented. Rendered, installation and Android checks remain separate from automated coverage.

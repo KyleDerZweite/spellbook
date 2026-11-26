@@ -96,6 +96,7 @@ services:
       ADDRESS_HEADER: ${LOCAL_ADDRESS_HEADER:-}
       XFF_DEPTH: ${LOCAL_XFF_DEPTH:-1}
       BODY_SIZE_LIMIT: ${LOCAL_BODY_SIZE_LIMIT:-12M}
+      SOCIAL_DISCORD_URL: ${LOCAL_SOCIAL_DISCORD_URL:-}
     restart: unless-stopped
 
 volumes:

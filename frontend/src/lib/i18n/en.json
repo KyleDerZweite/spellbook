@@ -1291,5 +1291,8 @@
 	"physicalBoxes.nameError": "Could not save the name. Use 1 to 64 printable characters.",
 	"physicalBoxes.conditionError": "Could not save the condition. Use unique set codes with 2 to 6 lowercase letters or digits.",
 	"rarity.special": "Special",
-	"rarity.bonus": "Bonus"
+	"rarity.bonus": "Bonus",
+	"footer.socialLinks": "Community and source links",
+	"footer.social.github": "Spellbook on GitHub",
+	"footer.social.discord": "Spellbook on Discord"
 }

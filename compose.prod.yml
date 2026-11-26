@@ -148,6 +148,7 @@ services:
       ADDRESS_HEADER: ${HOSTED_ADDRESS_HEADER:-}
       XFF_DEPTH: ${HOSTED_XFF_DEPTH:-1}
       BODY_SIZE_LIMIT: ${HOSTED_BODY_SIZE_LIMIT:-12M}
+      SOCIAL_DISCORD_URL: ${HOSTED_SOCIAL_DISCORD_URL:-}
     restart: unless-stopped
 
   newt:
