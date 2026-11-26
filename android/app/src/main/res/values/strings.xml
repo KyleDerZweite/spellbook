@@ -10,4 +10,9 @@
     <string name="device_type_cardstation">Cardstation</string>
     <string name="device_type_scanner">Scanner</string>
     <string name="device_type_other">Other device</string>
+    <string name="offline_banner_title">Offline mode</string>
+    <string name="offline_banner_body">Showing cached read-only data. Saving changes requires an internet connection.</string>
+    <string name="offline_banner_retry">Retry connection</string>
+    <string name="offline_cached_badge">Cached copy</string>
+    <string name="offline_writes_disabled">Offline: reconnect to save changes.</string>
 </resources>

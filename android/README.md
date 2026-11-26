@@ -1,11 +1,12 @@
 # Spellbook Android
 
 - Status: Implemented client, native acceptance pending integration
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-26
 - Source of Truth: this Gradle project and the shared HTTP contracts
 - Update Triggers:
   - canonical versioned API paths
-  - current-operation mutation recovery
+  - transport-agnostic repository adapters and v1 offline read cache
+  - current-operation mutation recovery and v2 offline write queue boundary
   - native behavior
   - toolchain
   - API origin
@@ -100,14 +101,54 @@ SSE is in Ktor Client Core and needs no separate SSE dependency. The setup follo
 [Navigation3](https://developer.android.com/guide/navigation/navigation-3/basics) and
 [Ktor SSE](https://ktor.io/docs/client-server-sent-events.html) and
 [scoped response streaming](https://ktor.io/docs/client-responses.html#streaming). Android Keystore,
-app-private preferences and bounded current-screen reads cover the selected storage requirements
-without Room, DataStore, a dependency-injection framework or an offline write queue.
+app-private preferences and Android's built-in SQLite runtime (`SQLiteOpenHelper`) cover encrypted
+credentials, drafts and the v1 local offline read cache without Room, DataStore, a
+dependency-injection framework or an offline write queue.
 
-`data/` owns serialized DTOs, transport, credential storage and mutation recovery rules.
-`feature/AppModel.kt` owns lifecycle, current-account state and use-case orchestration. `ui/` owns
-native screens and presentation. UI never constructs trusted actors or resolves ownership locally.
-The launcher uses the existing [Spellbook brand asset](../docs/reference/website-icons.md), copied
-without alteration.
+`data/` owns serialized DTOs, transport (`Api.kt`), transport-agnostic repository and storage
+interfaces (`Adapters.kt`), the account-scoped local read cache (`ReadCache.kt`,
+`SqliteReadCacheStore.kt`), HTTP repository implementations (`HttpRepositories.kt`), encrypted
+credential storage (`PrivateStore.kt`) and mutation recovery rules. `feature/AppModel.kt` depends
+only on `AppRepositories` (never directly on `Api` or `PrivateStore`) and owns lifecycle,
+connectivity state, current-account state and use-case orchestration. `ui/` owns native screens and
+presentation. UI never constructs trusted actors or resolves ownership locally. The launcher uses
+the existing [Spellbook brand asset](../docs/reference/website-icons.md), copied without alteration.
+
+## Transport-agnostic adapters and Offline-First v1
+
+Screens and `AppModel` interact exclusively with transport-agnostic interfaces in
+`data/Adapters.kt`:
+
+- `InventoryRepository`: Dashboard, Inventory pages, Boxes, Entry details, and online-only
+  mutations.
+- `DeckRepository`: Deck library, Selected Deck composition and Deck Availability.
+- `ScanRepository`: QR sign-in inspection/decision and native capture capability status.
+- `CatalogRepository` & `AuthRepository`: Public Catalog search/printing reads and session/SSE auth.
+- `LocalStorageAdapter` & `ConnectivityObserver`: Credential/draft persistence and network state.
+
+**v1 contract (Offline-Read-Cache + Online-Writes):**
+
+- Online private reads populate the account/backend-scoped SQLite read cache
+  (`SqliteReadCacheStore`). When offline (or when a transport failure occurs while a saved session
+  is still live), Inventory, Boxes, Entry details, Decks, Selected Deck, Availability and Home serve
+  cached read-only data with local search, Box filtering and pagination.
+- If an account has no cached snapshot for a screen, offline reads report unavailable rather than
+  empty success. HTTP 401 never falls back to cache and still expires the session immediately.
+  Logout clears the account's local read cache alongside credentials and drafts.
+- An offline banner indicates read-only cached mode with a manual reconnect action, and all write
+  controls (Add save, Entry edit/remove, Box creation/assignment, QR approval/denial, sign-in) are
+  disabled while offline.
+- Pure JVM unit tests (`FakeAdapters.kt`, `OfflineReadCacheRepositoryTest.kt`,
+  `AppModelOfflineTest.kt`) test `AppModel` and repository caching/gating with in-memory fakes
+  without Android framework dependencies.
+
+**Boundary for future v2 offline write queue:**
+
+- Offline write queueing and conflict resolution are explicitly deferred to v2.
+- `InventoryRepository.submitMutation(scope, token, attempt)` already accepts a frozen
+  `MutationAttempt` (method, path, exact serialized JSON body, caller-generated `requestId`, backend
+  and account scope). In v2, an offline write-queue adapter can plug in behind `InventoryRepository`
+  to enqueue, replay and reconcile mutations without changing Compose screens or `AppModel` callers.
 
 ## Implemented journeys
 
@@ -177,17 +218,20 @@ failure keeps the confirmed receipt and offers a read retry. It cannot resend a 
 Definitive validation/conflict failures permit correction with a new request ID; Notes conflicts
 retain the user's text and show the current saved Notes.
 
-The app keeps one bounded current-screen read, clears it when leaving the screen/background, and
-installs no HTTP or disk cache. `no-store` responses are not reused. JSON and artwork bodies are
-consumed inside Ktor `prepareRequest`/`prepareGet` scoped `execute` blocks, before the 2 MiB limit
-is checked. This bypasses Ktor's eager SavedCall body buffering. Scoped cleanup and channel
-cancellation stop oversized or abandoned transfers without reading their full bodies. Marked SSE
-HTTP failures are rejected before Ktor's SSE error transform can save an unbounded body. Artwork has
-no persistent cache, limits each download to 2 MiB and each decoded dimension to at most 800 pixels,
-or 192 pixels for rows, with four concurrent decodes. Oversized/failed reads show unavailable, not
-empty success. Inventory and directory pagination replace the current page rather than accumulating
-an unbounded list. Selected Deck composition renders 40 rows per page within the bounded selected
-response.
+The app keeps one bounded current-screen read in memory, clears it when leaving the
+screen/background, and installs no HTTP or OkHttp disk cache so online reads always hit the server
+and honor `Cache-Control: no-store`. For offline browsing only, the repository layer persists
+account/backend-scoped read snapshots (Dashboard, Inventory, Boxes, Entry details, Decks, Selected
+Deck and Availability) in an app-private SQLite database (`SqliteReadCacheStore`) excluded from
+backups and cleared on logout or HTTP 401. JSON and artwork bodies are consumed inside Ktor
+`prepareRequest`/`prepareGet` scoped `execute` blocks, before the 2 MiB limit is checked. This
+bypasses Ktor's eager SavedCall body buffering. Scoped cleanup and channel cancellation stop
+oversized or abandoned transfers without reading their full bodies. Marked SSE HTTP failures are
+rejected before Ktor's SSE error transform can save an unbounded body. Artwork has no persistent
+cache, limits each download to 2 MiB and each decoded dimension to at most 800 pixels, or 192 pixels
+for rows, with four concurrent decodes. Oversized/failed reads show unavailable, not empty success.
+Inventory and directory pagination replace the current page rather than accumulating an unbounded
+list. Selected Deck composition renders 40 rows per page within the bounded selected response.
 
 Foreground ownership cancels reads, in-flight writes and SSE when the app stops. Unconfirmed
 attempts remain drafts and never replay on resume. Session/account changes cancel old private work.

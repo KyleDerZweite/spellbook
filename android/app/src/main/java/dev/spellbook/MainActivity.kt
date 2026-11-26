@@ -16,7 +16,7 @@ import dev.spellbook.feature.AppModel
 import dev.spellbook.ui.SpellbookApp
 
 class MainActivity : ComponentActivity() {
-    private val model: AppModel by viewModels()
+    private val model: AppModel by viewModels { AppModel.factory(applicationContext) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
