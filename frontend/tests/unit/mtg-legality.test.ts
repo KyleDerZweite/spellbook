@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { generateLegalityWarnings, type LegalityLine } from '@spellbook/contracts/legality.ts';
+import {
+	DECK_RULES_VERSION,
+	generateLegalityWarnings,
+	type LegalityLine
+} from '@spellbook/contracts/legality.ts';
 
 describe('generateLegalityWarnings', () => {
 	it('counts only main and commanders toward Commander size', () => {
@@ -93,6 +97,165 @@ describe('generateLegalityWarnings', () => {
 			'Commander'
 		);
 		expect(warnings.some((warning) => warning.code === 'commander_size')).toBe(true);
+	});
+
+	it('covers all supported constructed formats under deck-rules v1', () => {
+		expect(DECK_RULES_VERSION).toBe('v1');
+		for (const format of ['Standard', 'Pioneer', 'Modern', 'Legacy', 'Vintage', 'Pauper']) {
+			const key = format.toLowerCase();
+			const plains = card({
+				oracle_id: 'plains',
+				name: 'Plains',
+				type_line: 'Basic Land — Plains',
+				color_identity: ['W'],
+				legalities: { [key]: 'legal' }
+			});
+			const spell = card({
+				oracle_id: 'spell',
+				name: 'Opt',
+				type_line: 'Instant',
+				color_identity: ['U'],
+				legalities: { [key]: 'legal' }
+			});
+			expect(
+				generateLegalityWarnings(
+					[
+						line({ quantity: 56, card: plains }),
+						line({ quantity: 4, card: spell }),
+						line({ quantity: 15, role: 'sideboard', card: plains })
+					],
+					format
+				)
+			).toEqual([]);
+		}
+	});
+
+	it('validates Commander color identity against chosen commanders', () => {
+		const commander = card({
+			oracle_id: 'thalia',
+			name: 'Thalia, Guardian of Thraben',
+			type_line: 'Legendary Creature — Human Soldier',
+			color_identity: ['W'],
+			legalities: { commander: 'legal' }
+		});
+		const plains = card({
+			oracle_id: 'plains',
+			name: 'Plains',
+			type_line: 'Basic Land — Plains',
+			color_identity: ['W'],
+			legalities: { commander: 'legal' }
+		});
+		const bolt = card({
+			oracle_id: 'bolt',
+			name: 'Lightning Bolt',
+			type_line: 'Instant',
+			color_identity: ['R'],
+			legalities: { commander: 'legal' }
+		});
+		const warnings = generateLegalityWarnings(
+			[
+				line({ role: 'commander', card: commander }),
+				line({ quantity: 98, card: plains }),
+				line({ quantity: 1, card: bolt })
+			],
+			'Commander'
+		);
+		expect(warnings.map((w) => w.code)).toEqual(['commander_color_identity']);
+	});
+
+	it('validates Commander eligibility and 2-commander pairings', () => {
+		const wastes = card({
+			oracle_id: 'wastes',
+			name: 'Wastes',
+			type_line: 'Basic Land',
+			color_identity: [],
+			legalities: { commander: 'legal' }
+		});
+		const ineligible = card({
+			oracle_id: 'bear',
+			name: 'Grizzly Bears',
+			type_line: 'Creature — Bear',
+			color_identity: ['G'],
+			legalities: { commander: 'legal' }
+		});
+		expect(
+			generateLegalityWarnings(
+				[line({ role: 'commander', card: ineligible }), line({ quantity: 99, card: wastes })],
+				'Commander'
+			).map((w) => w.code)
+		).toEqual(['commander_ineligible']);
+
+		const wilson = card({
+			oracle_id: 'wilson',
+			name: 'Wilson, Refined Grizzly',
+			type_line: 'Legendary Creature — Bear Warrior',
+			oracle_text: 'Choose a Background',
+			keywords: ['Choose a Background'],
+			color_identity: ['G'],
+			legalities: { commander: 'legal' }
+		});
+		const background = card({
+			oracle_id: 'noble-heritage',
+			name: 'Noble Heritage',
+			type_line: 'Legendary Enchantment — Background',
+			color_identity: ['W'],
+			legalities: { commander: 'legal' }
+		});
+		expect(
+			generateLegalityWarnings(
+				[
+					line({ role: 'commander', card: wilson }),
+					line({ role: 'commander', card: background }),
+					line({ quantity: 98, card: wastes })
+				],
+				'Commander'
+			)
+		).toEqual([]);
+
+		const doctor = card({
+			oracle_id: 'tenth-doctor',
+			name: 'The Tenth Doctor',
+			type_line: 'Legendary Creature — Time Lord Doctor',
+			color_identity: ['U', 'R'],
+			legalities: { commander: 'legal' }
+		});
+		const companion = card({
+			oracle_id: 'rose-tyler',
+			name: 'Rose Tyler',
+			type_line: 'Legendary Creature — Human',
+			oracle_text: "Doctor's companion",
+			keywords: ["Doctor's companion"],
+			color_identity: ['W'],
+			legalities: { commander: 'legal' }
+		});
+		expect(
+			generateLegalityWarnings(
+				[
+					line({ role: 'commander', card: doctor }),
+					line({ role: 'commander', card: companion }),
+					line({ quantity: 98, card: wastes })
+				],
+				'Commander'
+			)
+		).toEqual([]);
+
+		expect(
+			generateLegalityWarnings(
+				[
+					line({ role: 'commander', card: wilson }),
+					line({ role: 'commander', card: doctor }),
+					line({ quantity: 98, card: wastes })
+				],
+				'Commander'
+			).map((w) => w.code)
+		).toEqual(['commander_invalid_pairing']);
+
+		expect(
+			generateLegalityWarnings(
+				[line({ quantity: 10_000_000, role: 'commander', card: wilson })],
+				'Commander'
+			).map((w) => w.code)
+		).toEqual(['commander_singleton', 'commander_size', 'commander_count']);
 	});
 });
 

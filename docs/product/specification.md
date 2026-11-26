@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-26
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers:
   - Account and platform behavior:
@@ -500,11 +500,11 @@ added. The output contains no cut marks, bleed, other paper sizes or layout opti
 does not generate a PDF; users can save as PDF from the browser dialog. Real size requires printing
 at 100% scale (actual size); browser or printer scaling such as "fit to page" changes the card size.
 
-Warnings cover basic deck size, commander counts and singleton requirements, constructed copy
-limits, Vintage restricted-card quantities, and available catalog legality data. Commander size
-counts main and commander roles. Recognized card-text exceptions adjust copy limits. These checks do
-not implement all commander eligibility, partner, companion, color-identity, or card-specific rules.
-Warnings allow users to continue editing and importing drafts.
+Warnings follow the versioned [deck format legality rules (`deck-rules` v1)](./deck-rules.md),
+covering constructed and Commander deck sizes, copy limits, Vintage restricted quantities, catalog
+legality data, Commander color identity, and Commander eligibility and 2-commander pairings.
+Validation is strictly non-blocking: warnings are displayed prominently in the Deckbuilder, import
+preview, and before export, while always allowing users to save, import, print, and export.
 
 CSV mappings for ManaBox, Moxfield, Archidekt, and generic columns are planned. Integrations should
 accept user-provided exports before depending on private remote APIs.

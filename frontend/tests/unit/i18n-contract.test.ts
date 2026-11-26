@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import en from '../../src/lib/i18n/en.json';
 import { validateDictionaries } from '../../src/lib/i18n/messages.ts';
-import { localizeMessage } from '../../src/lib/i18n/presentation.ts';
+import { localizeLegalityWarning, localizeMessage } from '../../src/lib/i18n/presentation.ts';
 import {
 	CARD_TYPES,
 	filterOptionLabel,
@@ -55,6 +55,57 @@ describe('translation contract', () => {
 		);
 		expect(localizeMessage('de', 'Unknown field: custom')).toBe('Unknown field: custom');
 		expect(localizeMessage('en', 'Email saved.')).toBe('Email saved.');
+	});
+	it('localizes deck legality warnings in English and German with fallback', () => {
+		expect(
+			localizeLegalityWarning('de', {
+				code: 'commander_color_identity',
+				message: "Lightning Bolt is outside the commander's color identity.",
+				cardName: 'Lightning Bolt'
+			})
+		).toBe('Lightning Bolt liegt außerhalb der Farbidentität des Commanders.');
+		expect(
+			localizeLegalityWarning('de', {
+				code: 'commander_ineligible',
+				message: 'Grizzly Bears cannot be a commander.',
+				cardName: 'Grizzly Bears'
+			})
+		).toBe('Grizzly Bears kann kein Commander sein.');
+		expect(
+			localizeLegalityWarning('de', {
+				code: 'commander_invalid_pairing',
+				message: 'Tymna the Weaver and Pir, Imaginative Rascal cannot be paired as commanders.'
+			})
+		).toBe(
+			'Tymna the Weaver und Pir, Imaginative Rascal können nicht gemeinsam als Commander kombiniert werden.'
+		);
+		expect(
+			localizeLegalityWarning('de', {
+				code: 'format_illegal',
+				message: 'Lightning Bolt is not_legal in Standard.',
+				cardName: 'Lightning Bolt'
+			})
+		).toBe('Lightning Bolt ist in Standard nicht legal.');
+		expect(
+			localizeLegalityWarning('de', {
+				code: 'format_illegal',
+				message: 'Black Lotus is banned in Commander.',
+				cardName: 'Black Lotus'
+			})
+		).toBe('Black Lotus ist in Commander gebannt.');
+		expect(
+			localizeLegalityWarning('en', {
+				code: 'format_illegal',
+				message: 'Lightning Bolt is not_legal in Standard.',
+				cardName: 'Lightning Bolt'
+			})
+		).toBe('Lightning Bolt is not legal in Standard.');
+		expect(
+			localizeLegalityWarning('de', {
+				code: 'unknown_future_code',
+				message: 'Custom advisory message.'
+			})
+		).toBe('Custom advisory message.');
 	});
 });
 

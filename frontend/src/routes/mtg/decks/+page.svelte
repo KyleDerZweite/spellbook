@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
+	import { localizeLegalityWarning } from '#lib/i18n/presentation.ts';
 	const language = useLanguage();
 	import { deckSections } from '#lib/decks/sections.ts';
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
@@ -294,7 +295,19 @@
 	});
 	let importOpen = $state(false);
 	let deleteOpen = $state(false);
+	let pendingExport = $state<{ label: string; href: string } | null>(null);
 	let actionsTrigger = $state<HTMLButtonElement | null>(null);
+	function exportAction(label: string, href: string) {
+		if (savedDecks.warnings.length > 0) {
+			return {
+				label,
+				onSelect: () => {
+					pendingExport = { label, href };
+				}
+			};
+		}
+		return { label, href, download: true };
+	}
 	let busy = $state(false);
 	let importText = $state(untrack(() => form?.importDraft?.text ?? form?.importText ?? ''));
 	let importRequestId = $state(untrack(() => form?.importDraft?.requestId ?? ''));
@@ -726,26 +739,19 @@
 							},
 							{ label: language.t('ui.Edit.details'), onSelect: () => openEditor('details') },
 							{ label: language.t('ui.Import.decklist'), onSelect: () => openEditor('import') },
-							{
-								label: language.t('ui.Export.Arena'),
-								href: `/mtg/decks/${selectedDeck.id}/export`,
-								download: true
-							},
-							{
-								label: language.t('ui.Export.simple.text'),
-								href: `/mtg/decks/${selectedDeck.id}/export?format=simple`,
-								download: true
-							},
-							{
-								label: language.t('ui.Export.CSV'),
-								href: `/mtg/decks/${selectedDeck.id}/export?format=csv`,
-								download: true
-							},
-							{
-								label: language.t('ui.Export.Spellbook.JSON'),
-								href: `/mtg/decks/${selectedDeck.id}/export?format=json`,
-								download: true
-							},
+							exportAction(language.t('ui.Export.Arena'), `/mtg/decks/${selectedDeck.id}/export`),
+							exportAction(
+								language.t('ui.Export.simple.text'),
+								`/mtg/decks/${selectedDeck.id}/export?format=simple`
+							),
+							exportAction(
+								language.t('ui.Export.CSV'),
+								`/mtg/decks/${selectedDeck.id}/export?format=csv`
+							),
+							exportAction(
+								language.t('ui.Export.Spellbook.JSON'),
+								`/mtg/decks/${selectedDeck.id}/export?format=json`
+							),
 							{ label: language.t('ui.Print.deck'), href: `/mtg/decks/${selectedDeck.id}/print` },
 							{
 								label: language.t('ui.Print.card.sheet.A4'),
@@ -758,7 +764,8 @@
 							}
 						]}
 						onCloseAutoFocus={(event) => {
-							if (createOpen || editOpen || importOpen || deleteOpen) event.preventDefault();
+							if (createOpen || editOpen || importOpen || deleteOpen || pendingExport)
+								event.preventDefault();
 						}}
 					>
 						{#snippet trigger()}<svg
@@ -1076,10 +1083,12 @@
 										</li>{/each}
 								</ul>
 							</details>
-							{#if preview.warnings.length}<details>
+							{#if preview.warnings.length}<details open>
 									<summary>{language.t('ui.Format.warnings.for.imported.cards')}</summary>
 									<ul>
-										{#each preview.warnings as warning}<li>{warning.message}</li>{/each}
+										{#each preview.warnings as warning}<li>
+												{localizeLegalityWarning(language.locale, warning)}
+											</li>{/each}
 									</ul>
 								</details>{/if}
 							<form method="POST" action={action('commitImport')} use:enhance={save}>
@@ -1145,6 +1154,35 @@
 							>
 						</form></ConfirmationDialog
 					>{/if}
+				{#if pendingExport}
+					<DeckDialog
+						title={selectedDeck.format
+							? language.t('deck.legality.notLegal', { format: selectedDeck.format })
+							: language.t('ui.Format.warnings')}
+						description={language.t('deck.export.warningDescription', {
+							target: pendingExport.label
+						})}
+						returnFocus={actionsTrigger}
+						bind:open={
+							() => !!pendingExport,
+							(next) => {
+								if (!next) pendingExport = null;
+							}
+						}
+					>
+						<ul class="export-warnings">
+							{#each savedDecks.warnings as warning}<li>
+									{localizeLegalityWarning(language.locale, warning)}
+								</li>{/each}
+						</ul>
+						<Button
+							href={pendingExport.href}
+							download
+							variant="default"
+							onclick={() => (pendingExport = null)}>{language.t('deck.export.continue')}</Button
+						>
+					</DeckDialog>
+				{/if}
 			</div>
 		</section>
 		<noscript
@@ -1184,10 +1222,23 @@
 				aria-pressed={missingOnly}
 				onclick={() => (missingOnly = !missingOnly)}>{missing} {language.t('ui.missing')}</Button
 			>
-			<a href="#format-checks"
+			<a
+				href="#format-checks"
+				class={[
+					savedDecks.warnings.length &&
+						!savedDecks.legalityError &&
+						'legality-badge legality-warning'
+				]}
 				>{savedDecks.legalityError
 					? language.t('ui.Format.checks.unavailable')
-					: language.t('message.p0.format.warnings', { p0: String(savedDecks.warnings.length) })}</a
+					: savedDecks.warnings.length
+						? selectedDeck.format
+							? language.t('deck.legality.notLegalCount', {
+									format: selectedDeck.format,
+									count: language.number(savedDecks.warnings.length)
+								})
+							: language.t('message.p0.format.warnings', { p0: String(savedDecks.warnings.length) })
+						: language.t('ui.No.warnings.from.the.available.checks')}</a
 			>
 			<span class="save-status" role="status">{saveStatus}</span>
 			<Button
@@ -1286,16 +1337,22 @@
 					open={savedDecks.warnings.length > 0 || !!savedDecks.legalityError}
 				>
 					<summary
-						>{language.t('ui.Format.checks')}
-						{savedDecks.warnings.length ? `(${savedDecks.warnings.length})` : ''}</summary
+						>{savedDecks.warnings.length && selectedDeck.format
+							? language.t('deck.legality.notLegalCount', {
+									format: selectedDeck.format,
+									count: language.number(savedDecks.warnings.length)
+								})
+							: `${language.t('ui.Format.checks')}${savedDecks.warnings.length ? ` (${savedDecks.warnings.length})` : ''}`}</summary
 					>
 					<p class="muted">
-						{language.t('ui.Advisory.checks.only.Review.current.format.rules.before.an.event')}
+						{language.t('deck.legality.nonBlockingNote')}
 					</p>
 					{#if savedDecks.legalityError}<p class="warning">
 							{savedDecks.legalityError}
 						</p>{:else if savedDecks.warnings.length}<ul>
-							{#each savedDecks.warnings as warning}<li>{warning.message}</li>{/each}
+							{#each savedDecks.warnings as warning}<li>
+									{localizeLegalityWarning(language.locale, warning)}
+								</li>{/each}
 						</ul>{:else}<p>{language.t('ui.No.warnings.from.the.available.checks')}</p>{/if}
 				</details>
 			</section>
@@ -1490,6 +1547,22 @@
 		align-items: center;
 		min-height: 2.75rem;
 		color: var(--color-text-secondary);
+	}
+	.legality-badge {
+		padding: 0.25rem 0.625rem;
+		border-radius: 999px;
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.legality-warning {
+		color: var(--color-warning);
+		background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+		border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+	}
+	.export-warnings {
+		padding-left: 1.25rem;
+		line-height: 1.7;
+		font-size: 0.8125rem;
 	}
 	.save-status {
 		margin-left: auto;

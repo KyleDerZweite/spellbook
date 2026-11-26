@@ -118,10 +118,56 @@ describe('new Deck import actions', () => {
 			metadata: null
 		});
 		const result = await actions.default(
-			event({ text: 'Deck\n1 Opt', name: 'Test', intent: 'preview', requestId: 'initial' })
+			event({
+				text: 'Deck\n1 Opt',
+				name: 'Test',
+				format: 'Standard',
+				intent: 'preview',
+				requestId: 'initial'
+			})
 		);
-		expect(result).toMatchObject({ text: 'Deck\n1 Opt', name: 'Test', preview: { resolved: [] } });
+		expect(result).toMatchObject({
+			text: 'Deck\n1 Opt',
+			name: 'Test',
+			format: 'Standard',
+			preview: { resolved: [] }
+		});
+		expect(mocks.preview).toHaveBeenCalledWith(
+			expect.objectContaining({ accountId: 'owner' }),
+			'Deck\n1 Opt',
+			'Standard'
+		);
 		expect(mocks.commit).not.toHaveBeenCalled();
+
+		mocks.preview.mockClear();
+		await actions.default(
+			event({
+				text: '{"schema":"spellbook.deck","version":1,"name":"Std","format":"Standard","description":"","cards":[]}',
+				format: 'Commander',
+				intent: 'preview',
+				requestId: 'json-preview'
+			})
+		);
+		expect(mocks.preview).toHaveBeenCalledWith(
+			expect.objectContaining({ accountId: 'owner' }),
+			expect.stringContaining('"format":"Standard"'),
+			''
+		);
+
+		mocks.preview.mockClear();
+		await actions.default(
+			event({
+				text: '"name","format","description","catalogCardId","quantity","role"\r"Std","Standard","",id,4,main',
+				format: 'Commander',
+				intent: 'preview',
+				requestId: 'csv-quoted-preview'
+			})
+		);
+		expect(mocks.preview).toHaveBeenCalledWith(
+			expect.objectContaining({ accountId: 'owner' }),
+			expect.stringContaining('"name","format"'),
+			''
+		);
 	});
 	it('creates only on explicit commit and navigates to the acknowledged Deck', async () => {
 		mocks.commit.mockResolvedValue({ deckId: 'created' });

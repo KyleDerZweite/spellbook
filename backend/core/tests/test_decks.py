@@ -30,6 +30,7 @@ from spellbook_core.mtg.decks.library import (
 from spellbook_core.mtg.decks.models import DeckAcknowledgement, DeckCard, Document, OwnedPrinting
 from spellbook_core.mtg.decks.mutation import apply_operation
 from spellbook_core.mtg.decks.rules import (
+    DECK_RULES_VERSION,
     allocate_deck_availability,
     canonical_quantities,
     format_arena_decklist,
@@ -48,18 +49,18 @@ NOW = datetime(2026, 10, 23, tzinfo=UTC)
 def document(**overrides: Any) -> CardDocument:
     return cast(
         CardDocument,
-        dict(
-            id=PRINTING,
-            oracle_id="oracle",
-            name="Test",
-            set_code="tst",
-            collector_number="7",
-            image_uri="image",
-            type_line="Creature",
-            oracle_text="",
-            legalities={"commander": "legal"},
+        {
+            "id": PRINTING,
+            "oracle_id": "oracle",
+            "name": "Test",
+            "set_code": "tst",
+            "collector_number": "7",
+            "image_uri": "image",
+            "type_line": "Creature",
+            "oracle_text": "",
+            "legalities": {"commander": "legal"},
             **overrides,
-        ),
+        },
     )
 
 
@@ -675,3 +676,426 @@ def test_catalog_add_replay_ignores_caller_presentation_and_skips_catalog_resolu
 def test_library_ownership_filter_is_part_of_query() -> None:
     assert parse_library_input(dict(ownership="complete"))["query"]["ownership"] == "complete"
     assert "ownership" not in parse_library_input(dict(ownership="all"))["query"]
+
+
+@pytest.mark.parametrize(
+    "deck_format",
+    ["Standard", "Pioneer", "Modern", "Legacy", "Vintage", "Pauper"],
+)
+def test_constructed_format_matrix_checks_size_sideboard_copies_and_legality(
+    deck_format: str,
+) -> None:
+    assert DECK_RULES_VERSION == "v1"
+    fmt_key = deck_format.lower()
+    basic = document(
+        oracle_id="basic-plains",
+        name="Plains",
+        type_line="Basic Land — Plains",
+        legalities={fmt_key: "legal"},
+    )
+    spell = document(
+        oracle_id="bolt",
+        name="Lightning Bolt",
+        type_line="Instant",
+        legalities={fmt_key: "legal"},
+    )
+    banned = document(
+        oracle_id="banned-card",
+        name="Banned Card",
+        type_line="Sorcery",
+        legalities={fmt_key: "banned"},
+    )
+    # Valid 60-card main + 15-card sideboard
+    assert (
+        legality_warnings(
+            [(56, "main", basic), (4, "main", spell), (15, "sideboard", basic)],
+            deck_format,
+        )
+        == []
+    )
+    # Main under 60, sideboard + companion over 15, >4 copies across main+sideboard, banned card
+    warnings = legality_warnings(
+        [
+            (50, "main", basic),
+            (3, "main", spell),
+            (2, "sideboard", spell),
+            (13, "sideboard", basic),
+            (1, "companion", banned),
+        ],
+        deck_format,
+    )
+    assert [w["code"] for w in warnings] == [
+        "main_under_60",
+        "sideboard_over_15",
+        "too_many_copies",
+        "format_illegal",
+    ]
+
+
+def test_commander_color_identity_checks_single_partner_and_colorless_commanders() -> None:
+    plains = document(
+        oracle_id="plains",
+        name="Plains",
+        type_line="Basic Land — Plains",
+        color_identity=["W"],
+        legalities={"commander": "legal"},
+    )
+    sol_ring = document(
+        oracle_id="sol-ring",
+        name="Sol Ring",
+        type_line="Artifact",
+        color_identity=[],
+        legalities={"commander": "legal"},
+    )
+    bolt = document(
+        oracle_id="bolt",
+        name="Lightning Bolt",
+        type_line="Instant",
+        color_identity=["R"],
+        legalities={"commander": "legal"},
+    )
+    white_commander = document(
+        oracle_id="cmd-w",
+        name="Thalia, Guardian of Thraben",
+        type_line="Legendary Creature — Human Soldier",
+        color_identity=["W"],
+        legalities={"commander": "legal"},
+    )
+    warnings = legality_warnings(
+        [
+            (1, "commander", white_commander),
+            (97, "main", plains),
+            (1, "main", sol_ring),
+            (1, "main", bolt),
+            (1, "maybeboard", bolt),
+        ],
+        "Commander",
+    )
+    assert warnings == [
+        {
+            "code": "commander_color_identity",
+            "message": "Lightning Bolt is outside the commander's color identity.",
+            "cardName": "Lightning Bolt",
+        }
+    ]
+
+    # Colorless commander rejects any colored card but allows colorless cards
+    kozilek = document(
+        oracle_id="kozilek",
+        name="Kozilek, Butcher of Truth",
+        type_line="Legendary Creature — Eldrazi",
+        color_identity=[],
+        legalities={"commander": "legal"},
+    )
+    wastes = document(
+        oracle_id="wastes",
+        name="Wastes",
+        type_line="Basic Land",
+        color_identity=[],
+        legalities={"commander": "legal"},
+    )
+    assert (
+        legality_warnings(
+            [(1, "commander", kozilek), (98, "main", wastes), (1, "main", sol_ring)],
+            "Commander",
+        )
+        == []
+    )
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", kozilek), (98, "main", wastes), (1, "main", bolt)],
+            "Commander",
+        )
+    ] == ["commander_color_identity"]
+
+    # Combined color identity of valid 2-commander partners allows both commanders' colors
+    tymna = document(
+        oracle_id="tymna",
+        name="Tymna the Weaver",
+        type_line="Legendary Creature — Human Cleric",
+        oracle_text="Lifelink\nPartner",
+        keywords=["Lifelink", "Partner"],
+        color_identity=["W", "B"],
+        legalities={"commander": "legal"},
+    )
+    thrasios = document(
+        oracle_id="thrasios",
+        name="Thrasios, Triton Hero",
+        type_line="Legendary Creature — Merfolk Wizard",
+        oracle_text="Partner",
+        keywords=["Partner"],
+        color_identity=["G", "U"],
+        legalities={"commander": "legal"},
+    )
+    assert (
+        legality_warnings(
+            [(1, "commander", tymna), (1, "commander", thrasios), (98, "main", plains)],
+            "Commander",
+        )
+        == []
+    )
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [
+                (1, "commander", tymna),
+                (1, "commander", thrasios),
+                (97, "main", plains),
+                (1, "main", bolt),
+            ],
+            "Commander",
+        )
+    ] == ["commander_color_identity"]
+
+
+def test_commander_eligibility_and_two_commander_pairing_matrix() -> None:
+    wastes = document(
+        oracle_id="wastes",
+        name="Wastes",
+        type_line="Basic Land",
+        color_identity=[],
+        legalities={"commander": "legal"},
+    )
+    # 1. Non-legendary creature is ineligible
+    non_legend = document(
+        oracle_id="bear",
+        name="Grizzly Bears",
+        type_line="Creature — Bear",
+        color_identity=["G"],
+        legalities={"commander": "legal"},
+    )
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", non_legend), (99, "main", wastes)], "Commander"
+        )
+    ] == ["commander_ineligible"]
+
+    # 2. Planeswalker with "can be your commander" is eligible; without it is ineligible
+    teferi = document(
+        oracle_id="teferi",
+        name="Teferi, Temporal Archmage",
+        type_line="Legendary Planeswalker — Teferi",
+        oracle_text="Teferi, Temporal Archmage can be your commander.",
+        color_identity=["U"],
+        legalities={"commander": "legal"},
+    )
+    jace = document(
+        oracle_id="jace",
+        name="Jace, the Mind Sculptor",
+        type_line="Legendary Planeswalker — Jace",
+        oracle_text="+2: Look at the top card.",
+        color_identity=["U"],
+        legalities={"commander": "legal"},
+    )
+    assert legality_warnings([(1, "commander", teferi), (99, "main", wastes)], "Commander") == []
+    assert [
+        w["code"]
+        for w in legality_warnings([(1, "commander", jace), (99, "main", wastes)], "Commander")
+    ] == ["commander_ineligible"]
+
+    # 3. MDFC: front Legendary Creature is eligible; front Sorcery // back Creature is not
+    esika = document(
+        oracle_id="esika",
+        name="Esika, God of the Tree // The Prismatic Bridge",
+        type_line="Legendary Creature — God // Legendary Enchantment",
+        color_identity=["W", "U", "B", "R", "G"],
+        legalities={"commander": "legal"},
+    )
+    back_creature = document(
+        oracle_id="mdfc-bad",
+        name="Awaken the Blood Avatar // Extus, Oriq Overlord",
+        type_line="Sorcery // Legendary Creature — Human Warlock",
+        color_identity=["W", "B", "R"],
+        legalities={"commander": "legal"},
+    )
+    assert legality_warnings([(1, "commander", esika), (99, "main", wastes)], "Commander") == []
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", back_creature), (99, "main", wastes)], "Commander"
+        )
+    ] == ["commander_ineligible"]
+
+    # 4. Valid Partner with <Name> vs mismatched Partner with
+    pir = document(
+        oracle_id="pir",
+        name="Pir, Imaginative Rascal",
+        type_line="Legendary Creature — Human",
+        oracle_text="Partner with Toothy, Imaginary Friend",
+        keywords=["Partner with"],
+        color_identity=["G"],
+        legalities={"commander": "legal"},
+    )
+    toothy = document(
+        oracle_id="toothy",
+        name="Toothy, Imaginary Friend",
+        type_line="Legendary Creature — Illusion",
+        oracle_text="Partner with Pir, Imaginative Rascal",
+        keywords=["Partner with"],
+        color_identity=["U"],
+        legalities={"commander": "legal"},
+    )
+    tymna = document(
+        oracle_id="tymna",
+        name="Tymna the Weaver",
+        type_line="Legendary Creature — Human Cleric",
+        oracle_text="Partner",
+        keywords=["Partner"],
+        color_identity=["W", "B"],
+        legalities={"commander": "legal"},
+    )
+    assert (
+        legality_warnings(
+            [(1, "commander", pir), (1, "commander", toothy), (98, "main", wastes)], "Commander"
+        )
+        == []
+    )
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", pir), (1, "commander", tymna), (98, "main", wastes)], "Commander"
+        )
+    ] == ["commander_invalid_pairing"]
+
+    # 5. Friends forever
+    elmar = document(
+        oracle_id="elmar",
+        name="Elmar, Ulvenwald Informant",
+        type_line="Legendary Creature — Human",
+        oracle_text="Friends forever",
+        keywords=["Friends forever"],
+        color_identity=["R", "G"],
+        legalities={"commander": "legal"},
+    )
+    hargilde = document(
+        oracle_id="hargilde",
+        name="Hargilde, Kindly Runechanter",
+        type_line="Legendary Creature — Human",
+        oracle_text="Friends forever",
+        keywords=["Friends forever"],
+        color_identity=["W", "U"],
+        legalities={"commander": "legal"},
+    )
+    assert (
+        legality_warnings(
+            [(1, "commander", elmar), (1, "commander", hargilde), (98, "main", wastes)],
+            "Commander",
+        )
+        == []
+    )
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", elmar), (1, "commander", tymna), (98, "main", wastes)], "Commander"
+        )
+    ] == ["commander_invalid_pairing"]
+
+    # 6. Choose a Background + Legendary Background (Background alone is ineligible)
+    wilson = document(
+        oracle_id="wilson",
+        name="Wilson, Refined Grizzly",
+        type_line="Legendary Creature — Bear Warrior",
+        oracle_text="Choose a Background",
+        keywords=["Choose a Background"],
+        color_identity=["G"],
+        legalities={"commander": "legal"},
+    )
+    noble_heritage = document(
+        oracle_id="noble-heritage",
+        name="Noble Heritage",
+        type_line="Legendary Enchantment — Background",
+        oracle_text="Commander creatures you own have...",
+        color_identity=["W"],
+        legalities={"commander": "legal"},
+    )
+    assert (
+        legality_warnings(
+            [(1, "commander", wilson), (1, "commander", noble_heritage), (98, "main", wastes)],
+            "Commander",
+        )
+        == []
+    )
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", noble_heritage), (99, "main", wastes)], "Commander"
+        )
+    ] == ["commander_ineligible"]
+
+    # 7. Doctor's companion + Time Lord Doctor
+    tenth_doctor = document(
+        oracle_id="tenth-doctor",
+        name="The Tenth Doctor",
+        type_line="Legendary Creature — Time Lord Doctor",
+        oracle_text="Allons-y!",
+        color_identity=["U", "R"],
+        legalities={"commander": "legal"},
+    )
+    rose_tyler = document(
+        oracle_id="rose-tyler",
+        name="Rose Tyler",
+        type_line="Legendary Creature — Human",
+        oracle_text="Doctor's companion",
+        keywords=["Doctor's companion"],
+        color_identity=["W"],
+        legalities={"commander": "legal"},
+    )
+    assert (
+        legality_warnings(
+            [(1, "commander", tenth_doctor), (1, "commander", rose_tyler), (98, "main", wastes)],
+            "Commander",
+        )
+        == []
+    )
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", rose_tyler), (1, "commander", tymna), (98, "main", wastes)],
+            "Commander",
+        )
+    ] == ["commander_invalid_pairing"]
+
+    # 8. Two normal legendary creatures without pairing mechanics or duplicate commander
+    assert [
+        w["code"]
+        for w in legality_warnings(
+            [(1, "commander", esika), (1, "commander", teferi), (98, "main", wastes)], "Commander"
+        )
+    ] == ["commander_invalid_pairing"]
+    assert [
+        w["code"]
+        for w in legality_warnings([(2, "commander", tymna), (98, "main", wastes)], "Commander")
+    ] == ["commander_singleton", "commander_invalid_pairing"]
+    # 9. Oversized commander quantity does not expand memory
+    assert [
+        w["code"] for w in legality_warnings([(10_000_000, "commander", tymna)], "Commander")
+    ] == ["commander_singleton", "commander_size", "commander_count"]
+
+
+def test_import_preview_uses_destination_format_or_embedded_metadata() -> None:
+    async def scenario() -> None:
+        auth = create_autospec(SessionAuth, instance=True)
+        auth.require_actor.return_value = ACTOR
+        catalog = create_autospec(Catalog, instance=True)
+        catalog.get_catalog_printing.return_value = document(
+            legalities={"modern": "legal", "commander": "legal"}
+        )
+        decks = create_decks(create_autospec(ConnectionPool), catalog, auth)
+        payload = (
+            f'{{"schema":"spellbook.deck","version":1,"name":"Cmd","format":"Commander",'
+            f'"description":"","cards":[{{"catalogCardId":"{PRINTING}","quantity":4,"role":"main"}}]}}'
+        )
+        # Inline preview into a Modern deck uses the destination deck's format
+        inline = await decks.preview_mtg_import(ACTOR, payload, "Modern")
+        assert [w["code"] for w in inline["warnings"]] == ["main_under_60"]
+        # Standalone preview with empty fallback uses embedded JSON format
+        standalone = await decks.preview_mtg_import(ACTOR, payload, "")
+        assert [w["code"] for w in standalone["warnings"]] == [
+            "commander_singleton",
+            "commander_size",
+            "commander_count",
+        ]
+
+    asyncio.run(scenario())

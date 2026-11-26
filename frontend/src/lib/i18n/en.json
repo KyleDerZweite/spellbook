@@ -1305,5 +1305,21 @@
 	"imageCache.clear": "Clear image cache",
 	"imageCache.clearing": "Clearing…",
 	"imageCache.cleared": "Card image cache cleared.",
-	"imageCache.clearError": "Could not clear the card image cache. Try again."
+	"imageCache.clearError": "Could not clear the card image cache. Try again.",
+	"deck.legality.notLegal": "Not legal in {format}",
+	"deck.legality.notLegalCount": "Not legal in {format} ({count})",
+	"deck.legality.nonBlockingNote": "Warnings are advisory only. You can still save, print, and export this deck.",
+	"deck.legality.warning.main_under_60": "Main deck has fewer than 60 cards.",
+	"deck.legality.warning.sideboard_over_15": "Sideboard has more than 15 cards.",
+	"deck.legality.warning.commander_size": "Commander main deck and commanders should contain exactly 100 cards.",
+	"deck.legality.warning.commander_count": "Commander decks should have 1 or 2 commander cards.",
+	"deck.legality.warning.commander_color_identity": "{card} is outside the commander's color identity.",
+	"deck.legality.warning.commander_ineligible": "{card} cannot be a commander.",
+	"deck.legality.warning.commander_invalid_pairing": "{first} and {second} cannot be paired as commanders.",
+	"deck.legality.warning.copy_limit": "{card} exceeds the {limit}-copy limit in {format}.",
+	"deck.legality.warning.format_illegal": "{card} is {status} in {format}.",
+	"deck.legality.status.not_legal": "not legal",
+	"deck.legality.status.banned": "banned",
+	"deck.export.warningDescription": "This deck has format warnings. Warnings never block exports, so you can still continue with {target}.",
+	"deck.export.continue": "Export anyway"
 }
