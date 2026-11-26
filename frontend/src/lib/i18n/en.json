@@ -1294,5 +1294,16 @@
 	"rarity.bonus": "Bonus",
 	"footer.socialLinks": "Community and source links",
 	"footer.social.github": "Spellbook on GitHub",
-	"footer.social.discord": "Spellbook on Discord"
+	"footer.social.discord": "Spellbook on Discord",
+	"imageCache.title": "Card image cache",
+	"imageCache.description": "Scryfall card images are cached locally in this browser (up to {maxEntries} images or {maxSize}) for faster loading.",
+	"imageCache.loading": "Checking cached images…",
+	"imageCache.unavailable": "Local image caching is unavailable in this browser.",
+	"imageCache.empty": "No card images are cached in this browser.",
+	"imageCache.summary.one": "{count} cached image · {size}",
+	"imageCache.summary.other": "{count} cached images · {size}",
+	"imageCache.clear": "Clear image cache",
+	"imageCache.clearing": "Clearing…",
+	"imageCache.cleared": "Card image cache cleared.",
+	"imageCache.clearError": "Could not clear the card image cache. Try again."
 }

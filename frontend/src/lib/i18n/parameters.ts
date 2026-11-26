@@ -234,4 +234,7 @@ export interface MessageParameters {
 	'devices.rename.aria': { name: string | number };
 	'devices.revoke.aria': { name: string | number };
 	'devices.revoke.title': { name: string | number };
+	'imageCache.description': { maxEntries: string | number; maxSize: string | number };
+	'imageCache.summary.one': { count: string | number; size: string | number };
+	'imageCache.summary.other': { count: string | number; size: string | number };
 }

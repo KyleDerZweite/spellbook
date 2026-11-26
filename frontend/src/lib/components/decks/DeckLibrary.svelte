@@ -2,6 +2,7 @@
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import OwnershipProgress from './OwnershipProgress.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import { onMount, untrack, tick } from 'svelte';
 	import { goto, replaceState } from '$app/navigation';
 	import { page as route } from '$app/state';
@@ -745,7 +746,8 @@
 		>
 			<div class="library-cover">
 				{#if item.imageUri}<img
-						src={item.imageUri}
+						src={cardImageSrc(item.imageUri)}
+						{@attach cachedCardImage(item.imageUri)}
 						alt=""
 						loading="lazy"
 						width="488"

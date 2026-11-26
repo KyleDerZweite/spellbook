@@ -3,6 +3,7 @@
 	const language = useLanguage();
 	import type { DeckRelatedTokens } from '@spellbook/contracts/deck-tokens.ts';
 	import type { DeckCard } from '@spellbook/contracts/decks.ts';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	let { tokens, entries }: { tokens: DeckRelatedTokens; entries: DeckCard[] } = $props();
 	const items = $derived([
 		...new Map(tokens.items.map((token) => [token.catalogCardId, token])).values()
@@ -36,8 +37,10 @@
 				{#each token.faces as face, index}
 					{#if index === 0}
 						{#if face.name !== token.name}<h4>{face.name}</h4>{/if}
-						{#if face.imageUri || face.imageUriSmall}<img
-								src={face.imageUri ?? face.imageUriSmall ?? ''}
+						{#if face.imageUri || face.imageUriSmall}{@const faceUrl =
+								face.imageUri ?? face.imageUriSmall ?? ''}<img
+								src={cardImageSrc(faceUrl)}
+								{@attach cachedCardImage(faceUrl)}
 								alt={face.name}
 								loading="lazy"
 								width="244"
@@ -46,8 +49,11 @@
 								{language.t('sentence.Artwork.unavailable.for.p0', { p0: String(face.name) })}
 							</p>{/if}
 					{:else}<details>
-							<summary>{face.name}</summary>{#if face.imageUri || face.imageUriSmall}<img
-									src={face.imageUri ?? face.imageUriSmall ?? ''}
+							<summary>{face.name}</summary
+							>{#if face.imageUri || face.imageUriSmall}{@const faceUrl =
+									face.imageUri ?? face.imageUriSmall ?? ''}<img
+									src={cardImageSrc(faceUrl)}
+									{@attach cachedCardImage(faceUrl)}
 									alt={face.name}
 									loading="lazy"
 									width="244"

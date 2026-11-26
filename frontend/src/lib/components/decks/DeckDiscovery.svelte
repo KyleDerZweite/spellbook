@@ -7,6 +7,7 @@
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ManaCost from '#lib/components/cards/ManaCost.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	let {
 		deckId,
 		query = $bindable(''),
@@ -100,7 +101,12 @@
 				class="catalog-art"
 				onclick={() => onInspect(card)}
 				aria-label={language.t('message.Inspect.p0', { p0: String(card.name) })}
-				><img src={card.image_uri_small || card.image_uri} alt={card.name} loading="lazy" /></button
+				><img
+					src={cardImageSrc(card.image_uri_small || card.image_uri)}
+					{@attach cachedCardImage(card.image_uri_small || card.image_uri)}
+					alt={card.name}
+					loading="lazy"
+				/></button
 			>
 			<div class="catalog-card-info">
 				<button class="card-name" onclick={() => onInspect(card)}>{card.name}</button>

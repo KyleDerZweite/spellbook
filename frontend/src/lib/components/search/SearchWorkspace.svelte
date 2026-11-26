@@ -15,6 +15,7 @@
 		createDeckAdditionDraft,
 		createInventoryAdditionDraft
 	} from '#lib/cards/addition-drafts.ts';
+	import { cardImageCache, isCacheableScryfallImageUrl } from '#lib/cards/image-cache.ts';
 	import NativeRangeNavigation from '#lib/components/ui/pagination/NativeRangeNavigation.svelte';
 	import { cardAt, type CatalogRange } from '#lib/search/catalogWindow.ts';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
@@ -266,9 +267,18 @@
 				if (!url || warmedImages.has(url)) continue;
 				warmedImages.add(url);
 				if (warmedImages.size > 120) warmedImages.delete(warmedImages.values().next().value!);
-				const image = new Image();
-				image.decoding = 'async';
-				image.src = url;
+				if (isCacheableScryfallImageUrl(url)) {
+					void cardImageCache.prewarm(url).then((cached) => {
+						if (cached) return;
+						const image = new Image();
+						image.decoding = 'async';
+						image.src = url;
+					});
+				} else {
+					const image = new Image();
+					image.decoding = 'async';
+					image.src = url;
+				}
 			}
 		}, 120);
 		return () => clearTimeout(timer);

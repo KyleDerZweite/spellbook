@@ -7,6 +7,7 @@
 	import type { LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 	import type { BrowseViewport } from '#lib/browsing/viewport.ts';
 	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 
 	interface Props {
 		totalCount: number;
@@ -122,7 +123,8 @@
 							encodeURIComponent(card.id)}
 					>
 						<img
-							src={card.image_uri || card.image_uri_small}
+							src={cardImageSrc(card.image_uri || card.image_uri_small)}
+							{@attach cachedCardImage(card.image_uri || card.image_uri_small)}
 							alt={card.name}
 							loading="lazy"
 							class="w-full rounded-lg"

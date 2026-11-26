@@ -11,6 +11,7 @@
 	import ManaCost from './ManaCost.svelte';
 	import RarityBadge from './RarityBadge.svelte';
 	import CardQuickAdd from './CardQuickAdd.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import { searchPrintings } from '#lib/search/catalog.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { getManaFontClass } from '#lib/utils/manaCostParser.ts';
@@ -208,9 +209,11 @@
 <div class="flex shrink-0 flex-col lg:flex-row">
 	<!-- Card image -->
 	{#if activeCard.image_uri || activeCard.image_uri_small}
+		{@const activeImageUrl = activeCard.image_uri || activeCard.image_uri_small}
 		<div class="inspector-media">
 			<img
-				src={activeCard.image_uri || activeCard.image_uri_small}
+				src={cardImageSrc(activeImageUrl)}
+				{@attach cachedCardImage(activeImageUrl)}
 				alt={activeCard.name}
 				class="inspector-art"
 				style="aspect-ratio: 488 / 680;"
@@ -315,7 +318,8 @@
 									</div>
 								{/if}
 								<img
-									src={printing.image_uri_small || printing.image_uri}
+									src={cardImageSrc(printing.image_uri_small || printing.image_uri)}
+									{@attach cachedCardImage(printing.image_uri_small || printing.image_uri)}
 									alt="{printing.set_name} #{printing.collector_number}"
 									class="block w-full"
 									style="aspect-ratio: 488 / 680;"

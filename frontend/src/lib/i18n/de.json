@@ -1294,5 +1294,16 @@
 	"rarity.bonus": "Bonus",
 	"footer.socialLinks": "Community- und Quellcode-Links",
 	"footer.social.github": "Spellbook auf GitHub",
-	"footer.social.discord": "Spellbook auf Discord"
+	"footer.social.discord": "Spellbook auf Discord",
+	"imageCache.title": "Kartenbild-Cache",
+	"imageCache.description": "Scryfall-Kartenbilder werden lokal in diesem Browser zwischengespeichert (bis zu {maxEntries} Bilder oder {maxSize}), damit sie schneller laden.",
+	"imageCache.loading": "Zwischengespeicherte Bilder werden geprüft…",
+	"imageCache.unavailable": "Lokales Bild-Caching ist in diesem Browser nicht verfügbar.",
+	"imageCache.empty": "In diesem Browser sind keine Kartenbilder zwischengespeichert.",
+	"imageCache.summary.one": "{count} zwischengespeichertes Bild · {size}",
+	"imageCache.summary.other": "{count} zwischengespeicherte Bilder · {size}",
+	"imageCache.clear": "Bild-Cache leeren",
+	"imageCache.clearing": "Wird geleert…",
+	"imageCache.cleared": "Kartenbild-Cache geleert.",
+	"imageCache.clearError": "Der Kartenbild-Cache konnte nicht geleert werden. Versuche es erneut."
 }

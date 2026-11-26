@@ -10,6 +10,7 @@
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
 	import { createScanSave } from '#lib/scan/save.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { ScanCandidate, ScanSession, ScanSessionResult } from '@spellbook/contracts/scan.ts';
 
@@ -542,7 +543,8 @@
 						>
 							<div class="flex items-start gap-3">
 								{#if selected.imageUri}<img
-										src={selected.imageUri}
+										src={cardImageSrc(selected.imageUri)}
+										{@attach cachedCardImage(selected.imageUri)}
 										alt={selected.name}
 										class="w-20 rounded"
 									/>{/if}

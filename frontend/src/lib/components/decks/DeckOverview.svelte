@@ -6,6 +6,7 @@
 	import type { CardDocument } from '#lib/search/types.ts';
 	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	let {
 		cards,
@@ -63,7 +64,8 @@
 					aria-label={language.t('message.Inspect.commander.p0', { p0: String(card.name) })}
 				>
 					{#if card.imageUri}<img
-							src={card.imageUri}
+							src={cardImageSrc(card.imageUri)}
+							{@attach cachedCardImage(card.imageUri)}
 							alt={card.name}
 							width="488"
 							height="680"

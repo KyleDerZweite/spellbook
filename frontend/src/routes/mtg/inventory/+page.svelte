@@ -23,6 +23,7 @@
 	} from '#lib/browsing/pagination.ts';
 	import CardQuickAdd from '#lib/components/cards/CardQuickAdd.svelte';
 	import CardBrowsingActions from '#lib/components/cards/CardBrowsingActions.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import {
 		createDeckAdditionDraft,
 		createInventoryAdditionDraft
@@ -1672,7 +1673,14 @@
 								aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
 									? `inventory-new-${card.id}`
 									: undefined}
-								><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
+								><img
+									src={cardImageSrc(card.imageUri)}
+									{@attach cachedCardImage(card.imageUri)}
+									alt=""
+									width="40"
+									height="56"
+									loading="lazy"
+								/><span
 									><span class="card-name"
 										><strong>{card.name}</strong
 										>{#if isNewInventoryEntry(card.createdAt, asOf)}<span

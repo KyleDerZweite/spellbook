@@ -4,6 +4,7 @@
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import OwnershipProgress from '#lib/components/decks/OwnershipProgress.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 </script>
 
@@ -22,7 +23,8 @@
 					>
 						<div class="art">
 							{#if deck.commanders[0]?.artCrop}<img
-									src={deck.commanders[0].artCrop}
+									src={cardImageSrc(deck.commanders[0].artCrop)}
+									{@attach cachedCardImage(deck.commanders[0].artCrop)}
 									alt=""
 									width="80"
 									height="96"
