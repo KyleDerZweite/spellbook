@@ -8,12 +8,14 @@
 	import Footer from './Footer.svelte';
 	import SearchOverlay from '#lib/components/search/SearchOverlay.svelte';
 	import PowerSearch from '#lib/components/search/PowerSearch.svelte';
+	import type { SocialLink } from '#lib/social.ts';
 
 	interface Props {
+		socialLinks?: readonly SocialLink[];
 		children: Snippet;
 	}
 
-	let { children }: Props = $props();
+	let { socialLinks, children }: Props = $props();
 	let ready = $state(false);
 	onMount(() => {
 		const stop = pwaState.start();
@@ -57,7 +59,7 @@
 			<AppStatus />
 			{@render children()}
 		</div>
-		<Footer />
+		<Footer {socialLinks} />
 	</main>
 </div>
 

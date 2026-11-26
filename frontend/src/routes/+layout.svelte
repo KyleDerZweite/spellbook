@@ -16,12 +16,14 @@
 	import type { Snippet } from 'svelte';
 	import type { AuthUser } from '#lib/auth/types.ts';
 	import type { Game } from '#lib/search/types.ts';
+	import type { SocialLink } from '#lib/social.ts';
 
 	interface Props {
 		data: {
 			locale: Locale;
 			user: AuthUser | null;
 			activeGame: Game;
+			socialLinks: readonly SocialLink[];
 		};
 		children: Snippet;
 	}
@@ -92,7 +94,7 @@
 	<link rel="describedby" type="text/plain" href="/llms.txt" title="Spellbook agent guide" />
 </svelte:head>
 
-<Shell>
+<Shell socialLinks={data.socialLinks}>
 	{#if workspaceSavedState.getState() === 'expired' && data.user}
 		<p role="alert">
 			{language.t('session.ended')} <a href="/auth/login">{language.t('session.signIn')}</a>.

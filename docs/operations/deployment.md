@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-26
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
@@ -294,8 +294,8 @@ Tag only a `main` commit whose push CI succeeded, using Docker-safe tags matchin
 building images, `verify` rejects invalid tags and tags that already have a GitHub release so a
 rerun cannot overwrite published digests. After all five images are published, a serialized release
 job checks every image for the tagged commit, creates a GitHub release with generated notes, a
-prerelease for a hyphenated tag, and then moves the `release` tag of all five images to that
-commit. A missing image or an existing GitHub release fails the job before `release` moves. Podman
+prerelease for a hyphenated tag, and then moves the `release` tag of all five images to that commit.
+A missing image or an existing GitHub release fails the job before `release` moves. Podman
 auto-update can follow `release` for Production. Auto-update restarts one unit at a time. For a
 release that changes shared interfaces, roll out the API, workers and web together with the selected
 image revision.
@@ -536,6 +536,7 @@ hosted Development origin.
 | `API_TRUSTED_PROXY_ADDRESSES`                       | Explicit comma-separated socket-peer IPs allowed to supply `X-Spellbook-Client-Address`; empty trusts none                                                |
 | `ADDRESS_HEADER`, `XFF_DEPTH`                       | Web ingress client-address configuration; leave the header empty until proxy trust is configured                                                          |
 | `BODY_SIZE_LIMIT`                                   | Web transport limit; launcher, HTTP harness and web image default to `12M`, preserving explicit overrides. API transport defaults to 12 MiB independently |
+| `SOCIAL_DISCORD_URL`                                | Optional web-only HTTPS URL for the Discord link in the website footer; omitted when unset or empty                                                       |
 | `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).                                                 |
 | `REGISTRATION_ENABLED`                              | API and web strict `true` or `false`, default `true`; `false` closes self-service registration                                                            |
 | `DEMO_LOGIN_ENABLED`                                | API and web strict `true` or `false`, default `false`; `true` offers the shared `demo` account at `/demo`                                                 |

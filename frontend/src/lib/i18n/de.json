@@ -1291,5 +1291,8 @@
 	"physicalBoxes.nameError": "Der Name konnte nicht gespeichert werden. Verwende 1 bis 64 druckbare Zeichen.",
 	"physicalBoxes.conditionError": "Die Bedingung konnte nicht gespeichert werden. Verwende eindeutige Set-Codes mit 2 bis 6 Kleinbuchstaben oder Ziffern.",
 	"rarity.special": "Spezial",
-	"rarity.bonus": "Bonus"
+	"rarity.bonus": "Bonus",
+	"footer.socialLinks": "Community- und Quellcode-Links",
+	"footer.social.github": "Spellbook auf GitHub",
+	"footer.social.discord": "Spellbook auf Discord"
 }

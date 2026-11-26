@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
+	import { DEFAULT_SOCIAL_LINKS, SOCIAL_LINK_META, type SocialLink } from '#lib/social.ts';
+
+	let { socialLinks = DEFAULT_SOCIAL_LINKS }: { socialLinks?: readonly SocialLink[] } = $props();
 	const language = useLanguage();
 	const year = new Date().getFullYear();
 </script>
@@ -15,6 +18,32 @@
 			class="footer-link">Impressum</a
 		>
 	</nav>
+	{#if socialLinks.length > 0}
+		<nav aria-label={language.t('footer.socialLinks')} class="footer-row">
+			{#each socialLinks as link (link.id)}
+				{@const meta = SOCIAL_LINK_META[link.id]}
+				<a
+					href={link.href}
+					target="_blank"
+					rel="noopener noreferrer"
+					aria-label={language.t(meta.ariaLabelKey)}
+					class="footer-link footer-social-link"
+				>
+					<svg
+						viewBox="0 0 24 24"
+						width="14"
+						height="14"
+						fill="currentColor"
+						aria-hidden="true"
+						class="footer-social-icon"
+					>
+						<path d={meta.iconPath} />
+					</svg>
+					<span>{meta.label}</span>
+				</a>
+			{/each}
+		</nav>
+	{/if}
 	<p class="footer-row">
 		<span>© {year} Spellbook</span>
 		<a href="https://kylehub.dev" target="_blank" rel="noopener noreferrer" class="footer-link"
@@ -93,6 +122,14 @@
 	}
 	nav a {
 		padding-block: 0.35rem;
+	}
+	.footer-social-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+	.footer-social-icon {
+		flex-shrink: 0;
 	}
 	.credits {
 		max-width: 60rem;
