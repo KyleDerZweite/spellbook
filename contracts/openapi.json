@@ -6042,7 +6042,7 @@
 				}
 			],
 			"get": {
-				"summary": "Download Arena text, lossy simple text, Spellbook CSV or JSON v1",
+				"summary": "Download Arena, .dec, .dck, lossy simple text, Spellbook CSV or JSON v1",
 				"tags": ["mtg"],
 				"security": [
 					{
@@ -6054,7 +6054,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Portable Deck download. CSV and JSON preserve exact printing IDs and all roles; simple text loses roles and printing choices.",
+						"description": "Portable Deck download. CSV and JSON preserve exact printing IDs and all roles; Arena, .dec and .dck provide standard MTG exchange formats; simple text loses roles and printing choices.",
 						"content": {
 							"text/plain": {
 								"schema": {
@@ -13636,7 +13636,7 @@
 						"type": "string",
 						"minLength": 1,
 						"maxLength": 100000,
-						"description": "Content-detected Arena/simple text, CSV with name,format,description,catalogCardId,quantity,role header, or PortableDeckV1 JSON. At most 1000 card records."
+						"description": "Content-detected Arena/.dec/.dck/simple text, CSV with name,format,description,catalogCardId,quantity,role header, or PortableDeckV1 JSON. At most 1000 card records."
 					},
 					"format": {
 						"type": "string"
@@ -13666,7 +13666,7 @@
 						"type": "string",
 						"minLength": 1,
 						"maxLength": 100000,
-						"description": "Content-detected Arena/simple text, CSV with name,format,description,catalogCardId,quantity,role header, or PortableDeckV1 JSON. At most 1000 card records."
+						"description": "Content-detected Arena/.dec/.dck/simple text, CSV with name,format,description,catalogCardId,quantity,role header, or PortableDeckV1 JSON. At most 1000 card records."
 					}
 				},
 				"description": "Portable CSV/JSON metadata takes precedence over caller details. Arena About/Name supplies the name. Empty portable Decks are supported. No partial import."

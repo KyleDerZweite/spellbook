@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 	const deck = snapshot.decks.find((entry) => entry.id === params.deckId);
 	if (!deck) throw error(404, 'Deck not found');
 	const format = url.searchParams.get('format') ?? 'arena';
-	if (!['arena', 'simple', 'csv', 'json'].includes(format))
+	if (!['arena', 'dec', 'dck', 'simple', 'csv', 'json'].includes(format))
 		throw error(400, 'Unsupported Deck export format');
 	let text: string;
 	try {
@@ -28,7 +28,8 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 		if (cause instanceof ValidationError) throw error(400, cause.message);
 		throw cause;
 	}
-	const extension = format === 'json' || format === 'csv' ? format : 'txt';
+	const extension =
+		format === 'json' || format === 'csv' || format === 'dec' || format === 'dck' ? format : 'txt';
 	const media =
 		format === 'json' ? 'application/json' : format === 'csv' ? 'text/csv' : 'text/plain';
 	return new Response(text, {

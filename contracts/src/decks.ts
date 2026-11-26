@@ -148,7 +148,7 @@ export interface DeckBulkInput {
 	game: string;
 	operations: DeckOperation[];
 }
-export type DeckExchangeFormat = 'arena' | 'simple' | 'csv' | 'json';
+export type DeckExchangeFormat = 'arena' | 'dec' | 'dck' | 'simple' | 'csv' | 'json';
 
 export interface PortableDeckV1 {
 	schema: 'spellbook.deck';

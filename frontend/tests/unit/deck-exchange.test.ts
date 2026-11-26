@@ -204,7 +204,7 @@ describe('new Deck import actions', () => {
 });
 
 describe('authenticated downloads and print', () => {
-	it.each(['arena', 'simple', 'csv', 'json'])(
+	it.each(['arena', 'dec', 'dck', 'simple', 'csv', 'json'])(
 		'downloads %s with a safe filename and private response',
 		async (format) => {
 			mocks.getDeck.mockResolvedValue({ decks: [{ id: 'owned', name: 'A/"Deck\r\n' }] });
@@ -215,9 +215,11 @@ describe('authenticated downloads and print', () => {
 				url: new URL(`http://localhost/mtg/decks/owned/export?format=${format}`)
 			} as Parameters<typeof GET>[0]);
 			expect(response.headers.get('cache-control')).toBe('no-store');
-			expect(response.headers.get('content-disposition')).toContain(
-				`.${format === 'json' || format === 'csv' ? format : 'txt'}"`
-			);
+			const expectedExt =
+				format === 'json' || format === 'csv' || format === 'dec' || format === 'dck'
+					? format
+					: 'txt';
+			expect(response.headers.get('content-disposition')).toContain(`.${expectedExt}"`);
 			expect(mocks.export).toHaveBeenCalledWith(expect.anything(), 'owned', format);
 		}
 	);

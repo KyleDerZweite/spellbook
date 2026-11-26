@@ -154,6 +154,147 @@ def test_simple_text_is_explicitly_lossy_and_arena_export_retains_sections() -> 
     assert "(TST) 7" in arena
 
 
+def test_dec_export_and_import_round_trip_all_roles() -> None:
+    async def scenario() -> None:
+        source = catalog()
+        exported = export_deck(META, cards(), {}, "dec")
+        assert exported.startswith('Name: Deck, "雪"\n')
+        assert all(
+            section in exported
+            for section in ("Commander\n", "Deck\n", "Sideboard\n", "Companion\n")
+        )
+        assert "SB:" not in exported
+        result = await preview_deck_import(source, exported)
+        assert result["metadata"] == dict(name='Deck, "雪"', format="", description="")
+        assert not result["unresolved"] and not result["ambiguous"]
+        assert [(line["role"], line["quantity"]) for line in result["parsed"]] == [
+            ("commander", 3),
+            ("main", 1),
+            ("sideboard", 2),
+            ("companion", 4),
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_dck_export_and_import_round_trip_preserves_printing_hints_and_roles() -> None:
+    async def scenario() -> None:
+        source = catalog()
+        docs = {PRINTING: document(), OTHER: document(OTHER)}
+        exported = export_deck(META, cards(), docs, "dck")
+        assert exported.startswith('[metadata]\nName=Deck, "雪"\n')
+        assert all(
+            section in exported
+            for section in ("[Commander]", "[Main]", "[Sideboard]", "[Companion]")
+        )
+        assert "|TST|[7]" in exported
+        result = await preview_deck_import(source, exported)
+        assert result["metadata"] == dict(name='Deck, "雪"', format="", description="")
+        assert not result["unresolved"] and not result["ambiguous"]
+        assert [(line["role"], line["quantity"]) for line in result["parsed"]] == [
+            ("commander", 3),
+            ("main", 1),
+            ("sideboard", 2),
+            ("companion", 4),
+        ]
+        first_line = source.resolve_catalog_candidates.await_args_list[0].args[0]
+        assert first_line["setCode"] == "tst" and first_line["collectorNumber"] == "7"
+
+        # Without collector numbers, emit bare names so Forge/phase.rs do not misread suffixes.
+        incomplete = export_deck(META, cards(), {}, "dck")
+        assert "|" not in incomplete
+
+    asyncio.run(scenario())
+
+
+def test_upstream_forge_phase_rs_dck_and_dec_fixtures() -> None:
+    async def scenario() -> None:
+        source = catalog()
+        # Upstream Forge/phase.rs syntax: foil `+`, bracketed collector, trailing comment tag.
+        forge_fixture = (
+            "[metadata]\nName=Upstream Forge\n\n"
+            "[Commander]\n1 Card+|TST|[7]|#tag\n\n"
+            "[Main]\n4 Card|TST|[7]\n\n"
+            "[Sideboard]\n2 Card\n"
+        )
+        result = await preview_deck_import(source, forge_fixture)
+        assert result["metadata"] == dict(name="Upstream Forge", format="", description="")
+        assert not result["unresolved"]
+        assert [
+            (line["role"], line["quantity"], line["setCode"], line["collectorNumber"])
+            for line in result["parsed"]
+        ] == [
+            ("commander", 1, "tst", "7"),
+            ("main", 4, "tst", "7"),
+            ("sideboard", 2, None, None),
+        ]
+
+        # MTGO/Apprentice .dec variant with // section comments and SB: prefix
+        mtgo_dec = (
+            "// NAME: Legacy Dec\n4 [TST] Card\n// Sideboard\nSB: 2 Card\n// Commander\n1 Card\n"
+        )
+        dec_result = await preview_deck_import(source, mtgo_dec)
+        assert dec_result["metadata"] == dict(name="Legacy Dec", format="", description="")
+        assert not dec_result["unresolved"]
+        assert [
+            (line["role"], line["quantity"], line["setCode"]) for line in dec_result["parsed"]
+        ] == [
+            ("main", 4, "tst"),
+            ("sideboard", 2, None),
+            ("commander", 1, None),
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_xmage_dck_and_apprentice_dec_import_variants() -> None:
+    async def scenario() -> None:
+        source = catalog()
+        xmage = "NAME:XMage Deck\nLAYOUT MAIN:(1,1)\n4 [TST:7] Card\nSB: 2 [TST:7] Card\n"
+        result = await preview_deck_import(source, xmage)
+        assert result["metadata"] == dict(name="XMage Deck", format="", description="")
+        assert not result["unresolved"]
+        assert [
+            (line["role"], line["quantity"], line["setCode"], line["collectorNumber"])
+            for line in result["parsed"]
+        ] == [
+            ("main", 4, "tst", "7"),
+            ("sideboard", 2, "tst", "7"),
+        ]
+
+        apprentice = "// Apprentice list\n4 [TST] Card\nSB: 1 [TST] Card\n"
+        apprentice_result = await preview_deck_import(source, apprentice)
+        assert apprentice_result["metadata"] is None
+        assert not apprentice_result["unresolved"]
+        assert [
+            (line["role"], line["quantity"], line["setCode"])
+            for line in apprentice_result["parsed"]
+        ] == [
+            ("main", 4, "tst"),
+            ("sideboard", 1, "tst"),
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_dck_metadata_ignores_extra_keys_and_rejects_empty_or_duplicate_name() -> None:
+    async def scenario() -> None:
+        source = catalog()
+        forge = "[metadata]\nName=Forge Deck\nDeck Type=Constructed\n\n[Main]\n2 Card|TST\n"
+        result = await preview_deck_import(source, forge)
+        assert result["metadata"] == dict(name="Forge Deck", format="", description="")
+        assert not result["unresolved"]
+        assert result["parsed"][0]["setCode"] == "tst"
+        assert result["parsed"][0]["collectorNumber"] is None
+
+        with pytest.raises(ValidationError):
+            await preview_deck_import(source, "[metadata]\nName=\n[Main]\n1 Card\n")
+        with pytest.raises(ValidationError):
+            await preview_deck_import(source, "NAME:One\nNAME:Two\n1 Card\n")
+
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize(
     "record",
     [
