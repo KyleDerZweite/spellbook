@@ -15,7 +15,7 @@
     - Market reference values, Inventory history and native Demo evaluation.
   - Catalog, Inventory and Decks:
     - Catalog identity, Inventory and Deck behavior, and import formats.
-    - Deck export formats and the DIN A4 card sheet layout.
+    - Deck export formats, missing-cards wants-list export and the DIN A4 card sheet layout.
     - Deck Library ownership filters and views, and managed Category removal.
     - Inventory metadata shortcuts, compact read-only rows and UTC New badges.
     - Bounded Inventory loading, scaling evidence and API contracts.
@@ -499,6 +499,21 @@ Deckbuilder also provides an optional "Test / Play in phase.rs" action that down
 or copies `.dck` to the clipboard and opens the configured `phase.rs` URL (defaulting to
 `https://phase-rs.dev` and overridable in Settings for a self-hosted `phase-server` instance),
 without bundling Rust or WASM code in Spellbook.
+
+### Missing-cards wants-list and shop export
+
+Users can export missing cards for a single owned Deck or across multiple selected Decks in the Deck
+Library. Multi-Deck aggregation defaults to **Sum** (`mode: "sum"`), allocating all selected Decks'
+entries together against Inventory once so ordering staples and lands covers every selected Deck
+simultaneously. An explicit **Share across decks (Max instead of Sum)** toggle (`mode: "max"`) takes
+the maximum missing quantity per card across Decks for players who move copies between Decks.
+
+Exports default to Canonical card names (any printing) and offer an explicit toggle to include the
+requested set code and collector number. Supported formats are Cardmarket Wants-List, TCGplayer
+Mass-Entry and plain text, with clipboard copy and `.txt` download. When at least 10 Basic Lands or
+at least 20 cards with a known EUR reference price under `0.50 EUR` are missing, an unobtrusive
+external eBay search link hint appears with no live eBay API integration; its domain follows the UI
+locale (`de` uses `ebay.de`, otherwise `ebay.com`).
 
 ### Deck card sheet
 

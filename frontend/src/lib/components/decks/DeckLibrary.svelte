@@ -36,11 +36,26 @@
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
+	import MissingCardsDialog from './MissingCardsDialog.svelte';
+	import { MAX_MISSING_EXPORT_DECKS } from '@spellbook/contracts/decks.ts';
 
 	let { page, accountId }: { page: DeckLibraryPage; accountId: string } = $props();
 	const directoryFormId = $props.id();
 	let view = $state<'grid' | 'compact'>('grid');
 	let filterOpen = $state(false);
+	let selectingForExport = $state(false);
+	let selectedDeckIds = $state<string[]>([]);
+	let missingExportOpen = $state(false);
+	let missingExportTrigger = $state<HTMLElement | null>(null);
+	const atSelectionLimit = $derived(selectedDeckIds.length >= MAX_MISSING_EXPORT_DECKS);
+	function toggleDeckSelection(id: string) {
+		if (selectedDeckIds.includes(id)) {
+			selectedDeckIds = selectedDeckIds.filter((entry) => entry !== id);
+			return;
+		}
+		if (selectedDeckIds.length >= MAX_MISSING_EXPORT_DECKS) return;
+		selectedDeckIds = [...selectedDeckIds, id];
+	}
 	let selectedFormat = $state(untrack(() => page.query.format));
 	let selectedSort = $state(untrack(() => page.query.sort));
 	async function sortBy(sort: DeckLibraryPage['query']['sort']) {
@@ -541,6 +556,9 @@
 				locateAttempts.clear();
 				focused = null;
 				heights.clear();
+				selectedDeckIds = [];
+				selectingForExport = false;
+				missingExportOpen = false;
 			},
 			refresh: async (lease) => {
 				const account = accountId,
@@ -671,6 +689,16 @@
 				}}>{language.t('ui.Compact.table')}</Button
 			>
 		</div>
+		{#if enhanced && current.globalTotal > 0}
+			<Button
+				variant={selectingForExport ? 'default' : 'secondary'}
+				aria-pressed={selectingForExport}
+				onclick={() => {
+					selectingForExport = !selectingForExport;
+					if (!selectingForExport) selectedDeckIds = [];
+				}}>{language.t('missingExport.actionShort')}</Button
+			>
+		{/if}
 		<p class="directory-total">
 			{current.matchingTotal.toLocaleString(
 				language.locale
@@ -679,6 +707,45 @@
 			{language.t('ui.decks')}
 		</p>
 	</form>
+	{#if enhanced && selectingForExport}
+		<div class="selection-bar" role="region" aria-label={language.t('missingExport.selectDecks')}>
+			<span class="selection-count">
+				{language.t(`missingExport.selectedCount.${language.plural(selectedDeckIds.length)}`, {
+					count: language.number(selectedDeckIds.length)
+				})}
+				{#if atSelectionLimit}
+					<small class="selection-limit">
+						· {language.t('missingExport.selectionLimit', {
+							max: language.number(MAX_MISSING_EXPORT_DECKS)
+						})}
+					</small>
+				{/if}
+			</span>
+			<div class="selection-actions">
+				<Button
+					variant="default"
+					disabled={selectedDeckIds.length === 0}
+					onclick={(event) => {
+						missingExportTrigger =
+							event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+						missingExportOpen = true;
+					}}>{language.t('missingExport.action')}</Button
+				>
+				{#if selectedDeckIds.length > 0}
+					<Button variant="ghost" onclick={() => (selectedDeckIds = [])}>
+						{language.t('missingExport.clearSelection')}
+					</Button>
+				{/if}
+				<Button
+					variant="secondary"
+					onclick={() => {
+						selectingForExport = false;
+						selectedDeckIds = [];
+					}}>{language.t('ui.Cancel')}</Button
+				>
+			</div>
+		</div>
+	{/if}
 	{#snippet filterChoices()}
 		<label class="format-filter"
 			>{language.t('ui.Format')}
@@ -718,6 +785,7 @@
 		)}
 		<a
 			class="library-card"
+			class:selected={selectingForExport && selectedDeckIds.includes(item.id)}
 			title={item.name}
 			class:virtual-tile={virtual}
 			class:retained-outside={virtual && position.offscreen}
@@ -727,6 +795,12 @@
 			href={href(item.id)}
 			data-library-id={item.id}
 			use:measure={item}
+			onclick={(event) => {
+				if (selectingForExport) {
+					event.preventDefault();
+					toggleDeckSelection(item.id);
+				}
+			}}
 			onfocus={(event) => {
 				focusNode = event.currentTarget;
 				focused = { index, item, revision: current.revision };
@@ -768,6 +842,19 @@
 					</div>{/if}
 			</div>
 			<div class="deck-name">
+				{#if selectingForExport}
+					<input
+						type="checkbox"
+						class="deck-select-checkbox"
+						checked={selectedDeckIds.includes(item.id)}
+						disabled={atSelectionLimit && !selectedDeckIds.includes(item.id)}
+						aria-label={language.t('missingExport.selectDeckAria', { name: item.name })}
+						onclick={(event) => {
+							event.stopPropagation();
+							toggleDeckSelection(item.id);
+						}}
+					/>
+				{/if}
 				<strong>{item.name}</strong>
 				{#if item.assembled}<span class="assembled-badge">{language.t('deck.assembled')}</span>{/if}
 			</div>
@@ -833,6 +920,11 @@
 					href={pageHref(page.offset + page.limit)}>{language.t('ui.Next')}</a
 				>{/if}
 		</nav>{/if}
+	<MissingCardsDialog
+		bind:open={missingExportOpen}
+		deckIds={selectedDeckIds}
+		returnFocus={missingExportTrigger}
+	/>
 {/if}
 
 <style>
@@ -887,8 +979,38 @@
 		text-decoration: none;
 	}
 	.library-card:hover,
-	.library-card:focus-visible {
+	.library-card:focus-visible,
+	.library-card.selected {
 		border-color: var(--color-accent);
+	}
+	.library-card.selected {
+		box-shadow: 0 0 0 2px var(--color-accent);
+	}
+	.selection-bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.625rem 0.875rem;
+		margin: 0.75rem 0 0.25rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.5rem;
+		background: var(--color-surface);
+		font-size: 0.8125rem;
+	}
+	.selection-count {
+		font-weight: 500;
+	}
+	.selection-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.deck-select-checkbox {
+		flex: 0 0 auto;
+		margin-top: 0.2rem;
 	}
 	.library-card:focus-visible {
 		outline: 2px solid var(--color-primary);
@@ -914,6 +1036,9 @@
 		color: var(--color-text-muted);
 	}
 	.deck-name {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
 		min-width: 0;
 	}
 	.library-card strong {

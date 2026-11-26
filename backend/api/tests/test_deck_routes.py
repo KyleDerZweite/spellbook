@@ -63,6 +63,19 @@ def routes() -> Iterator[tuple[Any, TestClient]]:
         add_deck_card=ACK,
         bulk_mutate_deck_cards=ACK,
         export_decklist="Deck\n",
+        export_missing_cards={
+            "deckIds": [DECK],
+            "decks": [{"id": DECK, "name": "Deck"}],
+            "mode": "sum",
+            "includePrinting": False,
+            "totalMissingCopies": 0,
+            "uniqueMissingCards": 0,
+            "missingBasicLandCopies": 0,
+            "missingBudgetCardCopies": 0,
+            "bulkHintEligible": False,
+            "items": [],
+            "exports": {"cardmarket": "", "tcgplayer": "", "text": ""},
+        },
     )
     for method, result in defaults.items():
         getattr(decks, method).return_value = result
@@ -92,7 +105,7 @@ def test_factory_matches_all_existing_deck_routes() -> None:
         )
         for method in r.methods or ()
     }
-    assert actual == expected and len(actual) == 18
+    assert actual == expected and len(actual) == 19
 
 
 @pytest.mark.parametrize(
@@ -131,6 +144,12 @@ def test_factory_matches_all_existing_deck_routes() -> None:
             "bulk_mutate_deck_cards",
         ),
         ("GET", "/decks/" + DECK + "/export", None, "export_decklist"),
+        (
+            "POST",
+            "/decks/missing-export",
+            dict(deckIds=[DECK], mode="sum", includePrinting=False),
+            "export_missing_cards",
+        ),
     ],
 )
 def test_every_adapter_calls_its_real_application_method(
@@ -151,10 +170,34 @@ def test_every_adapter_calls_its_real_application_method(
             response.text == "Deck\n"
             and response.headers["content-type"] == "text/plain; charset=utf-8"
         )
-    if application_method in ("get_deck_choices", "availability") or (
+    if application_method in ("get_deck_choices", "availability", "export_missing_cards") or (
         method == "GET" and path == "/decks/" + DECK
     ):
         assert response.headers["cache-control"] == "no-store"
+
+
+def test_missing_export_validates_body_fields(routes: tuple[Any, TestClient]) -> None:
+    decks, client = routes
+    invalid_bodies: tuple[dict[str, object], ...] = (
+        {},
+        {"deckIds": []},
+        {"deckIds": ["not-a-uuid"]},
+        {"deckIds": [DECK], "mode": "average"},
+        {"deckIds": [DECK], "includePrinting": "true"},
+    )
+    for body in invalid_bodies:
+        response = client.post(BASE + "/decks/missing-export", json=body)
+        assert response.status_code == 400, (body, response.text)
+    decks.export_missing_cards.assert_not_awaited()
+
+    response = client.post(
+        BASE + "/decks/missing-export",
+        json={"deckIds": [DECK], "mode": "max", "includePrinting": True},
+    )
+    assert response.status_code == 200
+    decks.export_missing_cards.assert_awaited_once_with(
+        ACTOR, [DECK], mode="max", include_printing=True
+    )
 
 
 def test_scalar_queries_select_last_value(

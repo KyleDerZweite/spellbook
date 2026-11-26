@@ -305,6 +305,28 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
             )
         )
 
+    async def missing_export(
+        request: Request,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        raw_deck_ids = body.get("deckIds")
+        if not isinstance(raw_deck_ids, list) or not raw_deck_ids:
+            raise HttpError(400, "deckIds must be a non-empty array of UUIDs")
+        deck_ids = [require_uuid(item, "deckIds") for item in raw_deck_ids]
+        mode = read_string(body.get("mode", MISSING), "mode", "sum")
+        if mode not in ("sum", "max"):
+            raise HttpError(400, "mode must be 'sum' or 'max'")
+        include_printing = body.get("includePrinting", False)
+        if not isinstance(include_printing, bool):
+            raise HttpError(400, "includePrinting must be a boolean")
+        return json_response(
+            await decks.export_missing_cards(
+                actor, deck_ids, mode=mode, include_printing=include_printing
+            ),
+            headers={"cache-control": "no-store"},
+        )
+
     async def export(
         request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
@@ -342,6 +364,9 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         "/api/v1/mtg/decks/ownership", ownership, methods=["GET"], response_model=None
     )
     router.add_api_route("/api/v1/mtg/decks/search", search, methods=["GET"], response_model=None)
+    router.add_api_route(
+        "/api/v1/mtg/decks/missing-export", missing_export, methods=["POST"], response_model=None
+    )
     router.add_api_route(
         "/api/v1/mtg/deck-cards/{entryId}", patch_card, methods=["PATCH"], response_model=None
     )

@@ -6128,6 +6128,92 @@
 				]
 			}
 		},
+		"/api/v1/mtg/decks/missing-export": {
+			"post": {
+				"summary": "Export missing cards across one or more owned Decks for Cardmarket, TCGplayer or plain text",
+				"tags": ["mtg"],
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/MissingCardsExportRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Aggregated missing cards and formatted shop/wants-list exports",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MissingCardsExportResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "A valid session cookie or bearer token is required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Cookie-authenticated mutations require a matching Origin header",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "One or more requested Decks were not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/v1/mtg/scan/sessions": {
 			"get": {
 				"summary": "List the 100 most recently updated scan sessions",
@@ -14274,6 +14360,155 @@
 					]
 				},
 				"description": "Sort Rule v1 predicates. Each field occurs at most once."
+			},
+			"MissingCardsExportRequest": {
+				"type": "object",
+				"required": ["deckIds"],
+				"properties": {
+					"deckIds": {
+						"type": "array",
+						"minItems": 1,
+						"maxItems": 50,
+						"items": {
+							"type": "string",
+							"format": "uuid"
+						}
+					},
+					"mode": {
+						"type": "string",
+						"enum": ["sum", "max"],
+						"default": "sum"
+					},
+					"includePrinting": {
+						"type": "boolean",
+						"default": false
+					}
+				}
+			},
+			"MissingCardsExportResponse": {
+				"type": "object",
+				"required": [
+					"deckIds",
+					"decks",
+					"mode",
+					"includePrinting",
+					"totalMissingCopies",
+					"uniqueMissingCards",
+					"missingBasicLandCopies",
+					"missingBudgetCardCopies",
+					"bulkHintEligible",
+					"items",
+					"exports"
+				],
+				"properties": {
+					"deckIds": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"format": "uuid"
+						}
+					},
+					"decks": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": ["id", "name"],
+							"properties": {
+								"id": {
+									"type": "string",
+									"format": "uuid"
+								},
+								"name": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"mode": {
+						"type": "string",
+						"enum": ["sum", "max"]
+					},
+					"includePrinting": {
+						"type": "boolean"
+					},
+					"totalMissingCopies": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"uniqueMissingCards": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"missingBasicLandCopies": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"missingBudgetCardCopies": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"bulkHintEligible": {
+						"type": "boolean"
+					},
+					"items": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"canonicalCardId",
+								"catalogCardId",
+								"name",
+								"setCode",
+								"collectorNumber",
+								"quantity",
+								"isBasicLand",
+								"unitPriceEur"
+							],
+							"properties": {
+								"canonicalCardId": {
+									"type": "string"
+								},
+								"catalogCardId": {
+									"type": "string"
+								},
+								"name": {
+									"type": "string"
+								},
+								"setCode": {
+									"type": "string"
+								},
+								"collectorNumber": {
+									"type": "string"
+								},
+								"quantity": {
+									"type": "integer",
+									"minimum": 1
+								},
+								"isBasicLand": {
+									"type": "boolean"
+								},
+								"unitPriceEur": {
+									"type": ["string", "null"]
+								}
+							}
+						}
+					},
+					"exports": {
+						"type": "object",
+						"required": ["cardmarket", "tcgplayer", "text"],
+						"properties": {
+							"cardmarket": {
+								"type": "string"
+							},
+							"tcgplayer": {
+								"type": "string"
+							},
+							"text": {
+								"type": "string"
+							}
+						}
+					}
+				}
 			}
 		}
 	},
