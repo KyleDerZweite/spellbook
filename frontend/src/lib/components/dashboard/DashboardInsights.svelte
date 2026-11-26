@@ -9,6 +9,7 @@
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 	import DashboardDecks from './DashboardDecks.svelte';
 	import DashboardQuickActions from './DashboardQuickActions.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 	const typeColors: Record<string, string> = {
@@ -301,7 +302,8 @@
 						href={`/mtg/inventory/${encodeURIComponent(entry.id)}`}
 						><div class="thumbnail">
 							{#if entry.imageUri}<img
-									src={entry.imageUri}
+									src={cardImageSrc(entry.imageUri)}
+									{@attach cachedCardImage(entry.imageUri)}
 									alt=""
 									width="46"
 									height="64"

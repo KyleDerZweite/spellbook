@@ -8,6 +8,7 @@
 	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
 	import LinkedDevices from '#lib/components/auth/LinkedDevices.svelte';
+	import ImageCacheSettings from '#lib/components/settings/ImageCacheSettings.svelte';
 	import { getAvatar } from '#lib/profile/avatars.ts';
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
@@ -169,6 +170,7 @@
 		unavailable={data.devicesError}
 		result={form?.deviceId === undefined ? null : form}
 	/>
+	<ImageCacheSettings />
 </div>
 
 <style>

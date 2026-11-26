@@ -6,6 +6,7 @@
 	import type { SubmitFunction } from '$app/forms';
 	import QuantityControl from '#lib/components/ui/QuantityControl.svelte';
 	import ManaCost from '#lib/components/cards/ManaCost.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	let {
@@ -72,7 +73,8 @@
 								aria-label={language.t('message.Inspect.p0', { p0: String(card.name) })}
 							>
 								{#if card.imageUri}<img
-										src={card.imageUri}
+										src={cardImageSrc(card.imageUri)}
+										{@attach cachedCardImage(card.imageUri)}
 										alt={card.name}
 										loading="lazy"
 										width="488"

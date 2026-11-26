@@ -9,6 +9,7 @@
     - Routes, authentication, public landing, responsive layout and typography.
     - Shared controls, component choices and development review controls.
     - PWA installation, updates, cache policy, QR presentation and camera cleanup.
+    - Client-side IndexedDB Scryfall card image LRU cache and Settings clear control.
     - Installed narrow navigation and runtime compatibility.
   - Search and Card inspection:
     - Shared Catalog filter option labels for native controls, enhanced controls and chips.
@@ -138,6 +139,18 @@ selections, retains failed selections and closes after a successful save. The se
 receives focus on open; the trigger receives it on close. Password uses the existing native
 PasswordInput with current, new and confirmation fields, independent submission state and no
 returned password values.
+
+Scryfall card images in the web frontend use the browser-only IndexedDB LRU cache in
+[image-cache.ts](../../frontend/src/lib/cards/image-cache.ts) through the shared
+[card-image.ts](../../frontend/src/lib/cards/card-image.ts) attachment. The cache is bounded to
+2,000 entries and 200 MiB, caches only HTTPS `cards.scryfall.io` image responses, deduplicates
+concurrent fetches, ref-counts object URLs so they revoke cleanly on unmount, and falls back to
+direct Scryfall URLs when IndexedDB is unavailable (SSR, private mode, quota errors or CORS/network
+failures).
+[ImageCacheSettings](../../frontend/src/lib/components/settings/ImageCacheSettings.svelte) on
+`/settings` reports cached count and byte size and provides a Clear image cache action.
+[The service worker](../../frontend/src/service-worker/index.ts) remains strictly same-origin with
+no runtime writes, and the server stores or distributes no WotC card images.
 
 [ProfileCard](../../frontend/src/lib/components/profile/ProfileCard.svelte) renders the private
 MTG-style account card from a validated definition, username, avatar, artwork and account-scoped

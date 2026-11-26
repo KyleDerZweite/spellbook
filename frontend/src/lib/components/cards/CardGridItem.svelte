@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { CardDocument } from '#lib/search/types.ts';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import RarityBadge from './RarityBadge.svelte';
 
 	interface Props {
@@ -20,7 +21,8 @@
 	<!-- Card image -->
 	<div class="relative overflow-hidden" style="aspect-ratio: 5 / 7; border-radius: 9px;">
 		<img
-			src={card.image_uri || card.image_uri_small}
+			src={cardImageSrc(card.image_uri || card.image_uri_small)}
+			{@attach cachedCardImage(card.image_uri || card.image_uri_small)}
 			alt={card.name}
 			loading="lazy"
 			class="block h-full w-full object-contain"

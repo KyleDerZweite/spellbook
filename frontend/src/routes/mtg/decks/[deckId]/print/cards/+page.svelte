@@ -2,6 +2,7 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { SvelteSet } from 'svelte/reactivity';
 	import Button from '#lib/components/ui/button/Button.svelte';
+	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import { printCopies, printPages } from '#lib/decks/print-sheet.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	import type { PageProps } from './$types';
@@ -24,7 +25,7 @@
 				if (image.naturalWidth === 0) failed.add(key);
 				settled.add(key);
 			};
-			if (image.complete) {
+			if (image.complete && image.getAttribute('src')) {
 				settle();
 				return;
 			}
@@ -83,7 +84,8 @@
 					{#each page as copy (copy.key)}
 						<div class="card">
 							{#if copy.imageUri && !failed.has(copy.key)}<img
-									src={copy.imageUri}
+									src={cardImageSrc(copy.imageUri)}
+									{@attach cachedCardImage(copy.imageUri)}
 									alt={copy.name}
 									{@attach track(copy.key)}
 								/>{:else}<span class="card-name">{copy.name}</span>{/if}
