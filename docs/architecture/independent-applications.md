@@ -1,9 +1,10 @@
 # Independent applications implementation contract
 
 - Status: Independent Python API and workers implemented; native target verification pending
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-26
 - Source of Truth: accepted maintainer direction and existing application contracts
 - Update Triggers:
+  - Android transport-agnostic adapter pattern and v1 offline read cache
   - managed Category removal
   - native global search read and shared DTO
   - raw Web header multiplicity and native boolean queries
@@ -199,8 +200,17 @@ State distinguishes loading, empty, unavailable and retry. Store session credent
 an Android Keystore key, scope private state by account, clear it on account changes, and retain
 only bounded permitted reads and drafts. No automatic mutation replay queue.
 
-Namespace private state and drafts by backend and account. Cancel old requests and SSE on changes.
-Honor no-store, fixed session expiry and the absence of refresh tokens. An ambiguous save can retry
+Namespace private state, drafts and the v1 SQLite offline read cache by backend and account.
+`AppModel` and Compose screens consume transport-agnostic repository and storage adapters
+(`InventoryRepository`, `DeckRepository`, `ScanRepository`, `CatalogRepository`, `AuthRepository`,
+`LocalStorageAdapter`, `ConnectivityObserver`). When offline with a live saved session, Inventory
+and Decks remain browsable from the local read cache with an explicit offline banner while all write
+controls stay disabled (v1 Online-Writes; a future v2 offline write queue plugs in behind
+`InventoryRepository.submitMutation`). Cancel old requests and SSE on changes. Ktor/OkHttp installs
+no HTTP cache so online reads always honor `Cache-Control: no-store`; the app-private SQLite read
+cache is used strictly for offline read fallback of permitted account snapshots (Dashboard,
+Inventory, Boxes, Entry details, Decks, Selected Deck and Availability) and is cleared on logout or
+HTTP 401. Honor fixed session expiry and the absence of refresh tokens. An ambiguous save can retry
 only the frozen body and original request ID. Android supports pending mutations only for current
 operations and never rewrites an obsolete path into a new operation. Native acceptance includes
 guest draft through login to explicit Save, lost-response retry, saved-but-reload-failed feedback,

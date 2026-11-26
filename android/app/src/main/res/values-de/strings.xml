@@ -10,4 +10,9 @@
     <string name="device_type_cardstation">Cardstation</string>
     <string name="device_type_scanner">Scanner</string>
     <string name="device_type_other">Anderes Gerät</string>
+    <string name="offline_banner_title">Offline-Modus</string>
+    <string name="offline_banner_body">Gespeicherte Daten im Lesemodus. Änderungen erfordern eine Internetverbindung.</string>
+    <string name="offline_banner_retry">Verbindung prüfen</string>
+    <string name="offline_cached_badge">Lokaler Cache</string>
+    <string name="offline_writes_disabled">Offline: Zum Speichern bitte wieder verbinden.</string>
 </resources>

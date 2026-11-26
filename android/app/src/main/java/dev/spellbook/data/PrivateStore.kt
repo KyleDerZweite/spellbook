@@ -15,7 +15,7 @@ import javax.crypto.spec.GCMParameterSpec
 /** Credential ciphertext only; the nonexportable AES key belongs to Android Keystore. */
 // Synchronous commit confirms that the frozen attempt exists before HTTP dispatch.
 @SuppressLint("ApplySharedPref", "UseKtx")
-class PrivateStore(context: Context, private val backend: String) {
+class PrivateStore(context: Context, private val backend: String) : LocalStorageAdapter {
     private val prefs = context.getSharedPreferences("spellbook.private.v1", Context.MODE_PRIVATE)
     private val namespace = MessageDigest.getInstance("SHA-256").digest(backend.toByteArray()).joinToString("") { "%02x".format(it) }
     private val sessionKey = "$namespace.session"
@@ -27,7 +27,7 @@ class PrivateStore(context: Context, private val backend: String) {
             generateKey()
         }
     }
-    fun session(): Session? = runCatching {
+    override fun session(): Session? = runCatching {
         val encoded = prefs.getString(sessionKey, null) ?: return null
         val bytes = Base64.decode(encoded, Base64.NO_WRAP)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -36,7 +36,7 @@ class PrivateStore(context: Context, private val backend: String) {
         WireJson.decodeFromString<Session>(cipher.doFinal(bytes.copyOfRange(12, bytes.size)).decodeToString())
             .takeIf { it.backend == backend && it.isLive() }
     }.getOrNull()
-    fun saveSession(session: Session?) {
+    override fun saveSession(session: Session?) {
         if (session == null) { check(prefs.edit().remove(sessionKey).commit()); return }
         require(session.backend == backend)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -45,12 +45,12 @@ class PrivateStore(context: Context, private val backend: String) {
         val ciphertext = cipher.iv + cipher.doFinal(WireJson.encodeToString(session).toByteArray())
         check(prefs.edit().putString(sessionKey, Base64.encodeToString(ciphertext, Base64.NO_WRAP)).commit())
     }
-    fun draft(accountId: String?): DraftState {
+    override fun draft(accountId: String?): DraftState {
         val raw = prefs.getString("$namespace.${accountId ?: "guest"}.draft", null) ?: return DraftState()
         if (raw.toByteArray(Charsets.UTF_8).size > 64 * 1024) return DraftState()
         return runCatching { WireJson.decodeFromString<DraftState>(raw).withCurrentAttempt() }.getOrDefault(DraftState())
     }
-    fun saveDraft(accountId: String?, draft: DraftState) {
+    override fun saveDraft(accountId: String?, draft: DraftState) {
         val raw = WireJson.encodeToString(draft)
         require(raw.toByteArray(Charsets.UTF_8).size <= 64 * 1024)
         val draftKey = "$namespace.${accountId ?: "guest"}.draft"
@@ -61,8 +61,8 @@ class PrivateStore(context: Context, private val backend: String) {
             .forEach { edit.remove(it).remove("$it.touched") }
         check(edit.commit())
     }
-    fun clearDraft(accountId: String?) { prefs.edit().remove("$namespace.${accountId ?: "guest"}.draft").remove("$namespace.${accountId ?: "guest"}.draft.touched").commit() }
-    var appearance: String
+    override fun clearDraft(accountId: String?) { prefs.edit().remove("$namespace.${accountId ?: "guest"}.draft").remove("$namespace.${accountId ?: "guest"}.draft.touched").commit() }
+    override var appearance: String
         get() = prefs.getString("appearance", "system") ?: "system"
         set(value) { prefs.edit().putString("appearance", value).apply() }
 }

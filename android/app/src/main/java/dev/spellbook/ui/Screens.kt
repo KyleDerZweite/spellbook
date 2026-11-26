@@ -39,7 +39,7 @@ import kotlin.math.sin
 }
 @Composable fun HomeScreen(state: AppState, nav: (Route) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (!state.verified) {
+        if (!state.canBrowsePrivate) {
             Empty("Your cards, together", "Search the public Catalog, choose a Printing and prepare an Inventory draft. Sign in when you want to save it.")
             LinkRow("Search Catalog", "Public cards and Printings") { nav(Route("search")) }
             LinkRow("Sign in or create an account") { nav(Route("auth")) }
@@ -129,17 +129,19 @@ import kotlin.math.sin
             } }
             Pages(state.inventoryOffset, 40, state.inventoryOffset + page.groups.size < page.count) { model.inventory(offset = it) }
         }
-        OutlinedTextField(name, { name = it.take(200) }, Modifier.fillMaxWidth(), label = { Text("New Box name") }, singleLine = true)
-        Action("Create Box", name.isNotBlank() && !state.saving && state.draft.attempt == null) { model.createGroup(name) }
+        OutlinedTextField(name, { name = it.take(200) }, Modifier.fillMaxWidth(), enabled = state.canWriteOnline && !state.saving && state.draft.attempt == null, label = { Text("New Box name") }, singleLine = true)
+        if (!state.canWriteOnline) Muted(stringResource(R.string.offline_writes_disabled))
+        Action("Create Box", name.isNotBlank() && state.canWriteOnline && !state.saving && state.draft.attempt == null) { model.createGroup(name) }
     }
 }
 @Composable fun EntryScreen(data: ScreenData.Entry, original: InventoryEntry, state: AppState, model: AppModel, quantity: String, notes: String, groups: Set<String>, onQuantity: (String) -> Unit, onNotes: (String) -> Unit, onGroups: (Set<String>) -> Unit, useSaved: () -> Unit, nav: (Route) -> Unit) {
     val entry = data.value.entry
     var removal by remember { mutableStateOf<ReviewedRemoval?>(null) }
-    val editable = !state.saving && state.draft.attempt == null
+    val editable = state.canWriteOnline && state.dataSource == DataSource.REMOTE && !state.saving && state.draft.attempt == null
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         CardRow(entry.name, "${entry.setCode.uppercase()} · ${entry.finish} · ${entry.condition}", entry.imageUri, entry.quantity) { nav(Route("printing", entry.catalogCardId)) }
         Muted("Printing, Finish and Condition identify this entry and remain fixed.")
+        if (!state.canWriteOnline || state.dataSource != DataSource.REMOTE) Muted(stringResource(R.string.offline_writes_disabled))
         OutlinedTextField(quantity, { onQuantity(it.take(10)) }, Modifier.fillMaxWidth(), enabled = editable, label = { Text("Quantity") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
         OutlinedTextField(notes, { onNotes(it.take(4000)) }, Modifier.fillMaxWidth(), enabled = editable, label = { Text("Notes") }, minLines = 3)
         Action("Save Quantity and Notes", editable) { model.patchEntry(original, quantity, notes) }
@@ -156,7 +158,7 @@ import kotlin.math.sin
             Action("Save Box membership", editable) { model.saveGroups(entry.id, groups) }
         }
         TextButton(onClick = {
-            state.session?.user?.accountId?.let { removal = reviewRemoval(entry, AccountScope(model.backend, it)) }
+            removal = model.prepareRemoval(entry)
         }, enabled = editable && state.verified) { Text("Remove entry", color = MaterialTheme.colorScheme.error) }
     }
     removal?.let { review ->
@@ -226,9 +228,12 @@ import kotlin.math.sin
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("NM", "LP", "MP", "HP", "DMG").forEach { condition -> FilterChip(draft.condition == condition, { model.editAdd(draft.copy(condition = condition)) }, label = { Text(condition) }, enabled = editable) }
         }
-        if (!state.verified) {
+        if (!state.verified && !state.isOffline) {
             Muted("This draft is unsaved. Sign in or register, review the same draft, then choose Save explicitly.")
             Action("Sign in to continue") { nav(Route("auth", context = "add")) }
+        } else if (!state.canWriteOnline) {
+            Muted(stringResource(R.string.offline_writes_disabled))
+            Action("Save to Inventory", false, model::saveAdd)
         } else {
             Muted("Save adds these owned copies to ${state.session?.user?.username}'s Inventory. Signing in does not save the draft.")
             Action("Save to Inventory", editable, model::saveAdd)
@@ -249,10 +254,11 @@ import kotlin.math.sin
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), enabled = !state.authenticating)
         OutlinedTextField(password, { password = it.take(128) }, Modifier.fillMaxWidth(), label = { Text("Password") }, singleLine = true,
             visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { if (!state.authenticating && username.isNotBlank() && password.isNotEmpty()) submit() }), enabled = !state.authenticating)
+            keyboardActions = KeyboardActions(onDone = { if (!state.isOffline && !state.authenticating && username.isNotBlank() && password.isNotEmpty()) submit() }), enabled = !state.authenticating)
         if (register) Muted("Username: 3 to 32 letters, digits, underscores or hyphens. Password: 12 to 128 characters.")
         state.authError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Action(if (state.authenticating) "Please wait…" else if (register) "Register" else "Sign in", !state.authenticating && username.isNotBlank() && password.isNotEmpty(), submit)
+        if (state.isOffline) Muted(stringResource(R.string.offline_writes_disabled))
+        Action(if (state.authenticating) "Please wait…" else if (register) "Register" else "Sign in", !state.isOffline && !state.authenticating && username.isNotBlank() && password.isNotEmpty(), submit)
         TextButton(onClick = { register = !register }, enabled = !state.authenticating) { Text(if (register) "Use an existing account" else "Create an account") }
     }
 }
@@ -261,8 +267,12 @@ import kotlin.math.sin
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.session != null) {
             LinkRow(state.session.user.username, "Profile and account totals") { nav(Route("profile")) }
-            LinkRow("Sign out", "Revoke this account session") { confirm = true }
-            if (!state.verified || state.error != null) TextButton(onClick = { model.logout(forgetOnly = true, onSuccess = loggedOut) }) { Text("Remove local sign-in only") }
+            if (state.canWriteOnline) {
+                LinkRow("Sign out", "Revoke this account session") { confirm = true }
+            } else {
+                Muted(stringResource(R.string.offline_writes_disabled))
+            }
+            if (!state.canWriteOnline || state.error != null) TextButton(onClick = { model.logout(forgetOnly = true, onSuccess = loggedOut) }) { Text("Remove local sign-in only") }
         } else LinkRow("Sign in or register") { nav(Route("auth")) }
         Section("Appearance") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -274,7 +284,7 @@ import kotlin.math.sin
         LinkRow("About") { nav(Route("about")) }
         Muted("API: ${model.backend.ifEmpty { "Not configured" }}")
     }
-    if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Sign out?") }, text = { Text("This clears this account's local drafts and private reads. The server revokes the current session.") }, confirmButton = { TextButton(onClick = { confirm = false; model.logout(onSuccess = loggedOut) }) { Text("Sign out") } }, dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
+    if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Sign out?") }, text = { Text("This clears this account's local drafts and private reads. The server revokes the current session.") }, confirmButton = { TextButton(enabled = state.canWriteOnline, onClick = { confirm = false; model.logout(onSuccess = loggedOut) }) { Text("Sign out") } }, dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
 }
 @Composable fun ProfileScreen(state: AppState) {
     val profile = (state.data as? ScreenData.Account)?.value ?: return
@@ -337,8 +347,9 @@ import kotlin.math.sin
         Muted("API: ${model.backend}\nKind: ${request.kind}\nStatus: ${request.status}\nExpires: ${request.expiresAt}")
         Text(if (device) stringResource(R.string.qr_device_warning) else "Approve only if you initiated this request on a device you trust.")
         Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(confirmed, { confirmed = it }); Text(if (device) stringResource(R.string.qr_device_confirm) else "I reviewed this account and request") }
-        Action("Approve sign-in", confirmed && request.status == "pending") { confirmed = false; model.decideQr(request.code, "approve", confirmed = true) }
-        TextButton(onClick = { model.decideQr(request.code, "deny") }, enabled = request.status == "pending") { Text("Deny") }
+        if (!state.canWriteOnline) Muted(stringResource(R.string.offline_writes_disabled))
+        Action("Approve sign-in", state.canWriteOnline && confirmed && request.status == "pending") { confirmed = false; model.decideQr(request.code, "approve", confirmed = true) }
+        TextButton(onClick = { model.decideQr(request.code, "deny") }, enabled = state.canWriteOnline && request.status == "pending") { Text("Deny") }
     }
 }
 @Composable private fun deviceTypeLabel(type: String?): String? = when (type) {
