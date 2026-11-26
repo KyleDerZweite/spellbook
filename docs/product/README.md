@@ -1,18 +1,20 @@
 # Product docs
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-26
 - Source of Truth: product documents
 - Update Triggers:
   - managed Category removal
   - product document ownership
   - specification changes
+  - deck legality rules (`deck-rules` v1)
   - glossary changes
   - routes
   - interface requirements
   - value tracking
 - Related Docs:
   - [Specification](./specification.md)
+  - [Deck format legality rules](./deck-rules.md)
   - [Domain model](../../GLOSSARY.md)
   - [Routes](./routing-and-games.md)
   - [UI direction](./ui-design-direction.md)
@@ -38,6 +40,7 @@
 | [UI design direction](./ui-design-direction.md)                   | Interaction patterns, component choices and visual requirements                                                                               |
 | [Website and Android design handoff](./mobile-app-exploration.md) | Active Android journeys, compact app structure, Cardstation/capture simulations, source references and online-first implementation boundaries |
 | [Card grouping](./card-grouping.md)                               | Inventory groups and memberships, Deck type groups and the read-only related Token appendix                                                   |
+| [Deck format legality rules](./deck-rules.md)                     | Versioned `deck-rules` v1 format legality, Commander color-identity, eligibility/pairing checks and non-blocking warning policy               |
 | [Value tracking](./value-tracking.md)                             | Scryfall and optional references, public source history, product links, value-only daily Inventory history and selected-Deck estimates        |
 
 [Market price research](../integrations/market-prices.md) owns provider facts and evaluation.

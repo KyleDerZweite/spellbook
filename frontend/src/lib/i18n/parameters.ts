@@ -46,6 +46,25 @@ export interface MessageParameters {
 	'qr.approval': { device: string | number; username: string | number };
 	'deck.import.add.one': { count: string | number };
 	'deck.import.add.other': { count: string | number };
+	'deck.legality.notLegal': { format: string | number };
+	'deck.legality.notLegalCount': { count: string | number; format: string | number };
+	'deck.legality.warning.commander_color_identity': { card: string | number };
+	'deck.legality.warning.commander_ineligible': { card: string | number };
+	'deck.legality.warning.commander_invalid_pairing': {
+		first: string | number;
+		second: string | number;
+	};
+	'deck.legality.warning.copy_limit': {
+		card: string | number;
+		format: string | number;
+		limit: string | number;
+	};
+	'deck.legality.warning.format_illegal': {
+		card: string | number;
+		format: string | number;
+		status: string | number;
+	};
+	'deck.export.warningDescription': { target: string | number };
 	'validation.characters': { count: string | number };
 	'validation.lines': { count: string | number };
 	'validation.placeholder': { token: string | number };

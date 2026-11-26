@@ -1,7 +1,7 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-26
 - Source of Truth: mixed
 - Update Triggers:
   - Documentation ownership, product contracts and section structure
@@ -34,6 +34,7 @@
 | I want to know...                             | Read                                                                    |
 | --------------------------------------------- | ----------------------------------------------------------------------- |
 | What Spellbook does, and what is planned      | [Product specification](./product/specification.md)                     |
+| How Deck format legality warnings work        | [Deck format legality rules](./product/deck-rules.md)                   |
 | What a domain term means                      | [Glossary](../GLOSSARY.md)                                              |
 | How market value and Inventory history work   | [Value tracking](./product/value-tracking.md)                           |
 | How value references and checkpoints are made | [Valuation](./architecture/valuation.md)                                |

@@ -45,7 +45,17 @@ export const actions = {
 				});
 				throw redirect(303, `/mtg/decks?deck=${encodeURIComponent(receipt.deckId)}`);
 			}
-			const preview = await application.decks.previewMtgImport(locals.user, text);
+			const trimmed = text.trimStart();
+			const hasEmbeddedMetadata =
+				trimmed.startsWith('{') ||
+				trimmed.startsWith('[') ||
+				trimmed.startsWith('name,') ||
+				trimmed.startsWith('"name"');
+			const preview = await application.decks.previewMtgImport(
+				locals.user,
+				text,
+				hasEmbeddedMetadata ? '' : format
+			);
 			return { preview, text, requestId: crypto.randomUUID(), name, format, description };
 		} catch (cause) {
 			if (cause instanceof ValidationError)

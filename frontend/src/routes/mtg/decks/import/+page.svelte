@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
+	import { localizeLegalityWarning } from '#lib/i18n/presentation.ts';
 	const language = useLanguage();
 	import type { PageProps } from './$types';
 	import Button from '#lib/components/ui/button/Button.svelte';
@@ -124,10 +125,20 @@
 						</li>{/each}
 				</ul>
 			</details>
-			{#if preview.warnings.length}<details>
-					<summary>{language.t('ui.Format.warnings')}</summary>
+			{#if preview.warnings.length}<details open>
+					<summary
+						>{preview.metadata?.format || form?.format
+							? language.t('deck.legality.notLegalCount', {
+									format: preview.metadata?.format || form?.format || '',
+									count: language.number(preview.warnings.length)
+								})
+							: language.t('ui.Format.warnings')}</summary
+					>
+					<p>{language.t('deck.legality.nonBlockingNote')}</p>
 					<ul>
-						{#each preview.warnings as warning}<li>{warning.message}</li>{/each}
+						{#each preview.warnings as warning}<li>
+								{localizeLegalityWarning(language.locale, warning)}
+							</li>{/each}
 					</ul>
 				</details>{/if}
 			<form method="POST">
