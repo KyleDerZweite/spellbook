@@ -250,7 +250,7 @@
 	.profile-fields {
 		display: flex;
 		flex-direction: column;
-		gap: 1.75rem;
+		gap: 1.5rem;
 		min-width: 0;
 		width: 100%;
 		max-width: 440px;
@@ -297,7 +297,7 @@
 		line-height: 1.5;
 	}
 	.field-error {
-		margin-top: 0.35rem;
+		margin-top: 0.25rem;
 		color: var(--color-error);
 		font-size: 0.75rem;
 	}

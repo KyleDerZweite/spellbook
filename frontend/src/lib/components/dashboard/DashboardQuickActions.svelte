@@ -41,7 +41,7 @@
 		box-sizing: border-box;
 		min-width: 0;
 		min-height: 415px;
-		padding: 24px 18px;
+		padding: 24px 16px;
 		border-radius: 10px;
 		color: var(--color-text-primary);
 		font: 400 13px/1.4 var(--font-interface);

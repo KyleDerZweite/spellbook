@@ -248,14 +248,15 @@
 	}
 	.filter-reset {
 		display: flex;
-		height: 32px;
+		min-height: 40px;
 		align-items: center;
 		justify-content: flex-end;
 	}
 	.filter-clear {
+		min-height: 40px;
 		border: 0;
 		background: none;
-		padding: 6px 0;
+		padding: 8px 0;
 		font: inherit;
 		font-size: 12px;
 		color: var(--color-text-secondary);
@@ -272,7 +273,7 @@
 	.search-filters :global(.filter-trigger) {
 		display: flex;
 		width: 100%;
-		min-height: 36px;
+		min-height: 40px;
 		align-items: center;
 		justify-content: space-between;
 		gap: 8px;
@@ -311,8 +312,8 @@
 	.color-mode label {
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
-		min-height: 36px;
+		gap: 0.5rem;
+		min-height: 40px;
 		font-size: 0.75rem;
 		cursor: pointer;
 	}
@@ -374,8 +375,8 @@
 	}
 	.filter-options {
 		display: grid;
-		gap: 2px;
-		padding: 2px 0 8px;
+		gap: 4px;
+		padding: 4px 0 8px;
 	}
 	.filter-option-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -384,9 +385,9 @@
 	.filter-option {
 		display: flex;
 		min-width: 0;
-		min-height: 32px;
+		min-height: 40px;
 		align-items: center;
-		gap: 7px;
+		gap: 8px;
 		border: 0;
 		background: none;
 		padding: 4px 0;
@@ -437,6 +438,8 @@
 		text-align: right;
 	}
 	@media (max-width: 767px) {
+		.filter-clear,
+		.color-mode label,
 		.filter-color,
 		.filter-option,
 		.search-filters :global(.filter-trigger) {

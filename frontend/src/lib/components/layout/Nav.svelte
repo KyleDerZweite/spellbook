@@ -304,7 +304,7 @@
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
-			gap: 0.35rem;
+			gap: 0.25rem;
 			min-height: 44px;
 			padding: 0.5rem 0;
 			font-size: 0.7rem;
@@ -342,8 +342,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 0;
-		margin: 0.5rem 0 0 -0.875rem;
+		gap: 0.25rem;
+		margin: 0.5rem 0 0 -0.75rem;
 	}
 	@media (min-width: 1024px) {
 		.nav-label {
@@ -383,7 +383,7 @@
 		content: '';
 		position: absolute;
 		inset: 100% 0 auto;
-		height: 18px;
+		height: 16px;
 		background: linear-gradient(
 			to bottom,
 			color-mix(in srgb, var(--color-background) 88%, transparent),
@@ -423,7 +423,8 @@
 	}
 	.desktop-links {
 		display: flex;
-		gap: 0.2rem;
+		align-items: center;
+		gap: 0.5rem;
 		justify-content: center;
 	}
 	.desktop-links :global(a:nth-child(1) .nav-icon) {
@@ -448,7 +449,7 @@
 		margin-left: auto;
 		display: flex;
 		align-items: center;
-		gap: 0;
+		gap: 0.5rem;
 	}
 	.account-controls :global(.btn-icon) {
 		width: 44px;

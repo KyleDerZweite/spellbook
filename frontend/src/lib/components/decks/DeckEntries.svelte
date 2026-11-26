@@ -285,7 +285,7 @@
 		gap: 0.25rem;
 		color: var(--color-text-secondary);
 		font-size: 0.6875rem;
-		min-height: 2rem;
+		min-height: 2.5rem;
 		padding: 0.25rem;
 	}
 	.ownership-mark {
@@ -386,7 +386,7 @@
 		display: flex;
 		justify-content: space-between;
 		flex-wrap: wrap;
-		gap: 0;
+		gap: 0.25rem;
 		padding: 0.25rem;
 		border-radius: 0 0 0.75rem 0.75rem;
 		background: var(--color-background);

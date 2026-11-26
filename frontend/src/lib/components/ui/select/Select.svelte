@@ -106,7 +106,7 @@
 		</Select.Trigger>
 		<Select.Portal>
 			<Select.Content
-				sideOffset={5}
+				sideOffset={8}
 				collisionPadding={12}
 				class="surface-menu z-[120] w-[var(--bits-select-anchor-width)] min-w-40 max-w-[calc(100vw-1.5rem)] rounded-lg text-text-primary outline-none"
 			>

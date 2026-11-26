@@ -285,7 +285,7 @@
 		}
 		.settings-profile {
 			grid-template-columns: minmax(0, 1fr);
-			gap: 1.75rem;
+			gap: 1.5rem;
 		}
 		.settings-preview {
 			display: flex;

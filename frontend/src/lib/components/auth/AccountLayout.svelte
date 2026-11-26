@@ -45,7 +45,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 1rem;
-		margin-bottom: 1.75rem;
+		margin-bottom: 1.5rem;
 	}
 	.account-heading h1 {
 		text-align: center;

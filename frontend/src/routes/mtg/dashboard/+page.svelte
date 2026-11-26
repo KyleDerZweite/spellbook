@@ -97,8 +97,8 @@
 
 <style>
 	.dashboard-page {
-		width: min(calc(100% - 4.5rem), 100rem);
-		padding-block: 68px 32px;
+		width: min(calc(100% - 4rem), 100rem);
+		padding-block: 64px 32px;
 	}
 	.dashboard-empty {
 		padding: 24px;

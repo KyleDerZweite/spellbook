@@ -253,7 +253,7 @@
 	.latest-value,
 	.period-change {
 		display: grid;
-		gap: 0.35rem;
+		gap: 0.25rem;
 	}
 	.latest-value strong {
 		font: 400 clamp(2.25rem, 4vw, 3.25rem)/1.2 var(--font-display);
@@ -283,7 +283,7 @@
 	}
 	.history-metrics > div {
 		display: grid;
-		gap: 0.4rem;
+		gap: 0.25rem;
 		align-content: start;
 	}
 	.history-metrics strong {

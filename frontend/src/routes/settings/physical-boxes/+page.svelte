@@ -159,8 +159,13 @@
 	fieldset label {
 		display: flex;
 		align-items: center;
-		gap: 0.375rem;
-		min-height: 32px;
+		gap: 0.5rem;
+		min-height: 40px;
+	}
+	@media (max-width: 700px) {
+		fieldset label {
+			min-height: 44px;
+		}
 	}
 	input:not([type='checkbox'], [type='hidden']),
 	button {

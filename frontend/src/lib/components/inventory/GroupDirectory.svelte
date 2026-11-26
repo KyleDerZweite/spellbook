@@ -319,9 +319,9 @@
 		display: flex;
 		align-items: center;
 		min-width: 0;
-		gap: 0.25rem;
-		padding: 0.625rem;
-		border-radius: 0.625rem;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border-radius: 0.5rem;
 		background: var(--color-surface);
 	}
 	.group-link {
@@ -329,7 +329,7 @@
 		flex: 1;
 		align-items: center;
 		min-width: 0;
-		gap: 0.875rem;
+		gap: 0.75rem;
 		padding: 0.5rem;
 		text-decoration: none;
 	}
@@ -341,7 +341,7 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		gap: 0.375rem;
+		gap: 0.25rem;
 	}
 	.group-link strong {
 		font-size: 0.875rem;

@@ -162,7 +162,7 @@
 </Dialog.Root>
 
 {#snippet overlayControls()}
-	<div class="ml-auto flex shrink-0 items-center gap-1">
+	<div class="ml-auto flex shrink-0 items-center gap-2">
 		<button
 			type="button"
 			class="btn btn-ghost shrink-0"

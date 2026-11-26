@@ -18,9 +18,9 @@
 
 <AccountLayout title={language.t('ui.Sign.in')}>
 	{#snippet aside()}<QrSignIn returnTo={data.returnTo} />{/snippet}
-	{#if data.demoMode}<p class="mb-5 text-sm text-text-secondary">
+	{#if data.demoMode}<p class="mb-4 text-sm text-text-secondary">
 			{language.t('ui.Demo.mode.Sign.in.with')} <strong>demo</strong> / <strong>demo</strong>.
-		</p>{:else if data.demoLoginEnabled}<p class="mb-5 text-sm text-text-secondary">
+		</p>{:else if data.demoLoginEnabled}<p class="mb-4 text-sm text-text-secondary">
 			{language.t('ui.Just.looking.around')}
 			<a href={demoLink}>{language.t('ui.Try.the.shared.Demo.account')}</a>
 		</p>{/if}

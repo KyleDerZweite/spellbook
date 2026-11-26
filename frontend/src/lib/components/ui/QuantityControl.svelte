@@ -59,7 +59,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.125rem;
+		gap: 0.25rem;
 	}
 	.quantity {
 		min-width: 2rem;
@@ -68,9 +68,10 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.quantity-control :global(.btn-icon) {
-		width: 2rem;
-		height: 2rem;
-		min-height: 2rem;
+		width: 2.5rem;
+		min-width: 2.5rem;
+		height: 2.5rem;
+		min-height: 2.5rem;
 		padding: 0;
 	}
 	@media (max-width: 600px) {
@@ -79,6 +80,7 @@
 		}
 		.quantity-control :global(.btn-icon) {
 			width: 2.75rem;
+			min-width: 2.75rem;
 			height: 2.75rem;
 			min-height: 2.75rem;
 		}

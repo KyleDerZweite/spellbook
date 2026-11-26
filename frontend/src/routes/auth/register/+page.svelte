@@ -22,7 +22,7 @@
 <AccountLayout title={language.t('ui.Create.an.account')}>
 	<form
 		method="POST"
-		class="space-y-5"
+		class="space-y-4"
 		aria-busy={pending}
 		aria-describedby={form?.message ? 'auth-error' : undefined}
 		use:enhance={() => {

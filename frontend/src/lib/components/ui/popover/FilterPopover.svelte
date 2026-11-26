@@ -44,7 +44,7 @@
 			class="surface-menu filter-popover"
 			aria-label={label}
 			align="end"
-			sideOffset={5}
+			sideOffset={8}
 			collisionPadding={12}
 			{onOpenAutoFocus}
 			{onCloseAutoFocus}
@@ -58,7 +58,7 @@
 
 <style>
 	:global(.filter-trigger) {
-		padding-inline: 0.625rem;
+		padding-inline: 0.75rem;
 		font-size: 0.75rem;
 	}
 	:global(.filter-trigger[data-active]) {
@@ -68,11 +68,11 @@
 		position: relative;
 		z-index: 100;
 		width: min(24rem, calc(100vw - 1.5rem));
-		border-radius: 0.625rem;
+		border-radius: 0.5rem;
 		outline: none;
 	}
 	:global(.filter-popover-body) {
 		max-height: calc(var(--bits-popover-content-available-height) - 2px);
-		padding: 0.875rem;
+		padding: 1rem;
 	}
 </style>

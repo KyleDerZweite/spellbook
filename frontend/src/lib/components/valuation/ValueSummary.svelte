@@ -149,7 +149,7 @@
 	.coverage-meter {
 		display: grid;
 		grid-template-columns: 1fr auto;
-		gap: 0.4rem;
+		gap: 0.5rem;
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary);
 	}
