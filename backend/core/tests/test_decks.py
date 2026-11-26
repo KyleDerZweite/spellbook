@@ -27,7 +27,13 @@ from spellbook_core.mtg.decks.library import (
     next_deck_choice_offset,
     parse_library_input,
 )
-from spellbook_core.mtg.decks.models import DeckAcknowledgement, DeckCard, Document, OwnedPrinting
+from spellbook_core.mtg.decks.models import (
+    AssembledDeckRequirement,
+    DeckAcknowledgement,
+    DeckCard,
+    Document,
+    OwnedPrinting,
+)
 from spellbook_core.mtg.decks.mutation import apply_operation
 from spellbook_core.mtg.decks.rules import (
     DECK_RULES_VERSION,
@@ -90,9 +96,39 @@ def test_exact_printings_are_allocated_before_alternates_across_all_roles() -> N
     ]
     inventory = [OwnedPrinting(catalogCardId="owned", canonicalCardId="oracle", quantity=3)]
     assert allocate_deck_availability(cards, inventory) == {
-        "a": dict(exact=0, alternate=1, missing=2),
-        "b": dict(exact=2, alternate=0, missing=0),
-        "c": dict(exact=0, alternate=0, missing=1),
+        "a": dict(
+            exact=0,
+            alternate=1,
+            missing=2,
+            free=1,
+            inOtherDecks=0,
+            conflict=0,
+            ownedCanonical=3,
+            assembledRequired=0,
+            sharedWith=[],
+        ),
+        "b": dict(
+            exact=2,
+            alternate=0,
+            missing=0,
+            free=2,
+            inOtherDecks=0,
+            conflict=0,
+            ownedCanonical=3,
+            assembledRequired=0,
+            sharedWith=[],
+        ),
+        "c": dict(
+            exact=0,
+            alternate=0,
+            missing=1,
+            free=0,
+            inOtherDecks=0,
+            conflict=0,
+            ownedCanonical=3,
+            assembledRequired=0,
+            sharedWith=[],
+        ),
     }
     assert inventory[0]["quantity"] == 3
     assert canonical_quantities(inventory) == {"oracle": 3}
@@ -105,6 +141,156 @@ def test_exact_printings_are_allocated_before_alternates_across_all_roles() -> N
                 ),
             ]
         )
+
+
+def test_cross_deck_availability_marks_both_assembled_decks_on_overallocation() -> None:
+    inventory = [OwnedPrinting(catalogCardId="sol-cmd", canonicalCardId="sol-ring", quantity=1)]
+    deck_x_entry = DeckCard(**{**card("x1", "sol-cmd", 1), "canonicalCardId": "sol-ring"})
+    deck_y_entry = DeckCard(**{**card("y1", "sol-cmd", 1), "canonicalCardId": "sol-ring"})
+    deck_x_req = AssembledDeckRequirement(
+        id="x1",
+        deckId="deck-x",
+        deckName="Deck X",
+        catalogCardId="sol-cmd",
+        canonicalCardId="sol-ring",
+        quantity=1,
+    )
+    deck_y_req = AssembledDeckRequirement(
+        id="y1",
+        deckId="deck-y",
+        deckName="Deck Y",
+        catalogCardId="sol-cmd",
+        canonicalCardId="sol-ring",
+        quantity=1,
+    )
+    alloc_x = allocate_deck_availability(
+        [deck_x_entry], inventory, other_assembled=[deck_y_req], assembled=True
+    )["x1"]
+    alloc_y = allocate_deck_availability(
+        [deck_y_entry], inventory, other_assembled=[deck_x_req], assembled=True
+    )["y1"]
+    assert alloc_x == dict(
+        exact=1,
+        alternate=0,
+        missing=0,
+        free=0,
+        inOtherDecks=0,
+        conflict=1,
+        ownedCanonical=1,
+        assembledRequired=2,
+        sharedWith=[dict(deckId="deck-y", deckName="Deck Y", quantity=1)],
+    )
+    assert alloc_y == dict(
+        exact=1,
+        alternate=0,
+        missing=0,
+        free=0,
+        inOtherDecks=0,
+        conflict=1,
+        ownedCanonical=1,
+        assembledRequired=2,
+        sharedWith=[dict(deckId="deck-x", deckName="Deck X", quantity=1)],
+    )
+
+
+def test_cross_deck_availability_distinguishes_draft_in_other_decks_and_sufficient_copies() -> (
+    None
+):
+    sol_one = [OwnedPrinting(catalogCardId="sol-cmd", canonicalCardId="sol-ring", quantity=1)]
+    sol_two = [OwnedPrinting(catalogCardId="sol-cmd", canonicalCardId="sol-ring", quantity=2)]
+    draft_entry = DeckCard(**{**card("z1", "sol-cmd", 1), "canonicalCardId": "sol-ring"})
+    deck_x_req = AssembledDeckRequirement(
+        id="x1",
+        deckId="deck-x",
+        deckName="Deck X",
+        catalogCardId="sol-cmd",
+        canonicalCardId="sol-ring",
+        quantity=1,
+    )
+    draft_alloc = allocate_deck_availability(
+        [draft_entry], sol_one, other_assembled=[deck_x_req], assembled=False
+    )["z1"]
+    assert draft_alloc == dict(
+        exact=1,
+        alternate=0,
+        missing=0,
+        free=0,
+        inOtherDecks=1,
+        conflict=0,
+        ownedCanonical=1,
+        assembledRequired=1,
+        sharedWith=[dict(deckId="deck-x", deckName="Deck X", quantity=1)],
+    )
+    sufficient_alloc = allocate_deck_availability(
+        [draft_entry], sol_two, other_assembled=[deck_x_req], assembled=True
+    )["z1"]
+    assert sufficient_alloc == dict(
+        exact=1,
+        alternate=0,
+        missing=0,
+        free=1,
+        inOtherDecks=0,
+        conflict=0,
+        ownedCanonical=2,
+        assembledRequired=2,
+        sharedWith=[],
+    )
+
+
+def test_cross_deck_availability_partial_overallocation_reports_exact_conflict_count() -> None:
+    inventory = [OwnedPrinting(catalogCardId="bolt-m10", canonicalCardId="bolt", quantity=4)]
+    entry_x = DeckCard(**{**card("x1", "bolt-m10", 4), "canonicalCardId": "bolt"})
+    entry_y = DeckCard(**{**card("y1", "bolt-m10", 2), "canonicalCardId": "bolt"})
+    req_x = AssembledDeckRequirement(
+        id="x1",
+        deckId="deck-x",
+        deckName="Burn",
+        catalogCardId="bolt-m10",
+        canonicalCardId="bolt",
+        quantity=4,
+    )
+    req_y = AssembledDeckRequirement(
+        id="y1",
+        deckId="deck-y",
+        deckName="Izzet",
+        catalogCardId="bolt-m10",
+        canonicalCardId="bolt",
+        quantity=2,
+    )
+    alloc_x = allocate_deck_availability(
+        [entry_x], inventory, other_assembled=[req_y], assembled=True
+    )["x1"]
+    alloc_y = allocate_deck_availability(
+        [entry_y], inventory, other_assembled=[req_x], assembled=True
+    )["y1"]
+    assert alloc_x["free"] == 2 and alloc_x["conflict"] == 2 and alloc_x["assembledRequired"] == 6
+    assert alloc_y["free"] == 0 and alloc_y["conflict"] == 2 and alloc_y["assembledRequired"] == 6
+
+
+def test_cross_deck_availability_marks_shared_shortage_even_with_zero_owned() -> None:
+    entry_x = DeckCard(**{**card("x1", "sol-cmd", 1), "canonicalCardId": "sol-ring"})
+    req_y = AssembledDeckRequirement(
+        id="y1",
+        deckId="deck-y",
+        deckName="Deck Y",
+        catalogCardId="sol-cmd",
+        canonicalCardId="sol-ring",
+        quantity=1,
+    )
+    alloc_x = allocate_deck_availability([entry_x], [], other_assembled=[req_y], assembled=True)[
+        "x1"
+    ]
+    assert alloc_x == dict(
+        exact=0,
+        alternate=0,
+        missing=1,
+        free=0,
+        inOtherDecks=0,
+        conflict=1,
+        ownedCanonical=0,
+        assembledRequired=2,
+        sharedWith=[dict(deckId="deck-y", deckName="Deck Y", quantity=1)],
+    )
 
 
 def test_legality_includes_copy_exceptions_restricted_cards_and_maybeboard() -> None:

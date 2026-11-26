@@ -242,10 +242,12 @@ function field(form: FormData, name: string): string {
 export const actions = {
 	createDeck: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
+		const assembled = form.get('assembled') === 'true' || form.get('assembled') === 'on';
 		const createDraft = {
 			name: String(form.get('name') ?? ''),
 			description: String(form.get('description') ?? ''),
-			format: String(form.get('format') ?? '')
+			format: String(form.get('format') ?? ''),
+			assembled
 		};
 		let deck;
 		try {
@@ -253,7 +255,8 @@ export const actions = {
 				game: 'mtg',
 				name: field(form, 'name'),
 				description: field(form, 'description'),
-				format: field(form, 'format')
+				format: field(form, 'format'),
+				assembled
 			});
 		} catch (cause) {
 			if (cause instanceof ValidationError)
@@ -261,6 +264,23 @@ export const actions = {
 			throw cause;
 		}
 		throw redirect(303, `/mtg/decks?deck=${encodeURIComponent(deck.id)}`);
+	}),
+	toggleAssembled: guarded(async ({ request, locals }) => {
+		const form = await request.formData();
+		const nextAssembled = form.get('assembled') === 'true';
+		const deck = await updateDeck(locals.user!, {
+			deckId: field(form, 'deckId'),
+			assembled: nextAssembled
+		});
+		if (!deck) return fail(404, { message: translate(locals.locale, 'notice.Deck.not.found') });
+		return {
+			success: true,
+			message: translate(
+				locals.locale,
+				nextAssembled ? 'notice.Deck.marked.assembled' : 'notice.Deck.marked.draft'
+			),
+			savedDetails: deck
+		};
 	}),
 	updateDeck: guarded(async ({ request, locals }) => {
 		const form = await request.formData();

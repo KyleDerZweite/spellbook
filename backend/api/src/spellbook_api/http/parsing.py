@@ -54,6 +54,14 @@ def read_string(value: object, name: str, fallback: str = "") -> str:
     return value
 
 
+def read_bool(value: object, name: str, fallback: bool = False) -> bool:
+    if value is MISSING:
+        return fallback
+    if not isinstance(value, bool):
+        raise HttpError(400, f"{name} must be a boolean")
+    return value
+
+
 def read_number(value: object, name: str, fallback: int | float = 0) -> int | float:
     if value is MISSING:
         return fallback

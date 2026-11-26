@@ -316,6 +316,29 @@ def test_patch_keeps_description_revision_and_delta(
     )
 
 
+def test_assembled_flag_is_forwarded_and_type_checked(
+    routes: tuple[Any, TestClient],
+) -> None:
+    decks, client = routes
+    assert client.patch(BASE + "/decks/" + DECK, json=dict(assembled=True)).status_code == 200
+    decks.update_deck.assert_awaited_once_with(ACTOR, dict(deckId=DECK, assembled=True))
+    bad_patch = client.patch(BASE + "/decks/" + DECK, json=dict(assembled="yes"))
+    assert (
+        bad_patch.status_code == 400
+        and bad_patch.json()["message"] == "assembled must be a boolean"
+    )
+    assert client.post(BASE + "/decks", json=dict(name="Built", assembled=True)).status_code == 200
+    decks.create_deck_record.assert_awaited_once_with(
+        ACTOR,
+        dict(game="mtg", name="Built", description="", format="Commander", assembled=True),
+    )
+    bad_create = client.post(BASE + "/decks", json=dict(name="Built", assembled=1))
+    assert (
+        bad_create.status_code == 400
+        and bad_create.json()["message"] == "assembled must be a boolean"
+    )
+
+
 @pytest.mark.parametrize(
     ("failure", "status", "kind"),
     [

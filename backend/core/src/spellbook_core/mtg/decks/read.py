@@ -21,6 +21,7 @@ from spellbook_core.mtg.decks.common import (
 )
 from spellbook_core.mtg.decks.exchange import export_deck
 from spellbook_core.mtg.decks.models import (
+    AssembledDeckRequirement,
     DeckCard,
     DeckLegality,
     DeckSnapshot,
@@ -57,6 +58,41 @@ async def owned(tx: Transaction, account: str, canonical_ids: list[str]) -> list
         GROUP BY catalog_card_id,canonical_card_id ORDER BY catalog_card_id,canonical_card_id""",
             (account, canonical_ids),
         )
+    ]
+
+
+async def assembled_requirements(
+    tx: Transaction,
+    account: str,
+    canonical_ids: list[str],
+    *,
+    exclude_deck_id: str | None = None,
+) -> list[AssembledDeckRequirement]:
+    if not canonical_ids:
+        return []
+    sql = (
+        "SELECT dc.id,dc.deck_id,d.name AS deck_name,dc.catalog_card_id,"
+        "dc.canonical_card_id,dc.quantity "
+        "FROM deck_cards dc JOIN decks d "
+        "ON d.id=dc.deck_id AND d.account_id=dc.account_id AND d.game=dc.game "
+        "WHERE d.account_id=%s AND d.game='mtg' AND d.assembled=true "
+        "AND dc.canonical_card_id=ANY(%s::text[])"
+    )
+    params: tuple[object, ...] = (account, canonical_ids)
+    if exclude_deck_id is not None:
+        sql += " AND d.id<>%s::uuid"
+        params = (account, canonical_ids, exclude_deck_id)
+    sql += " ORDER BY dc.id"
+    return [
+        AssembledDeckRequirement(
+            id=str(row["id"]),
+            deckId=str(row["deck_id"]),
+            deckName=row["deck_name"],
+            catalogCardId=row["catalog_card_id"],
+            canonicalCardId=row["canonical_card_id"],
+            quantity=row["quantity"],
+        )
+        for row in await rows(tx, sql, params)
     ]
 
 
@@ -138,10 +174,25 @@ class DeckReads:
                 else (account, account),
             )
             cards = await read_cards(tx, account, selected_deck_id) if selected_deck_id else []
-            printings = await owned(
-                tx, account, list(dict.fromkeys(c["canonicalCardId"] for c in cards))
+            canonical_ids = list(dict.fromkeys(c["canonicalCardId"] for c in cards))
+            printings = await owned(tx, account, canonical_ids)
+            selected_assembled = any(
+                str(d["id"]) == selected_deck_id and bool(d.get("assembled", False))
+                for d in user_decks
             )
-            allocations = allocate_deck_availability(cards, printings)
+            other_assembled = (
+                await assembled_requirements(
+                    tx, account, canonical_ids, exclude_deck_id=selected_deck_id
+                )
+                if selected_deck_id and canonical_ids
+                else []
+            )
+            allocations = allocate_deck_availability(
+                cards,
+                printings,
+                other_assembled=other_assembled,
+                assembled=selected_assembled,
+            )
             estimates = None
             failure = None
             if selected_deck_id:
@@ -194,7 +245,15 @@ class DeckReads:
             entries=entries,
             totals={
                 key: sum(e[key] for e in entries)
-                for key in ("required", "exact", "alternate", "missing")
+                for key in (
+                    "required",
+                    "exact",
+                    "alternate",
+                    "missing",
+                    "free",
+                    "inOtherDecks",
+                    "conflict",
+                )
             },
         )
 

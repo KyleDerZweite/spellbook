@@ -256,4 +256,24 @@ export interface MessageParameters {
 	'imageCache.description': { maxEntries: string | number; maxSize: string | number };
 	'imageCache.summary.one': { count: string | number; size: string | number };
 	'imageCache.summary.other': { count: string | number; size: string | number };
+	'deck.allocation.conflict': {
+		owned: string | number;
+		needed: string | number;
+		decks: string | number;
+	};
+	'deck.allocation.conflict.short': { count: string | number };
+	'deck.allocation.inOtherDecks': { decks: string | number };
+	'deck.allocation.inOtherDecks.short': { count: string | number };
+	'deck.allocation.missingAndConflict': {
+		missing: string | number;
+		owned: string | number;
+		needed: string | number;
+		decks: string | number;
+	};
+	'deck.allocation.missingAndInOther': {
+		missing: string | number;
+		decks: string | number;
+	};
+	'deck.allocation.summary.conflicts': { count: string | number };
+	'deck.allocation.summary.inOtherDecks': { count: string | number };
 }

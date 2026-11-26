@@ -221,6 +221,7 @@
 	let createName = $state(untrack(() => form?.createDraft?.name ?? ''));
 	let createFormat = $state(untrack(() => form?.createDraft?.format ?? 'Commander'));
 	let createDescription = $state(untrack(() => form?.createDraft?.description ?? ''));
+	let createAssembled = $state(untrack(() => form?.createDraft?.assembled ?? false));
 	let nameDraft = $state(
 		untrack(
 			() =>
@@ -825,6 +826,19 @@
 				rows="3"
 				maxlength="4000"
 				bind:value={createDescription}></textarea>
+			<label class="checkbox-field" for="new-assembled">
+				<input
+					id="new-assembled"
+					type="checkbox"
+					name="assembled"
+					value="true"
+					bind:checked={createAssembled}
+				/>
+				<span>
+					<strong>{language.t('deck.assembled.toggle.label')}</strong>
+					<small class="muted">{language.t('deck.assembled.toggle.help')}</small>
+				</span>
+			</label>
 			{@render retryError()}
 			{#if !saveError && form?.message}<p role="status" class="muted">
 					{language.message(form.message)}
@@ -1217,6 +1231,26 @@
 				><i class="ms ms-deck" aria-hidden="true"></i>{total.toLocaleString(language.locale)}
 				{language.t('ui.cards')}</span
 			>
+			<form
+				method="POST"
+				action={action('toggleAssembled')}
+				use:enhance={save}
+				class="assembled-toggle"
+			>
+				<input type="hidden" name="deckId" value={selectedDeck.id} />
+				<input type="hidden" name="assembled" value={selectedDeck.assembled ? 'false' : 'true'} />
+				<Button
+					type="submit"
+					variant={selectedDeck.assembled ? 'default' : 'secondary'}
+					aria-pressed={selectedDeck.assembled}
+					title={language.t('deck.assembled.toggle.help')}
+					disabled={busy || deletedTarget}
+				>
+					{selectedDeck.assembled
+						? language.t('deck.assembled')
+						: language.t('deck.assembled.mark')}
+				</Button>
+			</form>
 			<Button
 				variant={missingOnly ? 'secondary' : 'ghost'}
 				aria-pressed={missingOnly}
@@ -1425,11 +1459,29 @@
 							'ui.This.saved.Deck.entry.was.removed.Your.draft.is.kept.but.cannot.be.submitted'
 						)}
 					</p>{/if}
-				{#if inspectedEntry}<p class="muted">
+				{#if inspectedEntry}
+					{@const entryAvailability = availability[inspectedEntry.id]}
+					{@const sharedNames =
+						entryAvailability?.sharedWith.map((share) => share.deckName).join(', ') ?? ''}
+					<p class="muted">
 						{language.t('sentence.This.deck.p0.missing.Inventory.is.not.reserved', {
-							p0: String(availability[inspectedEntry.id]?.missing ?? 0)
+							p0: String(entryAvailability?.missing ?? 0)
 						})}
-					</p>{/if}
+					</p>
+					{#if entryAvailability && entryAvailability.conflict > 0}
+						<p class="allocation-notice conflict" role="alert">
+							{language.t('deck.allocation.conflict', {
+								owned: entryAvailability.ownedCanonical.toLocaleString(language.locale),
+								needed: entryAvailability.assembledRequired.toLocaleString(language.locale),
+								decks: sharedNames
+							})}
+						</p>
+					{:else if entryAvailability && entryAvailability.inOtherDecks > 0}
+						<p class="allocation-notice in-other">
+							{language.t('deck.allocation.inOtherDecks', { decks: sharedNames })}
+						</p>
+					{/if}
+				{/if}
 				<form
 					method="POST"
 					action={action(inspectedEntryId ? 'changePrinting' : 'addCard')}
@@ -1649,6 +1701,31 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+	.assembled-toggle {
+		display: inline-flex;
+	}
+	.checkbox-field {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		font-size: 0.75rem;
+		cursor: pointer;
+	}
+	.checkbox-field span {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+	}
+	.allocation-notice {
+		font-size: 0.75rem;
+		font-weight: 500;
+	}
+	.allocation-notice.conflict {
+		color: var(--color-destructive, var(--color-danger, var(--color-warning)));
+	}
+	.allocation-notice.in-other {
+		color: var(--color-warning);
 	}
 	.deck-summary :global(.mobile-search) {
 		display: none;

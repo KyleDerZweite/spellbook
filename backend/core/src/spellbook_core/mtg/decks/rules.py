@@ -7,6 +7,8 @@ from spellbook_core.db import database_integer
 from spellbook_core.mtg.decks.common import aggregate_quantity
 from spellbook_core.mtg.decks.models import (
     Allocation,
+    AssembledDeckRequirement,
+    AssembledDeckShare,
     AvailabilityRequirement,
     DeckCard,
     OwnedPrinting,
@@ -143,34 +145,107 @@ def canonical_quantities(cards: Sequence[OwnedPrinting]) -> dict[str, int]:
     return result
 
 
-def allocate_deck_availability(
-    cards: Sequence[AvailabilityRequirement], inventory: Sequence[OwnedPrinting]
-) -> dict[str, Allocation]:
+def _copy_inventory(inventory: Sequence[OwnedPrinting]) -> dict[str, OwnedPrinting]:
     remaining: dict[str, OwnedPrinting] = {}
     for card in inventory:
         printing = card["catalogCardId"]
         previous = remaining.get(printing)
         quantity = (previous["quantity"] if previous else 0) + card["quantity"]
         remaining[printing] = {**card, "quantity": quantity}
+    return remaining
+
+
+def _exact_first(
+    cards: Sequence[AvailabilityRequirement], remaining: dict[str, OwnedPrinting]
+) -> dict[str, tuple[int, int, int]]:
     ordered = sorted(cards, key=lambda card: card["id"])
-    result: dict[str, Allocation] = {}
+    result: dict[str, list[int]] = {}
     for card in ordered:
         owned = remaining.get(card["catalogCardId"])
         exact = min(card["quantity"], owned["quantity"] if owned else 0)
         if owned:
             owned["quantity"] -= exact
-        result[card["id"]] = Allocation(exact=exact, alternate=0, missing=card["quantity"] - exact)
+        result[card["id"]] = [exact, 0, card["quantity"] - exact]
     for card in ordered:
         allocation = result[card["id"]]
         for owned in remaining.values():
-            if not allocation["missing"]:
+            if not allocation[2]:
                 break
             if owned["canonicalCardId"] != card["canonicalCardId"]:
                 continue
-            alternate = min(allocation["missing"], owned["quantity"])
+            alternate = min(allocation[2], owned["quantity"])
             owned["quantity"] -= alternate
-            allocation["alternate"] += alternate
-            allocation["missing"] -= alternate
+            allocation[1] += alternate
+            allocation[2] -= alternate
+    return {entry_id: (counts[0], counts[1], counts[2]) for entry_id, counts in result.items()}
+
+
+def allocate_deck_availability(
+    cards: Sequence[AvailabilityRequirement],
+    inventory: Sequence[OwnedPrinting],
+    *,
+    other_assembled: Sequence[AssembledDeckRequirement] = (),
+    assembled: bool = False,
+) -> dict[str, Allocation]:
+    base = _exact_first(cards, _copy_inventory(inventory))
+    if other_assembled:
+        remaining_after_others = _copy_inventory(inventory)
+        _exact_first(other_assembled, remaining_after_others)
+        free_alloc = _exact_first(cards, remaining_after_others)
+    else:
+        free_alloc = base
+
+    owned_by_canonical = canonical_quantities(inventory)
+    self_by_canonical: dict[str, int] = {}
+    for card in cards:
+        cid = card["canonicalCardId"]
+        self_by_canonical[cid] = self_by_canonical.get(cid, 0) + card["quantity"]
+
+    other_by_canonical: dict[str, dict[str, tuple[str, int]]] = {}
+    for req in other_assembled:
+        decks_for_card = other_by_canonical.setdefault(req["canonicalCardId"], {})
+        prev_name, prev_qty = decks_for_card.get(req["deckId"], (req["deckName"], 0))
+        decks_for_card[req["deckId"]] = (prev_name, prev_qty + req["quantity"])
+
+    result: dict[str, Allocation] = {}
+    for card in sorted(cards, key=lambda item: item["id"]):
+        exact, alternate, missing = base[card["id"]]
+        owned_for_entry = exact + alternate
+        free_exact, free_alt, _ = free_alloc[card["id"]]
+        free = min(owned_for_entry, free_exact + free_alt)
+        claimed_elsewhere = owned_for_entry - free
+        cid = card["canonicalCardId"]
+        owned_canonical = owned_by_canonical.get(cid, 0)
+        other_decks = other_by_canonical.get(cid, {})
+        other_total = sum(qty for _, qty in other_decks.values())
+        assembled_required = other_total + (self_by_canonical.get(cid, 0) if assembled else 0)
+        shortfall = (
+            max(0, assembled_required - owned_canonical) if assembled and other_decks else 0
+        )
+        conflict = min(card["quantity"], max(claimed_elsewhere, shortfall)) if assembled else 0
+        in_other_decks = 0 if assembled else claimed_elsewhere
+        shared_with = (
+            sorted(
+                [
+                    AssembledDeckShare(deckId=deck_id, deckName=deck_name, quantity=qty)
+                    for deck_id, (deck_name, qty) in other_decks.items()
+                ],
+                key=lambda share: (share["deckName"].lower(), share["deckId"]),
+            )
+            if conflict > 0 or in_other_decks > 0
+            else []
+        )
+        result[card["id"]] = Allocation(
+            exact=exact,
+            alternate=alternate,
+            missing=missing,
+            free=free,
+            inOtherDecks=in_other_decks,
+            conflict=conflict,
+            ownedCanonical=owned_canonical,
+            assembledRequired=assembled_required,
+            sharedWith=shared_with,
+        )
     return result
 
 

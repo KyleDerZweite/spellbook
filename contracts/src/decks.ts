@@ -15,6 +15,7 @@ export interface Deck {
 	name: string;
 	description: string;
 	format: string;
+	assembled: boolean;
 	descriptionRevision: string;
 	compositionRevision: string;
 	createdAt: string;
@@ -41,15 +42,35 @@ export interface DeckCard {
 	createdAt: string;
 	updatedAt: string;
 }
+export interface AssembledDeckShare {
+	deckId: string;
+	deckName: string;
+	quantity: number;
+}
 export interface DeckAvailability {
 	exact: number;
 	alternate: number;
 	missing: number;
+	free: number;
+	inOtherDecks: number;
+	conflict: number;
+	ownedCanonical: number;
+	assembledRequired: number;
+	sharedWith: AssembledDeckShare[];
+}
+export interface DeckAvailabilityTotals {
+	required: number;
+	exact: number;
+	alternate: number;
+	missing: number;
+	free: number;
+	inOtherDecks: number;
+	conflict: number;
 }
 export interface DeckAvailabilityResponse {
 	deckId: string;
 	entries: (DeckAvailability & { entryId: string; required: number })[];
-	totals: DeckAvailability & { required: number };
+	totals: DeckAvailabilityTotals;
 }
 export interface DeckSnapshot {
 	relatedTokens: import('./deck-tokens.ts').DeckRelatedTokens;
@@ -95,6 +116,7 @@ export interface DeckPatch {
 	format?: string;
 	description?: string;
 	descriptionRevision?: string;
+	assembled?: boolean;
 }
 export interface DeckCardIdentity {
 	catalogCardId: string;
@@ -215,7 +237,13 @@ export interface DecksApplication {
 	): Promise<DeckSnapshot>;
 	createDeckRecord(
 		actor: AuthUser,
-		input: { game: string; name: string; description: string; format: string }
+		input: {
+			game: string;
+			name: string;
+			description: string;
+			format: string;
+			assembled?: boolean;
+		}
 	): Promise<Deck>;
 	updateDeck(actor: AuthUser, input: DeckPatch): Promise<Deck>;
 	deleteDeck(actor: AuthUser, deckId: string): Promise<void>;

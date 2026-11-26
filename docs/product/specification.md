@@ -446,13 +446,27 @@ available when the account owns only one copy. If the account owns the requested
 entry and a different printing for the other, exact matches take precedence.
 
 `GET /api/v1/mtg/decks/{deckId}/availability` exposes this calculation to authenticated clients. It
-returns `deckId`, `entries` with `entryId`, `required`, `exact`, `alternate`, and `missing`, and
-matching `totals`. Invalid deck identifiers return 400; absent or foreign decks return 404. The API
-allocates entries in stable identifier order and marks the response `no-store`.
+returns `deckId`, `entries` with `entryId`, `required`, `exact`, `alternate`, `missing`, `free`,
+`inOtherDecks`, `conflict`, `ownedCanonical`, `assembledRequired`, and `sharedWith`, and matching
+`totals` (`required`, `exact`, `alternate`, `missing`, `free`, `inOtherDecks`, and `conflict`).
+Invalid deck identifiers return 400; absent or foreign decks return 404. The API allocates entries
+in stable identifier order and marks the response `no-store`.
 
-This allocation is a calculation for one deck. It does not reserve, move, or decrement inventory.
-Comparing a second deck can reuse the same owned copies. Physical assignment across decks,
-unavailable-because-assigned results, storage locations, and executable build plans remain planned.
+Each deck also carries an `assembled` boolean flag indicating whether it is currently built in
+physical form (`Assembled deck` in [GLOSSARY.md](../../GLOSSARY.md)). Spellbook calculates
+cross-deck availability automatically across all `assembled` decks of an account using the same
+exact-first allocation rule, without manual booking of individual inventory entries or
+`Physical box` coupling:
+
+- For a non-assembled (draft) deck, owned copies already claimed by other `assembled` decks are
+  reported in `inOtherDecks` alongside `sharedWith` deck names, distinguishing free inventory from
+  cards currently in use elsewhere.
+- For an `assembled` deck, when total required quantity across all `assembled` decks exceeds owned
+  inventory, every affected `assembled` deck is symmetrically marked with `conflict` quantities and
+  `sharedWith` deck names rather than silently awarding copies to an arbitrary deck.
+
+This allocation does not move or decrement inventory. Explicit single-entry binding, storage
+locations, and executable build plans remain planned.
 
 ## Import, export, and warnings
 

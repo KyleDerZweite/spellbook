@@ -127,6 +127,7 @@ def deck_dto(row: Document) -> Deck:
         name=row["name"],
         description=row["description"],
         format=row["format"],
+        assembled=bool(row.get("assembled", False)),
         descriptionRevision=str(row["description_revision"]),
         compositionRevision=str(row["composition_revision"]),
         createdAt=iso_timestamp(row["created_at"]),
@@ -169,6 +170,16 @@ def text(value: object, label: str, maximum: int, fallback: str | None = None) -
     if utf16_length(result) > maximum or (not result and fallback is None):
         raise ValidationError(f"Invalid {label}")
     return result or fallback or ""
+
+
+def boolean(value: object, label: str, fallback: bool | None = None) -> bool:
+    if value is MISSING:
+        if fallback is not None:
+            return fallback
+        raise ValidationError(f"{label} must be a boolean")
+    if not isinstance(value, bool):
+        raise ValidationError(f"{label} must be a boolean")
+    return value
 
 
 def game(value: object) -> None:

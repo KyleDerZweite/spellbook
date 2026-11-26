@@ -22,6 +22,7 @@ from spellbook_api.http.dependencies import UUIDPath, actor_dependency, body_dep
 from spellbook_api.http.errors import HttpError, json_response
 from spellbook_api.http.parsing import (
     drain_request_body,
+    read_bool,
     read_number,
     read_query_integer,
     read_string,
@@ -83,12 +84,14 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
     ) -> Response:
         if not body.get("name"):
             raise HttpError(400, "name is required")
-        input = dict(
+        input: dict[str, object] = dict(
             game="mtg",
             name=read_string(body["name"], "name"),
             description=read_string(body.get("description", MISSING), "description", ""),
             format=read_string(body.get("format", MISSING), "format", "Commander"),
         )
+        if "assembled" in body:
+            input["assembled"] = read_bool(body["assembled"], "assembled")
         existing = await decks.get_deck_snapshot(actor, "mtg")
         return json_response([*existing["decks"], await decks.create_deck_record(actor, input)])
 
@@ -198,6 +201,8 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         for key in ("name", "description", "format"):
             if key in body:
                 input[key] = read_string(body[key], key)
+        if "assembled" in body:
+            input["assembled"] = read_bool(body["assembled"], "assembled")
         if "description" in body:
             input["descriptionRevision"] = read_string(
                 body.get("descriptionRevision", MISSING), "descriptionRevision", ""

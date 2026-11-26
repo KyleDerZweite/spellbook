@@ -39,6 +39,7 @@ function page(
 			id: `deck-${offset + index}`,
 			name: `Deck ${offset + index}`,
 			format: 'Commander',
+			assembled: false,
 			quantity: 100,
 			imageUri: '',
 			createdAt: '2026-10-08',

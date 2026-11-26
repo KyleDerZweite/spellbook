@@ -14,6 +14,7 @@ class Deck(TypedDict):
     name: str
     description: str
     format: str
+    assembled: bool
     descriptionRevision: str
     compositionRevision: str
     createdAt: str
@@ -32,6 +33,17 @@ class AvailabilityRequirement(TypedDict):
     id: str
     catalogCardId: str
     canonicalCardId: str
+    quantity: int
+
+
+class AssembledDeckRequirement(AvailabilityRequirement):
+    deckId: str
+    deckName: str
+
+
+class AssembledDeckShare(TypedDict):
+    deckId: str
+    deckName: str
     quantity: int
 
 
@@ -56,6 +68,12 @@ class Allocation(TypedDict):
     exact: int
     alternate: int
     missing: int
+    free: int
+    inOtherDecks: int
+    conflict: int
+    ownedCanonical: int
+    assembledRequired: int
+    sharedWith: list[AssembledDeckShare]
 
 
 class DeckSnapshot(TypedDict):

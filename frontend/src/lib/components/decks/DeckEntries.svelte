@@ -59,13 +59,42 @@
 					{#each cards as card (card.id)}
 						{@const owned = availability[card.id]}
 						{@const document = documents[card.catalogCardId] ?? storedCardDocument(card)}
+						{@const sharedDecks = owned?.sharedWith.map((share) => share.deckName).join(', ') ?? ''}
+						{@const conflictText =
+							owned && owned.conflict > 0
+								? language.t('deck.allocation.conflict', {
+										owned: owned.ownedCanonical.toLocaleString(language.locale),
+										needed: owned.assembledRequired.toLocaleString(language.locale),
+										decks: sharedDecks
+									})
+								: ''}
+						{@const inOtherText =
+							owned && owned.inOtherDecks > 0
+								? language.t('deck.allocation.inOtherDecks', { decks: sharedDecks })
+								: ''}
 						{@const ownership = !owned
 							? language.t('ui.Availability.unavailable')
-							: owned.missing
-								? language.t('message.p0.missing', { p0: String(owned.missing) })
-								: owned.alternate
-									? language.t('message.p0.alternate', { p0: String(owned.alternate) })
-									: language.t('ui.Owned')}
+							: owned.missing && conflictText
+								? language.t('deck.allocation.missingAndConflict', {
+										missing: owned.missing.toLocaleString(language.locale),
+										owned: owned.ownedCanonical.toLocaleString(language.locale),
+										needed: owned.assembledRequired.toLocaleString(language.locale),
+										decks: sharedDecks
+									})
+								: owned.missing && inOtherText
+									? language.t('deck.allocation.missingAndInOther', {
+											missing: owned.missing.toLocaleString(language.locale),
+											decks: sharedDecks
+										})
+									: owned.missing
+										? language.t('message.p0.missing', { p0: String(owned.missing) })
+										: conflictText
+											? conflictText
+											: inOtherText
+												? inOtherText
+												: owned.alternate
+													? language.t('message.p0.alternate', { p0: String(owned.alternate) })
+													: language.t('ui.Owned')}
 						<div class="deck-row" class:commander-entry={card.role === 'commander'}>
 							<button
 								class="entry-art"
@@ -88,8 +117,12 @@
 							</button>
 							{#if view === 'stacks'}<span
 									class="stack-quantity"
-									class:warning={!!owned?.missing}
-									class:alternate={!!owned?.alternate && !owned?.missing}
+									class:conflict={!!owned?.conflict}
+									class:warning={!!owned?.missing || (!!owned?.inOtherDecks && !owned?.conflict)}
+									class:alternate={!!owned?.alternate &&
+										!owned?.missing &&
+										!owned?.conflict &&
+										!owned?.inOtherDecks}
 									title={language.t('message.p0.required.p1', {
 										p0: String(card.quantity),
 										p1: String(ownership)
@@ -119,11 +152,20 @@
 									{#if document.mana_cost}<span class="row-mana"
 											><ManaCost cost={document.mana_cost} /></span
 										>{/if}
+									{#if view === 'list' && conflictText}
+										<span class="allocation-note conflict">{conflictText}</span>
+									{:else if view === 'list' && inOtherText}
+										<span class="allocation-note in-other">{inOtherText}</span>
+									{/if}
 								</button>
 								<button
 									class="ownership"
-									class:warning={!!owned?.missing}
-									class:alternate={!!owned?.alternate && !owned?.missing}
+									class:conflict={!!owned?.conflict}
+									class:warning={!!owned?.missing || (!!owned?.inOtherDecks && !owned?.conflict)}
+									class:alternate={!!owned?.alternate &&
+										!owned?.missing &&
+										!owned?.conflict &&
+										!owned?.inOtherDecks}
 									onclick={() => onInspect(document, card)}
 									aria-label={language.t('message.Inspect.ownership.of.p0.p1', {
 										p0: String(card.name),
@@ -132,7 +174,17 @@
 									title={ownership}
 								>
 									<span class="ownership-mark" aria-hidden="true"
-										>{!owned ? '?' : owned.missing ? '−' : owned.alternate ? '↔' : '✓'}</span
+										>{!owned
+											? '?'
+											: owned.missing
+												? '−'
+												: owned.conflict
+													? '!'
+													: owned.inOtherDecks
+														? '⇄'
+														: owned.alternate
+															? '↔'
+															: '✓'}</span
 									><span class="ownership-label">{ownership}</span>
 								</button>
 							</div>
@@ -245,8 +297,20 @@
 	.warning {
 		color: var(--color-warning);
 	}
+	.conflict {
+		color: var(--color-destructive, var(--color-danger, var(--color-warning)));
+	}
 	.alternate {
 		color: var(--color-violet);
+	}
+	.allocation-note {
+		display: block;
+		margin-top: 0.125rem;
+		font-size: 0.6875rem;
+		line-height: 1.3;
+	}
+	.allocation-note.in-other {
+		color: var(--color-warning);
 	}
 	.art-fallback {
 		display: flex;
@@ -301,6 +365,10 @@
 		color: var(--color-text-primary);
 		font-size: 0.6875rem;
 		font-variant-numeric: tabular-nums;
+	}
+	.stack-quantity.conflict {
+		color: var(--color-destructive, var(--color-danger, var(--color-warning)));
+		border-color: var(--color-destructive, var(--color-danger, var(--color-warning)));
 	}
 	.stack-quantity.warning {
 		color: var(--color-warning);

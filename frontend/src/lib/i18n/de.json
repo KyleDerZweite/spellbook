@@ -1321,5 +1321,21 @@
 	"deck.legality.status.not_legal": "nicht legal",
 	"deck.legality.status.banned": "gebannt",
 	"deck.export.warningDescription": "Dieses Deck hat Formatwarnungen. Warnungen blockieren den Export nie, daher kannst du mit „{target}“ fortfahren.",
-	"deck.export.continue": "Trotzdem exportieren"
+	"deck.export.continue": "Trotzdem exportieren",
+	"deck.assembled": "Gebaut",
+	"deck.assembled.draft": "Entwurf",
+	"deck.assembled.toggle.label": "Gebautes Deck",
+	"deck.assembled.toggle.help": "Physisch gebaut; reserviert seine Karten virtuell über dein Inventar.",
+	"deck.assembled.mark": "Als gebaut markieren",
+	"deck.assembled.unmark": "Als Entwurf markieren",
+	"deck.allocation.conflict": "{owned}× im Inventar, {needed}× in gebauten Decks benötigt – geteilt mit {decks}",
+	"deck.allocation.conflict.short": "{count} Konflikt",
+	"deck.allocation.inOtherDecks": "Steckt aktuell in {decks} – umstecken / Proxy",
+	"deck.allocation.inOtherDecks.short": "{count} in anderen Decks",
+	"deck.allocation.missingAndConflict": "{missing} fehlen; {owned}× im Inventar, {needed}× in gebauten Decks benötigt – geteilt mit {decks}",
+	"deck.allocation.missingAndInOther": "{missing} fehlen; steckt aktuell in {decks} – umstecken / Proxy",
+	"deck.allocation.summary.conflicts": "{count} über-allokiert in gebauten Decks",
+	"deck.allocation.summary.inOtherDecks": "{count} in anderen gebauten Decks",
+	"notice.Deck.marked.assembled": "Deck als gebaut markiert.",
+	"notice.Deck.marked.draft": "Deck als Entwurf markiert."
 }
