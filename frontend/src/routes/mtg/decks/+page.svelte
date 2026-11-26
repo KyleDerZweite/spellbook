@@ -779,6 +779,9 @@
 		{#snippet actions()}
 			<div class="deck-picker">
 				{#if selectedDeck}
+					<Button href={`/mtg/decks/${selectedDeck.id}/playtest`} variant="secondary"
+						>{language.t('playtest.title')}</Button
+					>
 					<ActionMenu
 						label={language.t('ui.Deck.actions')}
 						iconOnly
@@ -1353,6 +1356,7 @@
 				<a href={DEFAULT_PHASE_RS_URL} target="_blank" rel="noopener noreferrer"
 					>{language.t('deck.phaseRs.action')}</a
 				>
+				· <a href={`/mtg/decks/${selectedDeck.id}/playtest`}>{language.t('playtest.title')}</a>
 				· <a href={`/mtg/decks/${selectedDeck.id}/print`}>{language.t('ui.Print.deck')}</a> ·
 				<a href={`/mtg/decks/${selectedDeck.id}/print/cards`}
 					>{language.t('ui.Print.card.sheet.A4')}</a

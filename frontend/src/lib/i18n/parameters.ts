@@ -278,4 +278,17 @@ export interface MessageParameters {
 	'deck.allocation.summary.inOtherDecks': { count: string | number };
 	'deck.phaseRs.target': { url: string | number };
 	'settings.phaseRs.help': { url: string | number };
+	'playtest.pageTitle': { name: string | number };
+	'playtest.counter.decrease': { counter: string | number };
+	'playtest.counter.increase': { counter: string | number };
+	'playtest.zone.count': { zone: string | number; count: string | number };
+	'playtest.mulliganBanner.one': { mulligans: string | number; count: string | number };
+	'playtest.mulliganBanner.other': { mulligans: string | number; count: string | number };
+	'playtest.card.tapAria': { name: string | number; state: string | number };
+	'playtest.card.playAria': { name: string | number };
+	'playtest.card.moveAria': { name: string | number };
+	'playtest.card.counterDecrease': { name: string | number };
+	'playtest.card.counterIncrease': { name: string | number };
+	'playtest.status.drew': { name: string | number };
+	'playtest.status.mulliganed': { count: string | number };
 }

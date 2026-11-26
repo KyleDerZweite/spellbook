@@ -1,10 +1,10 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-26
 - Source of Truth: route handlers and server hooks
 - Update Triggers:
-  - Deck import/download/print routes
+  - Deck import/download/print/playtest routes
   - managed Category removal
   - removed standalone personal History page
   - shortcut-only global power-user search
@@ -63,6 +63,7 @@ The [web routes](../../frontend/src/routes/) own pages and the same-origin API p
 | `/mtg/decks/import`                        | Authenticated preview and explicit creation of a complete new Deck                                                                                                    |
 | `/mtg/decks/[deckId]/print`                | Authenticated native browser print view of an owned Deck                                                                                                              |
 | `/mtg/decks/[deckId]/print/cards`          | Authenticated DIN A4 card image sheet of an owned Deck for browser printing                                                                                           |
+| `/mtg/decks/[deckId]/playtest`             | Authenticated ephemeral client-side Goldfish/Solitaire playtester of an owned Deck without persistence                                                                |
 | `/mtg/decks/[deckId]/export`               | Authenticated Arena/simple text, CSV or Spellbook JSON download of an owned Deck                                                                                      |
 | `/settings`                                | Authenticated contact email and Edit avatar dialog; excluded from indexing                                                                                            |
 | `/settings/profile-card`                   | Authenticated private card editor and artwork save; excluded from indexing                                                                                            |
@@ -137,8 +138,9 @@ takes precedence and an invalid bearer token fails without cookie fallback. Unsa
 cookie-authenticated requests require same-origin protection. The
 [authentication document](../architecture/auth.md) owns credential and session rules.
 
-There is no game-switching page, play route, public deck page, MTG card camera-capture page or
-offline workspace. Authorization QR camera scanning belongs to `/app/connect`. The public
+There is no game-switching page, public deck page, MTG card camera-capture page or offline
+workspace. `/mtg/decks/[deckId]/playtest` is a purely client-side, ephemeral solitaire playtester
+with no backend persistence. Authorization QR camera scanning belongs to `/app/connect`. The public
 `offline.html` fallback contains no account workspace.
 
 Public read-only browser endpoints are `GET` and `POST /api/v1/mtg/catalog/search`,

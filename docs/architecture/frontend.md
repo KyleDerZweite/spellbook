@@ -30,7 +30,8 @@
     - Bounded loading, scale evidence and row measurement scheduling.
     - Deck builder, overview, artwork Stacks and native task entry.
     - Deck summary responsibilities, Library Editor state and reactivity checks.
-    - Portable imports, downloads, native printing and managed Category removal.
+    - Portable imports, downloads, native printing, ephemeral playtesting and managed Category
+      removal.
     - Guarded initial Deck Search activation and bounded Deck choice reads.
     - Shared Card addition adapters and retained caller drafts.
   - Browsing and saved state:
@@ -462,8 +463,18 @@ Create complete Deck submission. An unconfirmed new-Deck commit offers a retry w
 content and request ID. The selected Deck's Import decklist dialog also accepts uploads and states
 its additive semantics. Unresolved or unsupported records disable its commit, and Core independently
 rejects partial imports. Deck actions exposes Arena, simple text, CSV and Spellbook JSON downloads
-plus `/mtg/decks/[deckId]/print` and `/mtg/decks/[deckId]/print/cards`. Native task links retain
-these entrypoints without JavaScript.
+plus `/mtg/decks/[deckId]/print`, `/mtg/decks/[deckId]/print/cards` and
+`/mtg/decks/[deckId]/playtest`. Native task links retain these entrypoints without JavaScript.
+
+The authenticated `/mtg/decks/[deckId]/playtest` route loads the owned Deck and resolved Catalog
+documents for an ephemeral, 100% client-side Goldfish/Solitaire playtester with zero backend
+persistence. [playtest.ts](../../frontend/src/lib/decks/playtest.ts) owns the pure state and reducer
+for deck expansion, Fisher-Yates shuffling, opening hands, London Mulligan, manual turn/phase
+stepping without auto-skip or rules enforcement, free movement across Library, Hand, Battlefield,
+Graveyard, Exile and Command Zone, tapping, counters, life tracking and hand summaries.
+[PlaytesterBoard](../../frontend/src/lib/components/decks/PlaytesterBoard.svelte) and
+[PlaytesterHelper](../../frontend/src/lib/components/decks/PlaytesterHelper.svelte) render the
+interactive board and opening-hand/mana-curve helper using `deckStatistics`.
 
 The authenticated print page uses the owned selected Deck read model and renders Commander, Main
 Deck, Sideboard and Companion with actual quantities and stored printing IDs. Related Tokens form a
