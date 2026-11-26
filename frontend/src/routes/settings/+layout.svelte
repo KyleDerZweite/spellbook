@@ -39,7 +39,7 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 0.25rem;
-		padding-top: 0.35rem;
+		padding-top: 0.25rem;
 	}
 	.settings-nav a {
 		display: flex;

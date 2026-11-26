@@ -638,8 +638,8 @@
 			>
 			<Button variant="secondary" type="submit">{language.t('ui.Search')}</Button>
 		{/if}
-		<label
-			>{language.t('ui.Ownership')}
+		<label class="ownership-filter"
+			><span>{language.t('ui.Ownership')}</span>
 			<select
 				class="input"
 				name="dirOwnership"
@@ -650,7 +650,7 @@
 				><option value="in-progress">{language.t('ui.In.Progress')}</option></select
 			></label
 		>
-		<div aria-label={language.t('ui.Deck.view')}>
+		<div class="view-toggle" aria-label={language.t('ui.Deck.view')}>
 			<Button
 				variant={view === 'grid' ? 'default' : 'secondary'}
 				aria-pressed={view === 'grid'}
@@ -950,9 +950,25 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.625rem;
-		margin-bottom: 0.25rem;
+		gap: 0.75rem;
+		margin-bottom: 0.5rem;
 		font-size: 0.75rem;
+	}
+	.ownership-filter {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--color-text-secondary);
+		white-space: nowrap;
+	}
+	.ownership-filter select {
+		width: auto;
+	}
+	.view-toggle {
+		display: inline-flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
 	.directory-search {
 		position: relative;
@@ -961,7 +977,7 @@
 	}
 	.directory-search svg {
 		position: absolute;
-		left: 0.8rem;
+		left: 0.75rem;
 		top: 50%;
 		transform: translateY(-50%);
 		color: var(--color-text-muted);
@@ -969,7 +985,7 @@
 	}
 	.directory-search input {
 		width: 100%;
-		padding-left: 2.4rem;
+		padding-left: 2.5rem;
 	}
 	.directory-total {
 		color: var(--color-text-muted);

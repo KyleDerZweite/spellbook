@@ -76,7 +76,7 @@
 	<DropdownMenu.Portal>
 		<DropdownMenu.Content
 			class="surface-menu z-[120] min-w-48 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-lg outline-none"
-			sideOffset={5}
+			sideOffset={8}
 			collisionPadding={12}
 			align="end"
 			{onCloseAutoFocus}
@@ -117,7 +117,7 @@
 
 <style>
 	:global(.menu-trigger-toolbar) {
-		padding-inline: 0.625rem;
+		padding-inline: 0.75rem;
 		font-size: 0.75rem;
 		border: 0;
 		background: transparent;

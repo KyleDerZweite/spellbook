@@ -1686,7 +1686,10 @@
 	}
 	.deck-picker {
 		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
 		justify-content: flex-end;
+		gap: 0.5rem;
 	}
 	.deck-format {
 		color: var(--color-text-secondary);
@@ -1782,12 +1785,13 @@
 	}
 	.view-controls {
 		display: flex;
-		gap: 0.25rem;
+		align-items: center;
+		gap: 0.5rem;
 	}
 	.list-controls {
 		display: grid;
-		grid-template-columns: auto minmax(6rem, 1fr) 7rem 9rem;
-		gap: 0.5rem;
+		grid-template-columns: auto minmax(8rem, 1fr) minmax(8rem, auto);
+		gap: 0.75rem;
 		align-items: center;
 		margin-bottom: 1rem;
 	}

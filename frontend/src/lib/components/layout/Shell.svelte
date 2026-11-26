@@ -70,7 +70,7 @@
 			padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
 		}
 		.installed :global(:focus-visible) {
-			scroll-margin-top: calc(var(--app-header-height) + 18px);
+			scroll-margin-top: calc(var(--app-header-height) + var(--space-page-margin));
 			scroll-margin-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 		}
 	}

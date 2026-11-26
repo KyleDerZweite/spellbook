@@ -356,7 +356,7 @@
 	.panel {
 		min-width: 0;
 		min-height: 414px;
-		padding: 24px 18px;
+		padding: 24px 16px;
 		border-radius: 10px;
 		color: var(--color-text-primary);
 		font: 400 13px/1.4 var(--font-interface);
@@ -371,7 +371,7 @@
 	h2 {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
 		margin: 0;
 		font: 400 20px/1.3 var(--font-display);
 	}
@@ -443,7 +443,7 @@
 		max-height: 280px;
 		overflow: auto;
 		z-index: 30;
-		padding: 14px;
+		padding: 16px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
@@ -452,7 +452,7 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 16px;
-		padding: 5px 0;
+		padding: 4px 0;
 	}
 	dd {
 		margin: 0;
@@ -461,7 +461,7 @@
 	.type-layout {
 		display: flex;
 		align-items: center;
-		gap: 14px;
+		gap: 16px;
 		height: 300px;
 	}
 	.donut {
@@ -489,13 +489,13 @@
 	.legend div {
 		display: flex;
 		justify-content: space-between;
-		gap: 6px;
-		padding: 5px 0;
+		gap: 8px;
+		padding: 4px 0;
 	}
 	.legend dt {
 		display: flex;
 		align-items: center;
-		gap: 7px;
+		gap: 8px;
 	}
 	.legend .type-swatch {
 		width: 9px;
@@ -514,7 +514,7 @@
 	}
 	.columns {
 		display: flex;
-		gap: 7px;
+		gap: 8px;
 		background: repeating-linear-gradient(
 			to top,
 			transparent 0,
@@ -526,7 +526,7 @@
 		display: grid;
 		grid-template-rows: 190px 28px 22px;
 		justify-items: center;
-		gap: 10px;
+		gap: 8px;
 		min-width: 0;
 		flex: 1;
 		border: 0;
@@ -579,7 +579,7 @@
 		gap: 12px;
 		align-items: center;
 		min-height: 78px;
-		padding: 7px 0;
+		padding: 8px 0;
 		border-bottom: 1px solid var(--color-border);
 	}
 	.entry:last-child {

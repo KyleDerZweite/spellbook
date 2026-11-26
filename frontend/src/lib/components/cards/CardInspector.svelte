@@ -271,7 +271,7 @@
 					</p>
 				{:else}
 					{#if availableLanguages.length > 1}
-						<div class="mb-3 flex flex-wrap gap-1">
+						<div class="mb-3 flex flex-wrap gap-2">
 							{#each availableLanguages as lang (lang)}
 								<button
 									disabled={pending}
@@ -407,7 +407,7 @@
 
 				<!-- Language flags (own row) -->
 				{#if availableLanguages.length > 1}
-					<div class="flex flex-wrap gap-1">
+					<div class="flex flex-wrap gap-2">
 						{#each availableLanguages as lang (lang)}
 							<button
 								disabled={pending}

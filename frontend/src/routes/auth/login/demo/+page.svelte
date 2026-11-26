@@ -15,7 +15,7 @@
 >
 
 <AccountLayout title={language.t('ui.Sign.in')}>
-	<p class="mb-5 text-sm text-text-secondary">
+	<p class="mb-4 text-sm text-text-secondary">
 		{language.t('ui.Shared.Demo.account.note')}
 	</p>
 	<LoginForm {form} passwordMinlength={4} username="demo" password="demo" />

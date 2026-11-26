@@ -399,8 +399,10 @@
 						{/each}
 					</fieldset>
 				</div>
-				<button class="btn btn-secondary" type="submit">{language.t('ui.Apply.filters')}</button>
-				<a class="btn btn-secondary" href={nativeClearHref}>{language.t('ui.Clear.filters')}</a>
+				<div class="mt-3 flex flex-wrap items-center gap-2">
+					<button class="btn btn-secondary" type="submit">{language.t('ui.Apply.filters')}</button>
+					<a class="btn btn-secondary" href={nativeClearHref}>{language.t('ui.Clear.filters')}</a>
+				</div>
 			</details>
 		{/if}
 		{@render controls?.()}

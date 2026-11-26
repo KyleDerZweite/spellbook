@@ -1,7 +1,7 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-11-03
+- Last Reviewed: 2026-11-26
 - Source of Truth: accepted product requirements, application components, selected logo and
   component choices
 - Update Triggers:
@@ -9,7 +9,8 @@
   - Deck Builder, type sections, related Tokens, portable exchange and price presentation
   - Search color formulas, Colorless, NOT and AND combinations, and power-user search
   - Workspace, landing, navigation, account controls, typography, artwork and brand identity
-  - Shared components, icons, contrast, responsive behavior and accessibility
+  - Shared components, icons, spacing grid, target sizes, toolbar alignment, contrast, responsive
+    behavior and accessibility
   - Continuous Lazy browsing, Card dialogs and accepted interaction contracts
   - PWA and QR sign-in, independent Android design and cross-client Figma handoff
   - Recognition placement, client parity, browser scanning and phone computation evaluation
@@ -201,12 +202,10 @@ retains the former implementations; the ordinary Dashboard is the current implem
 source images remain unchanged:
 [Collection workbench](./assets/ui-references/collection-workbench.png),
 [Deck workbench](./assets/ui-references/deck-workbench.png),
-[Collection overview](./assets/ui-references/collection-overview.png)
-and
-[Dashboard grid](./assets/ui-references/dashboard-grid.png).
-Additional Dashboard search fields are excluded; meaningful filters may remain. Mana Font carries
-actual color, color-identity, rarity and primary-type semantics rather than decorating unrelated
-controls.
+[Collection overview](./assets/ui-references/collection-overview.png) and
+[Dashboard grid](./assets/ui-references/dashboard-grid.png). Additional Dashboard search fields are
+excluded; meaningful filters may remain. Mana Font carries actual color, color-identity, rarity and
+primary-type semantics rather than decorating unrelated controls.
 
 The implementation contract extends the existing account-scoped Dashboard read rather than fetching
 the entire Inventory in the browser. Core owns quantity-weighted Catalog distributions in the same
@@ -232,41 +231,41 @@ regular Dashboard consumes this read contract.
 ### Selected regular Dashboard reference
 
 On 2026-11-01 Kyle selected the supplied
-[Dashboard reference](./assets/ui-references/dashboard-reference.png)
-for the regular Dashboard, replacing the previous large Deck/Set composition. Keep the actual
-application shell, navigation, fonts and neutral page background. Keep four equal metric cards,
-followed by four aligned panels in this order: Card Types, Mana Color Identity, Collection by Set
-and Quick Actions. The next row uses two thirds of its width for a Your decks grid and one third for
-the Recent activity list. Deck tiles retain a leading name, genuine Commander frames and inspected
-exact/alternate/missing availability. Below 1150px these lower panels stack with Decks first. The
-Deck grid fits four narrow tiles when its content has room, falling back to three, two and one
-readable column as needed. Each tile keeps its name above the artwork and puts the format tag
-directly above the availability ring in the right-hand column. The ring sits lower beside a slightly
-enlarged genuine Commander frame; center counts fit wholly inside its hole. Long names reserve a
-consistent two-line heading area, wrap unbroken strings and retain their complete accessible link
-name and full-name inspection without expanding every tile. Exact, alternate and missing values
-remain available through chart inspection, without a persistent missing-count caption. Individual
-Deck tiles keep their quiet outlines and keyboard focus states. The large Dashboard metric and
-analysis boxes use card surfaces without visible outer lines; this shared treatment preserves their
-geometry and excludes nested Deck tiles and controls. The format tag includes the Mana Font
-Commander symbol when the actual format is Commander. Card-type labels in Dashboard charts, Search
-filters and Deck groups share the existing Mana Font type symbols. Set data retains real Set symbols
-rather than substituting unrelated decorative icons. Quick Actions links to existing Add cards, New
-deck, Scan cards and Box management workspaces, without creating a second search input. Deck
-previews use larger actual Commander artwork or an honest unavailable-art placeholder, a clear Deck
-title and compact exact/alternate/missing availability. The lower panels are 480px high on wide
-screens; the Deck list scrolls natively, and narrow screens show its natural height. At narrow
-widths all panels follow that same reading order. The follow-up removes decorative foreground icons
-from metric cards and panel headings. Use left-aligned figures, small charts at the right, quiet
-card surfaces and consistent panel heights. Adopt the supplied box interiors through subtle
-card-local neutral depth and faint product-relevant object artwork, without adding a page background
-or changing navigation. The Deck metric uses a thick stack of card backs, distinct from the
-individual cards on the Inventory metric. The Dashboard has no subtitle; Add actions share a
-decorative Plus icon and retain their text labels. Meaningful Set and mana symbols inside data
-visualizations remain. Chart marks use more saturated violet, card-type and MTG identity colors;
-light mode deepens them while page and card backgrounds remain neutral. Keep controls and borders
-quiet; do not copy the fantasy scenery, background washes or invented decorative imagery. The
-content can use a wider Dashboard-specific grid without changing shared workspace geometry.
+[Dashboard reference](./assets/ui-references/dashboard-reference.png) for the regular Dashboard,
+replacing the previous large Deck/Set composition. Keep the actual application shell, navigation,
+fonts and neutral page background. Keep four equal metric cards, followed by four aligned panels in
+this order: Card Types, Mana Color Identity, Collection by Set and Quick Actions. The next row uses
+two thirds of its width for a Your decks grid and one third for the Recent activity list. Deck tiles
+retain a leading name, genuine Commander frames and inspected exact/alternate/missing availability.
+Below 1150px these lower panels stack with Decks first. The Deck grid fits four narrow tiles when
+its content has room, falling back to three, two and one readable column as needed. Each tile keeps
+its name above the artwork and puts the format tag directly above the availability ring in the
+right-hand column. The ring sits lower beside a slightly enlarged genuine Commander frame; center
+counts fit wholly inside its hole. Long names reserve a consistent two-line heading area, wrap
+unbroken strings and retain their complete accessible link name and full-name inspection without
+expanding every tile. Exact, alternate and missing values remain available through chart inspection,
+without a persistent missing-count caption. Individual Deck tiles keep their quiet outlines and
+keyboard focus states. The large Dashboard metric and analysis boxes use card surfaces without
+visible outer lines; this shared treatment preserves their geometry and excludes nested Deck tiles
+and controls. The format tag includes the Mana Font Commander symbol when the actual format is
+Commander. Card-type labels in Dashboard charts, Search filters and Deck groups share the existing
+Mana Font type symbols. Set data retains real Set symbols rather than substituting unrelated
+decorative icons. Quick Actions links to existing Add cards, New deck, Scan cards and Box management
+workspaces, without creating a second search input. Deck previews use larger actual Commander
+artwork or an honest unavailable-art placeholder, a clear Deck title and compact
+exact/alternate/missing availability. The lower panels are 480px high on wide screens; the Deck list
+scrolls natively, and narrow screens show its natural height. At narrow widths all panels follow
+that same reading order. The follow-up removes decorative foreground icons from metric cards and
+panel headings. Use left-aligned figures, small charts at the right, quiet card surfaces and
+consistent panel heights. Adopt the supplied box interiors through subtle card-local neutral depth
+and faint product-relevant object artwork, without adding a page background or changing navigation.
+The Deck metric uses a thick stack of card backs, distinct from the individual cards on the
+Inventory metric. The Dashboard has no subtitle; Add actions share a decorative Plus icon and retain
+their text labels. Meaningful Set and mana symbols inside data visualizations remain. Chart marks
+use more saturated violet, card-type and MTG identity colors; light mode deepens them while page and
+card backgrounds remain neutral. Keep controls and borders quiet; do not copy the fantasy scenery,
+background washes or invented decorative imagery. The content can use a wider Dashboard-specific
+grid without changing shared workspace geometry.
 
 All metrics and charts use the existing authenticated Dashboard summary. Recent activity presents
 actual recently edited holdings as Inventory updates with their stored timestamps, without
@@ -915,6 +914,31 @@ The [specification's acceptance criteria](./specification.md#interface-acceptanc
 requirements. The
 [verification workflow](../operations/github-automation.md#browser-verification-and-evidence) owns
 browser checks and evidence.
+
+## Spacing grid and control alignment
+
+All web views use Tailwind's 4px base with 8px layout steps, codified in
+[`frontend/src/app.css`](../../frontend/src/app.css):
+
+| Token                    | Value              | Tailwind   | Use                                                                 |
+| ------------------------ | ------------------ | ---------- | ------------------------------------------------------------------- |
+| `--space-control-inline` | `4px` (`0.25rem`)  | `gap-1`    | Icon + label inside a single control (`.btn`, `.nav-link`)          |
+| `--space-control-gap`    | `8px` (`0.5rem`)   | `gap-2`    | Minimum gap between adjacent buttons or controls in the same group  |
+| `--space-toolbar-group`  | `12px` (`0.75rem`) | `gap-3`    | Gap between logical control groups in toolbars                      |
+| `--space-page-margin`    | `16px` (`1rem`)    | `p-4`      | Page margins, panel inner padding, and header scroll-padding offset |
+| `--space-section`        | `24px` (`1.5rem`)  | `gap-6`    | Section spacing                                                     |
+| `--space-section-lg`     | `32px` (`2rem`)    | `gap-8`    | Major section spacing                                               |
+| `--target-min`           | `44px` (`2.75rem`) | `min-h-11` | Standard click/touch target (`.btn`, `.input`, `.nav-link`, mobile) |
+| `--target-compact`       | `40px` (`2.5rem`)  | `min-h-10` | Compact desktop target variant (`.btn-sm`, `.menu-item`, filters)   |
+
+Toolbar and header alignment rules:
+
+- Align header, toolbar, and main content on the same container edge (`.workspace-container`).
+- Vertically center toolbar controls (`align-items: center`) at matching heights (`44px` standard,
+  `40px` compact desktop) and never let adjacent buttons touch with `0px` separation.
+- Wrap toolbar controls cleanly by logical group on narrow viewports.
+- Keep root header heights (`72px` desktop, `64px` mobile) and scroll clearance (`16px`) on the 8px
+  grid.
 
 ## Reusable design rules
 

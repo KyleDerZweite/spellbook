@@ -378,7 +378,7 @@
 	}
 </script>
 
-<div class="workspace-container space-y-5 text-sm">
+<div class="workspace-container space-y-6 text-sm">
 	<SavedStateStatus resource={subscription} />
 	{#if changedPhoto}<p role="alert">
 			{language.t('ui.The.saved.photo.changed.Your.selection.is.retained.for.review')}
@@ -453,8 +453,8 @@
 			</form>
 		{/if}
 		{#if artifact}
-			<div class="grid items-start gap-5 md:grid-cols-[minmax(180px,280px)_1fr]">
-				<div class="surface-card space-y-3 p-3">
+			<div class="grid items-start gap-6 md:grid-cols-[minmax(180px,280px)_1fr]">
+				<div class="surface-card space-y-3 p-4">
 					{#if previewUrl && previewArtifactId === artifact.id}
 						<img
 							src={previewUrl}
@@ -521,7 +521,7 @@
 							<ul class="surface-card max-h-64 overflow-y-auto divide-y divide-mist">
 								{#each hits as card}<li>
 										<button
-											class="w-full px-3 py-2 text-left hover:bg-mist"
+											class="min-h-11 w-full px-3 py-2 text-left hover:bg-mist md:min-h-10"
 											disabled={busy || searching}
 											onclick={() => chooseCard(card.oracle_id, card.id)}
 											>{card.name}

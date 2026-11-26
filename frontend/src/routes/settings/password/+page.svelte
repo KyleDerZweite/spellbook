@@ -127,7 +127,7 @@
 		line-height: 1.5;
 	}
 	.field-error {
-		margin-top: 0.35rem;
+		margin-top: 0.25rem;
 		color: var(--color-error);
 		font-size: 0.75rem;
 	}

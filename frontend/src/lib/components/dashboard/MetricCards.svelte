@@ -140,7 +140,7 @@
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: auto auto 1fr;
 		align-content: start;
-		gap: 6px 16px;
+		gap: 8px 16px;
 		width: 100%;
 		min-height: 140px;
 		height: 100%;
@@ -186,7 +186,7 @@
 	}
 	.metric-visual {
 		position: absolute;
-		right: 18px;
+		right: 16px;
 		bottom: 16px;
 		width: 80px;
 		height: 44px;
@@ -219,7 +219,7 @@
 	}
 	@media (min-width: 1150px) and (max-width: 1450px) {
 		.metric-card {
-			gap: 6px 12px;
+			gap: 8px 12px;
 			padding: 16px;
 		}
 		.metric-footer {
@@ -237,8 +237,8 @@
 			gap: 12px;
 		}
 		.metric-card {
-			gap: 6px;
-			padding: 16px 14px;
+			gap: 8px;
+			padding: 16px;
 		}
 		.metric-value,
 		.metric-footer {
@@ -255,8 +255,8 @@
 			padding-bottom: 48px;
 		}
 		.metric-visual {
-			right: 14px;
-			bottom: 14px;
+			right: 16px;
+			bottom: 16px;
 		}
 	}
 	@media (max-width: 360px) {

@@ -2114,7 +2114,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.625rem;
+		gap: 0.5rem;
 		margin-bottom: 0.75rem;
 		font-size: 0.8125rem;
 	}
@@ -2147,8 +2147,8 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.375rem;
-		margin-top: 0.375rem;
+		gap: 0.5rem;
+		margin-top: 0.5rem;
 		font-size: 0.75rem;
 	}
 	.filter-chip {
@@ -2161,9 +2161,9 @@
 		color: var(--color-text-secondary);
 	}
 	.filter-chip-edit {
-		min-height: 36px;
+		min-height: 40px;
 		min-width: 0;
-		padding-left: 0.625rem;
+		padding-left: 0.75rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -2176,8 +2176,8 @@
 		text-underline-offset: 3px;
 	}
 	.filter-chip-remove {
-		width: 36px;
-		min-height: 36px;
+		width: 40px;
+		min-height: 40px;
 		flex-shrink: 0;
 		cursor: pointer;
 		border-radius: 0.375rem;
@@ -2203,7 +2203,7 @@
 		font-size: 0.75rem;
 	}
 	.filter-reset {
-		min-height: 32px;
+		min-height: 40px;
 		color: var(--color-text-secondary);
 		cursor: pointer;
 		font-size: 0.75rem;
@@ -2219,9 +2219,9 @@
 	.set-option {
 		display: flex;
 		align-items: center;
-		gap: 0.625rem;
+		gap: 0.5rem;
 		min-height: 44px;
-		padding: 0.375rem 0.5rem;
+		padding: 0.5rem;
 		border-radius: 0.375rem;
 		cursor: pointer;
 		font-size: 0.75rem;
@@ -2255,25 +2255,25 @@
 	.variant-filters {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 0.625rem;
+		gap: 0.75rem;
 	}
 	.variant-filters > div {
 		min-width: 0;
 	}
 	.variant-filters .label {
 		display: block;
-		margin-bottom: 0.375rem;
+		margin-bottom: 0.5rem;
 	}
 	.column-header {
 		display: flex;
 		align-items: center;
-		gap: 0.125rem;
+		gap: 0.25rem;
 		min-width: 0;
 	}
 	.column-sort {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3rem;
+		gap: 0.25rem;
 		min-height: 44px;
 		cursor: pointer;
 		color: var(--color-text-secondary);
@@ -2375,9 +2375,9 @@
 	.inventory-toolbar {
 		display: grid;
 		grid-template-columns: minmax(180px, 1fr) auto auto auto;
-		margin-bottom: 0.25rem;
+		margin-bottom: 0.5rem;
 		align-items: center;
-		gap: 0.625rem;
+		gap: 0.75rem;
 	}
 	.inventory-search {
 		position: relative;
@@ -2385,7 +2385,7 @@
 	}
 	.inventory-search svg {
 		position: absolute;
-		left: 0.8rem;
+		left: 0.75rem;
 		top: 50%;
 		transform: translateY(-50%);
 		color: var(--color-text-muted);
@@ -2393,7 +2393,7 @@
 	}
 	.inventory-search input {
 		width: 100%;
-		padding-left: 2.4rem;
+		padding-left: 2.5rem;
 	}
 	.clear-filters {
 		min-height: 44px;
@@ -2434,7 +2434,7 @@
 		align-items: center;
 	}
 	.inventory-columns {
-		padding: 0 0.625rem;
+		padding: 0 0.75rem;
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
 	}
@@ -2447,7 +2447,7 @@
 		list-style: none;
 	}
 	.inventory-row {
-		padding: 0.5rem 0.625rem;
+		padding: 0.5rem 0.75rem;
 		border-radius: 0.5rem;
 		min-height: 72px;
 	}
@@ -2465,7 +2465,7 @@
 		display: flex;
 		width: 100%;
 		align-items: center;
-		gap: 0.875rem;
+		gap: 0.75rem;
 		text-align: left;
 		min-width: 0;
 		cursor: pointer;
@@ -2565,7 +2565,7 @@
 			color: var(--color-text-muted);
 			font-size: 0.75rem;
 			margin-top: 0.25rem;
-			padding-left: calc(40px + 0.875rem);
+			padding-left: calc(40px + 0.75rem);
 		}
 	}
 	@media (max-width: 560px) {
@@ -2573,11 +2573,11 @@
 			font-size: 0.75rem;
 		}
 		.inventory-totals span {
-			margin: 0 0.15rem;
+			margin: 0 0.25rem;
 		}
 		.inventory-toolbar {
 			grid-template-columns: auto auto minmax(0, 1fr);
-			gap: 0.25rem;
+			gap: 0.5rem;
 		}
 		.inventory-search {
 			grid-column: 1 / -1;
@@ -2597,7 +2597,7 @@
 		}
 		.inventory-row {
 			grid-template-columns: minmax(0, 1fr) 84px;
-			padding: 0.375rem 0;
+			padding: 0.5rem 0;
 			gap: 0 0.5rem;
 		}
 		.card-cell {
@@ -2605,7 +2605,7 @@
 			grid-row: 1 / 3;
 		}
 		.card-identity {
-			gap: 0.625rem;
+			gap: 0.5rem;
 		}
 		.card-identity strong {
 			font-size: 0.8125rem;

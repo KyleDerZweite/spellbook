@@ -32,7 +32,7 @@
 	<ActionMenu
 		label={language.t('message.Insert.KPI.into.p0', { p0: String(fieldLabel) })}
 		{items}
-		class="!min-h-8 max-sm:!min-h-11 !px-2 !py-1 !text-xs"
+		class="!min-h-10 max-sm:!min-h-11 !px-2 !py-1 !text-xs"
 		onCloseAutoFocus={(event) => {
 			if (inserted) event.preventDefault();
 			inserted = false;
