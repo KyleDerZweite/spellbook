@@ -10,6 +10,7 @@ from worker.catalog import CatalogPublisher
 from worker.config import load_config
 from worker.optional_publication import OptionalPricePublisher
 from worker.optional_sync import sync_optional_sources
+from worker.reference_decks import ReferenceDeckPublisher, sync_reference_decks
 from worker.scryfall import ScryfallClient
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -107,6 +108,7 @@ def main() -> None:
         raise SystemExit(1) from None
     interval = sync_interval_seconds(config.sync_interval)
     optional_publisher = OptionalPricePublisher(config.database_url, config.price_limits)
+    reference_deck_publisher = ReferenceDeckPublisher(config.database_url)
     while True:
         successful = True
         try:
@@ -116,6 +118,8 @@ def main() -> None:
             successful = False
         # Independent public sources still attempt their refresh after a baseline failure.
         if not sync_optional_sources(config, optional_publisher):
+            successful = False
+        if not sync_reference_decks(config, reference_deck_publisher):
             successful = False
         if interval is None:
             if not successful:

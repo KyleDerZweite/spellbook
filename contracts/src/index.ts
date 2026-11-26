@@ -15,3 +15,4 @@ export type * from './deck-library.ts';
 export type * from './web.ts';
 
 export type * from './deck-tokens.ts';
+export type * from './reference-decks.ts';

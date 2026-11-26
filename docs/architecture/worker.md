@@ -1,9 +1,10 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-11-06
+- Last Reviewed: 2026-11-26
 - Source of Truth: code
 - Update Triggers:
+  - Reference deck ingestion, DeckSource providers, caching and rate limiting
   - art crop transform version 6
   - managed Category removal
   - complete face-color projection and explicit color evidence validation
@@ -151,6 +152,22 @@ Download/parse failures belong to the coordinator; once publication begins the p
 rollback and safe failure status. Public source publication, independent recovery and history
 semantics are owned by [valuation](./valuation.md#optional-references-and-public-source-history). No
 adapter reads private holdings.
+
+## Optional reference deck synchronization
+
+`REFERENCE_DECKS_ENABLED` defaults to `false`, and `REFERENCE_DECK_SOURCES` selects comma-separated
+`DeckSource` providers (`mtggoldfish` by default; `local_dec` for deterministic local `.dec`
+directories under `REFERENCE_DECKS_LOCAL_DIR` or `<WORKER_DATA_DIR>/reference-decks`). Ingestion
+runs inside the existing `catalog` worker on `SYNC_INTERVAL` after Catalog and optional price sync,
+with per-source failure isolation and no scraping or parsing in the API.
+
+Each `DeckSource` maps supported formats from the central search format list (`standard`, `pioneer`,
+`modern`, `legacy`, `vintage`, `commander`, `pauper`, `brawl`) and skips unsupported formats
+cleanly. The MTGGoldfish provider uses local TTL disk caching (`REFERENCE_DECKS_CACHE_TTL_SECONDS`,
+default 21600), fair request pacing (`REFERENCE_DECKS_RATE_LIMIT_MS`, default 1500), and bounded
+per-format deck counts (`REFERENCE_DECKS_MAX_PER_FORMAT`, default 20). The publisher normalizes all
+card entries to Canonical card `oracle_id` values against the active Catalog generation and commits
+each source atomically under a PostgreSQL advisory lock.
 
 ## Private state worker candidate
 
