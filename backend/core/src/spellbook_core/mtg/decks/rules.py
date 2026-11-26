@@ -1,4 +1,4 @@
-"""Exact-first ownership allocation, legality warnings and Arena export formatting."""
+"""Exact-first ownership allocation, legality warnings and standard decklist export formatting."""
 
 import re
 from collections.abc import Sequence
@@ -426,6 +426,54 @@ def format_arena_decklist(cards: Sequence[DeckCard], documents: dict[str, CardDo
             suffix = f" ({set_code.upper()})" if set_code else ""
             if set_code and number:
                 suffix += " " + number
+            lines.append(f"{card['quantity']} {card['name']}{suffix}")
+        chunks.append("\n".join(lines))
+    return "\n\n".join(chunks) + "\n"
+
+
+def format_dec_decklist(cards: Sequence[DeckCard], name: str = "") -> str:
+    chunks: list[str] = []
+    single_line_name = " ".join(name.split())
+    if single_line_name:
+        chunks.append(f"Name: {single_line_name}")
+    for label, role in (
+        ("Commander", "commander"),
+        ("Deck", "main"),
+        ("Sideboard", "sideboard"),
+        ("Companion", "companion"),
+    ):
+        selected = [card for card in cards if card["role"] == role]
+        if role != "main" and not selected:
+            continue
+        chunks.append(
+            "\n".join([label, *(f"{card['quantity']} {card['name']}" for card in selected)])
+        )
+    return "\n\n".join(chunks) + "\n"
+
+
+def format_dck_decklist(
+    cards: Sequence[DeckCard], documents: dict[str, CardDocument], name: str = ""
+) -> str:
+    chunks: list[str] = []
+    single_line_name = " ".join(name.split())
+    if single_line_name:
+        chunks.append(f"[metadata]\nName={single_line_name}")
+    for label, role in (
+        ("Commander", "commander"),
+        ("Main", "main"),
+        ("Sideboard", "sideboard"),
+        ("Companion", "companion"),
+    ):
+        selected = [card for card in cards if card["role"] == role]
+        if role != "main" and not selected:
+            continue
+        lines = [f"[{label}]"]
+        for card in selected:
+            set_code = js_trim(card["setCode"])
+            number = (
+                js_trim(documents[card["catalogCardId"]]["collector_number"]) if documents else ""
+            )
+            suffix = f"|{set_code.upper()}|[{number}]" if set_code and number else ""
             lines.append(f"{card['quantity']} {card['name']}{suffix}")
         chunks.append("\n".join(lines))
     return "\n\n".join(chunks) + "\n"

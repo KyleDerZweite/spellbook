@@ -276,4 +276,6 @@ export interface MessageParameters {
 	};
 	'deck.allocation.summary.conflicts': { count: string | number };
 	'deck.allocation.summary.inOtherDecks': { count: string | number };
+	'deck.phaseRs.target': { url: string | number };
+	'settings.phaseRs.help': { url: string | number };
 }

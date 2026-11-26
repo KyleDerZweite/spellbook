@@ -57,7 +57,7 @@
 			id="deck-file"
 			name="file"
 			type="file"
-			accept=".txt,.csv,.json,text/plain,text/csv,application/json"
+			accept=".txt,.dec,.dck,.csv,.json,text/plain,text/csv,application/json"
 		/>
 		<p>{language.t('ui.Maximum.100.000.characters.400.000.file.bytes.and.1.000.card.records')}</p>
 		<details open={!preview?.metadata}>

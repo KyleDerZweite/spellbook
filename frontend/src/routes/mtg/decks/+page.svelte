@@ -36,6 +36,7 @@
 	import DeckDialog from '#lib/components/decks/DeckDialog.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
+	import { DEFAULT_PHASE_RS_URL, getPhaseRsUrl } from '#lib/phase-rs.ts';
 
 	import type { ImportPreview } from '#lib/types/import-preview.ts';
 
@@ -216,6 +217,56 @@
 		if (editor === 'delete') deleteOpen = true;
 	}
 	let createOpen = $state(false);
+	let phaseRsOpen = $state(false);
+	let phaseRsUrl = $state(DEFAULT_PHASE_RS_URL);
+	let phaseRsBusy = $state(false);
+	let phaseRsDckText = $state<string | null>(null);
+	let phaseRsLoadToken = 0;
+	let phaseRsStatusKey = $state<
+		'deck.phaseRs.copied' | 'deck.phaseRs.copyFailed' | 'deck.phaseRs.loadFailed' | null
+	>(null);
+	function loadPhaseRsDck(deckId: string) {
+		phaseRsStatusKey = null;
+		phaseRsDckText = null;
+		phaseRsBusy = true;
+		const token = ++phaseRsLoadToken;
+		fetch(`/mtg/decks/${deckId}/export?format=dck`)
+			.then((response) => (response.ok ? response.text() : Promise.reject(new Error('export'))))
+			.then((text) => {
+				if (token !== phaseRsLoadToken) return;
+				phaseRsDckText = text;
+			})
+			.catch(() => {
+				if (token !== phaseRsLoadToken) return;
+				phaseRsDckText = null;
+				phaseRsStatusKey = 'deck.phaseRs.loadFailed';
+			})
+			.finally(() => {
+				if (token === phaseRsLoadToken) phaseRsBusy = false;
+			});
+	}
+	function openPhaseRsDialog(deckId: string) {
+		phaseRsUrl = getPhaseRsUrl();
+		phaseRsOpen = true;
+		loadPhaseRsDck(deckId);
+	}
+	async function copyDckAndOpenPhaseRs() {
+		phaseRsStatusKey = null;
+		const targetUrl = getPhaseRsUrl();
+		phaseRsUrl = targetUrl;
+		if (!phaseRsDckText || !navigator.clipboard?.writeText) {
+			phaseRsStatusKey = 'deck.phaseRs.copyFailed';
+			return;
+		}
+		const clipboardPromise = navigator.clipboard.writeText(phaseRsDckText);
+		window.open(targetUrl, '_blank', 'noopener,noreferrer');
+		try {
+			await clipboardPromise;
+			phaseRsStatusKey = 'deck.phaseRs.copied';
+		} catch {
+			phaseRsStatusKey = 'deck.phaseRs.copyFailed';
+		}
+	}
 	let createTrigger = $state<HTMLElement | null>(null);
 	let searchTrigger = $state<HTMLElement | null>(null);
 	let createName = $state(untrack(() => form?.createDraft?.name ?? ''));
@@ -742,6 +793,14 @@
 							{ label: language.t('ui.Import.decklist'), onSelect: () => openEditor('import') },
 							exportAction(language.t('ui.Export.Arena'), `/mtg/decks/${selectedDeck.id}/export`),
 							exportAction(
+								language.t('ui.Export.dck'),
+								`/mtg/decks/${selectedDeck.id}/export?format=dck`
+							),
+							exportAction(
+								language.t('ui.Export.dec'),
+								`/mtg/decks/${selectedDeck.id}/export?format=dec`
+							),
+							exportAction(
 								language.t('ui.Export.simple.text'),
 								`/mtg/decks/${selectedDeck.id}/export?format=simple`
 							),
@@ -753,6 +812,10 @@
 								language.t('ui.Export.Spellbook.JSON'),
 								`/mtg/decks/${selectedDeck.id}/export?format=json`
 							),
+							{
+								label: language.t('deck.phaseRs.action'),
+								onSelect: () => openPhaseRsDialog(selectedDeck.id)
+							},
 							{ label: language.t('ui.Print.deck'), href: `/mtg/decks/${selectedDeck.id}/print` },
 							{
 								label: language.t('ui.Print.card.sheet.A4'),
@@ -765,7 +828,14 @@
 							}
 						]}
 						onCloseAutoFocus={(event) => {
-							if (createOpen || editOpen || importOpen || deleteOpen || pendingExport)
+							if (
+								createOpen ||
+								editOpen ||
+								importOpen ||
+								deleteOpen ||
+								pendingExport ||
+								phaseRsOpen
+							)
 								event.preventDefault();
 						}}
 					>
@@ -1043,7 +1113,7 @@
 							id="import-file"
 							type="file"
 							name="file"
-							accept=".txt,.csv,.json,text/plain,text/csv,application/json"
+							accept=".txt,.dec,.dck,.csv,.json,text/plain,text/csv,application/json"
 						/>
 						<p>
 							{language.t(
@@ -1197,6 +1267,62 @@
 						>
 					</DeckDialog>
 				{/if}
+				<DeckDialog
+					title={language.t('deck.phaseRs.action')}
+					description={language.t('deck.phaseRs.description')}
+					returnFocus={actionsTrigger}
+					bind:open={phaseRsOpen}
+				>
+					<div class="form-stack">
+						<p class="muted">
+							{language.t('deck.phaseRs.target', { url: phaseRsUrl })}
+							· <a href="/settings">{language.t('deck.phaseRs.configureLink')}</a>
+						</p>
+						<div class="phase-rs-actions">
+							{#if phaseRsStatusKey === 'deck.phaseRs.loadFailed'}
+								<Button
+									type="button"
+									variant="default"
+									disabled={phaseRsBusy}
+									onclick={() => loadPhaseRsDck(selectedDeck.id)}
+								>
+									{language.t('deck.phaseRs.retry')}
+								</Button>
+							{:else}
+								<Button
+									type="button"
+									variant="default"
+									disabled={phaseRsBusy || !phaseRsDckText}
+									onclick={copyDckAndOpenPhaseRs}
+								>
+									{phaseRsBusy
+										? language.t('deck.phaseRs.copying')
+										: language.t('deck.phaseRs.copyAndOpen')}
+								</Button>
+							{/if}
+							<Button
+								href={`/mtg/decks/${selectedDeck.id}/export?format=dck`}
+								variant="secondary"
+								download
+							>
+								{language.t('ui.Export.dck')}
+							</Button>
+							<Button
+								href={`/mtg/decks/${selectedDeck.id}/export?format=dec`}
+								variant="secondary"
+								download
+							>
+								{language.t('ui.Export.dec')}
+							</Button>
+							<Button href={phaseRsUrl} target="_blank" rel="noopener noreferrer" variant="ghost">
+								{language.t('deck.phaseRs.openOnly')}
+							</Button>
+						</div>
+						{#if phaseRsStatusKey}
+							<p role="status" class="muted">{language.t(phaseRsStatusKey)}</p>
+						{/if}
+					</div>
+				</DeckDialog>
 			</div>
 		</section>
 		<noscript
@@ -1214,8 +1340,18 @@
 				<a href={`/mtg/decks/${selectedDeck.id}/export?format=csv`}>{language.t('ui.Export.CSV')}</a
 				>
 				· <a href={`/mtg/decks/${selectedDeck.id}/export`}>{language.t('ui.Export.Arena')}</a> ·
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=dck`}>{language.t('ui.Export.dck')}</a
+				>
+				·
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=dec`}>{language.t('ui.Export.dec')}</a
+				>
+				·
 				<a href={`/mtg/decks/${selectedDeck.id}/export?format=simple`}
 					>{language.t('ui.Export.simple.text')}</a
+				>
+				·
+				<a href={DEFAULT_PHASE_RS_URL} target="_blank" rel="noopener noreferrer"
+					>{language.t('deck.phaseRs.action')}</a
 				>
 				· <a href={`/mtg/decks/${selectedDeck.id}/print`}>{language.t('ui.Print.deck')}</a> ·
 				<a href={`/mtg/decks/${selectedDeck.id}/print/cards`}
@@ -1759,6 +1895,12 @@
 		.list-controls {
 			grid-template-columns: auto minmax(0, 1fr) 7rem 9rem;
 		}
+	}
+	.phase-rs-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
 	}
 	@media (max-width: 760px) {
 		.list-controls {

@@ -310,10 +310,10 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
     ) -> Response:
         deck_id = deckId
         format = request.query_params.get("format", "arena") or "arena"
-        if format not in ("arena", "simple", "csv", "json"):
+        if format not in ("arena", "dec", "dck", "simple", "csv", "json"):
             raise HttpError(400, "Unsupported Deck export format")
         media = {"csv": "text/csv", "json": "application/json"}.get(format, "text/plain")
-        extension = {"csv": "csv", "json": "json"}.get(format, "txt")
+        extension = {"csv": "csv", "json": "json", "dec": "dec", "dck": "dck"}.get(format, "txt")
         return Response(
             await decks.export_decklist(actor, deck_id, format),
             headers={

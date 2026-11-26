@@ -3,13 +3,14 @@
 	const language = useLanguage();
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
-	import { untrack, tick } from 'svelte';
+	import { untrack, tick, onMount } from 'svelte';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
 	import LinkedDevices from '#lib/components/auth/LinkedDevices.svelte';
 	import ImageCacheSettings from '#lib/components/settings/ImageCacheSettings.svelte';
 	import { getAvatar } from '#lib/profile/avatars.ts';
+	import { DEFAULT_PHASE_RS_URL, getSavedPhaseRsUrl, savePhaseRsUrl } from '#lib/phase-rs.ts';
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
 	$effect(() => {
@@ -40,6 +41,33 @@
 	let emailError = $derived(
 		form?.intent === 'email' && 'errors' in form ? form.errors.email : undefined
 	);
+	let phaseRsUrlInput = $state('');
+	let phaseRsErrorKey = $state<'settings.phaseRs.invalid' | null>(null);
+	let phaseRsStatusKey = $state<'settings.phaseRs.saved' | 'settings.phaseRs.resetSaved' | null>(
+		null
+	);
+	onMount(() => {
+		phaseRsUrlInput = getSavedPhaseRsUrl();
+	});
+	function submitPhaseRsUrl(event: SubmitEvent) {
+		event.preventDefault();
+		phaseRsErrorKey = null;
+		phaseRsStatusKey = null;
+		const savedUrl = savePhaseRsUrl(phaseRsUrlInput);
+		if (savedUrl === null) {
+			phaseRsErrorKey = 'settings.phaseRs.invalid';
+			return;
+		}
+		phaseRsUrlInput = savedUrl === DEFAULT_PHASE_RS_URL ? '' : savedUrl;
+		phaseRsStatusKey =
+			savedUrl === DEFAULT_PHASE_RS_URL ? 'settings.phaseRs.resetSaved' : 'settings.phaseRs.saved';
+	}
+	function resetPhaseRsUrl() {
+		phaseRsErrorKey = null;
+		savePhaseRsUrl('');
+		phaseRsUrlInput = '';
+		phaseRsStatusKey = 'settings.phaseRs.resetSaved';
+	}
 </script>
 
 <svelte:head
@@ -150,6 +178,43 @@
 				</div>
 				{#key saved.user.accountId}<AvatarEditor avatarId={saved.user.avatarId} />{/key}
 			</div>
+			<section class="phase-rs-settings" aria-labelledby="phase-rs-heading">
+				<h2 id="phase-rs-heading" class="text-base font-medium">
+					{language.t('settings.phaseRs.title')}
+				</h2>
+				<form onsubmit={submitPhaseRsUrl} novalidate>
+					<label for="phase-rs-url" class="label">{language.t('settings.phaseRs.label')}</label>
+					<input
+						id="phase-rs-url"
+						name="phaseRsUrl"
+						class="input"
+						type="url"
+						inputmode="url"
+						maxlength={500}
+						placeholder={DEFAULT_PHASE_RS_URL}
+						bind:value={phaseRsUrlInput}
+						aria-invalid={!!phaseRsErrorKey}
+						aria-describedby="phase-rs-help phase-rs-error"
+					/>
+					<p id="phase-rs-help" class="field-help">
+						{language.t('settings.phaseRs.help', { url: DEFAULT_PHASE_RS_URL })}
+					</p>
+					<p id="phase-rs-error" class="field-error">
+						{phaseRsErrorKey ? language.t(phaseRsErrorKey) : ''}
+					</p>
+					<div class="profile-save">
+						<button type="submit" class="btn btn-secondary">
+							{language.t('settings.phaseRs.save')}
+						</button>
+						<button type="button" class="btn btn-ghost" onclick={resetPhaseRsUrl}>
+							{language.t('settings.phaseRs.reset')}
+						</button>
+						<p role="status" class="text-sm text-text-secondary">
+							{phaseRsStatusKey ? language.t(phaseRsStatusKey) : ''}
+						</p>
+					</div>
+				</form>
+			</section>
 		</div>
 		<div class="profile-card-summary">
 			<ProfileCard
@@ -196,6 +261,13 @@
 		gap: 1rem;
 		flex-wrap: wrap;
 		margin-top: 1rem;
+	}
+	.phase-rs-settings {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--color-border-subtle);
 	}
 	.profile-avatar {
 		display: flex;

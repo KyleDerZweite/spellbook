@@ -131,5 +131,6 @@ Full guide: [Deployment](docs/operations/deployment.md).
 
 ## Credits and license
 
-Card data comes from [Scryfall](https://scryfall.com/). Spellbook is licensed under the
-[GNU Affero General Public License v3.0](LICENSE).
+Card data comes from [Scryfall](https://scryfall.com/). Optional external deck playtesting links to
+[phase.rs](https://github.com/phase-rs/phase) via standard `.dck` and `.dec` deck exports. Spellbook
+is licensed under the [GNU Affero General Public License v3.0](LICENSE).

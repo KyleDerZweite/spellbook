@@ -308,13 +308,16 @@ class DeckReads:
         )
 
     async def export_decklist(self, actor: Actor, deck_id: str, format: str = "arena") -> str:
-        if format not in ("arena", "simple", "csv", "json"):
+        if format not in ("arena", "dec", "dck", "simple", "csv", "json"):
             raise ValidationError("Unsupported Deck export format")
         account = (await self.auth.require_actor(actor)).account_id
         async with transaction(self.pool, read_only=True, repeatable_read=True) as tx:
             deck = await require_deck(tx, account, deck_id)
             cards = await read_cards(tx, account, deck_id)
-        documents = await self._resolve(cards) if format == "arena" else {}
+        documents = await self._resolve(cards) if format in ("arena", "dck") else {}
         return export_deck(
-            deck, cards, documents, cast(Literal["arena", "simple", "csv", "json"], format)
+            deck,
+            cards,
+            documents,
+            cast(Literal["arena", "dec", "dck", "simple", "csv", "json"], format),
         )

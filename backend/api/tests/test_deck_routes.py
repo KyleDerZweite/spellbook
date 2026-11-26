@@ -372,6 +372,8 @@ def test_choice_queries_reject_repeated_or_unknown_keys(routes: tuple[Any, TestC
     ("format", "media", "extension"),
     [
         ("arena", "text/plain", "txt"),
+        ("dec", "text/plain", "dec"),
+        ("dck", "text/plain", "dck"),
         ("simple", "text/plain", "txt"),
         ("csv", "text/csv", "csv"),
         ("json", "application/json", "json"),

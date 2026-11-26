@@ -470,9 +470,12 @@ locations, and executable build plans remain planned.
 
 ## Import, export, and warnings
 
-The supported input is MTG Arena-style text with quantities, card names, and optional printing
-hints. The parser recognizes main, sideboard, commander, companion, and maybeboard sections, as well
-as supported section aliases. Blank lines and comment lines are ignored. Duplicate parsed lines with
+Supported text inputs include MTG Arena-style text, `.dec` (MTGO/Apprentice/Moxfield), and `.dck`
+(Forge/XMage) decklists with quantities, card names, and optional printing hints. Spellbook CSV and
+Spellbook Deck JSON v1 remain lossless backup and migration formats that preserve exact printing
+UUIDs, format, description, and roles. The text parser recognizes main, sideboard, commander,
+companion, and maybeboard sections, as well as supported section aliases, bracketed `.dck` sections,
+and `//` section comments. Blank lines and comment lines are ignored. Duplicate parsed lines with
 matching identity hints and role combine quantities.
 
 Preview returns parsed, resolved, unresolved, and ambiguous lines with warnings. Malformed lines
@@ -488,10 +491,14 @@ The user must see which lines will be committed and which remain uncommitted. Ed
 invalidates the displayed preview. Preview is not a durable catalog snapshot. Catalog changes
 between preview and commit can change resolution. The commit response is authoritative.
 
-Deck text export preserves quantities and role sections. Exact printing round trips depend on
-available printing metadata. The exporter enriches entries with collector numbers when the local
-catalog provides them; fallback text may contain only a name and set. It is not a complete archival
-export of database state.
+Deck text export supports Arena, `.dck`, `.dec`, and lossy simple text alongside lossless Spellbook
+CSV and JSON v1. Arena and `.dck` preserve quantities, role sections, and printing hints, enriching
+entries with collector numbers when the local catalog provides them. `.dec` preserves quantities and
+roles using standard section headers (`Commander`, `Deck`, `Sideboard`, `Companion`). The
+Deckbuilder also provides an optional "Test / Play in phase.rs" action that downloads `.dck`/`.dec`
+or copies `.dck` to the clipboard and opens the configured `phase.rs` URL (defaulting to
+`https://phase-rs.dev` and overridable in Settings for a self-hosted `phase-server` instance),
+without bundling Rust or WASM code in Spellbook.
 
 ### Deck card sheet
 
