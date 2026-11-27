@@ -59,6 +59,7 @@
 	.secondary-add {
 		margin-top: 1rem;
 		max-width: 24rem;
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 </style>

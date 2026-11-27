@@ -123,13 +123,14 @@
 	.field-help {
 		margin-top: 0.5rem;
 		color: var(--color-text-muted);
-		font-size: 0.6875rem;
-		line-height: 1.5;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.field-error {
 		margin-top: 0.25rem;
 		color: var(--color-error);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.field-error:empty {
 		display: none;

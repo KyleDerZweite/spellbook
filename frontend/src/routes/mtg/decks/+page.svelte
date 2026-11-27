@@ -1711,12 +1711,17 @@
 		margin: 1.5rem 0;
 	}
 	.deck-section > h2 {
-		font: 400 1.25rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 		margin-bottom: 0.75rem;
 	}
 	.deck-section small {
 		color: var(--color-text-secondary);
-		font: 0.75rem var(--font-body);
+		font-family: var(--font-body);
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.deck-picker {
 		display: flex;
@@ -1727,7 +1732,8 @@
 	}
 	.deck-format {
 		color: var(--color-text-secondary);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		margin-top: 0.25rem;
 	}
 	.deck-overview,
@@ -1735,7 +1741,8 @@
 		display: contents;
 	}
 	.deck-notes {
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		margin: 0 0 1rem;
 	}
 	.deck-notes p {
@@ -1743,7 +1750,8 @@
 		margin-top: 0.5rem;
 	}
 	.muted {
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.deck-summary {
@@ -1759,7 +1767,8 @@
 		background: var(--color-background);
 		border-bottom: 1px solid var(--color-border);
 		margin-bottom: 1.5rem;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.deck-size {
 		display: inline-flex;
@@ -1786,8 +1795,8 @@
 	}
 	.export-warnings {
 		padding-left: 1.25rem;
-		line-height: 1.7;
-		font-size: 0.8125rem;
+		line-height: var(--text-body-compact--line-height);
+		font-size: var(--text-body-compact);
 	}
 	.save-status {
 		margin-left: auto;
@@ -1814,7 +1823,10 @@
 		border-radius: 0.75rem;
 	}
 	.catalog-title {
-		font: 400 1.25rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 		margin-bottom: 1rem;
 	}
 	.view-controls {
@@ -1834,7 +1846,8 @@
 	}
 	.legality {
 		padding: 1.5rem 0;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		scroll-margin-top: calc(var(--app-header-height) + 6rem);
 	}
 	summary {
@@ -1849,7 +1862,8 @@
 		padding: 3rem 1rem;
 		text-align: center;
 		color: var(--color-text-secondary);
-		font-size: 0.875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.form-stack {
 		display: flex;
@@ -1861,7 +1875,8 @@
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		padding: 0.75rem 0;
 	}
 	.decklist-input {
@@ -1869,7 +1884,8 @@
 	}
 	.import-preview {
 		margin-top: 1rem;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.inspector-form {
 		display: flex;
@@ -1883,7 +1899,9 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 0.5rem;
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		cursor: pointer;
 	}
 	.checkbox-field span {
@@ -1892,7 +1910,8 @@
 		gap: 0.125rem;
 	}
 	.allocation-notice {
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 500;
 	}
 	.allocation-notice.conflict {

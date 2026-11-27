@@ -997,7 +997,8 @@
 		border: 1px solid var(--color-border);
 		border-radius: 0.5rem;
 		background: var(--color-surface);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.selection-count {
 		font-weight: 500;
@@ -1048,14 +1049,18 @@
 		line-clamp: 2;
 		min-height: 2.6rem;
 		overflow: hidden;
-		font: 400 1rem/1.3 var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
+		font-weight: 400;
 		overflow-wrap: anywhere;
 	}
 	.deck-format,
 	.deck-quantity,
 	.deck-edited {
 		color: var(--color-text-secondary);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.deck-format {
@@ -1077,7 +1082,8 @@
 		align-items: center;
 		gap: 0.75rem;
 		margin-bottom: 0.5rem;
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 	}
 	.ownership-filter {
 		display: inline-flex;
@@ -1114,7 +1120,8 @@
 	}
 	.directory-total {
 		color: var(--color-text-muted);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 		margin: 0 0 0 0.5rem;
 	}
@@ -1123,7 +1130,8 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 	}
 	.directory-filters > summary {
 		min-height: 44px;
@@ -1144,7 +1152,8 @@
 		border-radius: 999px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
-		font-size: 0.625rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 500;
 		color: var(--color-text-primary);
 		vertical-align: middle;
@@ -1153,7 +1162,8 @@
 	.library-in-other {
 		display: block;
 		margin-top: 0.25rem;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 500;
 	}
 	.library-conflict {

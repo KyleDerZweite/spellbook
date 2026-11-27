@@ -30,7 +30,7 @@
 
 {#if native}
 	<section class="native-deck-form form-stack" aria-labelledby={`${id}-title`}>
-		<h2 id={`${id}-title`} class="font-display text-2xl">{title}</h2>
+		<h2 id={`${id}-title`} class="font-display text-section-title">{title}</h2>
 		<p class="muted">{description}</p>
 		{@render children()}
 		<Button href={cancelHref} variant="secondary" disabled={pending}

@@ -196,7 +196,10 @@
 		min-width: 0;
 	}
 	h3 {
-		font: 400 1rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
+		font-weight: 400;
 		margin: 0;
 	}
 	.deck-helper-head {
@@ -221,12 +224,14 @@
 		gap: 0.25rem;
 	}
 	dt {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	dd {
 		margin: 0;
-		font-size: 1rem;
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 	}
@@ -236,7 +241,8 @@
 		gap: 0.375rem;
 	}
 	.sub-label {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.pill-row {
@@ -253,12 +259,14 @@
 		border-radius: 999px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.muted-text {
 		margin: 0;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
@@ -279,7 +287,8 @@
 		flex: 1;
 		min-width: 0;
 		text-align: center;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.curve-count,

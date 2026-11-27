@@ -81,6 +81,21 @@
 	--font-body: 'IBM Plex Mono', monospace;
 	--font-mono: var(--font-body);
 	--font-interface: ui-sans-serif, system-ui, sans-serif;
+
+	/* Semantic typography scale (rem, 16px root reference) */
+	--text-page-title: 1.5rem;
+	--text-page-title--line-height: 2rem;
+	--text-section-title: 1.25rem;
+	--text-section-title--line-height: 1.75rem;
+	--text-body: 1rem;
+	--text-body--line-height: 1.5rem;
+	--text-body-compact: 0.875rem;
+	--text-body-compact--line-height: 1.25rem;
+	--text-control: 0.875rem;
+	--text-control--line-height: 1.25rem;
+	--text-control--font-weight: 500;
+	--text-meta: 0.75rem;
+	--text-meta--line-height: 1rem;
 }
 
 /*
@@ -222,8 +237,8 @@ body {
 	background: var(--color-background);
 	color: var(--color-text-primary);
 	font-family: var(--font-body);
-	font-size: 0.875rem;
-	line-height: 1.5;
+	font-size: var(--text-body-compact);
+	line-height: var(--text-body-compact--line-height);
 	-webkit-font-smoothing: antialiased;
 }
 
@@ -246,7 +261,8 @@ button:disabled {
 	}
 	.analytics-title {
 		font-family: var(--font-display);
-		font-size: 1.25rem;
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
 		font-weight: 400;
 		margin-bottom: 1rem;
 	}
@@ -289,7 +305,9 @@ button:disabled {
 		gap: var(--space-control-gap);
 		min-height: var(--target-compact);
 		padding: 0.5rem 0.75rem;
-		font-size: 0.875rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		color: var(--color-text-primary);
 		cursor: pointer;
 	}
@@ -315,7 +333,8 @@ button:disabled {
 		padding: 0.5rem 0.75rem;
 		border: 1px solid transparent;
 		border-radius: 0.5rem;
-		font-size: 0.8rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		font-weight: 500;
 		text-decoration: none;
 		color: var(--color-text-secondary);
@@ -351,6 +370,8 @@ button:disabled {
 		padding: 0.875rem 1.25rem;
 		border: 1px solid transparent;
 		border-radius: 0.5rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		font-weight: 500;
 		text-decoration: none;
 		color: var(--color-text-secondary);
@@ -384,9 +405,9 @@ button:disabled {
 		padding: 0.5rem 0.75rem;
 		border: 1px solid transparent;
 		border-radius: 0.5rem;
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
 		font-weight: 500;
-		line-height: 1.4;
+		line-height: var(--text-control--line-height);
 		white-space: nowrap;
 		flex-shrink: 0;
 		text-decoration: none;
@@ -471,7 +492,8 @@ button:disabled {
 		border-radius: 0.5rem;
 		background: var(--color-crypt);
 		color: var(--color-text-primary);
-		font-size: 0.875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 
 	.input:focus {
@@ -491,7 +513,8 @@ button:disabled {
 		display: block;
 		margin-bottom: var(--space-control-gap);
 		color: var(--color-text-secondary);
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		font-weight: 600;
 	}
 
@@ -612,8 +635,8 @@ button:disabled {
 	.page-title h1,
 	.account-form h1 {
 		font-family: var(--font-display);
-		font-size: 1.65rem;
-		line-height: 1.25;
+		font-size: var(--text-page-title);
+		line-height: var(--text-page-title--line-height);
 		font-weight: 650;
 		letter-spacing: -0.045em;
 		overflow-wrap: anywhere;
@@ -624,7 +647,8 @@ button:disabled {
 	.auth-switch {
 		margin-top: 1.5rem;
 		text-align: center;
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		color: var(--color-text-secondary);
 	}
 	.auth-switch a {
@@ -644,7 +668,8 @@ button:disabled {
 		line-height: 1.75;
 	}
 	.eyebrow {
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 		font-weight: 500;
 	}
@@ -663,7 +688,8 @@ button:disabled {
 			padding: 1.5rem 1rem;
 		}
 		.input {
-			font-size: 1rem;
+			font-size: var(--text-body);
+			line-height: var(--text-body--line-height);
 		}
 	}
 }

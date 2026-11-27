@@ -145,19 +145,21 @@
 	.field-count {
 		flex-shrink: 0;
 		color: var(--color-text-muted);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.field-help {
 		margin: 0.35rem 0 0;
 		color: var(--color-text-muted);
-		font-size: 0.6875rem;
-		line-height: 1.5;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.field-error {
 		margin: 0.3rem 0 0;
 		color: var(--color-error);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.field-error:empty {
 		display: none;

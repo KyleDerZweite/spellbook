@@ -26,7 +26,7 @@
 
 <div class="mx-auto w-full max-w-lg px-4 py-8 space-y-6">
 	<header class="space-y-2">
-		<h1 class="text-3xl font-semibold">{language.t('ui.Connect.device')}</h1>
+		<h1 class="font-display text-page-title font-semibold">{language.t('ui.Connect.device')}</h1>
 		<p class="text-text-secondary">
 			{language.t(
 				'ui.Scan.the.code.on.the.device.you.want.to.sign.in.to.You.will.review.the.request.before.approving'

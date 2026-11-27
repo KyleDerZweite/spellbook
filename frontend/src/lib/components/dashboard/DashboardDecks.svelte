@@ -69,10 +69,15 @@
 	}
 	h2 {
 		margin: 0;
-		font: 400 20px/1.3 var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 	}
 	.section-heading a {
-		font-size: 12px;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		color: var(--color-text-secondary);
 	}
 	ul {
@@ -127,14 +132,18 @@
 		min-height: 2.6rem;
 		overflow: hidden;
 		overflow-wrap: anywhere;
-		font: 400 16px/1.3 var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
+		font-weight: 400;
 	}
 	.meta {
 		display: flex;
 		justify-content: space-between;
 		gap: 8px;
 		margin: 5px 0 10px;
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.meta span {

@@ -2076,7 +2076,8 @@
 	}
 	.owned-quantity {
 		text-align: right;
-		font-size: 0.75rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
 	}
@@ -2102,7 +2103,9 @@
 		min-height: 44px;
 		padding-inline: 0.125rem;
 		text-decoration: none;
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		color: var(--color-text-secondary);
 		border-bottom: 2px solid transparent;
 	}
@@ -2116,7 +2119,8 @@
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.selected-group a {
 		color: var(--color-text-secondary);
@@ -2128,7 +2132,8 @@
 	.entry-groups {
 		display: block;
 		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		max-width: 100%;
 
 		overflow-wrap: anywhere;
@@ -2136,7 +2141,8 @@
 
 	.inventory-result-count {
 		color: var(--color-text-muted);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
@@ -2149,7 +2155,8 @@
 		align-items: center;
 		gap: 0.5rem;
 		margin-top: 0.5rem;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.filter-chip {
 		display: inline-flex;
@@ -2200,13 +2207,14 @@
 	}
 	.filter-fields .label {
 		margin: 0;
-		font-size: 0.75rem;
 	}
 	.filter-reset {
 		min-height: 40px;
 		color: var(--color-text-secondary);
 		cursor: pointer;
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 	}
 	.filter-reset:disabled {
 		opacity: 0.4;
@@ -2224,8 +2232,8 @@
 		padding: 0.5rem;
 		border-radius: 0.375rem;
 		cursor: pointer;
-		font-size: 0.75rem;
-		line-height: 1.5;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.set-option:hover,
 	.set-option:focus-within {
@@ -2245,11 +2253,13 @@
 	.set-option small {
 		color: var(--color-text-muted);
 		flex-shrink: 0;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.no-sets {
 		padding: 1rem 0.5rem;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 	}
 	.variant-filters {
@@ -2309,8 +2319,8 @@
 		border-radius: 0.25rem;
 		padding: 0.125rem 0.375rem;
 		color: var(--color-text-secondary);
-		font-size: 0.625rem;
-		line-height: 1.3;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.metadata-link {
 		display: inline-flex;
@@ -2337,8 +2347,8 @@
 		border-radius: 0.25rem;
 		padding: 0.125rem 0.375rem;
 		color: var(--color-text-secondary);
-		font-size: 0.75rem;
-		line-height: 1.3;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		white-space: nowrap;
 	}
 	[data-finish='foil'],
@@ -2360,7 +2370,8 @@
 	.inventory-totals {
 		margin-top: 0.5rem;
 		color: var(--color-text-muted);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.inventory-totals strong {
 		font-weight: 500;
@@ -2409,7 +2420,8 @@
 		gap: 1rem;
 		padding-block: 0.75rem;
 		color: var(--color-text-secondary);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.set-progress progress {
 		width: 160px;
@@ -2435,7 +2447,8 @@
 	}
 	.inventory-columns {
 		padding: 0 0.75rem;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 	}
 	.inventory-columns > .column-header:nth-child(5) {
@@ -2483,9 +2496,9 @@
 	}
 	.card-identity strong {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--text-body-compact);
 		font-weight: 500;
-		line-height: 1.4;
+		line-height: var(--text-body-compact--line-height);
 		overflow-wrap: anywhere;
 	}
 	.card-identity:hover strong {
@@ -2494,7 +2507,8 @@
 	}
 	.row-metadata {
 		color: var(--color-text-secondary);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.mobile-metadata {
 		display: none;
@@ -2503,7 +2517,8 @@
 		display: block;
 		max-width: 100%;
 		color: var(--color-text-muted);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		margin-top: 0.15rem;
 
 		overflow-wrap: anywhere;
@@ -2526,7 +2541,8 @@
 	}
 	.mutation-error {
 		color: var(--color-error);
-		font-size: 0.875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		margin-bottom: 1rem;
 	}
 	.inspector-form {
@@ -2535,7 +2551,8 @@
 		gap: 0.5rem;
 	}
 	.inspector-form > p {
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		color: var(--color-text-secondary);
 	}
 	.inspector-form .label {
@@ -2563,14 +2580,16 @@
 			flex-wrap: wrap;
 			gap: 0.25rem;
 			color: var(--color-text-muted);
-			font-size: 0.75rem;
+			font-size: var(--text-meta);
+			line-height: var(--text-meta--line-height);
 			margin-top: 0.25rem;
 			padding-left: calc(40px + 0.75rem);
 		}
 	}
 	@media (max-width: 560px) {
 		.inventory-totals {
-			font-size: 0.75rem;
+			font-size: var(--text-meta);
+			line-height: var(--text-meta--line-height);
 		}
 		.inventory-totals span {
 			margin: 0 0.25rem;
@@ -2593,7 +2612,8 @@
 			justify-self: end;
 			white-space: normal;
 			text-align: right;
-			font-size: 0.6875rem;
+			font-size: var(--text-meta);
+			line-height: var(--text-meta--line-height);
 		}
 		.inventory-row {
 			grid-template-columns: minmax(0, 1fr) 84px;
@@ -2608,10 +2628,12 @@
 			gap: 0.5rem;
 		}
 		.card-identity strong {
-			font-size: 0.8125rem;
+			font-size: var(--text-body-compact);
+			line-height: var(--text-body-compact--line-height);
 		}
 		.mobile-metadata {
-			font-size: 0.75rem;
+			font-size: var(--text-meta);
+			line-height: var(--text-meta--line-height);
 			padding-left: calc(40px + 0.625rem);
 		}
 		.owned-quantity {

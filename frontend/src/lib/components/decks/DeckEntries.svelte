@@ -214,7 +214,10 @@
 		padding: 0.5rem 0;
 		margin-bottom: 0.5rem;
 		border-bottom: 1px solid var(--color-border);
-		font: 400 1.125rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 	}
 	.role-heading > span:first-child {
 		display: inline-flex;
@@ -226,7 +229,10 @@
 		color: var(--color-text-secondary);
 	}
 	.group-count {
-		font: 400 0.75rem var(--font-body);
+		font-family: var(--font-body);
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
+		font-weight: 400;
 		color: var(--color-text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
@@ -263,7 +269,8 @@
 	}
 	.card-name {
 		text-align: left;
-		font-size: 0.75rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		overflow-wrap: anywhere;
 		font-weight: 400;
 	}
@@ -274,7 +281,7 @@
 		display: inline-flex;
 		margin-left: 0.5rem;
 		vertical-align: middle;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
 	}
 	.pending {
 		color: var(--color-text-secondary);
@@ -284,7 +291,8 @@
 		align-items: center;
 		gap: 0.25rem;
 		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		min-height: 2.5rem;
 		padding: 0.25rem;
 	}
@@ -306,8 +314,8 @@
 	.allocation-note {
 		display: block;
 		margin-top: 0.125rem;
-		font-size: 0.6875rem;
-		line-height: 1.3;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.allocation-note.in-other {
 		color: var(--color-warning);
@@ -363,7 +371,8 @@
 		border-radius: 0.25rem;
 		background: var(--color-background);
 		color: var(--color-text-primary);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.stack-quantity.conflict {

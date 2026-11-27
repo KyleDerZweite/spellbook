@@ -64,7 +64,8 @@
 	.quantity {
 		min-width: 2rem;
 		text-align: center;
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.quantity-control :global(.btn-icon) {

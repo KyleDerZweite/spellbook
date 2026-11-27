@@ -258,7 +258,8 @@
 		align-items: flex-start;
 		gap: 0.625rem;
 		cursor: pointer;
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 	}
 	.option-toggle input {
 		margin-top: 0.2rem;
@@ -279,13 +280,14 @@
 	}
 	.summary-line {
 		margin: 0;
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		font-weight: 500;
 	}
 	.export-output {
 		font-family: var(--font-mono);
-		font-size: 0.8125rem;
-		line-height: 1.5;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		resize: vertical;
 	}
 	.export-actions {
@@ -301,16 +303,19 @@
 		padding: 1rem;
 		border: 1px solid var(--color-border);
 		border-radius: 0.5rem;
-		font-size: 0.875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		margin: 0;
 	}
 	.error-text {
 		color: var(--color-danger, var(--color-warning));
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		margin: 0;
 	}
 	.muted {
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.bulk-hint {
@@ -327,7 +332,8 @@
 	}
 	.bulk-badge {
 		align-self: flex-start;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 500;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
@@ -337,7 +343,8 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		font-weight: 500;
 		width: fit-content;
 	}

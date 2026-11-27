@@ -163,7 +163,10 @@
 		position: relative;
 		grid-column: 1;
 		color: var(--color-text-secondary);
-		font: 400 13px/1.4 var(--font-body);
+		font-family: var(--font-body);
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 	}
 	.metric-value {
 		position: relative;
@@ -200,7 +203,10 @@
 		gap: 4px 12px;
 		grid-column: 1;
 		padding-right: 76px;
-		font: 400 12px/1.5 var(--font-body);
+		font-family: var(--font-body);
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
+		font-weight: 400;
 	}
 	.metric-change {
 		min-width: 0;

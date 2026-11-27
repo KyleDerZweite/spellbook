@@ -106,7 +106,8 @@
 		border-radius: 12px;
 		color: var(--color-text-secondary);
 		margin-bottom: 16px;
-		font-size: 13px;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.dashboard-empty .btn {
 		margin-top: 12px;

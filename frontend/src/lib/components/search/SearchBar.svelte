@@ -59,7 +59,7 @@
 			{value}
 			oninput={handleInput}
 			{placeholder}
-			class="input search-input w-full py-2.5 pl-10 pr-12 text-sm"
+			class="input search-input w-full py-2.5 pl-10 pr-12"
 			class:with-submit={!!submitLabel}
 			style="
 			background-color: var(--color-crypt);

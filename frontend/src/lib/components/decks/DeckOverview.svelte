@@ -193,7 +193,8 @@
 		gap: 1rem;
 	}
 	h2 {
-		font-size: 0.875rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		color: var(--color-text-muted);
 		font-weight: 500;
 	}
@@ -208,17 +209,22 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.availability-number span {
-		font: 400 0.75rem var(--font-body);
+		font-family: var(--font-body);
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
+		font-weight: 400;
 		color: var(--color-text-secondary);
 	}
 	.availability-meta {
 		margin-top: 0.75rem;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.allocation-alert {
 		margin-top: 0.375rem;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 500;
 	}
 	.allocation-alert.conflict {

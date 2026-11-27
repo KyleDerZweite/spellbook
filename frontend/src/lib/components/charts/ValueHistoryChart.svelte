@@ -202,7 +202,8 @@
 		border: 1px solid var(--color-border);
 		border-radius: 0.65rem;
 		background: var(--color-surface);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 		pointer-events: none;
 	}
@@ -256,7 +257,8 @@
 		display: flex;
 		gap: 1rem;
 		align-items: center;
-		font-size: 0.625rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	input {
@@ -270,7 +272,8 @@
 		flex-wrap: wrap;
 		align-items: baseline;
 		gap: 0.4rem 1rem;
-		font-size: 0.7rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 		padding-top: 0.75rem;
 		border-top: 1px solid var(--color-border);

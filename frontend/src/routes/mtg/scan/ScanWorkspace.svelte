@@ -713,7 +713,7 @@
 					<label for="scan-session-id" class="mb-1 block">{language.t('ui.Session.ID')}</label
 					><input
 						id="scan-session-id"
-						class="input w-full font-mono text-xs"
+						class="input w-full font-mono"
 						bind:value={sessionInput}
 						required
 						disabled={busy}
@@ -732,7 +732,8 @@
 	.scan-sessions {
 		padding-top: 1rem;
 		border-top: 1px solid var(--color-border);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.scan-recovery summary {
 		cursor: pointer;

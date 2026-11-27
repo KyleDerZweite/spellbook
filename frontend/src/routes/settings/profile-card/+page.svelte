@@ -263,7 +263,8 @@
 	}
 	.preview-status {
 		color: var(--color-text-muted);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		text-align: center;
 	}
 	.settings-page form {

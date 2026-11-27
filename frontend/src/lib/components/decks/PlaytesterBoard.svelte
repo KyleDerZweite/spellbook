@@ -858,20 +858,30 @@
 		gap: 0.625rem;
 	}
 	h1 {
-		font: 400 1.6rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-page-title);
+		line-height: var(--text-page-title--line-height);
+		font-weight: 400;
 		margin: 0;
 	}
 	h2 {
-		font: 400 1.05rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 		margin: 0;
 	}
 	h3 {
-		font: 400 0.95rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
+		font-weight: 400;
 		margin: 0;
 	}
 	.format-badge,
 	.ephemeral-badge {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		padding: 0.2rem 0.55rem;
 		border-radius: 999px;
 		border: 1px solid var(--color-border);
@@ -919,12 +929,14 @@
 		border-radius: 0.5rem;
 		background: var(--color-card);
 		border: 1px solid var(--color-border);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.tracker-label {
 		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.tracker-value {
 		min-width: 1.5rem;
@@ -933,7 +945,7 @@
 	}
 	.life-value {
 		color: var(--color-accent);
-		font-size: 0.95rem;
+		font-size: var(--text-body);
 	}
 	.step-btn {
 		min-width: 1.6rem;
@@ -943,7 +955,8 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-surface);
 		color: var(--color-text-primary);
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		cursor: pointer;
 	}
 	.step-btn:hover:not(:disabled) {
@@ -975,7 +988,9 @@
 		color: var(--color-text-secondary);
 		border-radius: 0.5rem;
 		padding: 0.45rem 0.5rem;
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		cursor: pointer;
 		transition:
 			background-color 140ms ease,
@@ -1012,7 +1027,8 @@
 		border-radius: 0.75rem;
 		border: 1px solid var(--color-warning);
 		background: var(--color-surface);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.mulligan-banner p {
 		margin: 0;
@@ -1048,7 +1064,8 @@
 	.zone-empty,
 	.pile-top {
 		margin: 0;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.pile-top {
@@ -1067,7 +1084,8 @@
 		border-top: 1px dashed var(--color-border);
 	}
 	.row-label {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		color: var(--color-text-secondary);
@@ -1130,7 +1148,8 @@
 		height: 100%;
 		padding: 0.5rem;
 		text-align: center;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-primary);
 	}
 	.counter-badge {
@@ -1141,7 +1160,8 @@
 		border-radius: 999px;
 		background: var(--color-primary);
 		color: var(--color-primary-foreground);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 700;
 		font-variant-numeric: tabular-nums;
 	}
@@ -1156,7 +1176,8 @@
 		align-items: center;
 		justify-content: center;
 		gap: 0.35rem;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.mini-btn {
@@ -1177,7 +1198,8 @@
 	}
 	.zone-select {
 		width: 100%;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		padding: 0.25rem 0.35rem;
 		border-radius: 0.375rem;
 		border: 1px solid var(--color-border);
@@ -1237,7 +1259,6 @@
 	.filter-input {
 		width: 14rem;
 		max-width: 100%;
-		font-size: 0.75rem;
 	}
 	.inspector-list {
 		list-style: none;
@@ -1260,7 +1281,8 @@
 		border: 1px solid var(--color-border);
 	}
 	.inspector-name {
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		font-weight: 500;
 	}
 	.inspector-actions {
@@ -1288,6 +1310,12 @@
 		}
 		.phase-pills {
 			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+	}
+	@media (max-width: 700px) {
+		.zone-select {
+			font-size: var(--text-body);
+			line-height: var(--text-body--line-height);
 		}
 	}
 	@media (max-width: 600px) {

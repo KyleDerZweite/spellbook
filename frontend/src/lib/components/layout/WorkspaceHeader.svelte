@@ -23,9 +23,9 @@
 
 <style>
 	.overview .page-title h1 {
-		font-size: clamp(2rem, 2.4vw, 2.5rem);
+		font-size: var(--text-page-title);
 		font-weight: 400;
-		line-height: 1.2;
+		line-height: var(--text-page-title--line-height);
 		letter-spacing: -0.02em;
 	}
 	.workspace-header {

@@ -109,7 +109,8 @@
 	.inline .value-label,
 	.inline .value-basis,
 	.inline .coverage-details {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.inline .coverage-details {
@@ -126,7 +127,8 @@
 	}
 	.value-label {
 		margin-top: 0.25rem;
-		font-size: 0.875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.compact {
 		display: grid;
@@ -135,7 +137,10 @@
 		align-items: center;
 	}
 	.compact h2 {
-		font: 400 1.125rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 		color: var(--color-text-primary);
 	}
 	.compact .value-amount {
@@ -143,14 +148,16 @@
 		font-size: clamp(2rem, 3vw, 2.75rem);
 	}
 	.compact .value-label {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 	}
 	.coverage-meter {
 		display: grid;
 		grid-template-columns: 1fr auto;
 		gap: 0.5rem;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.coverage-meter strong {
@@ -184,7 +191,8 @@
 	}
 	.coverage-details {
 		grid-column: 1/-1;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	summary {

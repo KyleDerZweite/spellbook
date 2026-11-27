@@ -54,8 +54,10 @@
 			}}
 		>
 			<div class="form-dialog-heading">
-				<Dialog.Title class="font-display text-2xl">{title}</Dialog.Title>
-				<Dialog.Description class="text-sm text-text-secondary">{description}</Dialog.Description>
+				<Dialog.Title class="font-display text-section-title">{title}</Dialog.Title>
+				<Dialog.Description class="text-body-compact text-text-secondary"
+					>{description}</Dialog.Description
+				>
 				{#if variant === 'history'}<button
 						type="button"
 						class="history-close"
