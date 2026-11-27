@@ -678,9 +678,13 @@ preparing the PR.
 
 [`.github/dependabot.yml`](../../.github/dependabot.yml) opens dependency updates for GitHub
 Actions, root-workspace npm packages and all five independently locked Python projects: Core, API,
-State, Catalog and Scan. Python entries use the
-[`uv` ecosystem](https://docs.astral.sh/uv/guides/integration/dependabot/) so updates include
-`uv.lock` alongside changed dependency requirements. Core, API and State accept uv `>=0.12.23,<0.14`
+State, Catalog and Scan. npm groups production and development minor/patch updates separately
+(`frontend-non-major` and `frontend-dev-non-major`). The five Python projects share one
+multi-directory [`uv` ecosystem](https://docs.astral.sh/uv/guides/integration/dependabot/) entry
+with separate development and production patch groups (`python-dev-patch` and `python-prod-patch`),
+keeping majors, pre-1.0 minors and GitHub Actions updates individually reviewable. Python entries
+use `uv` so updates include `uv.lock` alongside changed dependency requirements. Core, API and
+State accept uv `>=0.12.23,<0.14`
 so the native Dependabot updater can use its uv 0.13 toolchain. Local and CI commands remain pinned
 to uv 0.12.23; lock compatibility must pass with both that pin and the observed Dependabot version
 before changing the supported range. Core, API and State require Python `>=3.14.8,<3.15`. The hosted
