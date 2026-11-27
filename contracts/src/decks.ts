@@ -365,4 +365,12 @@ export interface DecksApplication {
 			requestId: string;
 		}
 	): Promise<DeckAcknowledgement>;
+	discoverReferenceDecks(
+		actor: AuthUser,
+		input?: import('./reference-decks.ts').DeckDiscoveryQuery
+	): Promise<import('./reference-decks.ts').DeckDiscoveryResponse>;
+	copyReferenceDeck(
+		actor: AuthUser,
+		referenceDeckId: string
+	): Promise<import('./reference-decks.ts').DeckDiscoveryCopyResult>;
 }

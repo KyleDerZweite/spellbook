@@ -37,6 +37,7 @@
 	import DeckEntries from '#lib/components/decks/DeckEntries.svelte';
 	import DeckLibrary from '#lib/components/decks/DeckLibrary.svelte';
 	import DeckDiscovery from '#lib/components/decks/DeckDiscovery.svelte';
+	import SuperbrewDiscovery from '#lib/components/decks/SuperbrewDiscovery.svelte';
 	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -1602,7 +1603,30 @@
 				<DeckStatistics cards={deckCards} documents={savedDecks.deckDocuments} />
 			</aside>
 		</div>
-	{:else}<DeckLibrary page={data.deckLibrary} accountId={data.user?.accountId ?? ''} />{/if}
+	{:else}
+		<nav class="deck-views" aria-label={language.t('deckDiscovery.viewsAria')}>
+			<a
+				href="/mtg/decks"
+				class:active={data.tab !== 'discovery'}
+				aria-current={data.tab !== 'discovery' ? 'page' : undefined}
+				>{language.t('deckDiscovery.tab.library')}</a
+			><a
+				href="/mtg/decks?tab=discovery"
+				class:active={data.tab === 'discovery'}
+				aria-current={data.tab === 'discovery' ? 'page' : undefined}
+				>{language.t('deckDiscovery.tab.discovery')}</a
+			>
+		</nav>
+		{#if data.tab === 'discovery'}
+			<SuperbrewDiscovery
+				discovery={data.discovery}
+				state={data.discoveryState}
+				readError={data.discoveryReadError}
+			/>
+		{:else}
+			<DeckLibrary page={data.deckLibrary} accountId={data.user?.accountId ?? ''} />
+		{/if}
+	{/if}
 </div>
 
 {#if selectedDeck}
@@ -1750,6 +1774,29 @@
 {/if}
 
 <style>
+	.deck-views {
+		display: flex;
+		gap: 1.25rem;
+		margin-bottom: 1rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+	.deck-views a {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--target-min, 2.75rem);
+		padding-inline: 0.125rem;
+		text-decoration: none;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
+		color: var(--color-text-secondary);
+		border-bottom: 2px solid transparent;
+		margin-bottom: -1px;
+	}
+	.deck-views a.active {
+		color: var(--color-text-primary);
+		border-bottom-color: currentColor;
+	}
 	.deck-section {
 		margin: 1.5rem 0;
 	}

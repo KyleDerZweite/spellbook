@@ -105,7 +105,7 @@ def test_factory_matches_all_existing_deck_routes() -> None:
         )
         for method in r.methods or ()
     }
-    assert actual == expected and len(actual) == 19
+    assert actual == expected and len(actual) == 21
 
 
 @pytest.mark.parametrize(

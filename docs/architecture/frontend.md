@@ -28,7 +28,7 @@
   - Inventory and Deck workspaces:
     - Inventory ordering, filters, metadata shortcuts and compact read-only rows.
     - Bounded loading, scale evidence and row measurement scheduling.
-    - Deck builder, overview, artwork Stacks and native task entry.
+    - Deck builder, overview, artwork Stacks, SuperBrew Discovery tab and native task entry.
     - Deck summary responsibilities, Library Editor state and reactivity checks.
     - Portable imports, downloads, native printing, ephemeral playtesting and managed Category
       removal.
@@ -427,10 +427,16 @@ cards in the wide Deck sidebar and below the Deck cards on narrow screens, indep
 Search dialog's availability. D3 owns curve scaling; the shared ProportionChart owns color shares
 and inspection. No additional Catalog, Inventory or ownership requests are introduced for
 statistics. [DeckDiscovery](../../frontend/src/lib/components/decks/DeckDiscovery.svelte) presents
-contextual Catalog results with explicit search/add inputs and callbacks. The route owns filtering,
-grouping, search and ownership requests, pending/error state, mutation retry IDs, Description
-baselines, import previews, Inspector drafts and focus targets. These components do not import
-Backend persistence or InventoryWindow.
+contextual Catalog results with explicit search/add inputs and callbacks. Separately from that
+in-deck card search, the `/mtg/decks` root view provides a top-level `Deck library` / `Discovery`
+tab switcher (`?tab=discovery`) backed by
+[SuperbrewDiscovery](../../frontend/src/lib/components/decks/SuperbrewDiscovery.svelte) and
+[discovery-query.ts](../../frontend/src/lib/decks/discovery-query.ts), querying
+`GET /api/v1/mtg/decks/discovery` with format, budget, ownership, sort and `All inventory` /
+`Free copies only` filters and copying selected Reference decks via the `copyReferenceDeck` action.
+The route owns filtering, grouping, search and ownership requests, pending/error state, mutation
+retry IDs, Description baselines, import previews, Inspector drafts and focus targets. These
+components do not import Backend persistence or InventoryWindow.
 
 WorkspaceHeader supplies title, metadata and actions slots to the Library and editor. Library New
 deck uses the same Primary Button as Inventory Add cards.

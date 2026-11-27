@@ -14,6 +14,7 @@ from spellbook_core.mtg.decks.common import (
     require_deck,
     text,
 )
+from spellbook_core.mtg.decks.discovery import DeckDiscovery
 from spellbook_core.mtg.decks.exchange import DeckImportPreview, preview_deck_import
 from spellbook_core.mtg.decks.library import DeckLibrary
 from spellbook_core.mtg.decks.models import DeckAcknowledgement, Document
@@ -31,7 +32,7 @@ from spellbook_core.validation import (
 )
 
 
-class Decks(DeckReads, DeckLibrary, DeckMutations):
+class Decks(DeckReads, DeckLibrary, DeckDiscovery, DeckMutations):
     def __init__(
         self, pool: ConnectionPool, catalog: Catalog, auth: SessionAuth, valuation: Valuation
     ):

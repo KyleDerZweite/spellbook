@@ -140,6 +140,8 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		| 'importTextDeck'
 		| 'updateDeckCard'
 		| 'removeDeckCard'
+		| 'discoverReferenceDecks'
+		| 'copyReferenceDeck'
 	>;
 	const decks: WebDecks = {
 		getDeck: (_actor, deckId) =>
@@ -217,7 +219,33 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		removeDeckCard: (_actor, entryId, requestId, source) => {
 			webSource(source);
 			return command('decks.removeCard', { entryId, requestId });
-		}
+		},
+		discoverReferenceDecks: (_actor, input = {}) =>
+			client().request(
+				queryPath(`${base}/decks/discovery`, {
+					format: input.format || undefined,
+					source: input.source || undefined,
+					q: input.query || undefined,
+					maxMissingCost:
+						input.maxMissingCost === null || input.maxMissingCost === undefined
+							? undefined
+							: input.maxMissingCost,
+					minOwnership:
+						input.minOwnership === null || input.minOwnership === undefined
+							? undefined
+							: input.minOwnership,
+					inventoryMode: input.inventoryMode,
+					sort: input.sort,
+					limit: input.limit,
+					offset: input.offset
+				}),
+				{ domain: 'decks' }
+			),
+		copyReferenceDeck: (_actor, referenceDeckId) =>
+			client().request(`${base}/decks/discovery/${id(referenceDeckId)}/copy`, {
+				method: 'POST',
+				domain: 'decks'
+			})
 	};
 	const profile: ProfileApplication = {
 		get: () => client().request('/api/v1/account/profile'),

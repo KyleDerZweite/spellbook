@@ -302,4 +302,23 @@ export interface MessageParameters {
 	'missingExport.bulkHintBoth': { lands: string | number; budget: string | number };
 	'missingExport.bulkHintLink': { domain: string | number };
 	'missingExport.selectionLimit': { max: string | number };
+	'deckDiscovery.minOwnershipAtLeast': { percent: string | number };
+	'deckDiscovery.inventoryMode.assembledHint.one': { count: string | number };
+	'deckDiscovery.inventoryMode.assembledHint.other': { count: string | number };
+	'deckDiscovery.resultCount.one': { count: string | number };
+	'deckDiscovery.resultCount.other': { count: string | number };
+	'deckDiscovery.ownedSummary': {
+		owned: string | number;
+		total: string | number;
+		percent: string | number;
+	};
+	'deckDiscovery.missingCount.one': { count: string | number };
+	'deckDiscovery.missingCount.other': { count: string | number };
+	'deckDiscovery.priceCoverageIncomplete': {
+		covered: string | number;
+		total: string | number;
+	};
+	'deckDiscovery.priceCoverageUnknown': { total: string | number };
+	'deckDiscovery.metaShare': { share: string | number };
+	'deckDiscovery.pageStatus': { page: string | number; pages: string | number };
 }

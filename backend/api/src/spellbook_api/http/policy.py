@@ -21,6 +21,7 @@ def cache_policy(path: str) -> str | None:
     if path in {
         "/api/v1/mtg/inventory/value",
         "/api/v1/mtg/inventory/value-history",
+        "/api/v1/mtg/decks/discovery",
     }:
         return "private, no-store"
     if path in {
