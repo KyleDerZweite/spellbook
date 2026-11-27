@@ -12,6 +12,7 @@ from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.inventory import Inventory
 from spellbook_core.mtg.physical_boxes import PhysicalBoxes
 from spellbook_core.mtg.power_search import PowerSearch
+from spellbook_core.mtg.reference_decks import ReferenceDecks
 from spellbook_core.mtg.scan import Scan
 from spellbook_core.mtg.valuation import Valuation
 from spellbook_core.profile import Profile
@@ -28,6 +29,7 @@ from spellbook_api.http.mtg import (
     routes_inventory,
     routes_physical_boxes,
     routes_power_search,
+    routes_reference_decks,
     routes_scan,
     routes_valuation,
 )
@@ -51,6 +53,7 @@ def create_http_application(
     scan: Scan | None = None,
     decks: Decks | None = None,
     physical_boxes: PhysicalBoxes | None = None,
+    reference_decks: ReferenceDecks | None = None,
 ) -> FastAPI:
     resource = files("spellbook_api").joinpath("openapi.json")
     schema_text = (
@@ -85,6 +88,8 @@ def create_http_application(
         http.add_api_route("/api/v1/auth/session", session, methods=["GET"], response_model=None)
         http.add_api_route("/api/v1/account/events", events, methods=["GET"], response_model=None)
         http.include_router(routes_catalog.create_catalog_routes(catalog))
+    if reference_decks is not None:
+        http.include_router(routes_reference_decks.create_reference_deck_routes(reference_decks))
     if power_search is not None:
         if auth is None:
             raise ValueError("Power search routes require Auth")

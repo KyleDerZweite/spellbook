@@ -1,9 +1,10 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-26
 - Source of Truth: code
 - Update Triggers:
+  - global Reference deck persistence and migration 0031
   - managed Category removal
   - versioned MTG routes and module ownership
   - Python source activation and server contraction
@@ -87,9 +88,17 @@ expiry, revocation and idempotent decisions.
 - `inventory_value_days`
 - `inventory_value_holdings`
 - `inventory_value_references`
+- `reference_deck_sources`
+- `reference_decks`
+- `reference_deck_cards`
 
 ## Current Model Notes
 
+- [Migration 0031](../../backend/drizzle/0031_reference_decks.sql) adds global, account-independent
+  `Reference deck` tables (`reference_deck_sources`, `reference_decks`, `reference_deck_cards`).
+  Entries store Canonical card `oracle_id` references without cascading foreign keys to disposable
+  `catalog_generations`. The public read-only API exposes `/api/v1/mtg/reference-decks` and
+  `/api/v1/mtg/reference-decks/{deckId}` through `spellbook_core.mtg.reference_decks`.
 - [Migration 0029](../../backend/drizzle/0029_physical_boxes.sql) adds account-owned Physical Boxes
   with stable IDs, optional sort conditions and account-scoped create replay keys. The table stores
   no Inventory quantities.

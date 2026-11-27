@@ -64,9 +64,20 @@ export type CardType =
 	| 'Battle'
 	| 'Kindred';
 
-/** MTG format identifiers for legality filtering. */
-export type LegalityFormat =
-	'standard' | 'pioneer' | 'modern' | 'legacy' | 'vintage' | 'commander' | 'pauper' | 'brawl';
+/** Central MTG format list shared across Catalog search and Reference decks. */
+export const MTG_FORMATS = [
+	'standard',
+	'pioneer',
+	'modern',
+	'legacy',
+	'vintage',
+	'commander',
+	'pauper',
+	'brawl'
+] as const;
+
+/** MTG format identifiers for legality filtering and Reference decks. */
+export type LegalityFormat = (typeof MTG_FORMATS)[number];
 
 /** Canonical card counts for each filter value. */
 export interface FacetResponse {

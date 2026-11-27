@@ -17,6 +17,7 @@ from spellbook_core.mtg.inventory import create_inventory
 from spellbook_core.mtg.inventory_value import create_inventory_values
 from spellbook_core.mtg.physical_boxes import PhysicalBoxes
 from spellbook_core.mtg.power_search import create_power_search
+from spellbook_core.mtg.reference_decks import create_reference_decks
 from spellbook_core.mtg.scan import create_scan
 from spellbook_core.mtg.valuation import create_valuation
 from spellbook_core.passwords import create_password_verifier
@@ -63,6 +64,7 @@ class ApplicationResources:
         )
         self.profile = create_profile(self.pool, self.auth, configuration.demo_mode)
         self.catalog = create_catalog(self.pool)
+        self.reference_decks = create_reference_decks(self.pool)
         self.power_search = create_power_search(self.pool, self.auth)
         self.valuation = create_valuation(
             self.pool,
@@ -169,6 +171,7 @@ def create_application(configuration: Configuration) -> ApplicationLifetime:
             auth=resources.auth,
             profile=resources.profile,
             catalog=resources.catalog,
+            reference_decks=resources.reference_decks,
             power_search=resources.power_search,
             inventory=resources.inventory,
             physical_boxes=resources.physical_boxes,

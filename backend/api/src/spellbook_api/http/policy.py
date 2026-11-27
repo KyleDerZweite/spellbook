@@ -23,12 +23,18 @@ def cache_policy(path: str) -> str | None:
         "/api/v1/mtg/inventory/value-history",
     }:
         return "private, no-store"
-    if path in {"/api/v1/web", "/api/v1/mtg/dashboard", "/api/v1/mtg/commands"} or path.startswith(
+    if path in {
+        "/api/v1/web",
+        "/api/v1/mtg/dashboard",
+        "/api/v1/mtg/commands",
+        "/api/v1/mtg/reference-decks",
+    } or path.startswith(
         (
             "/api/v1/auth/",
             "/api/v1/account/",
             "/api/v1/web/",
             "/api/v1/mtg/catalog/printings/",
+            "/api/v1/mtg/reference-decks/",
         )
     ):
         return "no-store"

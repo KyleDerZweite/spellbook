@@ -8182,7 +8182,10 @@
 								"additionalProperties": false,
 								"required": ["name", "requestId"],
 								"properties": {
-									"requestId": { "type": "string", "format": "uuid" },
+									"requestId": {
+										"type": "string",
+										"format": "uuid"
+									},
 									"name": {
 										"type": "string",
 										"minLength": 1,
@@ -8428,6 +8431,158 @@
 					},
 					"404": {
 						"description": "Physical Box not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mtg/reference-decks": {
+			"get": {
+				"summary": "List and filter global MTG Reference decks",
+				"description": "Public read-only index of account-independent Reference decks synced by the catalog worker. Responses use Cache-Control: no-store.",
+				"parameters": [
+					{
+						"name": "format",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": [
+								"standard",
+								"pioneer",
+								"modern",
+								"legacy",
+								"vintage",
+								"commander",
+								"pauper",
+								"brawl"
+							]
+						}
+					},
+					{
+						"name": "source",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 64
+						}
+					},
+					{
+						"name": "q",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"maxLength": 200
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 100,
+							"default": 50
+						}
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"minimum": 0,
+							"maximum": 100000,
+							"default": 0
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Filtered list of global Reference decks",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ReferenceDeckListResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid filter or pagination parameter",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mtg/reference-decks/{deckId}": {
+			"get": {
+				"summary": "Read one global MTG Reference deck with normalized Canonical cards",
+				"description": "Public read-only detail for a Reference deck, returning card quantities normalized to Canonical card oracleId and optional active Catalog representative metadata. Responses use Cache-Control: no-store.",
+				"parameters": [
+					{
+						"name": "deckId",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Reference deck detail with normalized Canonical cards",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ReferenceDeckDetail"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid deckId",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Reference deck not found",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -14506,6 +14661,227 @@
 							"text": {
 								"type": "string"
 							}
+						}
+					}
+				}
+			},
+			"ReferenceDeckSourceStatus": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["source", "lastSyncedAt", "deckCount"],
+				"properties": {
+					"source": {
+						"type": "string"
+					},
+					"lastSyncedAt": {
+						"type": ["string", "null"],
+						"format": "date-time"
+					},
+					"deckCount": {
+						"type": "integer",
+						"minimum": 0
+					}
+				}
+			},
+			"ReferenceDeckSummary": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"id",
+					"source",
+					"externalId",
+					"name",
+					"format",
+					"archetype",
+					"sourceUrl",
+					"metaShare",
+					"sourceUpdatedAt",
+					"syncedAt",
+					"cardCount",
+					"uniqueCardCount"
+				],
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"source": {
+						"type": "string"
+					},
+					"externalId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"format": {
+						"type": "string",
+						"enum": [
+							"standard",
+							"pioneer",
+							"modern",
+							"legacy",
+							"vintage",
+							"commander",
+							"pauper",
+							"brawl"
+						]
+					},
+					"archetype": {
+						"type": ["string", "null"]
+					},
+					"sourceUrl": {
+						"type": ["string", "null"]
+					},
+					"metaShare": {
+						"type": ["number", "null"],
+						"minimum": 0,
+						"maximum": 100
+					},
+					"sourceUpdatedAt": {
+						"type": ["string", "null"],
+						"format": "date-time"
+					},
+					"syncedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"cardCount": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"uniqueCardCount": {
+						"type": "integer",
+						"minimum": 0
+					}
+				}
+			},
+			"ReferenceDeckCard": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"oracleId",
+					"name",
+					"quantity",
+					"role",
+					"representativePrintingId",
+					"imageUri",
+					"imageUriSmall",
+					"manaCost",
+					"typeLine",
+					"colors",
+					"colorIdentity"
+				],
+				"properties": {
+					"oracleId": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"name": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 1000
+					},
+					"role": {
+						"type": "string",
+						"enum": ["main", "sideboard", "commander", "companion"]
+					},
+					"representativePrintingId": {
+						"type": ["string", "null"],
+						"format": "uuid"
+					},
+					"imageUri": {
+						"type": ["string", "null"]
+					},
+					"imageUriSmall": {
+						"type": ["string", "null"]
+					},
+					"manaCost": {
+						"type": ["string", "null"]
+					},
+					"typeLine": {
+						"type": ["string", "null"]
+					},
+					"colors": {
+						"type": ["array", "null"],
+						"items": {
+							"type": "string"
+						}
+					},
+					"colorIdentity": {
+						"type": ["array", "null"],
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"ReferenceDeckDetail": {
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/ReferenceDeckSummary"
+					},
+					{
+						"type": "object",
+						"required": ["cards"],
+						"properties": {
+							"cards": {
+								"type": "array",
+								"items": {
+									"$ref": "#/components/schemas/ReferenceDeckCard"
+								}
+							}
+						}
+					}
+				]
+			},
+			"ReferenceDeckListResponse": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["decks", "total", "limit", "offset", "availableFormats", "sources"],
+				"properties": {
+					"decks": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ReferenceDeckSummary"
+						}
+					},
+					"total": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 100
+					},
+					"offset": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"availableFormats": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"enum": [
+								"standard",
+								"pioneer",
+								"modern",
+								"legacy",
+								"vintage",
+								"commander",
+								"pauper",
+								"brawl"
+							]
+						}
+					},
+					"sources": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ReferenceDeckSourceStatus"
 						}
 					}
 				}

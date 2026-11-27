@@ -6,9 +6,10 @@ from dataclasses import dataclass
 from dataclasses import field as dataclass_field
 
 from spellbook_core.errors import ValidationError
+from spellbook_core.mtg.formats import MTG_FORMATS
 from spellbook_core.validation import js_trim, utf16_length
 
-_ALLOWED = {
+_ALLOWED: dict[str, list[str]] = {
     "languages": [
         "de",
         "en",
@@ -45,16 +46,7 @@ _ALLOWED = {
         "Battle",
         "Kindred",
     ],
-    "legalities": [
-        "standard",
-        "pioneer",
-        "modern",
-        "legacy",
-        "vintage",
-        "commander",
-        "pauper",
-        "brawl",
-    ],
+    "legalities": list(MTG_FORMATS),
 }
 
 
