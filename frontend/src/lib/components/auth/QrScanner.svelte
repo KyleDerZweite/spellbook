@@ -105,12 +105,12 @@
 		aria-label={language.t('ui.QR.camera.preview')}
 	></video>
 	<div class="flex flex-wrap gap-3">
-		<button type="button" class="btn btn-primary" onclick={start} disabled={active}
-			>{language.t('ui.Start.camera')}</button
-		>
-		{#if active}<button type="button" class="btn btn-secondary" onclick={stop}
-				>{language.t('ui.Stop.camera')}</button
-			>{/if}
+		<button type="button" class="btn btn-primary" onclick={start} disabled={active}>
+			{language.t('ui.Start.camera')}
+		</button>
+		{#if active}<button type="button" class="btn btn-secondary" onclick={stop}>
+				{language.t('ui.Stop.camera')}
+			</button>{/if}
 	</div>
 	<form
 		class="space-y-3"
@@ -120,9 +120,9 @@
 			onScan(manual);
 		}}
 	>
-		<label for="qr-sign-in-link" class="label"
-			>{language.t('ui.Or.paste.the.sign.in.link.or.code')}</label
-		>
+		<label for="qr-sign-in-link" class="label">
+			{language.t('ui.Or.paste.the.sign.in.link.or.code')}
+		</label>
 		<input
 			id="qr-sign-in-link"
 			class="input w-full"

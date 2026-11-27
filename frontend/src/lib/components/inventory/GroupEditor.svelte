@@ -65,15 +65,15 @@
 				{language.message(mutation.error)}
 			</p>{/if}
 		<div class="group-form-actions">
-			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
-				>{language.t('ui.Cancel')}</button
-			><button type="submit" class="btn btn-primary" disabled={mutation.pending}
-				>{#if !group}<Plus size={16} aria-hidden="true" class="shrink-0" />{/if}{mutation.pending
+			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}>
+				{language.t('ui.Cancel')}
+			</button><button type="submit" class="btn btn-primary" disabled={mutation.pending}>
+				{#if !group}<Plus size={16} aria-hidden="true" class="shrink-0" />{/if}{mutation.pending
 					? 'Saving...'
 					: group
 						? language.t('ui.Save')
-						: language.t('ui.Create.box')}</button
-			>
+						: language.t('ui.Create.box')}
+			</button>
 		</div>
 	</form>
 </FormDialog>

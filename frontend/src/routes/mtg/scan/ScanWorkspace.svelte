@@ -391,8 +391,10 @@
 				selected = null;
 				reviewArtifactId = artifact?.id;
 				confirmed = false;
-			}}>{language.t('ui.Review.current.photo')}</button
-		>{/if}
+			}}
+		>
+			{language.t('ui.Review.current.photo')}
+		</button>{/if}
 	{#if unavailable}<p role="alert">
 			{language.t(
 				'ui.This.saved.scan.is.unavailable.Your.choices.are.kept.but.cannot.be.submitted'
@@ -402,9 +404,9 @@
 		<div class="page-title">
 			<h1>{language.t('ui.Scan')}</h1>
 		</div>
-		<button class="btn btn-primary" disabled={busy} onclick={createSession}
-			><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.scan')}</button
-		>
+		<button class="btn btn-primary" disabled={busy} onclick={createSession}>
+			<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.scan')}
+		</button>
 	</div>
 
 	{#if failure}<p role="alert" class="rounded border border-error p-3 text-text-primary">
@@ -413,9 +415,9 @@
 	<p role="status" class:sr-only={!message}>{message}</p>
 	{#if readFailure}<div role="alert" class="space-y-2">
 			<p>{readFailure}</p>
-			<button class="btn btn-secondary" disabled={busy} onclick={refresh}
-				>{language.t('ui.Retry.saved.scan.details')}</button
-			>
+			<button class="btn btn-secondary" disabled={busy} onclick={refresh}>
+				{language.t('ui.Retry.saved.scan.details')}
+			</button>
 		</div>{/if}
 	{#if !session}
 		<p class="text-text-secondary">
@@ -447,9 +449,9 @@
 				<p id="scan-upload-help" class="text-text-secondary">
 					{language.t('ui.One.card.photo.per.session.Choose.a.JPEG.PNG.or.WebP.image')}
 				</p>
-				<button class="btn btn-primary" disabled={busy || !files?.length}
-					>{busy ? 'Uploading...' : language.t('ui.Upload.photo')}</button
-				>
+				<button class="btn btn-primary" disabled={busy || !files?.length}>
+					{busy ? 'Uploading...' : language.t('ui.Upload.photo')}
+				</button>
 			</form>
 		{/if}
 		{#if artifact}
@@ -478,13 +480,13 @@
 									candidate.catalogCardId
 								)}
 						>
-							<span>{candidate.name}</span><span class="text-xs"
-								>{language.t('sentence.p0.p1.Score.p2.100', {
+							<span>{candidate.name}</span><span class="text-xs">
+								{language.t('sentence.p0.p1.Score.p2.100', {
 									p0: String(candidate.setCode.toUpperCase()),
 									p1: String(candidate.collectorNumber),
 									p2: String(candidate.finalScore)
-								})}</span
-							>
+								})}
+							</span>
 						</button>
 					{/each}
 				</div>
@@ -498,8 +500,9 @@
 							}}
 						>
 							<div class="min-w-0 flex-1">
-								<label for="scan-search" class="mb-1 block">{language.t('ui.Find.card')}</label
-								><input
+								<label for="scan-search" class="mb-1 block">
+									{language.t('ui.Find.card')}
+								</label><input
 									id="scan-search"
 									class="input w-full"
 									bind:value={query}
@@ -511,8 +514,9 @@
 							<button
 								class="btn btn-secondary"
 								disabled={busy || searching || query.trim().length < 2}
-								>{searching ? language.t('ui.Searching') : language.t('ui.Search')}</button
 							>
+								{searching ? language.t('ui.Searching') : language.t('ui.Search')}
+							</button>
 						</form>
 						{#if searched && !hits.length}<p role="status" class="text-text-secondary">
 								{language.t('ui.No.cards.found.Try.another.name')}
@@ -524,11 +528,12 @@
 											class="min-h-11 w-full px-3 py-2 text-left hover:bg-mist md:min-h-10"
 											disabled={busy || searching}
 											onclick={() => chooseCard(card.oracle_id, card.id)}
-											>{card.name}
-											<span class="text-text-secondary"
-												>{card.set_code.toUpperCase()} #{card.collector_number}</span
-											></button
 										>
+											{card.name}
+											<span class="text-text-secondary">
+												{card.set_code.toUpperCase()} #{card.collector_number}
+											</span>
+										</button>
 									</li>{/each}
 							</ul>
 						{/if}
@@ -549,9 +554,9 @@
 										class="w-20 rounded"
 									/>{/if}
 								<p>
-									{selected.name}<span class="mt-1 block text-text-secondary"
-										>{selected.setCode.toUpperCase()} #{selected.collectorNumber}</span
-									>
+									{selected.name}<span class="mt-1 block text-text-secondary">
+										{selected.setCode.toUpperCase()} #{selected.collectorNumber}
+									</span>
 								</p>
 							</div>
 							<fieldset
@@ -564,8 +569,9 @@
 								<legend class="sr-only">{language.t('ui.Printing.and.inventory.details')}</legend>
 								{#if printings.length}
 									<div>
-										<label for="scan-printing" class="mb-1 block">{language.t('ui.Printing')}</label
-										><Select
+										<label for="scan-printing" class="mb-1 block">
+											{language.t('ui.Printing')}
+										</label><Select
 											id="scan-printing"
 											label={language.t('ui.Printing')}
 											value={selected.catalogCardId}
@@ -585,16 +591,18 @@
 											type="button"
 											class="btn btn-secondary"
 											onclick={morePrintings}
-											>{language.t('sentence.Load.more.printings.p0.of.p1', {
+										>
+											{language.t('sentence.Load.more.printings.p0.of.p1', {
 												p0: String(printings.length),
 												p1: String(printingCount)
-											})}</button
-										>{/if}
+											})}
+										</button>{/if}
 								{/if}
 								<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 									<div>
-										<label for="scan-quantity" class="mb-1 block">{language.t('ui.Quantity')}</label
-										><input
+										<label for="scan-quantity" class="mb-1 block">
+											{language.t('ui.Quantity')}
+										</label><input
 											id="scan-quantity"
 											class="input w-full"
 											type="number"
@@ -606,8 +614,9 @@
 										/>
 									</div>
 									<div>
-										<label for="scan-finish" class="mb-1 block">{language.t('ui.Finish')}</label
-										><Select
+										<label for="scan-finish" class="mb-1 block">
+											{language.t('ui.Finish')}
+										</label><Select
 											id="scan-finish"
 											label={language.t('ui.Finish')}
 											bind:value={finish}
@@ -628,9 +637,9 @@
 										/>
 									</div>
 									<div>
-										<label for="scan-condition" class="mb-1 block"
-											>{language.t('ui.Condition')}</label
-										><Select
+										<label for="scan-condition" class="mb-1 block">
+											{language.t('ui.Condition')}
+										</label><Select
 											id="scan-condition"
 											label={language.t('ui.Condition')}
 											bind:value={condition}
@@ -642,14 +651,14 @@
 								</div>
 							</fieldset>
 							{#if editable}
-								<label class="flex items-start gap-2"
-									><input
+								<label class="flex items-start gap-2">
+									<input
 										type="checkbox"
 										bind:checked={confirmed}
 										disabled={busy || searching}
 										class="mt-1 accent-gold"
-									/><span
-										>{language.t(
+									/><span>
+										{language.t(
 											'sentence.I.checked.the.printing.finish.condition.and.quantity.Add.p0.p1.to.inventory',
 											{
 												p0: String(quantity),
@@ -657,24 +666,25 @@
 													quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')
 												)
 											}
-										)}</span
-									></label
-								>
+										)}
+									</span>
+								</label>
 								<button
 									class="btn btn-primary"
 									disabled={busy || searching || !confirmed || !validQuantity}
-									><Plus size={16} aria-hidden="true" class="shrink-0" />{busy
-										? language.t('notice.Adding')
-										: language.t('ui.Confirm.and.add.to.inventory')}</button
 								>
+									<Plus size={16} aria-hidden="true" class="shrink-0" />{busy
+										? language.t('notice.Adding')
+										: language.t('ui.Confirm.and.add.to.inventory')}
+								</button>
 							{/if}
 						</form>
 					{/if}
 					{#if session.status === 'committed'}<p role="status">
 							{language.t('ui.This.scan.has.been.added.to.inventory')}
-							<a href="/mtg/inventory" class="text-gold-bright underline"
-								>{language.t('ui.Open.inventory')}</a
-							>
+							<a href="/mtg/inventory" class="text-gold-bright underline">
+								{language.t('ui.Open.inventory')}
+							</a>
 						</p>{/if}
 				</div>
 			</div>
@@ -710,8 +720,9 @@
 				}}
 			>
 				<div class="min-w-0 flex-1">
-					<label for="scan-session-id" class="mb-1 block">{language.t('ui.Session.ID')}</label
-					><input
+					<label for="scan-session-id" class="mb-1 block">
+						{language.t('ui.Session.ID')}
+					</label><input
 						id="scan-session-id"
 						class="input w-full font-mono"
 						bind:value={sessionInput}
@@ -722,9 +733,9 @@
 				<button class="btn btn-secondary" disabled={busy}>{language.t('ui.Open')}</button>
 			</form>
 		</details>
-		{#if session}<button class="btn btn-secondary" disabled={busy} onclick={refresh}
-				>{language.t('ui.Refresh')}</button
-			>{/if}
+		{#if session}<button class="btn btn-secondary" disabled={busy} onclick={refresh}>
+				{language.t('ui.Refresh')}
+			</button>{/if}
 	</div>
 </div>
 

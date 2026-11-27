@@ -185,9 +185,9 @@
 	</div>
 	{#if loading}<p role="status">{language.t('ui.Loading.reference')}</p>
 	{:else if readError}<p role="alert">{language.message(readError)}</p>
-		<button type="button" class="btn btn-secondary mt-2" onclick={() => retry++}
-			>{language.t('ui.Retry.reference')}</button
-		>
+		<button type="button" class="btn btn-secondary mt-2" onclick={() => retry++}>
+			{language.t('ui.Retry.reference')}
+		</button>
 	{:else if reference}
 		<p class="mt-2">
 			{reference.finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')} · {#if reference.kind === 'Known'}{formatReferenceEUR(
@@ -265,8 +265,9 @@
 						href={link.url}
 						target="_blank"
 						rel="noopener noreferrer"
-						>{link.provider}{link.provenance === 'EnglishFallback' ? ' (English printing)' : ''}</a
-					>{/each}
+					>
+						{link.provider}{link.provenance === 'EnglishFallback' ? ' (English printing)' : ''}
+					</a>{/each}
 			</nav>{/if}
 		<p class="mt-2 text-xs text-text-muted">
 			{language.t('ui.Market.reference.estimate.No.condition.discount.or.guaranteed.sale.amount')}

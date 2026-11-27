@@ -17,12 +17,12 @@
 	}
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Connect.device.Spellbook')}</title><meta
+<svelte:head>
+	<title>{language.t('ui.Connect.device.Spellbook')}</title><meta
 		name="robots"
 		content="noindex"
-	/><meta name="referrer" content="no-referrer" /></svelte:head
->
+	/><meta name="referrer" content="no-referrer" />
+</svelte:head>
 
 <div class="mx-auto w-full max-w-lg px-4 py-8 space-y-6">
 	<header class="space-y-2">

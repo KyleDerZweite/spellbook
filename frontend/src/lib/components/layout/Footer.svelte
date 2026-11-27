@@ -15,8 +15,10 @@
 			href="https://kylehub.dev/impressum"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link">Impressum</a
+			class="footer-link"
 		>
+			Impressum
+		</a>
 	</nav>
 	{#if socialLinks.length > 0}
 		<nav aria-label={language.t('footer.socialLinks')} class="footer-row">
@@ -46,15 +48,17 @@
 	{/if}
 	<p class="footer-row">
 		<span>© {year} Spellbook</span>
-		<a href="https://kylehub.dev" target="_blank" rel="noopener noreferrer" class="footer-link"
-			>{language.t('ui.By.KyleHub')}</a
-		>
+		<a href="https://kylehub.dev" target="_blank" rel="noopener noreferrer" class="footer-link">
+			{language.t('ui.By.KyleHub')}
+		</a>
 		<a
 			href="https://github.com/KyleDerZweite/spellbook/blob/main/LICENSE"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link">AGPLv3</a
+			class="footer-link"
 		>
+			AGPLv3
+		</a>
 	</p>
 	<p class="credits">
 		{language.t('ui.Card.data')}
@@ -62,40 +66,52 @@
 			href="https://scryfall.com/"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link footer-link--inline">Scryfall</a
-		>{language.t('ui.Mana.symbols')}
+			class="footer-link footer-link--inline"
+		>
+			Scryfall
+		</a>{language.t('ui.Mana.symbols')}
 		<a
 			href="https://github.com/andrewgioia/mana"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link footer-link--inline">Mana Font</a
-		>{language.t('ui.Artwork')}
+			class="footer-link footer-link--inline"
+		>
+			Mana Font
+		</a>{language.t('ui.Artwork')}
 		<a
 			href="https://tcgdex.dev/"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link footer-link--inline">TCGdex</a
+			class="footer-link footer-link--inline"
 		>
+			TCGdex
+		</a>
 		,
 		<a
 			href="https://ygoprodeck.com/"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link footer-link--inline">YGOPRODeck</a
+			class="footer-link footer-link--inline"
 		>
+			YGOPRODeck
+		</a>
 		{language.t('ui.and')}
 		<a
 			href="https://www.bandai-tcg-plus.com/"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link footer-link--inline">Bandai</a
-		>{language.t('ui.Frames')}
+			class="footer-link footer-link--inline"
+		>
+			Bandai
+		</a>{language.t('ui.Frames')}
 		<a
 			href="https://mtg-card-maker.herokuapp.com/"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="footer-link footer-link--inline">CardCraft</a
-		>.
+			class="footer-link footer-link--inline"
+		>
+			CardCraft
+		</a>.
 	</p>
 	<p class="credits">
 		{language.t(

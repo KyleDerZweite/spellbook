@@ -41,8 +41,10 @@
 				type="button"
 				class="btn btn-secondary"
 				disabled={resourceState?.refreshing}
-				onclick={() => resource?.invalidate()}>{language.t('ui.Retry.saved.data')}</button
+				onclick={() => resource?.invalidate()}
 			>
+				{language.t('ui.Retry.saved.data')}
+			</button>
 		{/if}
 	</div>
 {/if}

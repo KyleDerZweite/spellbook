@@ -11,12 +11,12 @@
 	let device = $derived(request.kind === 'device');
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Approve.sign.in.Spellbook')}</title><meta
+<svelte:head>
+	<title>{language.t('ui.Approve.sign.in.Spellbook')}</title><meta
 		name="robots"
 		content="noindex"
-	/><meta name="referrer" content="no-referrer" /></svelte:head
->
+	/><meta name="referrer" content="no-referrer" />
+</svelte:head>
 
 <AccountLayout title={language.t('ui.Approve.sign.in')}>
 	<div class="space-y-4">
@@ -64,12 +64,12 @@
 				<div>
 					<dt class="text-text-secondary">{language.t('qr.requestedAt')}</dt>
 					<dd>
-						<time datetime={request.createdAt}
-							>{language.date(new Date(request.createdAt), {
+						<time datetime={request.createdAt}>
+							{language.date(new Date(request.createdAt), {
 								dateStyle: 'medium',
 								timeStyle: 'short'
-							})}</time
-						>
+							})}
+						</time>
 					</dd>
 				</div>
 			</dl>
@@ -101,16 +101,18 @@
 						<span>{language.t('qr.device.confirm')}</span>
 					</label>
 				{/if}
-				<button name="decision" value="approve" class="btn btn-primary" disabled={pending}
-					>{pending ? language.t('ui.Please.wait') : language.t('ui.Approve.sign.in')}</button
-				>
+				<button name="decision" value="approve" class="btn btn-primary" disabled={pending}>
+					{pending ? language.t('ui.Please.wait') : language.t('ui.Approve.sign.in')}
+				</button>
 				<button
 					name="decision"
 					value="deny"
 					class="btn btn-secondary"
 					formnovalidate
-					disabled={pending}>{language.t('ui.Deny')}</button
+					disabled={pending}
 				>
+					{language.t('ui.Deny')}
+				</button>
 			</form>
 		{:else if request.status === 'approved'}
 			<p role="status">

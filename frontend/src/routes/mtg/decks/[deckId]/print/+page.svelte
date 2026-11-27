@@ -12,18 +12,20 @@
 	]);
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Print')} {data.deck.name} | Spellbook</title><meta
+<svelte:head>
+	<title>{language.t('ui.Print')} {data.deck.name} | Spellbook</title><meta
 		name="robots"
 		content="noindex"
-	/></svelte:head
->
+	/>
+</svelte:head>
 <article class="deck-print print-document workspace-container">
 	<div class="print-actions">
 		<Button onclick={() => window.print()}>{language.t('ui.Print.deck')}</Button><Button
 			href={`/mtg/decks?deck=${data.deck.id}`}
-			variant="secondary">{language.t('ui.Back.to.deck')}</Button
+			variant="secondary"
 		>
+			{language.t('ui.Back.to.deck')}
+		</Button>
 		<p>{language.t('ui.Use.your.browser.s.print.command.to.print.or.save.as.PDF')}</p>
 	</div>
 	<header>
@@ -41,18 +43,17 @@
 		<section aria-label={section.label}>
 			<h2>{section.label} · {cards.reduce((sum, card) => sum + card.quantity, 0)}</h2>
 			{#if cards.length}<table>
-					<thead
-						><tr
-							><th scope="col">{language.t('ui.Quantity')}</th><th scope="col"
-								>{language.t('ui.Card')}</th
-							><th scope="col">{language.t('ui.Set')}</th></tr
-						></thead
-					><tbody
-						>{#each cards as card}<tr
-								><td>{card.quantity}</td><td>{card.name}</td><td>{card.setCode.toUpperCase()}</td
-								></tr
-							>{/each}</tbody
-					>
+					<thead>
+						<tr>
+							<th scope="col">{language.t('ui.Quantity')}</th><th scope="col">
+								{language.t('ui.Card')}
+							</th><th scope="col">{language.t('ui.Set')}</th>
+						</tr>
+					</thead><tbody>
+						{#each cards as card}<tr>
+								<td>{card.quantity}</td><td>{card.name}</td><td>{card.setCode.toUpperCase()}</td>
+							</tr>{/each}
+					</tbody>
 				</table>{:else}<p>{language.t('ui.No.cards')}</p>{/if}
 		</section>
 	{/each}

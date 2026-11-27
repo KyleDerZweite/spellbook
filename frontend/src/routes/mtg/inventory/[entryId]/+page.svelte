@@ -52,14 +52,14 @@
 			name="entryId"
 			value={data.detail.entry.id}
 		/>
-		{#each data.groups as group}<label
-				><input
+		{#each data.groups as group}<label>
+				<input
 					type="checkbox"
 					name="groupId"
 					value={group.id}
 					checked={data.detail.memberships.includes(group.id)}
-				/>{group.name}</label
-			>{/each}
+				/>{group.name}
+			</label>{/each}
 		<button class="btn btn-primary">{language.t('ui.Save.boxes')}</button>
 	</form>
 	<h2>{language.t('ui.Remove.this.entry')}</h2>
@@ -78,10 +78,10 @@
 			name="entryId"
 			value={data.detail.entry.id}
 		/><input type="hidden" name="expectedQuantity" value={data.detail.entry.quantity} />
-		<button class="btn btn-secondary"
-			>{language.t('sentence.Remove.all.p0.copies', {
+		<button class="btn btn-secondary">
+			{language.t('sentence.Remove.all.p0.copies', {
 				p0: String(data.detail.entry.quantity)
-			})}</button
-		>
+			})}
+		</button>
 	</form>
 </div>

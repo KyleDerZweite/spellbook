@@ -31,9 +31,9 @@
 </script>
 
 <Dialog.Root bind:open={() => open, changeOpen}>
-	<Dialog.Trigger bind:ref={trigger} class="btn btn-secondary"
-		>{language.t('ui.Edit.avatar')}</Dialog.Trigger
-	>
+	<Dialog.Trigger bind:ref={trigger} class="btn btn-secondary">
+		{language.t('ui.Edit.avatar')}
+	</Dialog.Trigger>
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-50 bg-black/70" />
 		<Dialog.Content
@@ -51,9 +51,9 @@
 			}}
 		>
 			<Dialog.Title class="mb-5 text-xl font-display">{language.t('ui.Edit.avatar')}</Dialog.Title>
-			<Dialog.Description class="sr-only"
-				>{language.t('ui.Choose.a.sprite.for.your.account')}</Dialog.Description
-			>
+			<Dialog.Description class="sr-only">
+				{language.t('ui.Choose.a.sprite.for.your.account')}
+			</Dialog.Description>
 			<form
 				method="POST"
 				action="/settings"
@@ -87,12 +87,12 @@
 				<AvatarPicker bind:selected disabled={pending} />
 				<p role="alert" class="mt-3 text-sm text-error">{message}</p>
 				<div class="mt-5 flex flex-wrap justify-end gap-3">
-					<Dialog.Close type="button" class="btn btn-secondary" disabled={pending}
-						>{language.t('ui.Cancel')}</Dialog.Close
-					>
-					<button class="btn btn-primary" disabled={pending}
-						>{pending ? 'Saving...' : language.t('ui.Save.avatar')}</button
-					>
+					<Dialog.Close type="button" class="btn btn-secondary" disabled={pending}>
+						{language.t('ui.Cancel')}
+					</Dialog.Close>
+					<button class="btn btn-primary" disabled={pending}>
+						{pending ? 'Saving...' : language.t('ui.Save.avatar')}
+					</button>
 				</div>
 			</form>
 		</Dialog.Content>

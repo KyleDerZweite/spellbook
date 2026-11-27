@@ -86,10 +86,10 @@
 			<p class="field-error">{language.message(errors.rarity ?? '')}</p>
 		</div>
 	</div>
-	<label class="legendary-control"
-		><input type="checkbox" name="legendary" bind:checked={card.legendary} {disabled} />
-		{language.t('ui.Legendary.frame')}</label
-	>
+	<label class="legendary-control">
+		<input type="checkbox" name="legendary" bind:checked={card.legendary} {disabled} />
+		{language.t('ui.Legendary.frame')}
+	</label>
 	<ArtworkPicker bind:selected={artworkId} {disabled} />
 	<div>
 		<label class="label" for="card-type">{language.t('ui.Type.line')}</label><input

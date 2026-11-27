@@ -52,8 +52,9 @@
 {:else}<a
 		class="btn btn-primary"
 		href={`/auth/login?returnTo=${encodeURIComponent('/mtg/search?printing=' + card.id)}`}
-		>{language.t('ui.Sign.in.to.add.cards')}</a
-	>{/if}
+	>
+		{language.t('ui.Sign.in.to.add.cards')}
+	</a>{/if}
 
 <style>
 	.secondary-add {

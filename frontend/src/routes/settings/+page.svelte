@@ -73,12 +73,12 @@
 	}
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Profile.Spellbook')}</title><meta
+<svelte:head>
+	<title>{language.t('ui.Profile.Spellbook')}</title><meta
 		name="robots"
 		content="noindex, nofollow"
-	/></svelte:head
->
+	/>
+</svelte:head>
 <div class="profile-page">
 	{#if savedProfile.status !== 'live' && savedProfile.status !== 'idle'}<p
 			role="status"
@@ -157,11 +157,11 @@
 				</p>
 				<p id="email-error" class="field-error">{language.message(emailError ?? '')}</p>
 				<div class="profile-save">
-					<button class="btn btn-primary" disabled={pending}
-						><Save size={16} aria-hidden="true" class="shrink-0" />{pending
+					<button class="btn btn-primary" disabled={pending}>
+						<Save size={16} aria-hidden="true" class="shrink-0" />{pending
 							? language.t('ui.Saving')
-							: language.t('ui.Save.email')}</button
-					>
+							: language.t('ui.Save.email')}
+					</button>
 					<p
 						role="status"
 						class="text-sm text-text-secondary"
@@ -231,9 +231,9 @@
 				totals={saved.totals}
 				definition={saved.card}
 			/>
-			<a href="/settings/profile-card" class="btn btn-secondary"
-				><Pencil size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Edit.Card')}</a
-			>
+			<a href="/settings/profile-card" class="btn btn-secondary">
+				<Pencil size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Edit.Card')}
+			</a>
 			{#if saved.statsError}<p role="status" class="text-sm text-text-secondary">
 					{saved.statsError}
 				</p>{/if}

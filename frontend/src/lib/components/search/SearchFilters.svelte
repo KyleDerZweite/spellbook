@@ -34,8 +34,10 @@
 		{label}
 		{#if selected}<span
 				class="filter-count"
-				aria-label={language.t('filter.selected', { count: selected })}>{selected}</span
-			>{/if}
+				aria-label={language.t('filter.selected', { count: selected })}
+			>
+				{selected}
+			</span>{/if}
 	</span>
 	<ChevronDown size={16} aria-hidden="true" class={['filter-chevron', open && 'expanded']} />
 {/snippet}
@@ -46,8 +48,10 @@
 			type="button"
 			class="filter-clear"
 			disabled={!filters.hasFilters}
-			onclick={() => filters.clear()}>{language.t('ui.Clear.filters')}</button
+			onclick={() => filters.clear()}
 		>
+			{language.t('ui.Clear.filters')}
+		</button>
 	</div>
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger class="filter-trigger">
@@ -107,14 +111,14 @@
 			<fieldset class="color-mode">
 				<legend class="sr-only">{language.t('ui.Match.colors.by')}</legend>
 				{#each [{ value: 'color', label: language.t('ui.Color') }, { value: 'identity', label: language.t('ui.Identity') }] as mode}
-					<label
-						><input
+					<label>
+						<input
 							type="radio"
 							name={`${descriptionId}-color-mode`}
 							checked={filters.colorField === mode.value}
 							onchange={() => filters.setColorField(mode.value as 'color' | 'identity')}
-						/>{mode.label}</label
-					>
+						/>{mode.label}
+					</label>
 				{/each}
 			</fieldset>
 		</Collapsible.Content>
@@ -134,9 +138,9 @@
 					>
 						<i class="ms ms-rarity" style:color={rarity.color} aria-hidden="true"></i>
 						<span class="option-label">{filterOptionLabel(rarity, language.locale)}</span>
-						<span class="facet-count"
-							>{facets?.rarity[rarity.id]?.toLocaleString(language.locale) ?? ''}</span
-						>
+						<span class="facet-count">
+							{facets?.rarity[rarity.id]?.toLocaleString(language.locale) ?? ''}
+						</span>
 						<span class="selection-mark" aria-hidden="true"></span>
 					</button>
 				{/each}
@@ -179,9 +183,9 @@
 						onclick={() => filters.toggleLegality(format.id)}
 						aria-pressed={filters.selectedLegalities.has(format.id)}
 					>
-						<span class="selection-mark" aria-hidden="true"></span><span class="option-label"
-							>{filterOptionLabel(format, language.locale)}</span
-						>
+						<span class="selection-mark" aria-hidden="true"></span><span class="option-label">
+							{filterOptionLabel(format, language.locale)}
+						</span>
 					</button>
 				{/each}
 			</div>
@@ -201,8 +205,10 @@
 					type="button"
 					class="filter-option"
 					aria-pressed={filters.selectedLanguages.size === 0}
-					onclick={() => filters.setLanguages([])}>{language.t('ui.All.languages')}</button
+					onclick={() => filters.setLanguages([])}
 				>
+					{language.t('ui.All.languages')}
+				</button>
 				{#each printingLanguageOptions(language.locale) as printingLanguage}
 					<button
 						type="button"

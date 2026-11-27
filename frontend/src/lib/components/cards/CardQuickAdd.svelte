@@ -264,8 +264,10 @@
 			name="retryOriginal"
 			value={original.requestId}
 			formnovalidate
-			disabled={blocked}>{language.t('ui.Retry.original.Inventory.addition')}</button
-		>{/each}
+			disabled={blocked}
+		>
+			{language.t('ui.Retry.original.Inventory.addition')}
+		</button>{/each}
 	{#if !hasAvailableFinish}<p class="text-sm text-text-secondary">
 			{language.t('ui.Choose.a.printing.with.an.available.Nonfoil.or.Foil.finish')}
 		</p>{/if}

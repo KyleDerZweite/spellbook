@@ -177,19 +177,20 @@
 	{/if}
 	{#if active}
 		<div id={infoId} class="inspection" role="tooltip">
-			<span class="inspection-label"><i style:background={active.color}></i>{active.label}</span
-			><strong>{copies(active.value)}</strong><small>{share(active.value)}</small>
+			<span class="inspection-label">
+				<i style:background={active.color}></i>{active.label}
+			</span><strong>{copies(active.value)}</strong><small>{share(active.value)}</small>
 		</div>
 	{/if}
 	<span class="sr-only">{language.t('sentence.p0.total', { p0: String(copies(total)) })}</span>
-	<noscript
-		><dl class="native-chart-data">
+	<noscript>
+		<dl class="native-chart-data">
 			{#each items as item}<div>
 					<dt>{item.label}</dt>
 					<dd>{copies(item.value)} · {share(item.value)}</dd>
 				</div>{/each}
-		</dl></noscript
-	>
+		</dl>
+	</noscript>
 </div>
 
 <style>

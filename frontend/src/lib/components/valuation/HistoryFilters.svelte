@@ -29,8 +29,10 @@
 		{#each [{ days: 7, label: language.t('ui.7.days') }, { days: 30, label: language.t('ui.30.days') }, { days: 90, label: language.t('ui.90.days') }, { days: 366, label: language.t('ui.1.year') }] as period}<button
 				type="button"
 				aria-pressed={!query.from && (query.days ?? 30) === period.days}
-				onclick={() => onNavigate(params(period.days))}>{period.label}</button
-			>{/each}
+				onclick={() => onNavigate(params(period.days))}
+			>
+				{period.label}
+			</button>{/each}
 	</div>
 	<form
 		onsubmit={(event) => {
@@ -47,13 +49,13 @@
 					name={key}
 					value={query[key]}
 				/>{/if}{/each}
-		<label
-			>{language.t('ui.From')}
-			<input type="date" name="from" required value={query.from ?? history?.window.from} /></label
-		><label
-			>{language.t('ui.To')}
-			<input type="date" name="to" required value={query.to ?? history?.window.to} /></label
-		><button class="btn btn-secondary" type="submit">{language.t('ui.Apply.dates')}</button>
+		<label>
+			{language.t('ui.From')}
+			<input type="date" name="from" required value={query.from ?? history?.window.from} />
+		</label><label>
+			{language.t('ui.To')}
+			<input type="date" name="to" required value={query.to ?? history?.window.to} />
+		</label><button class="btn btn-secondary" type="submit">{language.t('ui.Apply.dates')}</button>
 	</form>
 </div>
 

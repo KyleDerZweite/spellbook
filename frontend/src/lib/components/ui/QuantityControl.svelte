@@ -28,8 +28,10 @@
 <div class="quantity-control">
 	{#each [-1, 1] as delta}{#if delta === 1}<span
 				class="quantity"
-				aria-label={language.t('message.p0.copies', { p0: String(quantity) })}>{quantity}</span
-			>{/if}
+				aria-label={language.t('message.p0.copies', { p0: String(quantity) })}
+			>
+				{quantity}
+			</span>{/if}
 		<form method="POST" {action} use:enhance={submit}>
 			{@render fields(delta)}<Button
 				variant="ghost"
@@ -42,11 +44,12 @@
 					p0: String(delta === -1 ? language.t('ui.Decrease') : language.t('ui.Increase')),
 					p1: String(label)
 				})}
-				>{#if delta === -1}<Minus size={20} aria-hidden="true" />{:else}<Plus
+			>
+				{#if delta === -1}<Minus size={20} aria-hidden="true" />{:else}<Plus
 						size={20}
 						aria-hidden="true"
-					/>{/if}</Button
-			>
+					/>{/if}
+			</Button>
 		</form>{/each}
 </div>
 

@@ -190,15 +190,19 @@
 						class="step-btn"
 						aria-label={language.t('playtest.decreaseTurn')}
 						disabled={game.turn <= 1}
-						onclick={() => dispatch({ type: 'adjustTurn', delta: -1 })}>-</button
+						onclick={() => dispatch({ type: 'adjustTurn', delta: -1 })}
 					>
+						-
+					</button>
 					<strong class="tracker-value">{game.turn}</strong>
 					<button
 						type="button"
 						class="step-btn"
 						aria-label={language.t('playtest.increaseTurn')}
-						onclick={() => dispatch({ type: 'adjustTurn', delta: 1 })}>+</button
+						onclick={() => dispatch({ type: 'adjustTurn', delta: 1 })}
 					>
+						+
+					</button>
 					<Button size="sm" variant="secondary" onclick={() => dispatch({ type: 'nextTurn' })}>
 						{language.t('playtest.nextTurn')}
 					</Button>
@@ -210,27 +214,35 @@
 						type="button"
 						class="step-btn"
 						aria-label={`${language.t('playtest.decreaseLife')} 5`}
-						onclick={() => dispatch({ type: 'adjustLife', delta: -5 })}>-5</button
+						onclick={() => dispatch({ type: 'adjustLife', delta: -5 })}
 					>
+						-5
+					</button>
 					<button
 						type="button"
 						class="step-btn"
 						aria-label={language.t('playtest.decreaseLife')}
-						onclick={() => dispatch({ type: 'adjustLife', delta: -1 })}>-1</button
+						onclick={() => dispatch({ type: 'adjustLife', delta: -1 })}
 					>
+						-1
+					</button>
 					<strong class="tracker-value life-value">{game.life}</strong>
 					<button
 						type="button"
 						class="step-btn"
 						aria-label={language.t('playtest.increaseLife')}
-						onclick={() => dispatch({ type: 'adjustLife', delta: 1 })}>+1</button
+						onclick={() => dispatch({ type: 'adjustLife', delta: 1 })}
 					>
+						+1
+					</button>
 					<button
 						type="button"
 						class="step-btn"
 						aria-label={`${language.t('playtest.increaseLife')} 5`}
-						onclick={() => dispatch({ type: 'adjustLife', delta: 5 })}>+5</button
+						onclick={() => dispatch({ type: 'adjustLife', delta: 5 })}
 					>
+						+5
+					</button>
 				</div>
 
 				{#each playerCounters as item (item.key)}
@@ -243,16 +255,19 @@
 							aria-label={language.t('playtest.counter.decrease', { counter: label })}
 							disabled={game.counters[item.key] <= 0}
 							onclick={() =>
-								dispatch({ type: 'adjustPlayerCounter', counter: item.key, delta: -1 })}>-</button
+								dispatch({ type: 'adjustPlayerCounter', counter: item.key, delta: -1 })}
 						>
+							-
+						</button>
 						<strong class="tracker-value">{game.counters[item.key]}</strong>
 						<button
 							type="button"
 							class="step-btn"
 							aria-label={language.t('playtest.counter.increase', { counter: label })}
 							onclick={() => dispatch({ type: 'adjustPlayerCounter', counter: item.key, delta: 1 })}
-							>+</button
 						>
+							+
+						</button>
 					</div>
 				{/each}
 			</div>
@@ -299,8 +314,10 @@
 				class="phase-step"
 				aria-label={language.t('playtest.prevPhase')}
 				disabled={game.turn === 1 && game.phase === PLAYTEST_PHASES[0]}
-				onclick={() => dispatch({ type: 'stepPhase', direction: 'prev' })}>‹</button
+				onclick={() => dispatch({ type: 'stepPhase', direction: 'prev' })}
 			>
+				‹
+			</button>
 			<div class="phase-pills">
 				{#each PLAYTEST_PHASES as phase (phase)}
 					<button
@@ -317,8 +334,10 @@
 				type="button"
 				class="phase-step"
 				aria-label={language.t('playtest.nextPhase')}
-				onclick={() => dispatch({ type: 'stepPhase', direction: 'next' })}>›</button
+				onclick={() => dispatch({ type: 'stepPhase', direction: 'next' })}
 			>
+				›
+			</button>
 		</nav>
 
 		{#if game.pendingMulliganBottom > 0}
@@ -402,8 +421,10 @@
 															type: 'adjustCardCounter',
 															instanceId: card.instanceId,
 															delta: -1
-														})}>-</button
+														})}
 												>
+													-
+												</button>
 												<span class="mini-count">{card.counters}</span>
 												<button
 													type="button"
@@ -416,8 +437,10 @@
 															type: 'adjustCardCounter',
 															instanceId: card.instanceId,
 															delta: 1
-														})}>+</button
+														})}
 												>
+													+
+												</button>
 											</div>
 											<select
 												class="zone-select"
@@ -426,17 +449,17 @@
 											>
 												<option value="">{language.t('playtest.action.moveTo')}</option>
 												<option value="hand">{language.t('playtest.action.toHand')}</option>
-												<option value="graveyard"
-													>{language.t('playtest.action.toGraveyard')}</option
-												>
+												<option value="graveyard">
+													{language.t('playtest.action.toGraveyard')}
+												</option>
 												<option value="exile">{language.t('playtest.action.toExile')}</option>
 												<option value="command">{language.t('playtest.action.toCommand')}</option>
-												<option value="library:top"
-													>{language.t('playtest.action.toLibraryTop')}</option
-												>
-												<option value="library:bottom"
-													>{language.t('playtest.action.toLibraryBottom')}</option
-												>
+												<option value="library:top">
+													{language.t('playtest.action.toLibraryTop')}
+												</option>
+												<option value="library:bottom">
+													{language.t('playtest.action.toLibraryBottom')}
+												</option>
 											</select>
 										</div>
 									</div>
@@ -487,8 +510,10 @@
 															type: 'adjustCardCounter',
 															instanceId: card.instanceId,
 															delta: -1
-														})}>-</button
+														})}
 												>
+													-
+												</button>
 												<span class="mini-count">{card.counters}</span>
 												<button
 													type="button"
@@ -501,8 +526,10 @@
 															type: 'adjustCardCounter',
 															instanceId: card.instanceId,
 															delta: 1
-														})}>+</button
+														})}
 												>
+													+
+												</button>
 											</div>
 											<select
 												class="zone-select"
@@ -511,17 +538,17 @@
 											>
 												<option value="">{language.t('playtest.action.moveTo')}</option>
 												<option value="hand">{language.t('playtest.action.toHand')}</option>
-												<option value="graveyard"
-													>{language.t('playtest.action.toGraveyard')}</option
-												>
+												<option value="graveyard">
+													{language.t('playtest.action.toGraveyard')}
+												</option>
 												<option value="exile">{language.t('playtest.action.toExile')}</option>
 												<option value="command">{language.t('playtest.action.toCommand')}</option>
-												<option value="library:top"
-													>{language.t('playtest.action.toLibraryTop')}</option
-												>
-												<option value="library:bottom"
-													>{language.t('playtest.action.toLibraryBottom')}</option
-												>
+												<option value="library:top">
+													{language.t('playtest.action.toLibraryTop')}
+												</option>
+												<option value="library:bottom">
+													{language.t('playtest.action.toLibraryBottom')}
+												</option>
 											</select>
 										</div>
 									</div>
@@ -603,17 +630,18 @@
 										onchange={(e) => handleMoveSelect(card, 'command', e)}
 									>
 										<option value="">{language.t('playtest.action.moveTo')}</option>
-										<option value="battlefield"
-											>{language.t('playtest.action.toBattlefield')}</option
-										>
+										<option value="battlefield">
+											{language.t('playtest.action.toBattlefield')}
+										</option>
 										<option value="hand">{language.t('playtest.action.toHand')}</option>
 										<option value="graveyard">{language.t('playtest.action.toGraveyard')}</option>
 										<option value="exile">{language.t('playtest.action.toExile')}</option>
-										<option value="library:top">{language.t('playtest.action.toLibraryTop')}</option
-										>
-										<option value="library:bottom"
-											>{language.t('playtest.action.toLibraryBottom')}</option
-										>
+										<option value="library:top">
+											{language.t('playtest.action.toLibraryTop')}
+										</option>
+										<option value="library:bottom">
+											{language.t('playtest.action.toLibraryBottom')}
+										</option>
 									</select>
 								</div>
 							{/each}
@@ -726,8 +754,10 @@
 												instanceId: card.instanceId,
 												from: inspectedZone!,
 												to: 'hand'
-											})}>{language.t('playtest.action.toHand')}</Button
+											})}
 									>
+										{language.t('playtest.action.toHand')}
+									</Button>
 									<Button
 										size="sm"
 										variant="secondary"
@@ -737,8 +767,10 @@
 												instanceId: card.instanceId,
 												from: inspectedZone!,
 												to: 'battlefield'
-											})}>{language.t('playtest.action.toBattlefield')}</Button
+											})}
 									>
+										{language.t('playtest.action.toBattlefield')}
+									</Button>
 									<select
 										class="zone-select"
 										aria-label={language.t('playtest.card.moveAria', { name: card.name })}
@@ -752,11 +784,12 @@
 											<option value="exile">{language.t('playtest.action.toExile')}</option>
 										{/if}
 										<option value="command">{language.t('playtest.action.toCommand')}</option>
-										<option value="library:top">{language.t('playtest.action.toLibraryTop')}</option
-										>
-										<option value="library:bottom"
-											>{language.t('playtest.action.toLibraryBottom')}</option
-										>
+										<option value="library:top">
+											{language.t('playtest.action.toLibraryTop')}
+										</option>
+										<option value="library:bottom">
+											{language.t('playtest.action.toLibraryBottom')}
+										</option>
 									</select>
 								</div>
 							</li>
@@ -824,9 +857,9 @@
 									<option value="exile">{language.t('playtest.action.toExile')}</option>
 									<option value="command">{language.t('playtest.action.toCommand')}</option>
 									<option value="library:top">{language.t('playtest.action.toLibraryTop')}</option>
-									<option value="library:bottom"
-										>{language.t('playtest.action.toLibraryBottom')}</option
-									>
+									<option value="library:bottom">
+										{language.t('playtest.action.toLibraryBottom')}
+									</option>
 								</select>
 							</div>
 						</div>

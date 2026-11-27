@@ -16,5 +16,6 @@
 	class:nav-link--active={page.url.pathname === '/auth/login'}
 	aria-current={page.url.pathname === '/auth/login' ? 'page' : undefined}
 	href={returnTo === null ? '/auth/login' : `/auth/login?returnTo=${encodeURIComponent(returnTo)}`}
-	>{label}</a
 >
+	{label}
+</a>

@@ -56,18 +56,18 @@
 		{/if}
 		{#if compact && estimate.totalQuantity > 0}
 			<div class="coverage-meter">
-				<span>{language.t('ui.Price.coverage')}</span><strong
-					>{percent.format(estimate.coveredQuantity / estimate.totalQuantity)}</strong
-				><progress
+				<span>{language.t('ui.Price.coverage')}</span><strong>
+					{percent.format(estimate.coveredQuantity / estimate.totalQuantity)}
+				</strong><progress
 					max={estimate.totalQuantity}
 					value={estimate.coveredQuantity}
 					aria-label={language.t('ui.Copies.with.known.price.references')}
-				></progress><small
-					>{language.t('notice.covered.total.copies', {
+				></progress><small>
+					{language.t('notice.covered.total.copies', {
 						covered: language.number(estimate.coveredQuantity),
 						total: language.number(estimate.totalQuantity)
-					})}</small
-				>
+					})}
+				</small>
 			</div>
 		{/if}
 		{#if compact || inline}<details class="coverage-details">

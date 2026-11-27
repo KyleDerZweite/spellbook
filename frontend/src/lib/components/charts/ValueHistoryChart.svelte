@@ -125,12 +125,12 @@
 						? 'var(--color-chart-primary)'
 						: 'var(--color-card)'}
 				>
-					<title
-						>{observation.point.day}: {formatValueEUR(
+					<title>
+						{observation.point.day}: {formatValueEUR(
 							observation.point.estimate.coveredValue,
 							language.locale
-						)}</title
-					>
+						)}
+					</title>
 				</circle>
 			{/each}
 		{/each}
@@ -148,9 +148,9 @@
 			{/if}
 		{/if}
 		<text x="62" y={height - 6}>{dateLabel.format(new Date(`${from}T00:00:00Z`))}</text>
-		<text x={right} y={height - 6} text-anchor="end"
-			>{dateLabel.format(new Date(`${to}T00:00:00Z`))}</text
-		>
+		<text x={right} y={height - 6} text-anchor="end">
+			{dateLabel.format(new Date(`${to}T00:00:00Z`))}
+		</text>
 	</svg>
 	{#if relative}<p class="history-inspect">
 			{language.t(
@@ -158,8 +158,8 @@
 			)}
 		</p>{/if}
 	{#if current}
-		<label class="history-inspect"
-			>{language.t('ui.Choose.day')}
+		<label class="history-inspect">
+			{language.t('ui.Choose.day')}
 			<input
 				type="range"
 				min="0"
@@ -171,15 +171,15 @@
 			/>
 		</label>
 		<p class="history-readout" aria-live="polite">
-			<time datetime={current.observedAt}>{current.day}</time><strong
-				>{formatValueEUR(current.estimate.coveredValue, language.locale)}</strong
-			><span
-				>{language.t('sentence.p0.p1.copies.covered.p2', {
+			<time datetime={current.observedAt}>{current.day}</time><strong>
+				{formatValueEUR(current.estimate.coveredValue, language.locale)}
+			</strong><span>
+				{language.t('sentence.p0.p1.copies.covered.p2', {
 					p0: String(current.estimate.coveredQuantity),
 					p1: String(current.estimate.totalQuantity),
 					p2: String(current.estimate.complete ? 'complete' : 'partial')
-				})}</span
-			>
+				})}
+			</span>
 		</p>
 	{/if}
 </div>

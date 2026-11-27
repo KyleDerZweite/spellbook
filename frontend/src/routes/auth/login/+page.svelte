@@ -9,12 +9,9 @@
 	const demoLink = $derived(`/auth/login/demo?returnTo=${encodeURIComponent(data.returnTo)}`);
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Sign.in.Spellbook')}</title><meta
-		name="robots"
-		content="noindex"
-	/></svelte:head
->
+<svelte:head>
+	<title>{language.t('ui.Sign.in.Spellbook')}</title><meta name="robots" content="noindex" />
+</svelte:head>
 
 <AccountLayout title={language.t('ui.Sign.in')}>
 	{#snippet aside()}<QrSignIn returnTo={data.returnTo} />{/snippet}
@@ -27,9 +24,9 @@
 	<LoginForm {form} passwordMinlength={data.demoMode ? 4 : 12} />
 	{#if data.registrationOpen}<p class="auth-switch">
 			{language.t('ui.New.to.Spellbook')}
-			<a href={`/auth/register?returnTo=${encodeURIComponent(data.returnTo)}`}
-				>{language.t('ui.Sign.up')}</a
-			>
+			<a href={`/auth/register?returnTo=${encodeURIComponent(data.returnTo)}`}>
+				{language.t('ui.Sign.up')}
+			</a>
 		</p>{:else if !data.demoMode}<p class="auth-switch">
 			{language.t('ui.Registration.disabled.Ask.operator')}
 		</p>{/if}

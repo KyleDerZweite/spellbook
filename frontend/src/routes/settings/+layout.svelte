@@ -21,9 +21,9 @@
 		<nav class="settings-nav" aria-label={language.t('ui.Settings')}>
 			{#each links as link}
 				{@const Icon = link.icon}
-				<a href={link.href} aria-current={page.url.pathname === link.href ? 'page' : undefined}
-					><Icon size={16} aria-hidden="true" class="shrink-0" />{link.label}</a
-				>
+				<a href={link.href} aria-current={page.url.pathname === link.href ? 'page' : undefined}>
+					<Icon size={16} aria-hidden="true" class="shrink-0" />{link.label}
+				</a>
 			{/each}
 		</nav>
 		<div class="settings-content">{@render children()}</div>

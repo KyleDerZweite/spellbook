@@ -69,30 +69,31 @@
 				{language.t('ui.Create.a.box.in.the.Boxes.view.first')}
 			</p>{:else}
 			<div class="membership-list">
-				{#each groups as group (group.id)}<label
-						><input
+				{#each groups as group (group.id)}<label>
+						<input
 							type="checkbox"
 							name="groupId"
 							value={group.id}
 							checked={selected.has(group.id)}
 							disabled={mutation.pending}
 							onchange={() => toggle(group.id)}
-						/><span>{group.name}</span></label
-					>{/each}
+						/><span>{group.name}</span>
+					</label>{/each}
 			</div>
 		{/if}
 		{#if mutation.error}<p role="alert" class="mt-3 text-sm text-error">
 				{language.message(mutation.error)}
 			</p>{/if}
 		<div class="group-form-actions">
-			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
-				>{language.t('ui.Cancel')}</button
-			><button
+			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}>
+				{language.t('ui.Cancel')}
+			</button><button
 				type="submit"
 				class="btn btn-primary"
 				disabled={mutation.pending || groups.length === 0}
-				>{mutation.pending ? 'Saving...' : language.t('ui.Save.boxes')}</button
 			>
+				{mutation.pending ? 'Saving...' : language.t('ui.Save.boxes')}
+			</button>
 		</div>
 	</form>
 </FormDialog>

@@ -784,13 +784,13 @@
 	{#if saveError}<p class="notice" role="alert">{language.message(saveError)}</p>{/if}
 {/snippet}
 
-<svelte:head
-	><title
+<svelte:head>
+	<title
 		>{selectedDeck
 			? language.t('message.p0.Decks', { p0: String(selectedDeck.name) })
 			: language.t('ui.Decks')} | Spellbook</title
-	></svelte:head
->
+	>
+</svelte:head>
 
 <div class="builder workspace-container">
 	<WorkspaceHeader title={selectedDeck?.name ?? language.t('ui.Decks')}>
@@ -801,11 +801,9 @@
 		{#snippet actions()}
 			<div class="deck-picker">
 				{#if selectedDeck}
-					<Button href={`/mtg/decks/${selectedDeck.id}/playtest`} variant="secondary"
-						><Play size={16} aria-hidden="true" class="shrink-0" />{language.t(
-							'playtest.title'
-						)}</Button
-					>
+					<Button href={`/mtg/decks/${selectedDeck.id}/playtest`} variant="secondary">
+						<Play size={16} aria-hidden="true" class="shrink-0" />{language.t('playtest.title')}
+					</Button>
 					<ActionMenu
 						label={language.t('ui.Deck.actions')}
 						iconOnly
@@ -893,15 +891,15 @@
 						{#snippet trigger()}<Ellipsis size={20} aria-hidden="true" />{/snippet}
 					</ActionMenu>
 				{/if}
-				{#if !selectedDeck}<Button href="/mtg/decks/import" variant="secondary"
-						><Upload size={16} aria-hidden="true" class="shrink-0" />{language.t(
-							'ui.Import.deck'
-						)}</Button
-					><Button href={flowHref('create')} onclick={openCreate} disabled={busy || deletedTarget}
-						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
-							'ui.New.deck'
-						)}</Button
-					>{/if}
+				{#if !selectedDeck}<Button href="/mtg/decks/import" variant="secondary">
+						<Upload size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Import.deck')}
+					</Button><Button
+						href={flowHref('create')}
+						onclick={openCreate}
+						disabled={busy || deletedTarget}
+					>
+						<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.deck')}
+					</Button>{/if}
 			</div>
 		{/snippet}
 	</WorkspaceHeader>
@@ -957,11 +955,9 @@
 			{#if !saveError && form?.message}<p role="status" class="muted">
 					{language.message(form.message)}
 				</p>{/if}
-			<Button type="submit" variant="default" disabled={busy || deletedTarget}
-				><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
-					'ui.Create.deck'
-				)}</Button
-			>
+			<Button type="submit" variant="default" disabled={busy || deletedTarget}>
+				<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Create.deck')}
+			</Button>
 		</form>
 	</DeckDialog>
 	{@render retryError()}
@@ -1009,12 +1005,16 @@
 				>
 					{#if !formats.some((format) => format.value === detailsDraft.format)}<option
 							selected
-							value={detailsDraft.format}>{detailsDraft.format}</option
-						>{/if}
+							value={detailsDraft.format}
+						>
+							{detailsDraft.format}
+						</option>{/if}
 					{#each formats as format}<option
 							value={format.value}
-							selected={format.value === detailsDraft.format}>{format.label}</option
-						>{/each}
+							selected={format.value === detailsDraft.format}
+						>
+							{format.label}
+						</option>{/each}
 				</select>
 				<label for="recovery-description">{language.t('ui.Description')}</label><textarea
 					id="recovery-description"
@@ -1024,17 +1024,18 @@
 					maxlength="4000">{detailsDraft.description}</textarea
 				>
 				{@render retryError()}
-				<Button type="submit" variant="default" disabled={busy || deletedTarget}
-					>{language.t('ui.Save.draft')}</Button
-				>
+				<Button type="submit" variant="default" disabled={busy || deletedTarget}>
+					{language.t('ui.Save.draft')}
+				</Button>
 				{#if form?.conflict}<Button
 						type="submit"
 						variant="secondary"
 						name="rebaseDescription"
 						value={form.conflict.descriptionRevision}
 						disabled={busy || deletedTarget}
-						>{language.t('ui.Use.latest.revision.and.save.my.draft')}</Button
-					>{/if}
+					>
+						{language.t('ui.Use.latest.revision.and.save.my.draft')}
+					</Button>{/if}
 			</form>
 		</section>
 	{/if}
@@ -1077,8 +1078,10 @@
 								value={formatBase}
 							/><input type="hidden" name="descriptionBase" value={descriptionBase} /><label
 								class="label"
-								for="edit-name">{language.t('ui.Deck.name')}</label
-							><input
+								for="edit-name"
+							>
+								{language.t('ui.Deck.name')}
+							</label><input
 								id="edit-name"
 								class="input"
 								name="name"
@@ -1094,8 +1097,9 @@
 								bind:value={formatDraft}
 								options={formats}
 							/>
-							<label class="label" for="edit-description">{language.t('ui.Description')}</label
-							><textarea
+							<label class="label" for="edit-description">
+								{language.t('ui.Description')}
+							</label><textarea
 								id="edit-description"
 								class="input"
 								name="description"
@@ -1111,15 +1115,17 @@
 										variant="secondary"
 										onclick={() => {
 											descriptionBaseRevision = form!.conflict!.descriptionRevision;
-										}}>{language.t('ui.Use.latest.revision.and.keep.my.draft')}</Button
+										}}
 									>
+										{language.t('ui.Use.latest.revision.and.keep.my.draft')}
+									</Button>
 								</div>{/if}
 							{@render retryError()}
 							{#if !saveError && form?.message}<p role="status" class="muted">
 									{language.message(form.message)}
-								</p>{/if}<Button type="submit" variant="default" disabled={busy || deletedTarget}
-								>{language.t('ui.Save.details')}</Button
-							>
+								</p>{/if}<Button type="submit" variant="default" disabled={busy || deletedTarget}>
+								{language.t('ui.Save.details')}
+							</Button>
 						</form>{/key}
 				</DeckDialog>
 				<DeckDialog
@@ -1144,8 +1150,10 @@
 						<input type="hidden" name="requestId" value={importRequestId || data.requestId} />
 						<input type="hidden" name="deckId" value={selectedDeck.id} /><label
 							class="label"
-							for="import-text">{language.t('ui.Decklist')}</label
-						><textarea
+							for="import-text"
+						>
+							{language.t('ui.Decklist')}
+						</label><textarea
 							id="import-text"
 							name="text"
 							class="input decklist-input"
@@ -1167,9 +1175,9 @@
 							)}
 						</p>
 						<a href="/mtg/decks/import">{language.t('ui.Import.as.a.complete.new.Deck')}</a>
-						<Button type="submit" variant="secondary" disabled={busy || deletedTarget}
-							>{busy ? 'Working...' : language.t('ui.Preview.import')}</Button
-						>
+						<Button type="submit" variant="secondary" disabled={busy || deletedTarget}>
+							{busy ? 'Working...' : language.t('ui.Preview.import')}
+						</Button>
 					</form>
 					{@render retryError()}
 					{#if !saveError && form?.message}<p role="status" class="notice">
@@ -1206,8 +1214,7 @@
 							<details>
 								<summary>{language.t('ui.Matched.cards')}</summary>
 								<ul>
-									{#each preview.resolved.filter(({ line }) => line.role !== 'maybeboard') as item}<li
-										>
+									{#each preview.resolved.filter(({ line }) => line.role !== 'maybeboard') as item}<li>
 											{item.line.quantity}
 											{item.card.name} · {language.t(`role.${item.line.role}`)}
 										</li>{/each}
@@ -1234,13 +1241,14 @@
 										!importableCount ||
 										preview.unresolved.length > 0 ||
 										preview.ambiguous.length > 0}
-									><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+								>
+									<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
 										`deck.import.add.${language.plural(importableCount)}`,
 										{
 											count: language.number(importableCount)
 										}
-									)}</Button
-								>
+									)}
+								</Button>
 							</form>
 						</div>
 					{/if}
@@ -1255,15 +1263,17 @@
 							{selectedDeck.name}
 							{language.t('ui.and.its.card.list.Your.inventory.stays.unchanged')}
 						</p>
-						<Button href={flowHref()} variant="secondary" disabled={busy || deletedTarget}
-							>{language.t('ui.Cancel')}</Button
-						>
+						<Button href={flowHref()} variant="secondary" disabled={busy || deletedTarget}>
+							{language.t('ui.Cancel')}
+						</Button>
 						<form method="POST" action={action('deleteDeck')} use:enhance={save}>
 							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
 								type="submit"
 								variant="destructive"
-								disabled={busy || deletedTarget}>{language.t('ui.Delete.this.deck')}</Button
+								disabled={busy || deletedTarget}
 							>
+								{language.t('ui.Delete.this.deck')}
+							</Button>
 						</form>
 					</section>{:else}<ConfirmationDialog
 						open={deleteOpen}
@@ -1279,14 +1289,17 @@
 							event.preventDefault();
 							actionsTrigger?.focus({ preventScroll: true });
 						}}
-						><form method="POST" action={action('deleteDeck')} use:enhance={save}>
+					>
+						<form method="POST" action={action('deleteDeck')} use:enhance={save}>
 							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
 								type="submit"
 								variant="destructive"
-								disabled={busy || deletedTarget}>{language.t('ui.Delete.this.deck')}</Button
+								disabled={busy || deletedTarget}
 							>
-						</form></ConfirmationDialog
-					>{/if}
+								{language.t('ui.Delete.this.deck')}
+							</Button>
+						</form>
+					</ConfirmationDialog>{/if}
 				{#if pendingExport}
 					<DeckDialog
 						title={selectedDeck.format
@@ -1312,8 +1325,10 @@
 							href={pendingExport.href}
 							download
 							variant="default"
-							onclick={() => (pendingExport = null)}>{language.t('deck.export.continue')}</Button
+							onclick={() => (pendingExport = null)}
 						>
+							{language.t('deck.export.continue')}
+						</Button>
 					</DeckDialog>
 				{/if}
 				<DeckDialog
@@ -1374,49 +1389,52 @@
 				</DeckDialog>
 			</div>
 		</section>
-		<noscript
-			><nav aria-label={language.t('ui.Deck.tasks')}>
-				<a class="inline-flex items-center gap-1" href={flowHref('create')}
-					><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.deck')}</a
-				>
+		<noscript>
+			<nav aria-label={language.t('ui.Deck.tasks')}>
+				<a class="inline-flex items-center gap-1" href={flowHref('create')}>
+					<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.deck')}
+				</a>
 				· <a href={flowHref('edit')}>{language.t('ui.Edit.details')}</a> ·
 				<a href={flowHref('import')}>{language.t('ui.Import.decklist')}</a>
 				·
-				<a href={`/mtg/decks/${selectedDeck.id}/export?format=json`}
-					>{language.t('ui.Export.Spellbook.JSON')}</a
-				>
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=json`}>
+					{language.t('ui.Export.Spellbook.JSON')}
+				</a>
 				·
-				<a href={`/mtg/decks/${selectedDeck.id}/export?format=csv`}>{language.t('ui.Export.CSV')}</a
-				>
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=csv`}>
+					{language.t('ui.Export.CSV')}
+				</a>
 				· <a href={`/mtg/decks/${selectedDeck.id}/export`}>{language.t('ui.Export.Arena')}</a> ·
-				<a href={`/mtg/decks/${selectedDeck.id}/export?format=dck`}>{language.t('ui.Export.dck')}</a
-				>
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=dck`}>
+					{language.t('ui.Export.dck')}
+				</a>
 				·
-				<a href={`/mtg/decks/${selectedDeck.id}/export?format=dec`}>{language.t('ui.Export.dec')}</a
-				>
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=dec`}>
+					{language.t('ui.Export.dec')}
+				</a>
 				·
-				<a href={`/mtg/decks/${selectedDeck.id}/export?format=simple`}
-					>{language.t('ui.Export.simple.text')}</a
-				>
+				<a href={`/mtg/decks/${selectedDeck.id}/export?format=simple`}>
+					{language.t('ui.Export.simple.text')}
+				</a>
 				·
-				<a href={DEFAULT_PHASE_RS_URL} target="_blank" rel="noopener noreferrer"
-					>{language.t('deck.phaseRs.action')}</a
-				>
+				<a href={DEFAULT_PHASE_RS_URL} target="_blank" rel="noopener noreferrer">
+					{language.t('deck.phaseRs.action')}
+				</a>
 				· <a href={`/mtg/decks/${selectedDeck.id}/playtest`}>{language.t('playtest.title')}</a>
 				· <a href={`/mtg/decks/${selectedDeck.id}/print`}>{language.t('ui.Print.deck')}</a> ·
-				<a href={`/mtg/decks/${selectedDeck.id}/print/cards`}
-					>{language.t('ui.Print.card.sheet.A4')}</a
-				>
+				<a href={`/mtg/decks/${selectedDeck.id}/print/cards`}>
+					{language.t('ui.Print.card.sheet.A4')}
+				</a>
 				·
 				<a href={flowHref('delete')}>{language.t('ui.Delete.deck')}</a>
 				· <a href={flowHref('search')}>{language.t('ui.Find.cards')}</a>
-			</nav></noscript
-		>
+			</nav>
+		</noscript>
 		<div class="deck-summary">
-			<span class="deck-size"
-				><i class="ms ms-deck" aria-hidden="true"></i>{total.toLocaleString(language.locale)}
-				{language.t('ui.cards')}</span
-			>
+			<span class="deck-size">
+				<i class="ms ms-deck" aria-hidden="true"></i>{total.toLocaleString(language.locale)}
+				{language.t('ui.cards')}
+			</span>
 			<form
 				method="POST"
 				action={action('toggleAssembled')}
@@ -1440,8 +1458,11 @@
 			<Button
 				variant={missingOnly ? 'secondary' : 'ghost'}
 				aria-pressed={missingOnly}
-				onclick={() => (missingOnly = !missingOnly)}>{missing} {language.t('ui.missing')}</Button
+				onclick={() => (missingOnly = !missingOnly)}
 			>
+				{missing}
+				{language.t('ui.missing')}
+			</Button>
 			{#if missing > 0}
 				<Button
 					variant="secondary"
@@ -1449,8 +1470,10 @@
 						missingExportTrigger =
 							event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
 						missingExportOpen = true;
-					}}>{language.t('missingExport.actionShort')}</Button
+					}}
 				>
+					{language.t('missingExport.actionShort')}
+				</Button>
 			{/if}
 			<a
 				href="#format-checks"
@@ -1459,7 +1482,8 @@
 						!savedDecks.legalityError &&
 						'legality-badge legality-warning'
 				]}
-				>{savedDecks.legalityError
+			>
+				{savedDecks.legalityError
 					? language.t('ui.Format.checks.unavailable')
 					: savedDecks.warnings.length
 						? selectedDeck.format
@@ -1468,8 +1492,8 @@
 									count: language.number(savedDecks.warnings.length)
 								})
 							: language.t('message.p0.format.warnings', { p0: String(savedDecks.warnings.length) })
-						: language.t('ui.No.warnings.from.the.available.checks')}</a
-			>
+						: language.t('ui.No.warnings.from.the.available.checks')}
+			</a>
 			<span class="save-status" role="status">{saveStatus}</span>
 			<Button
 				class="mobile-search"
@@ -1480,8 +1504,9 @@
 					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
 					setSearchOpen(true);
 				}}
-				><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add.cards')}</Button
 			>
+				<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add.cards')}
+			</Button>
 		</div>
 		{#if removed && removed.deckId === selectedDeck.id}
 			<form method="POST" action={action('addCard')} use:enhance={save} class="undo-row">
@@ -1495,9 +1520,9 @@
 					name="undo"
 					value="1"
 				/>
-				<Button type="submit" variant="ghost" disabled={busy || deletedTarget}
-					>{language.t('ui.Undo')}</Button
-				>
+				<Button type="submit" variant="ghost" disabled={busy || deletedTarget}>
+					{language.t('ui.Undo')}
+				</Button>
 			</form>
 		{/if}
 		<div class="workspace">
@@ -1508,17 +1533,17 @@
 							variant={displayedView === 'list' ? 'secondary' : 'ghost'}
 							aria-pressed={displayedView === 'list'}
 							onclick={() => (view = 'list')}
-							><List size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.List')}</Button
 						>
+							<List size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.List')}
+						</Button>
 						<Button
 							variant={displayedView === 'stacks' ? 'secondary' : 'ghost'}
 							aria-pressed={displayedView === 'stacks'}
 							disabled={!mounted}
 							onclick={() => (view = 'stacks')}
-							><Layers size={16} aria-hidden="true" class="shrink-0" />{language.t(
-								'ui.Stacks'
-							)}</Button
 						>
+							<Layers size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Stacks')}
+						</Button>
 					</div>
 					<input
 						class="input"
@@ -1572,14 +1597,14 @@
 					class="legality"
 					open={savedDecks.warnings.length > 0 || !!savedDecks.legalityError}
 				>
-					<summary
-						>{savedDecks.warnings.length && selectedDeck.format
+					<summary>
+						{savedDecks.warnings.length && selectedDeck.format
 							? language.t('deck.legality.notLegalCount', {
 									format: selectedDeck.format,
 									count: language.number(savedDecks.warnings.length)
 								})
-							: `${language.t('ui.Format.checks')}${savedDecks.warnings.length ? ` (${savedDecks.warnings.length})` : ''}`}</summary
-					>
+							: `${language.t('ui.Format.checks')}${savedDecks.warnings.length ? ` (${savedDecks.warnings.length})` : ''}`}
+					</summary>
 					<p class="muted">
 						{language.t('deck.legality.nonBlockingNote')}
 					</p>
@@ -1609,13 +1634,15 @@
 				href="/mtg/decks"
 				class:active={data.tab !== 'discovery'}
 				aria-current={data.tab !== 'discovery' ? 'page' : undefined}
-				>{language.t('deckDiscovery.tab.library')}</a
-			><a
+			>
+				{language.t('deckDiscovery.tab.library')}
+			</a><a
 				href="/mtg/decks?tab=discovery"
 				class:active={data.tab === 'discovery'}
 				aria-current={data.tab === 'discovery' ? 'page' : undefined}
-				>{language.t('deckDiscovery.tab.discovery')}</a
 			>
+				{language.t('deckDiscovery.tab.discovery')}
+			</a>
 		</nav>
 		{#if data.tab === 'discovery'}
 			<SuperbrewDiscovery
@@ -1666,8 +1693,10 @@
 	pending={busy}
 	variant="import"
 	bind:open={() => searchOpen, setSearchOpen}
-	returnFocus={searchTrigger}>{@render discovery()}</DeckDialog
+	returnFocus={searchTrigger}
 >
+	{@render discovery()}
+</DeckDialog>
 
 {#if inspected}
 	<CardDetail callerPending={busy} card={inspected} onClose={closeInspector}>
@@ -1749,23 +1778,23 @@
 					<p role="status" class="muted">
 						{busy ? 'Saving…' : saveError ? '' : (form?.message ?? '')}
 					</p>
-					<Button type="submit" variant="default" disabled={busy || deletedTarget || inspectorGone}
-						>{#if !inspectedEntryId}<Plus
+					<Button type="submit" variant="default" disabled={busy || deletedTarget || inspectorGone}>
+						{#if !inspectedEntryId}<Plus
 								size={16}
 								aria-hidden="true"
 								class="shrink-0"
-							/>{/if}{inspectedEntryId
-							? language.t('ui.Save.card')
-							: language.t('ui.Add.to.deck')}</Button
-					>
+							/>{/if}{inspectedEntryId ? language.t('ui.Save.card') : language.t('ui.Add.to.deck')}
+					</Button>
 				</form>
 				{#if inspectedEntry}<form method="POST" action={action('removeCard')} use:enhance={save}>
 						<input type="hidden" name="requestId" value={data.requestId} />
 						<input type="hidden" name="entryId" value={inspectedEntry.id} /><Button
 							type="submit"
 							variant="destructive"
-							disabled={busy || deletedTarget}>{language.t('ui.Remove.card')}</Button
+							disabled={busy || deletedTarget}
 						>
+							{language.t('ui.Remove.card')}
+						</Button>
 					</form>
 				{/if}
 			</div>

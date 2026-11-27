@@ -67,15 +67,15 @@
 		maxlength="200"
 		required
 	/>
-	<Button type="submit" variant="default" disabled={searching}
-		><Search size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Search')}</Button
-	>
+	<Button type="submit" variant="default" disabled={searching}>
+		<Search size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Search')}
+	</Button>
 </form>
 <div class="catalog-options">
 	<label><input type="checkbox" bind:checked={ownedOnly} /> {language.t('ui.Owned.only')}</label>
-	<span
-		>{searching ? 'Searching…' : language.t('message.p0.shown', { p0: String(cards.length) })}</span
-	>
+	<span>
+		{searching ? 'Searching…' : language.t('message.p0.shown', { p0: String(cards.length) })}
+	</span>
 </div>
 {#if !native}<div class="add-options">
 		<div class="add-section">
@@ -85,16 +85,10 @@
 				options={roles}
 			/>
 		</div>
-		<label
-			>{language.t('ui.Quantity')}
-			<input
-				class="input quantity"
-				type="number"
-				min="1"
-				max="10000"
-				bind:value={addQuantity}
-			/></label
-		>
+		<label>
+			{language.t('ui.Quantity')}
+			<input class="input quantity" type="number" min="1" max="10000" bind:value={addQuantity} />
+		</label>
 	</div>{/if}
 <div class="catalog-results" aria-busy={searching}>
 	{#if searchError}<p class="notice" role="alert">{language.message(searchError)}</p>{/if}
@@ -104,13 +98,14 @@
 				class="catalog-art"
 				onclick={() => onInspect(card)}
 				aria-label={language.t('message.Inspect.p0', { p0: String(card.name) })}
-				><img
+			>
+				<img
 					src={cardImageSrc(card.image_uri_small || card.image_uri)}
 					{@attach cachedCardImage(card.image_uri_small || card.image_uri)}
 					alt={card.name}
 					loading="lazy"
-				/></button
-			>
+				/>
+			</button>
 			<div class="catalog-card-info">
 				<button class="card-name" onclick={() => onInspect(card)}>{card.name}</button>
 				<ManaCost cost={card.mana_cost} />
@@ -128,22 +123,22 @@
 						name="catalogCardId"
 						value={card.id}
 					/>
-					{#if native}<label
-							>{language.t('ui.Section')}<select name="role" class="input"
-								>{#each roles as role}<option value={role.value} selected={role.value === addRole}
-										>{role.label}</option
-									>{/each}</select
-							></label
-						><label
-							>{language.t('ui.Quantity')}<input
+					{#if native}<label>
+							{language.t('ui.Section')}<select name="role" class="input">
+								{#each roles as role}<option value={role.value} selected={role.value === addRole}>
+										{role.label}
+									</option>{/each}
+							</select>
+						</label><label>
+							{language.t('ui.Quantity')}<input
 								name="quantity"
 								type="number"
 								class="input"
 								min="1"
 								max="10000"
 								value={addQuantity}
-							/></label
-						>{:else}<input type="hidden" name="role" value={addRole} /><input
+							/>
+						</label>{:else}<input type="hidden" name="role" value={addRole} /><input
 							type="hidden"
 							name="quantity"
 							value={addQuantity}
@@ -156,16 +151,19 @@
 							addQuantity < 1 ||
 							addQuantity > 10000}
 						aria-label={language.t('message.Add.p0', { p0: String(card.name) })}
-						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add')}</Button
 					>
+						<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add')}
+					</Button>
 					<Button
 						variant="ghost"
 						href={printingHref(card.oracle_id)}
 						onclick={(event) => {
 							event.preventDefault();
 							onInspect(card);
-						}}>{language.t('ui.Printings')}</Button
+						}}
 					>
+						{language.t('ui.Printings')}
+					</Button>
 				</form>
 			</div>
 		</div>

@@ -68,7 +68,7 @@
 			value={password}
 		/>
 	</div>
-	<button type="submit" disabled={pending} class="btn btn-primary w-full disabled:opacity-50"
-		>{pending ? language.t('ui.Please.wait') : language.t('ui.Sign.in')}</button
-	>
+	<button type="submit" disabled={pending} class="btn btn-primary w-full disabled:opacity-50">
+		{pending ? language.t('ui.Please.wait') : language.t('ui.Sign.in')}
+	</button>
 </form>

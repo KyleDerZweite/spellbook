@@ -137,11 +137,11 @@
 			}}
 		>
 			<Dialog.Title class="sr-only">{language.t('ui.Power.user.search')}</Dialog.Title>
-			<Dialog.Description class="sr-only"
-				>{language.t(
+			<Dialog.Description class="sr-only">
+				{language.t(
 					'ui.Search.cards.your.Inventory.Decks.and.Settings.Use.arrow.keys.to.navigate.Enter.to.select.and.Escape.to.close'
-				)}</Dialog.Description
-			>
+				)}
+			</Dialog.Description>
 			<Command.Root
 				shouldFilter={false}
 				vimBindings={false}
@@ -166,9 +166,9 @@
 					<Command.Viewport>
 						{#each groups as group (group.id)}
 							<Command.Group>
-								<Command.GroupHeading class="power-search-heading"
-									>{group.label}</Command.GroupHeading
-								>
+								<Command.GroupHeading class="power-search-heading">
+									{group.label}
+								</Command.GroupHeading>
 								<Command.GroupItems>
 									{#each group.rows as row (row.id)}
 										<Command.LinkItem
@@ -179,13 +179,15 @@
 											onSelect={() => (open = false)}
 										>
 											<span class="power-search-icon"><PowerSearchIcon kind={row.kind} /></span>
-											<span class="power-search-copy"
-												><span class="power-search-name">{row.name}</span>{#if row.description}<span
-														class="power-search-description">{row.description}</span
-													>{/if}</span
-											>
-											<span class="power-search-context"
-												>{row.kind === 'catalog'
+											<span class="power-search-copy">
+												<span class="power-search-name">{row.name}</span>{#if row.description}<span
+														class="power-search-description"
+													>
+														{row.description}
+													</span>{/if}
+											</span>
+											<span class="power-search-context">
+												{row.kind === 'catalog'
 													? language.t('ui.Card.Search')
 													: row.kind === 'inventory'
 														? language.t('ui.Inventory')
@@ -193,8 +195,8 @@
 															? language.t('ui.Deck')
 															: row.kind === 'setting'
 																? language.t('ui.Settings')
-																: ''}</span
-											>
+																: ''}
+											</span>
 										</Command.LinkItem>
 									{/each}
 								</Command.GroupItems>
@@ -213,9 +215,10 @@
 						)}{/if}
 				</div>
 				<div class="power-search-footer" aria-hidden="true">
-					<span><kbd>↑</kbd><kbd>↓</kbd> {language.t('ui.Navigate')}</span><span
-						><kbd>Enter</kbd> {language.t('ui.Select')}</span
-					><span><kbd>Esc</kbd> {language.t('ui.Close')}</span>
+					<span><kbd>↑</kbd><kbd>↓</kbd> {language.t('ui.Navigate')}</span><span>
+						<kbd>Enter</kbd>
+						{language.t('ui.Select')}
+					</span><span><kbd>Esc</kbd> {language.t('ui.Close')}</span>
 				</div>
 			</Command.Root>
 		</Dialog.Content>

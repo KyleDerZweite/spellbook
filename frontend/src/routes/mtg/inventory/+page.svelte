@@ -1144,24 +1144,28 @@
 							class="btn btn-primary"
 							name="rebaseNotesRevision"
 							value={latestNotes.notesRevision}
-							>{language.t('ui.Save.my.draft.against.the.latest.revision')}</button
-						>{:else}<button class="btn btn-primary">{language.t('ui.Retry.Save')}</button>{/if}
+						>
+							{language.t('ui.Save.my.draft.against.the.latest.revision')}
+						</button>{:else}<button class="btn btn-primary">
+							{language.t('ui.Retry.Save')}
+						</button>{/if}
 				</form>
 			</section>
 		{/if}
 
-		{#if currentWindow.query.view === 'groups'}<noscript
-				><section aria-labelledby="native-groups-title">
+		{#if currentWindow.query.view === 'groups'}<noscript>
+				<section aria-labelledby="native-groups-title">
 					<h2 id="native-groups-title">{language.t('ui.Manage.Boxes')}</h2>
 					<form method="POST" action={inventoryAction('createGroup', effectiveInventoryUrl(page))}>
 						<input type="hidden" name="requestId" value={data.requestId} /><label
-							for="native-group-name">{language.t('ui.New.box.name')}</label
-						><input id="native-group-name" name="name" required maxlength="128" /><button
-							class="btn btn-primary"
-							><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
-								'ui.Create.box'
-							)}</button
+							for="native-group-name"
 						>
+							{language.t('ui.New.box.name')}
+						</label><input id="native-group-name" name="name" required maxlength="128" /><button
+							class="btn btn-primary"
+						>
+							<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Create.box')}
+						</button>
 					</form>
 					{#each currentWindow.groupPage as group}<form
 							method="POST"
@@ -1171,9 +1175,10 @@
 								type="hidden"
 								name="groupId"
 								value={group.id}
-							/><label for={`native-group-${group.id}`}
-								>{language.t('ui.Rename')} {group.name}</label
-							><input
+							/><label for={`native-group-${group.id}`}>
+								{language.t('ui.Rename')}
+								{group.name}
+							</label><input
 								id={`native-group-${group.id}`}
 								name="name"
 								value={group.name}
@@ -1189,15 +1194,15 @@
 								type="hidden"
 								name="groupId"
 								value={group.id}
-							/><label
-								><input type="checkbox" name="confirmDeleteGroup" value="yes" required />
+							/><label>
+								<input type="checkbox" name="confirmDeleteGroup" value="yes" required />
 								{language.t('ui.Delete')}
 								{group.name}
-								{language.t('ui.and.its.memberships.keeping.every.owned.card')}</label
-							><button class="btn btn-secondary">{language.t('ui.Delete.box')}</button>
+								{language.t('ui.and.its.memberships.keeping.every.owned.card')}
+							</label><button class="btn btn-secondary">{language.t('ui.Delete.box')}</button>
 						</form>{/each}
-				</section></noscript
-			>{/if}
+				</section>
+			</noscript>{/if}
 
 		<WorkspaceHeader title={language.t('ui.Inventory')}>
 			{#snippet metadata()}<p class="inventory-totals">
@@ -1211,19 +1216,16 @@
 				</p>{/snippet}
 			{#snippet actions()}{#if groupDirectory}<Button
 						onclick={(event) => editGroup(null, event.currentTarget)}
-						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
-							'ui.New.box'
-						)}</Button
-					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
-						>{language.t('ui.Assign.cards')}</Button
-					>{:else}<Button href="/mtg/search" onclick={openSearch}
-						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
-							'ui.Add.cards'
-						)}</Button
-					>{/if}{/snippet}
+					>
+						<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.box')}
+					</Button>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}>
+						{language.t('ui.Assign.cards')}
+					</Button>{:else}<Button href="/mtg/search" onclick={openSearch}>
+						<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add.cards')}
+					</Button>{/if}{/snippet}
 		</WorkspaceHeader>
-		<noscript
-			><form
+		<noscript>
+			<form
 				method="GET"
 				class="native-inventory-filters"
 				aria-label={language.t('ui.Inventory.filters')}
@@ -1233,40 +1235,47 @@
 					name="page"
 					value="1"
 				/>
-				<label
-					>{language.t('ui.Search')}<input
+				<label>
+					{language.t('ui.Search')}<input
 						class="input"
 						type="search"
 						name="q"
 						value={data.window.query.q}
-					/></label
-				><label
-					>{language.t('ui.Sets')}<select class="input" name="set" multiple
-						>{#each data.window.sets as set}<option
+					/>
+				</label><label>
+					{language.t('ui.Sets')}<select class="input" name="set" multiple>
+						{#each data.window.sets as set}<option
 								value={set.code}
-								selected={data.window.query.sets.includes(set.code)}>{set.name}</option
-							>{/each}</select
-					></label
-				><label
-					>{language.t('ui.Finish')}<select class="input" name="finish"
-						>{#each finishOptions as option}<option
+								selected={data.window.query.sets.includes(set.code)}
+							>
+								{set.name}
+							</option>{/each}
+					</select>
+				</label><label>
+					{language.t('ui.Finish')}<select class="input" name="finish">
+						{#each finishOptions as option}<option
 								value={option.value}
-								selected={data.window.query.finish === option.value}>{option.label}</option
-							>{/each}</select
-					></label
-				><label
-					>{language.t('ui.Condition')}<select class="input" name="condition"
-						>{#each conditionOptions as option}<option
+								selected={data.window.query.finish === option.value}
+							>
+								{option.label}
+							</option>{/each}
+					</select>
+				</label><label>
+					{language.t('ui.Condition')}<select class="input" name="condition">
+						{#each conditionOptions as option}<option
 								value={option.value}
-								selected={data.window.query.condition === option.value}>{option.label}</option
-							>{/each}</select
-					></label
-				><label
-					>{language.t('ui.Sort')}<select class="input" name="sort"
-						>{#each ['name', 'set', 'newest'] as value}<option
+								selected={data.window.query.condition === option.value}
+							>
+								{option.label}
+							</option>{/each}
+					</select>
+				</label><label>
+					{language.t('ui.Sort')}<select class="input" name="sort">
+						{#each ['name', 'set', 'newest'] as value}<option
 								{value}
 								selected={data.window.query.sort === value}
-								>{language.t(
+							>
+								{language.t(
 									(
 										{
 											name: 'ui.Name',
@@ -1277,24 +1286,26 @@
 											quantity: 'ui.Quantity'
 										} as const
 									)[value as 'name']
-								)}</option
-							>{/each}</select
-					></label
-				><label
-					>{language.t('ui.Direction')}<select class="input" name="dir"
-						><option value="asc" selected={data.window.query.dir === 'asc'}
-							>{language.t('ui.Ascending')}</option
-						><option value="desc" selected={data.window.query.dir === 'desc'}
-							>{language.t('ui.Descending')}</option
-						></select
-					></label
-				><label
-					>{language.t('ui.Variant')}<select class="input" name="variant"
-						><option value="">{language.t('ui.None')}</option
-						>{#each ['finish', 'condition', 'quantity'] as value}<option
+								)}
+							</option>{/each}
+					</select>
+				</label><label>
+					{language.t('ui.Direction')}<select class="input" name="dir">
+						<option value="asc" selected={data.window.query.dir === 'asc'}>
+							{language.t('ui.Ascending')}
+						</option><option value="desc" selected={data.window.query.dir === 'desc'}>
+							{language.t('ui.Descending')}
+						</option>
+					</select>
+				</label><label>
+					{language.t('ui.Variant')}<select class="input" name="variant">
+						<option value="">
+							{language.t('ui.None')}
+						</option>{#each ['finish', 'condition', 'quantity'] as value}<option
 								{value}
 								selected={data.window.query.variant === value}
-								>{language.t(
+							>
+								{language.t(
 									(
 										{
 											name: 'ui.Name',
@@ -1305,18 +1316,18 @@
 											quantity: 'ui.Quantity'
 										} as const
 									)[value as 'name']
-								)}</option
-							>{/each}</select
-					></label
-				><label
-					>{language.t('ui.Variant.direction')}<select class="input" name="variantDir"
-						><option value="asc" selected={data.window.query.variantDir === 'asc'}
-							>{language.t('ui.Ascending')}</option
-						><option value="desc" selected={data.window.query.variantDir === 'desc'}
-							>{language.t('ui.Descending')}</option
-						></select
-					></label
-				><input
+								)}
+							</option>{/each}
+					</select>
+				</label><label>
+					{language.t('ui.Variant.direction')}<select class="input" name="variantDir">
+						<option value="asc" selected={data.window.query.variantDir === 'asc'}>
+							{language.t('ui.Ascending')}
+						</option><option value="desc" selected={data.window.query.variantDir === 'desc'}>
+							{language.t('ui.Descending')}
+						</option>
+					</select>
+				</label><input
 					type="hidden"
 					name="view"
 					value={data.window.query.view}
@@ -1325,33 +1336,36 @@
 						name="group"
 						value={data.window.query.group}
 					/>{/if}<Button type="submit">{language.t('ui.Apply.filters')}</Button>
-			</form></noscript
-		>
+			</form>
+		</noscript>
 		<nav class="inventory-views" aria-label={language.t('ui.Inventory.views')}>
 			<a
 				href={viewHref('cards')}
 				class:active={!(currentWindow.query.view === 'groups')}
 				aria-current={!(currentWindow.query.view === 'groups') ? 'page' : undefined}
-				>{language.t('ui.Cards')}</a
-			><a
+			>
+				{language.t('ui.Cards')}
+			</a><a
 				bind:this={groupLink}
 				href={viewHref('groups')}
 				class:active={currentWindow.query.view === 'groups'}
 				aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}
-				>{language.t('ui.Boxes')}</a
 			>
+				{language.t('ui.Boxes')}
+			</a>
 		</nav>
 		{#if selectedGroup}<div class="selected-group">
-				<a href={viewHref('groups')}>{language.t('ui.All.boxes')}</a><span aria-hidden="true"
-					>/</span
-				><strong>{selectedGroup.name}</strong>
+				<a href={viewHref('groups')}>{language.t('ui.All.boxes')}</a><span aria-hidden="true">
+					/
+				</span><strong>{selectedGroup.name}</strong>
 				{#if hydrated}
 					<Button
 						variant="secondary"
 						size="sm"
 						onclick={(event) => removeGroup(selectedGroup!, event.currentTarget)}
-						>{language.t('ui.Delete.box')}</Button
 					>
+						{language.t('ui.Delete.box')}
+					</Button>
 				{/if}
 			</div>{/if}
 		{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
@@ -1379,11 +1393,16 @@
 			<div class="empty-state">
 				<Archive size={20} aria-hidden="true" class="text-text-muted" />
 				<p>{language.t('ui.No.cards.yet')}</p>
-				<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
-					><Search size={16} aria-hidden="true" class="shrink-0" />{language.t(
-						'ui.Find.your.first.card'
-					)}</a
+				<a
+					bind:this={emptyAction}
+					href="/mtg/search"
+					onclick={openSearch}
+					class="btn btn-secondary"
 				>
+					<Search size={16} aria-hidden="true" class="shrink-0" />{language.t(
+						'ui.Find.your.first.card'
+					)}
+				</a>
 			</div>
 		{:else}
 			<div class="inventory-toolbar">
@@ -1414,8 +1433,10 @@
 								type="button"
 								class="filter-reset"
 								disabled={selectedSets.length === 0}
-								onclick={() => (selectedSets = [])}>{language.t('ui.Clear')}</button
+								onclick={() => (selectedSets = [])}
 							>
+								{language.t('ui.Clear')}
+							</button>
 						</div>
 						<input
 							bind:this={setSearchInput}
@@ -1427,19 +1448,20 @@
 						/>
 						<div class="set-options">
 							{#each visibleSets as option (option.value)}
-								<label class="set-option"
-									><input
+								<label class="set-option">
+									<input
 										type="checkbox"
 										checked={selectedSets.includes(option.value)}
 										onchange={() => toggleSet(option.value)}
-									/><span>{option.label}</span><small>{option.value.toUpperCase()}</small></label
-								>
+									/><span>{option.label}</span><small>{option.value.toUpperCase()}</small>
+								</label>
 							{:else}<p class="no-sets">{language.t('ui.No.sets.match.this.search')}</p>{/each}
 						</div>
 						<div class="variant-filters">
 							<div>
-								<label class="label" for="inventory-finish-filter">{language.t('ui.Finish')}</label
-								><Select
+								<label class="label" for="inventory-finish-filter">
+									{language.t('ui.Finish')}
+								</label><Select
 									id="inventory-finish-filter"
 									label={language.t('ui.Filter.by.finish')}
 									bind:triggerRef={finishTrigger}
@@ -1448,9 +1470,9 @@
 								/>
 							</div>
 							<div>
-								<label class="label" for="inventory-condition-filter"
-									>{language.t('ui.Condition')}</label
-								><Select
+								<label class="label" for="inventory-condition-filter">
+									{language.t('ui.Condition')}
+								</label><Select
 									id="inventory-condition-filter"
 									label={language.t('ui.Filter.by.condition')}
 									bind:triggerRef={conditionTrigger}
@@ -1532,16 +1554,19 @@
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('set', event)}
 								aria-label={language.t('message.Edit.set.filter.p0', { p0: String(setName(code)) })}
-								>{language.t('ui.Set')} {setName(code)}</button
-							><button
+							>
+								{language.t('ui.Set')}
+								{setName(code)}
+							</button><button
 								type="button"
 								class="filter-chip-remove"
 								aria-label={language.t('message.Clear.set.filter.p0', {
 									p0: String(setName(code))
 								})}
 								onclick={() => (selectedSets = selectedSets.filter((value) => value !== code))}
-								><X size={20} aria-hidden="true" /></button
 							>
+								<X size={20} aria-hidden="true" />
+							</button>
 						</div>
 					{/each}
 					{#if selectedFinish !== 'all'}<div class="filter-chip">
@@ -1549,36 +1574,42 @@
 								type="button"
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('finish', event)}
-								>{language.t('ui.Finish')}
-								{finishLabel(selectedFinish)}</button
-							><button
+							>
+								{language.t('ui.Finish')}
+								{finishLabel(selectedFinish)}
+							</button><button
 								type="button"
 								class="filter-chip-remove"
 								aria-label={language.t('message.Clear.finish.filter.p0', {
 									p0: finishLabel(selectedFinish)
 								})}
-								onclick={() => (selectedFinish = 'all')}><X size={20} aria-hidden="true" /></button
+								onclick={() => (selectedFinish = 'all')}
 							>
+								<X size={20} aria-hidden="true" />
+							</button>
 						</div>{/if}
 					{#if selectedCondition !== 'all'}<div class="filter-chip">
 							<button
 								type="button"
 								class="filter-chip-edit"
 								onclick={(event) => editFilter('condition', event)}
-								>{language.t('ui.Condition')} {selectedCondition}</button
-							><button
+							>
+								{language.t('ui.Condition')}
+								{selectedCondition}
+							</button><button
 								type="button"
 								class="filter-chip-remove"
 								aria-label={language.t('message.Clear.condition.filter.p0', {
 									p0: String(selectedCondition)
 								})}
 								onclick={() => (selectedCondition = 'all')}
-								><X size={20} aria-hidden="true" /></button
 							>
+								<X size={20} aria-hidden="true" />
+							</button>
 						</div>{/if}
-					<button type="button" class="clear-filters" onclick={clearFilters}
-						>{language.t('ui.Clear.filters')}</button
-					>
+					<button type="button" class="clear-filters" onclick={clearFilters}>
+						{language.t('ui.Clear.filters')}
+					</button>
 				</div>
 			{/if}
 			<span class="sr-only" role="status">{status}</span>
@@ -1635,11 +1666,14 @@
 								)
 							})}
 							onclick={() => (order = nextInventoryOrder(order, column))}
-							>{column === 'name' && order.base === 'newest' ? language.t('ui.Newest') : label}<span
-								class="sort-direction"
-								aria-hidden="true">{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
-							></button
 						>
+							{column === 'name' && order.base === 'newest' ? language.t('ui.Newest') : label}<span
+								class="sort-direction"
+								aria-hidden="true"
+							>
+								{columnDirection(column) === 'asc' ? '↑' : '↓'}
+							</span>
+						</button>
 					</div>
 				{/each}
 				<span></span>
@@ -1651,9 +1685,9 @@
 							? language.t('ui.No.cards.in.this.box.yet.Assign.cards.from.their.row.menu.in.Cards')
 							: language.t('ui.No.cards.match.these.filters')}
 					</p>
-					{#if hasFilters}<button class="btn btn-secondary" onclick={clearFilters}
-							>{language.t('ui.Clear.filters')}</button
-						>{/if}
+					{#if hasFilters}<button class="btn btn-secondary" onclick={clearFilters}>
+							{language.t('ui.Clear.filters')}
+						</button>{/if}
 				</div>
 			{:else}
 				{#snippet entryRow(card: InventoryCard)}
@@ -1676,55 +1710,61 @@
 								aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
 									? `inventory-new-${card.id}`
 									: undefined}
-								><img
+							>
+								<img
 									src={cardImageSrc(card.imageUri)}
 									{@attach cachedCardImage(card.imageUri)}
 									alt=""
 									width="40"
 									height="56"
 									loading="lazy"
-								/><span
-									><span class="card-name"
-										><strong>{card.name}</strong
-										>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
+								/><span>
+									<span class="card-name">
+										<strong>{card.name}</strong>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
 												class="new-entry"
 												id={`inventory-new-${card.id}`}
 												title={language.t(
 													'message.Added.p0.UTC.New.until.the.end.of.this.UTC.date',
 													{ p0: String(addedDate.format(card.createdAt)) }
 												)}
-												>{language.t('ui.New')}<span class="sr-only"
-													>{language.t(
+											>
+												{language.t('ui.New')}<span class="sr-only">
+													{language.t(
 														'sentence.entry.added.p0.UTC.marked.new.until.the.end.of.this.UTC.date',
 														{ p0: String(addedDate.format(card.createdAt)) }
-													)}</span
-												></span
-											>{/if}</span
-									>{#if groupNames}<span class="entry-groups" title={groupNames}>{groupNames}</span
-										>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
-								></button
-							>
-							<span class="mobile-metadata"
-								>{@render metadata('set', card.setCode)}{@render metadata(
+													)}
+												</span>
+											</span>{/if}
+									</span>{#if groupNames}<span class="entry-groups" title={groupNames}>
+											{groupNames}
+										</span>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}
+								</span>
+							</button>
+							<span class="mobile-metadata">
+								{@render metadata('set', card.setCode)}{@render metadata(
 									'finish',
 									card.finish
-								)}{@render metadata('condition', card.condition)}</span
-							>
-							<noscript
-								><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}
-									>{language.t('ui.Details')}</a
-								></noscript
-							>
+								)}{@render metadata('condition', card.condition)}
+							</span>
+							<noscript>
+								<a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}>
+									{language.t('ui.Details')}
+								</a>
+							</noscript>
 						</div>
 						<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
-							class="row-metadata">{@render metadata('finish', card.finish)}</span
-						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
+							class="row-metadata"
+						>
+							{@render metadata('finish', card.finish)}
+						</span><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
 						<span
 							class="owned-quantity"
 							aria-label={language.t(`inventory.owned.${language.plural(card.quantity)}`, {
 								count: language.number(card.quantity)
-							})}>{card.quantity}</span
+							})}
 						>
+							{card.quantity}
+						</span>
 						<ActionMenu
 							label={language.t('message.Actions.for.p0.p1.p2.p3', {
 								p0: String(card.name),
@@ -1775,8 +1815,10 @@
 					</div>{/snippet}
 				{#if hydrated}{#if visitedSpan.start > 0}<button
 							class="btn btn-secondary"
-							onclick={() => window.loadEarlier()}>{language.t('ui.Load.earlier.entries')}</button
-						>{/if}<VirtualInventoryList
+							onclick={() => window.loadEarlier()}
+						>
+							{language.t('ui.Load.earlier.entries')}
+						</button>{/if}<VirtualInventoryList
 						bind:this={virtualList}
 						total={currentWindow.matching.entryCount}
 						span={visitedSpan}
@@ -1831,8 +1873,10 @@
 						window.plan(
 							virtualList?.anchor().index ?? currentWindow.query.offset,
 							(virtualList?.anchor().index ?? currentWindow.query.offset) + browse.limit
-						)}>{language.t('ui.Try.again')}</Button
+						)}
 				>
+					{language.t('ui.Try.again')}
+				</Button>
 			</p>{/if}
 	</div>
 
@@ -1872,8 +1916,9 @@
 				class="btn btn-destructive"
 				disabled={groupDeletion.pending}
 				type="submit"
-				>{groupDeletion.pending ? language.t('ui.Deleting') : language.t('ui.Delete.box')}</button
 			>
+				{groupDeletion.pending ? language.t('ui.Deleting') : language.t('ui.Delete.box')}
+			</button>
 		</form>
 	</ConfirmationDialog>
 
@@ -1897,9 +1942,9 @@
 				name="expectedQuantity"
 				value={removing?.quantity ?? 0}
 			/>
-			<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
-				>{pendingId === removeId ? language.t('ui.Removing') : language.t('ui.Remove')}</button
-			>
+			<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}>
+				{pendingId === removeId ? language.t('ui.Removing') : language.t('ui.Remove')}
+			</button>
 		</form>
 	</ConfirmationDialog>
 
@@ -1931,25 +1976,30 @@
 					disabled={pendingId !== null || addingPending}
 					onclick={() => {
 						if (inspection) inspection.mode = 'details';
-					}}>{language.t('ui.Details')}</Button
+					}}
 				>
+					{language.t('ui.Details')}
+				</Button>
 				<Button
 					variant="secondary"
 					disabled={pendingId !== null || addingPending || targetGone}
 					onclick={() => {
 						if (inspection) inspection.mode = 'edit';
-					}}>{language.t('ui.Edit.owned.entry')}</Button
+					}}
 				>
+					{language.t('ui.Edit.owned.entry')}
+				</Button>
 				<Button
 					variant="secondary"
 					disabled={pendingId !== null || addingPending}
 					onclick={() => {
 						if (inspection) inspection.mode = 'add';
 					}}
-					><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
-						'ui.Add.another.printing'
-					)}</Button
 				>
+					<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+						'ui.Add.another.printing'
+					)}
+				</Button>
 			</nav>
 			{#if inspection?.mode === 'add'}
 				<CardQuickAdd
@@ -2018,10 +2068,13 @@
 							onclick={() => {
 								notesBase = notesConflict!.notesRevision;
 								notesConflict = null;
-							}}>{language.t('ui.Use.latest.revision.with.my.draft')}</button
-						>{/if}
-					<label class="label" for="inventory-quantity">{language.t('ui.Owned.quantity')}</label
-					><input
+							}}
+						>
+							{language.t('ui.Use.latest.revision.with.my.draft')}
+						</button>{/if}
+					<label class="label" for="inventory-quantity">
+						{language.t('ui.Owned.quantity')}
+					</label><input
 						class="input"
 						id="inventory-quantity"
 						name="quantity"
@@ -2041,8 +2094,9 @@
 						type="submit"
 						class="btn btn-primary"
 						disabled={pendingId !== null || targetGone}
-						>{pendingId === inspected.id ? language.t('ui.Saving') : language.t('ui.Save')}</button
-					>{#if mutationError}<p class="mutation-error" role="alert">
+					>
+						{pendingId === inspected.id ? language.t('ui.Saving') : language.t('ui.Save')}
+					</button>{#if mutationError}<p class="mutation-error" role="alert">
 							{language.message(mutationError)}
 						</p>{:else}<p class="text-sm text-text-muted" role="status">
 							{status}
@@ -2051,8 +2105,9 @@
 			{:else}<a
 					class="btn btn-secondary"
 					href={`/mtg/search?q=${encodeURIComponent(activeCard.name)}`}
-					>{language.t('ui.Find.this.card.in.Search')}</a
-				>{/if}
+				>
+					{language.t('ui.Find.this.card.in.Search')}
+				</a>{/if}
 		{/snippet}
 	{/if}
 {/if}
@@ -2069,8 +2124,9 @@
 			data-finish={kind === 'finish' ? value : undefined}
 			data-condition={kind === 'condition' ? value : undefined}
 			style={kind === 'set' ? `--metadata-color: ${inventorySetColor(value)}` : undefined}
-			>{metadataLabel(kind, value)}</span
 		>
+			{metadataLabel(kind, value)}
+		</span>
 	</a>
 {/snippet}
 

@@ -384,8 +384,10 @@
 						type="button"
 						onclick={() => (allPrintingsView = true)}
 						disabled={pending}
-						class="btn btn-secondary font-body">{language.t('ui.All.printings')}</button
+						class="btn btn-secondary font-body"
 					>
+						{language.t('ui.All.printings')}
+					</button>
 					<fieldset class="printing-availability" disabled={pending}>
 						<legend>{language.t('ui.Printing.availability')}</legend>
 						<div>
@@ -396,10 +398,9 @@
 										(foilFilter =
 											foilFilter === finish ? 'all' : finish === 'foil' ? 'foil' : 'nonfoil')}
 									aria-pressed={foilFilter === finish}
-									>{finish === 'foil'
-										? language.t('notice.Foil')
-										: language.t('notice.Nonfoil')}</button
 								>
+									{finish === 'foil' ? language.t('notice.Foil') : language.t('notice.Nonfoil')}
+								</button>
 							{/each}
 						</div>
 					</fieldset>
@@ -446,8 +447,9 @@
 					aria-haspopup="dialog"
 					disabled={pending}
 					onclick={() => (personalHistory = { ...inventoryHistoryIdentity! })}
-					>{language.t('ui.Personal.Inventory.history.for.this.holding')}</button
 				>
+					{language.t('ui.Personal.Inventory.history.for.this.holding')}
+				</button>
 			{/if}
 			{#if actions}{@render actions(activeCard)}
 			{:else if page.data.user && workspaceSavedState.getState() !== 'expired'}<CardQuickAdd
@@ -461,8 +463,9 @@
 			{:else}<a
 					class="btn btn-primary"
 					href={`/auth/login?returnTo=${encodeURIComponent(`/mtg/search?q=${encodeURIComponent(card.name)}`)}`}
-					>{language.t('ui.Sign.in.to.add.to.inventory')}</a
-				>{/if}
+				>
+					{language.t('ui.Sign.in.to.add.to.inventory')}
+				</a>{/if}
 		{:else}
 			<!-- ==================== CARD INFO TAB ==================== -->
 
@@ -501,8 +504,9 @@
 			<div class="flex flex-col gap-1.5 font-body text-sm">
 				{#if hasPowerToughness}
 					<p>
-						<span class="font-semibold text-text-secondary">{language.t('ui.Power.Toughness')}</span
-						>
+						<span class="font-semibold text-text-secondary">
+							{language.t('ui.Power.Toughness')}
+						</span>
 						<span class="ml-1 text-text-primary">{activeCard.power}/{activeCard.toughness}</span>
 					</p>
 				{/if}
@@ -512,9 +516,9 @@
 				</p>
 				{#if activeCard.collector_number}
 					<p>
-						<span class="font-semibold text-text-secondary"
-							>{language.t('ui.Collector.Number')}</span
-						>
+						<span class="font-semibold text-text-secondary">
+							{language.t('ui.Collector.Number')}
+						</span>
 						<span class="ml-1 text-text-primary">{activeCard.collector_number}</span>
 					</p>
 				{/if}

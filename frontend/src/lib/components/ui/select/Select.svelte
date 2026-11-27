@@ -49,10 +49,11 @@
 		aria-label={label}
 		bind:value
 		onchange={(event) => onchange?.(event.currentTarget.value)}
-		>{#each options as option}<option value={option.value} disabled={option.disabled}
-				>{option.label}</option
-			>{/each}</select
-	>{:else}<Select.Root
+	>
+		{#each options as option}<option value={option.value} disabled={option.disabled}>
+				{option.label}
+			</option>{/each}
+	</select>{:else}<Select.Root
 		type="single"
 		bind:value
 		{name}
@@ -77,12 +78,12 @@
 			{#if iconOnly}
 				<Funnel size={20} aria-hidden="true" class="shrink-0" />
 			{:else}
-				<span class="truncate"
-					>{displayValue ??
+				<span class="truncate">
+					{displayValue ??
 						options.find((option) => option.value === value)?.label ??
 						placeholder ??
-						label}</span
-				>
+						label}
+				</span>
 				<ChevronDown size={16} aria-hidden="true" class="shrink-0 text-text-muted" />
 			{/if}
 		</Select.Trigger>

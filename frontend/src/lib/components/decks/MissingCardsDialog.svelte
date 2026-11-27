@@ -189,11 +189,9 @@
 					value={activeText}></textarea>
 
 				<div class="export-actions">
-					<Button variant="default" onclick={copyText}
-						><Copy size={16} aria-hidden="true" class="shrink-0" />{language.t(
-							'missingExport.copy'
-						)}</Button
-					>
+					<Button variant="default" onclick={copyText}>
+						<Copy size={16} aria-hidden="true" class="shrink-0" />{language.t('missingExport.copy')}
+					</Button>
 					<Button variant="secondary" onclick={downloadText}>
 						<Download size={16} aria-hidden="true" class="shrink-0" />
 						{language.t('missingExport.download')}

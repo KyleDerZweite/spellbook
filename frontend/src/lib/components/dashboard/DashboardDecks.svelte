@@ -36,21 +36,22 @@
 							<div class="meta">
 								<span>{deck.format}</span><span
 									aria-label={language.t('ui.Commander.color.identity')}
-									>{#each ['W', 'U', 'B', 'R', 'G'].filter( (color) => deck.commanders.some( (card) => card.colorIdentity?.includes(color) ) ) as color}<i
+								>
+									{#each ['W', 'U', 'B', 'R', 'G'].filter( (color) => deck.commanders.some( (card) => card.colorIdentity?.includes(color) ) ) as color}<i
 											class={`ms ms-${color.toLowerCase()} ms-cost`}
 											role="img"
 											aria-label={language.t('message.p0.identity', { p0: String(color) })}
-										></i>{/each}</span
-								>
+										></i>{/each}
+								</span>
 							</div>
 							<OwnershipProgress {...deck} />
 						</div>
 					</a>
 				</li>{/each}
 		</ul>{:else}<p>{language.t('ui.No.decks.yet')}</p>
-		<a href="/mtg/decks" class="btn btn-secondary btn-sm"
-			><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Create.a.deck')}</a
-		>{/if}
+		<a href="/mtg/decks" class="btn btn-secondary btn-sm">
+			<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Create.a.deck')}
+		</a>{/if}
 </section>
 
 <style>

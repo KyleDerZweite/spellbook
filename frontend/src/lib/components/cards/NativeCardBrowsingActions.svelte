@@ -75,9 +75,9 @@
 	{#if receipt}<p role="status" class="text-sm text-text-secondary">
 			{language.t('ui.Deck.addition.confirmed')}
 		</p>
-		<a class="btn btn-secondary" href={`/mtg/decks?deck=${encodeURIComponent(receipt.deckId)}`}
-			>{language.t('ui.View.Deck')}</a
-		>{/if}
+		<a class="btn btn-secondary" href={`/mtg/decks?deck=${encodeURIComponent(receipt.deckId)}`}>
+			{language.t('ui.View.Deck')}
+		</a>{/if}
 	{#if choiceReadError}<p role="alert" class="text-sm text-error">
 			{choiceReadError}
 			{language.t('ui.Refresh.the.Deck.choices.before.a.new.addition')}
@@ -115,13 +115,17 @@
 					class="btn btn-secondary"
 					name="deckOffset"
 					value={Math.max(0, choiceOffset - 20)}
-					disabled={!choiceOffset}>{language.t('ui.Previous.Decks')}</button
-				><button
+					disabled={!choiceOffset}
+				>
+					{language.t('ui.Previous.Decks')}
+				</button><button
 					class="btn btn-secondary"
 					name="deckOffset"
 					value={choices?.nextOffset ?? 0}
-					disabled={choices?.nextOffset == null}>{language.t('ui.Next.Decks')}</button
+					disabled={choices?.nextOffset == null}
 				>
+					{language.t('ui.Next.Decks')}
+				</button>
 			</div>
 		</form>
 		<form
@@ -178,11 +182,11 @@
 					/>
 				</div>
 			</div>
-			<button class="btn btn-primary" disabled={!!choiceReadError || !choices}
-				><Plus size={16} aria-hidden="true" class="shrink-0" />{submitted && !receipt
+			<button class="btn btn-primary" disabled={!!choiceReadError || !choices}>
+				<Plus size={16} aria-hidden="true" class="shrink-0" />{submitted && !receipt
 					? language.t('ui.Add.with.current.Deck.details')
-					: language.t('ui.Add.to.Deck')}</button
-			>
+					: language.t('ui.Add.to.Deck')}
+			</button>
 		</form>
 	{:else}<p role="alert" class="text-sm text-text-secondary">
 			{printingReadError ??
@@ -239,8 +243,9 @@
 							name={'inventoryRetry' + key[0].toUpperCase() + key.slice(1)}
 							value={Reflect.get(inventorySubmitted, key)}
 						/>{/each}{/if}
-				<label class="label" for={`${id}-inventory-quantity`}>{language.t('ui.Quantity')}</label
-				><input
+				<label class="label" for={`${id}-inventory-quantity`}>
+					{language.t('ui.Quantity')}
+				</label><input
 					class="input"
 					id={`${id}-inventory-quantity`}
 					type="number"
@@ -301,11 +306,12 @@
 				<button
 					class="btn btn-secondary text-sm"
 					disabled={!selectedPrinting.is_nonfoil_available && !selectedPrinting.is_foil_available}
-					><Plus size={16} aria-hidden="true" class="shrink-0" />{inventorySubmitted &&
+				>
+					<Plus size={16} aria-hidden="true" class="shrink-0" />{inventorySubmitted &&
 					!inventoryReceipt
 						? language.t('ui.Add.with.current.Inventory.details')
-						: language.t('ui.Add.to.Inventory')}</button
-				>
+						: language.t('ui.Add.to.Inventory')}
+				</button>
 			</form>
 		{/if}
 		{#if result?.action === 'addToInventory' && result.message}<p
@@ -335,14 +341,14 @@
 						p2: String(inventorySubmitted.condition)
 					})}
 				</p>
-				<button class="btn btn-secondary"
-					>{language.t('ui.Retry.original.Inventory.addition')}</button
-				>
+				<button class="btn btn-secondary">
+					{language.t('ui.Retry.original.Inventory.addition')}
+				</button>
 			</form>{/if}
 	</div>
-{:else}<a class="btn btn-primary" href={cardSignInHref(canonicalSearchHref, selectedPrinting?.id)}
-		>{language.t('ui.Sign.in.to.add.cards')}</a
-	>{/if}
+{:else}<a class="btn btn-primary" href={cardSignInHref(canonicalSearchHref, selectedPrinting?.id)}>
+		{language.t('ui.Sign.in.to.add.cards')}
+	</a>{/if}
 
 <style>
 	.secondary-add {

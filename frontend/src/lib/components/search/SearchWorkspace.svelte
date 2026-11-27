@@ -336,32 +336,33 @@
 				onclick={() => (filtersOpen = !filtersOpen)}
 				aria-expanded={filtersOpen}
 				class="btn btn-secondary md:hidden"
-				>{language.t('ui.Filters')}{activeFilterCount ? ` (${activeFilterCount})` : ''}</button
 			>
+				{language.t('ui.Filters')}{activeFilterCount ? ` (${activeFilterCount})` : ''}
+			</button>
 		{:else}
 			<details class="w-full">
 				<summary>{language.t('ui.Filters')}</summary>
 				<div class="grid gap-4 sm:grid-cols-4">
 					<fieldset>
 						<legend>{language.t('ui.Match.colors.by')}</legend>
-						<label class="mr-3"
-							><input
+						<label class="mr-3">
+							<input
 								type="radio"
 								name="colorMode"
 								value="color"
 								checked={input.filters.colorMatch?.field !== 'identity'}
 							/>
-							{language.t('ui.Color')}</label
-						>
-						<label
-							><input
+							{language.t('ui.Color')}
+						</label>
+						<label>
+							<input
 								type="radio"
 								name="colorMode"
 								value="identity"
 								checked={input.filters.colorMatch?.field === 'identity'}
 							/>
-							{language.t('ui.Identity')}</label
-						>
+							{language.t('ui.Identity')}
+						</label>
 					</fieldset>
 					{#each [{ name: 'color', label: language.t('ui.Colors.OR'), options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: language.t('ui.Colors.AND'), options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'colorNot', label: language.t('ui.Colors.NOT'), options: MANA_COLORS, selected: input.filters.colorMatch?.not }, { name: 'rarity', label: language.t('ui.Rarity'), options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: language.t('ui.Card.type'), options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: language.t('ui.Legality'), options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
 						<fieldset>
@@ -370,32 +371,36 @@
 									? language.message(
 											'A second color filter assigns NOT to remaining colors; Clear filters resets the selection'
 										)
-									: undefined}>{group.label}</legend
-							>{#each group.options as option}<label class="flex items-center gap-2"
-									><input
+									: undefined}
+							>
+								{group.label}
+							</legend>{#each group.options as option}<label class="flex items-center gap-2">
+									<input
 										type="checkbox"
 										name={group.name}
 										value={option.id}
 										checked={group.selected?.some((value) => value === option.id)}
-									/>{filterOptionLabel(option, language.locale)}</label
-								>{/each}
+									/>{filterOptionLabel(option, language.locale)}
+								</label>{/each}
 						</fieldset>
 					{/each}
 					<fieldset>
 						<legend>{language.t('ui.Language')}</legend>
 						<p>{language.t('ui.No.languages.selected.means.all.languages')}</p>
 						{#each printingLanguageOptions(language.locale) as printingLanguage}
-							<label class="flex items-center gap-2"
-								><input
+							<label class="flex items-center gap-2">
+								<input
 									type="checkbox"
 									name="lang"
 									value={printingLanguage.id}
 									checked={input.filters.languages?.includes(printingLanguage.id)}
 								/><span
 									class="inline-flex w-5 shrink-0 justify-center text-base leading-none"
-									aria-hidden="true">{printingLanguage.flag}</span
-								>{printingLanguage.label}</label
-							>
+									aria-hidden="true"
+								>
+									{printingLanguage.flag}
+								</span>{printingLanguage.label}
+							</label>
 						{/each}
 					</fieldset>
 				</div>
@@ -418,16 +423,16 @@
 				class="search-status flex flex-wrap items-center gap-3 pb-3 text-sm text-text-muted"
 				aria-live="polite"
 			>
-				<span class="font-medium text-foreground"
-					>{loading && !total
+				<span class="font-medium text-foreground">
+					{loading && !total
 						? language.t('ui.Finding.cards')
 						: language.t(`printing.${language.plural(matchedPrintingTotal)}`, {
 								count: language.number(matchedPrintingTotal)
-							})}</span
-				>
-				<span
-					>{language.t(`unique.${language.plural(total)}`, { count: language.number(total) })}</span
-				>
+							})}
+				</span>
+				<span>
+					{language.t(`unique.${language.plural(total)}`, { count: language.number(total) })}
+				</span>
 				{#if colorExpression}
 					<span
 						class="color-expression"
@@ -442,11 +447,13 @@
 						<span class="sr-only">{colorExpression.spoken}</span>
 					</span>
 				{/if}
-				{#if error}<span class="text-error">{language.t('ui.Search.unavailable')}</span
-					>{#if mounted}<button class="btn btn-ghost" onclick={() => catalog.retry()}
-							>{language.t('ui.Retry')}</button
-						>{:else}<a {href}>{language.t('ui.Retry.search')}</a
-						>{/if}{:else if loading && total}<span>{language.t('ui.Loading')}</span>{/if}
+				{#if error}<span class="text-error">
+						{language.t('ui.Search.unavailable')}
+					</span>{#if mounted}<button class="btn btn-ghost" onclick={() => catalog.retry()}>
+							{language.t('ui.Retry')}
+						</button>{:else}<a {href}>
+							{language.t('ui.Retry.search')}
+						</a>{/if}{:else if loading && total}<span>{language.t('ui.Loading')}</span>{/if}
 			</h2>
 			<SearchResults
 				{restorationTarget}
