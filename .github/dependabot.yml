@@ -23,48 +23,32 @@ updates:
         update-types:
           - minor
           - patch
+      frontend-dev-non-major:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
 
   # Supported updater tools: docs/operations/github-automation.md#dependabot
   - package-ecosystem: uv
-    directory: '/backend/workers/catalog'
+    directories:
+      - '/backend/core'
+      - '/backend/api'
+      - '/backend/workers/state'
+      - '/backend/workers/catalog'
+      - '/backend/workers/scan'
     schedule:
       interval: weekly
       day: monday
       time: '05:45'
       timezone: 'UTC'
     open-pull-requests-limit: 5
-
-  - package-ecosystem: uv
-    directory: '/backend/workers/scan'
-    schedule:
-      interval: weekly
-      day: monday
-      time: '06:00'
-      timezone: 'UTC'
-    open-pull-requests-limit: 5
-  - package-ecosystem: uv
-    directory: '/backend/api'
-    schedule:
-      interval: weekly
-      day: monday
-      time: '05:45'
-      timezone: 'UTC'
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: uv
-    directory: '/backend/core'
-    schedule:
-      interval: weekly
-      day: monday
-      time: '05:45'
-      timezone: 'UTC'
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: uv
-    directory: '/backend/workers/state'
-    schedule:
-      interval: weekly
-      day: monday
-      time: '05:45'
-      timezone: 'UTC'
-    open-pull-requests-limit: 5
+    groups:
+      python-dev-patch:
+        dependency-type: development
+        update-types:
+          - patch
+      python-prod-patch:
+        dependency-type: production
+        update-types:
+          - patch
