@@ -225,14 +225,16 @@
 	.history-overview span,
 	.history-metrics span {
 		color: var(--color-text-muted);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.demo-note {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.5rem;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 		margin-top: 0.75rem;
 	}
@@ -268,10 +270,10 @@
 	}
 	small {
 		display: block;
-		font-size: 0.625rem;
+		font-size: var(--text-meta);
 		font-weight: 400;
 		color: var(--color-text-muted);
-		line-height: 1.6;
+		line-height: var(--text-meta--line-height);
 	}
 	.history-metrics {
 		display: grid;
@@ -296,8 +298,8 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.history-metrics .calendar {
-		font-size: 0.8125rem;
-		line-height: 1.75;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		overflow-wrap: anywhere;
 	}
 	.history-empty {
@@ -312,14 +314,15 @@
 		margin-top: 1rem;
 	}
 	.history-empty strong {
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		font-weight: 500;
 	}
 	.history-empty p {
 		color: var(--color-text-muted);
 		max-width: 42ch;
-		font-size: 0.6875rem;
-		line-height: 1.7;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	@media (max-width: 540px) {
 		.history-metrics {

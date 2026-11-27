@@ -80,17 +80,19 @@
 	}
 	:global(.confirm-title) {
 		font-family: var(--font-display);
-		font-size: 1.5rem;
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
 		margin-bottom: 0.75rem;
 	}
 	:global(.confirm-description) {
-		font-size: 0.8125rem;
-		line-height: 1.65;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		color: var(--color-text-secondary);
 	}
 	.confirm-error {
 		color: var(--color-error);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		margin-top: 0.75rem;
 	}
 	.confirm-actions {

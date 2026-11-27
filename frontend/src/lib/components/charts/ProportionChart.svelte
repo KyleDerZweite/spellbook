@@ -260,8 +260,8 @@
 	.inspection-label {
 		display: block;
 		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
-		line-height: 1.5;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.inspection-label i {
 		display: inline-block;
@@ -274,7 +274,8 @@
 		display: block;
 		margin-top: 0.25rem;
 		color: var(--color-text-primary);
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
 	}
@@ -282,7 +283,8 @@
 		display: block;
 		margin-top: 0.2rem;
 		color: var(--color-text-muted);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.proportion-bar .inspection {
 		top: calc(100% + 6px);
@@ -296,7 +298,8 @@
 	}
 	.native-chart-data {
 		margin-top: 1rem;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.native-chart-data div {
 		display: block;

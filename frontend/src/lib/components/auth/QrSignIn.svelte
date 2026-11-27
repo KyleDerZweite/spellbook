@@ -199,9 +199,9 @@
 		height: auto;
 	}
 	h2 {
-		font-size: 1.125rem;
+		font-size: var(--text-section-title);
 		font-weight: 600;
-		line-height: 1.4;
+		line-height: var(--text-section-title--line-height);
 	}
 	.qr-status {
 		min-height: 2lh;
@@ -213,6 +213,8 @@
 		min-height: 44px;
 		align-content: center;
 		cursor: pointer;
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 	}
 </style>

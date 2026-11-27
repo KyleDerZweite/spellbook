@@ -347,7 +347,8 @@
 	.secondary-add {
 		max-width: 24rem;
 		margin-top: 1rem;
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.native-actions {
 		display: flex;

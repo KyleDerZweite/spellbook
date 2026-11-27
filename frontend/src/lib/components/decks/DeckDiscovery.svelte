@@ -185,7 +185,8 @@
 		flex: 1;
 	}
 	.catalog-options {
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		margin: 0.75rem 0;
 	}
 	.catalog-options label {
@@ -200,7 +201,8 @@
 	}
 	.add-options label,
 	.add-section {
-		font-size: 0.6875rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		color: var(--color-text-secondary);
 	}
 	.add-section {
@@ -253,7 +255,8 @@
 	}
 	.card-name {
 		text-align: left;
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		overflow-wrap: anywhere;
 		font-weight: 500;
 	}
@@ -263,7 +266,8 @@
 	.muted,
 	.notice,
 	.empty-state {
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.empty-state {

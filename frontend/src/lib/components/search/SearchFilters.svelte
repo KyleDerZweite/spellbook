@@ -258,7 +258,9 @@
 		background: none;
 		padding: 8px 0;
 		font: inherit;
-		font-size: 12px;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		color: var(--color-text-secondary);
 		text-decoration: underline;
 		text-underline-offset: 4px;
@@ -282,7 +284,8 @@
 		padding: 0;
 		color: var(--color-text-secondary);
 		font: inherit;
-		font-size: 13px;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		font-weight: 500;
 		cursor: pointer;
 	}
@@ -291,7 +294,8 @@
 	}
 	.filter-count {
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.filter-chevron {
@@ -314,7 +318,9 @@
 		align-items: center;
 		gap: 0.5rem;
 		min-height: 40px;
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		cursor: pointer;
 	}
 	.color-mode input {
@@ -393,7 +399,8 @@
 		padding: 4px 0;
 		color: var(--color-text-secondary);
 		font: inherit;
-		font-size: 12px;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		text-align: left;
 		cursor: pointer;
 	}

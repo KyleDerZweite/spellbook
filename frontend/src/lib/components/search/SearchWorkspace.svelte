@@ -517,7 +517,10 @@
 		border-radius: 12px;
 		background: var(--color-card);
 		color: var(--color-text-secondary);
-		font: 400 11px/1.5 var(--font-mono);
+		font-family: var(--font-mono);
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
+		font-weight: 400;
 		overflow-wrap: anywhere;
 	}
 	.color-expression code {

@@ -108,8 +108,8 @@
 	.site-footer {
 		padding: 1.5rem 1rem;
 		text-align: center;
-		font-size: 0.75rem;
-		line-height: 1.6;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 	}
 	.footer-row {
@@ -134,6 +134,7 @@
 	.credits {
 		max-width: 60rem;
 		margin: 0.5rem auto 0;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 </style>

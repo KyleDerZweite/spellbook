@@ -29,17 +29,17 @@
 </svelte:head>
 
 <div class="legal-page mx-auto px-4 py-8 sm:px-6">
-	<h1 class="mb-2 font-display text-xl font-semibold text-text-primary">
+	<h1 class="mb-2 font-display text-page-title font-semibold text-text-primary">
 		{language.t('ui.Terms.of.Service')}
 	</h1>
-	<p class="mb-8 font-body text-sm text-text-muted">
+	<p class="mb-8 font-body text-meta text-text-muted">
 		{language.t('ui.Last.updated.March.25.2026')}
 	</p>
 
-	<div class="space-y-8 font-body text-sm text-text-secondary">
+	<div class="space-y-8 font-body text-body-compact text-text-secondary">
 		<!-- 1. Scope -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.1.Scope')}
 			</h2>
 			<p class="mb-2">
@@ -64,7 +64,7 @@
 
 		<!-- 2. Operator -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.2.Operator')}
 			</h2>
 			<p>
@@ -81,7 +81,7 @@
 
 		<!-- 3. User Obligations -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.3.User.Obligations')}
 			</h2>
 			<p class="mb-2">{language.t('ui.By.using.Spellbook.you.agree.to')}</p>
@@ -112,7 +112,7 @@
 
 		<!-- 4. Intellectual Property -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.4.Intellectual.Property')}
 			</h2>
 			<p class="mb-2">
@@ -139,7 +139,7 @@
 
 		<!-- 5. Availability -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.5.Service.Availability')}
 			</h2>
 			<p>
@@ -151,7 +151,7 @@
 
 		<!-- 6. Limitation of Liability -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.6.Limitation.of.Liability')}
 			</h2>
 			<p class="mb-2">
@@ -173,7 +173,7 @@
 
 		<!-- 7. Data Protection -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.7.Data.Protection')}
 			</h2>
 			<p>
@@ -190,7 +190,7 @@
 
 		<!-- 8. Account Termination -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.8.Account.Termination')}
 			</h2>
 			<p class="mb-2">
@@ -212,7 +212,7 @@
 
 		<!-- 9. Changes to Terms -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.9.Changes.to.These.Terms')}
 			</h2>
 			<p>
@@ -224,7 +224,7 @@
 
 		<!-- 10. Governing Law -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.10.Governing.Law.and.Jurisdiction')}
 			</h2>
 			<p class="mb-2">
@@ -241,7 +241,7 @@
 
 		<!-- 11. Online Dispute Resolution -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.11.Online.Dispute.Resolution')}
 			</h2>
 			<p>
@@ -260,7 +260,7 @@
 
 		<!-- 12. Severability -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.12.Severability')}
 			</h2>
 			<p>
@@ -272,7 +272,7 @@
 
 		<!-- 13. Contact -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.13.Contact')}
 			</h2>
 			<p class="mb-3">{language.t('ui.For.questions.about.these.terms')}</p>

@@ -188,7 +188,7 @@
 				}}
 				aria-pressed={activeTab === tab.id}
 				disabled={pending}
-				class="relative min-h-11 cursor-pointer border-none bg-transparent pb-2 font-body text-sm transition-colors disabled:opacity-50"
+				class="relative min-h-11 cursor-pointer border-none bg-transparent pb-2 font-body text-control transition-colors disabled:opacity-50"
 				style="color: {activeTab === tab.id
 					? 'var(--color-gold-bright)'
 					: 'var(--color-text-muted)'};"
@@ -246,7 +246,7 @@
 					<button
 						disabled={pending}
 						onclick={() => (allPrintingsView = false)}
-						class="min-h-11 cursor-pointer rounded border-none bg-transparent px-2 py-1 font-body text-sm text-text-muted transition-colors hover:text-gold-bright"
+						class="min-h-11 cursor-pointer rounded border-none bg-transparent px-2 py-1 font-body text-control text-text-muted transition-colors hover:text-gold-bright"
 					>
 						{language.t('ui.Back')}
 					</button>
@@ -384,7 +384,7 @@
 						type="button"
 						onclick={() => (allPrintingsView = true)}
 						disabled={pending}
-						class="btn btn-secondary font-body text-xs">{language.t('ui.All.printings')}</button
+						class="btn btn-secondary font-body">{language.t('ui.All.printings')}</button
 					>
 					<fieldset class="printing-availability" disabled={pending}>
 						<legend>{language.t('ui.Printing.availability')}</legend>
@@ -532,7 +532,7 @@
 					<div class="flex flex-wrap gap-1.5">
 						{#each Object.entries(activeCard.legalities) as [format, status]}
 							<span
-								class="rounded px-2 py-0.5 font-mono text-[10px] uppercase"
+								class="rounded px-2 py-0.5 font-mono text-meta uppercase"
 								style="
 													background-color: {status === 'legal'
 									? 'var(--color-success)'
@@ -585,8 +585,8 @@
 	}
 	.mobile-printing-identity {
 		min-width: 0;
-		font-size: 0.8125rem;
-		line-height: 1.5;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		overflow-wrap: anywhere;
 	}
 	.mobile-printing-identity p + p {
@@ -604,7 +604,8 @@
 	}
 	.printing-availability legend {
 		color: var(--color-text-secondary);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.printing-availability > div {
 		display: flex;
@@ -613,7 +614,9 @@
 	.printing-availability button {
 		min-height: 44px;
 		min-width: 44px;
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		color: var(--color-text-secondary);
 		cursor: pointer;
 	}
@@ -642,7 +645,8 @@
 			gap: 0.75rem;
 		}
 		.mobile-printing-identity {
-			font-size: 0.75rem;
+			font-size: var(--text-meta);
+			line-height: var(--text-meta--line-height);
 		}
 	}
 </style>

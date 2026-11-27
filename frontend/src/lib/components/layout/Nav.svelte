@@ -307,7 +307,8 @@
 			gap: 0.25rem;
 			min-height: 44px;
 			padding: 0.5rem 0;
-			font-size: 0.7rem;
+			font-size: var(--text-meta);
+			line-height: var(--text-meta--line-height);
 			color: var(--color-foreground);
 			text-decoration: none;
 		}
@@ -326,7 +327,8 @@
 		align-items: center;
 		gap: 0.75rem;
 		min-width: 0;
-		font-size: 0.875rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
 		font-weight: 500;
 	}
 	.account-identity span {

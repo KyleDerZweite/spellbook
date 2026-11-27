@@ -48,7 +48,9 @@
 		padding: 0.25rem 0;
 		border-bottom: 1px solid transparent;
 		color: var(--color-text-secondary);
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 	}
 	.settings-nav a:hover,
 	.settings-nav a[aria-current='page'] {

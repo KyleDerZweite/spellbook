@@ -88,17 +88,22 @@
 	article p,
 	small {
 		color: var(--color-text-secondary);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	h2 {
-		font: 400 1.25rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 		margin-bottom: 0.5rem;
 	}
 	h3 {
 		font-weight: 500;
 	}
 	.token-sources {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.token-grid {

@@ -59,7 +59,6 @@
 <style>
 	:global(.filter-trigger) {
 		padding-inline: 0.75rem;
-		font-size: 0.75rem;
 	}
 	:global(.filter-trigger[data-active]) {
 		color: var(--color-text-primary);

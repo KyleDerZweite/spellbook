@@ -15,7 +15,7 @@
 
 <div class="app-home mx-auto w-full max-w-2xl px-4 py-8 space-y-8">
 	<header class="space-y-2">
-		<h1 class="text-3xl font-semibold">{language.t('ui.Your.Spellbook')}</h1>
+		<h1 class="font-display text-page-title font-semibold">{language.t('ui.Your.Spellbook')}</h1>
 		<p class="text-text-secondary">{language.t('ui.Your.cards.decks.and.connected.devices')}</p>
 	</header>
 	{#if data.user}
@@ -42,7 +42,9 @@
 		class="rounded-xl border border-border p-5 space-y-4"
 		aria-label={language.t('ui.Install.app')}
 	>
-		<h2 class="text-xl font-semibold">{language.t('ui.Spellbook.on.your.phone')}</h2>
+		<h2 class="font-display text-section-title font-semibold">
+			{language.t('ui.Spellbook.on.your.phone')}
+		</h2>
 		<InstallApp />
 	</section>
 </div>

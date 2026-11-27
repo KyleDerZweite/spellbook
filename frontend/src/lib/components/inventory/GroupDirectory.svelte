@@ -344,12 +344,14 @@
 		gap: 0.25rem;
 	}
 	.group-link strong {
-		font-size: 0.875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		font-weight: 500;
 		overflow-wrap: anywhere;
 	}
 	.group-link small {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 	}
 	.group-link:hover strong {

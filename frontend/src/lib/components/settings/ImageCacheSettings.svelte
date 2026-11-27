@@ -87,7 +87,8 @@
 	}
 	.image-cache-settings h2 {
 		font-family: var(--font-display);
-		font-size: 1.5rem;
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
 	}
 	.image-cache-actions {
 		display: flex;

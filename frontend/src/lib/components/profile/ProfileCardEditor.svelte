@@ -175,7 +175,9 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		font-size: 0.8125rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 		width: fit-content;
 	}
 	.legendary-control input {
@@ -186,20 +188,22 @@
 	.field-help {
 		margin: 0.35rem 0 0;
 		color: var(--color-text-muted);
-		font-size: 0.6875rem;
-		line-height: 1.5;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.field-count {
 		margin: 0.35rem 0 0;
 		color: var(--color-text-muted);
 		text-align: right;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
 	.field-error {
 		margin: 0.3rem 0 0;
 		color: var(--color-error);
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.field-error:empty {
 		display: none;

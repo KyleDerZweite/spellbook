@@ -31,17 +31,17 @@
 </svelte:head>
 
 <div class="legal-page mx-auto px-4 py-8 sm:px-6">
-	<h1 class="mb-2 font-display text-xl font-semibold text-text-primary">
+	<h1 class="mb-2 font-display text-page-title font-semibold text-text-primary">
 		{language.t('ui.Privacy.Policy')}
 	</h1>
-	<p class="mb-8 font-body text-sm text-text-muted">
+	<p class="mb-8 font-body text-meta text-text-muted">
 		{language.t('ui.Last.updated.October.3.2026')}
 	</p>
 
-	<div class="space-y-8 font-body text-sm text-text-secondary">
+	<div class="space-y-8 font-body text-body-compact text-text-secondary">
 		<!-- 1. Scope -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.1.Scope')}
 			</h2>
 			<p class="mb-2">
@@ -61,7 +61,7 @@
 
 		<!-- 2. Responsible Party -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.2.Responsible.Party')}
 			</h2>
 			<p>
@@ -80,7 +80,7 @@
 
 		<!-- 3. Overview -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.3.Overview')}
 			</h2>
 			<p>
@@ -92,7 +92,7 @@
 
 		<!-- 4. Hosting & Data Location -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.4.Hosting.and.Data.Location')}
 			</h2>
 			<p>
@@ -104,7 +104,7 @@
 
 		<!-- 5. Data We Collect -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.5.Data.We.Collect')}
 			</h2>
 
@@ -171,7 +171,7 @@
 
 		<!-- 6. Data We Do NOT Collect -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.6.Data.We.Do.Not.Collect')}
 			</h2>
 			<ul class="ml-4 list-inside list-disc space-y-1">
@@ -187,7 +187,7 @@
 
 		<!-- 7. Third-Party Data Sharing -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.7.Third.Party.Data.Sharing')}
 			</h2>
 			<p>
@@ -199,7 +199,7 @@
 
 		<!-- 8. Data Security -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.8.Data.Security')}
 			</h2>
 			<p>
@@ -211,7 +211,7 @@
 
 		<!-- 9. Your Rights -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.9.Your.Rights.Under.GDPR')}
 			</h2>
 			<p class="mb-3">
@@ -272,7 +272,7 @@
 
 		<!-- 10. Changes -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.10.Changes.to.This.Policy')}
 			</h2>
 			<p>
@@ -284,7 +284,7 @@
 
 		<!-- 11. Contact -->
 		<section>
-			<h2 class="mb-3 font-display text-lg font-semibold text-text-primary">
+			<h2 class="mb-3 font-display text-section-title font-semibold text-text-primary">
 				{language.t('ui.11.Contact')}
 			</h2>
 			<p class="mb-3">

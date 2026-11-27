@@ -76,7 +76,9 @@
 		place-items: center;
 		border-radius: 0.5rem;
 		color: var(--color-text-secondary);
-		font-size: 0.75rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 	}
 	.periods button[aria-pressed='true'] {
 		background: var(--color-muted);
@@ -93,7 +95,9 @@
 		gap: 0.5rem;
 		flex: 1 1 9rem;
 		min-width: 0;
-		font-size: 0.6875rem;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 600;
 		color: var(--color-text-secondary);
 	}
 	input {
@@ -105,5 +109,13 @@
 		border-radius: 0.5rem;
 		background: var(--color-card);
 		color: var(--color-text-primary);
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
+	}
+	@media (max-width: 700px) {
+		input {
+			font-size: var(--text-body);
+			line-height: var(--text-body--line-height);
+		}
 	}
 </style>

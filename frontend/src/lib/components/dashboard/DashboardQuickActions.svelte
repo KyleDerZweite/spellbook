@@ -44,11 +44,17 @@
 		padding: 24px 16px;
 		border-radius: 10px;
 		color: var(--color-text-primary);
-		font: 400 13px/1.4 var(--font-interface);
+		font-family: var(--font-interface);
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 	}
 	h2 {
 		margin: 0 0 24px;
-		font: 400 20px/1.3 var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 	}
 	nav {
 		display: grid;

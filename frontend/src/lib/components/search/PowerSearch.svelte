@@ -244,7 +244,8 @@
 		color: var(--color-text-primary);
 		box-shadow: 0 24px 80px #0006;
 		font-family: var(--font-interface);
-		font-size: 14px;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 		outline: none;
 	}
 	:global(.power-search-command) {
@@ -284,7 +285,8 @@
 	:global(.power-search-heading) {
 		padding: 9px 8px 5px;
 		color: var(--color-text-muted);
-		font-size: 12px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 400;
 	}
 	:global(.power-search-result) {
@@ -325,14 +327,16 @@
 		text-overflow: ellipsis;
 	}
 	.power-search-description {
-		font-size: 12px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 	}
 	.power-search-context {
 		margin-left: auto;
 		padding-left: 8px;
 		flex-shrink: 0;
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-muted);
 	}
 	.power-search-empty {
@@ -343,7 +347,8 @@
 	.power-search-status {
 		padding: 0 17px;
 		color: var(--color-text-muted);
-		font-size: 12px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.power-search-status:not(:empty) {
 		padding-block: 8px;
@@ -370,19 +375,18 @@
 		background: var(--color-command-key);
 		color: var(--color-text-primary);
 		font-family: var(--font-interface);
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	@media (pointer: coarse) {
 		:global(.power-search-result) {
 			min-height: 44px;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (max-width: 700px) {
 		.power-search-field :global(input) {
-			font-size: 16px;
-		}
-		.power-search-context {
-			font-size: 10px;
+			font-size: var(--text-body);
+			line-height: var(--text-body--line-height);
 		}
 	}
 </style>

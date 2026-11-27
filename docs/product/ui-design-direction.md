@@ -1,7 +1,7 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-11-26
+- Last Reviewed: 2026-11-27
 - Source of Truth: accepted product requirements, application components, selected logo and
   component choices
 - Update Triggers:
@@ -914,6 +914,29 @@ The [specification's acceptance criteria](./specification.md#interface-acceptanc
 requirements. The
 [verification workflow](../operations/github-automation.md#browser-verification-and-evidence) owns
 browser checks and evidence.
+
+## Typography scale
+
+Web views retain the existing font families (`--font-display`, `--font-body`, `--font-interface`)
+and use six semantic Tailwind v4 `@theme` typography tokens (`--text-*` and `--text-*--line-height`
+in `rem`, referenced to a `16px` root) codified in
+[`frontend/src/app.css`](../../frontend/src/app.css):
+
+| Token                | Size / Line-Height (`px` / `rem`)      | Use                                                                     |
+| -------------------- | -------------------------------------- | ----------------------------------------------------------------------- |
+| `text-page-title`    | `24 / 32` (`1.5rem / 2rem`)            | Page titles (`.page-title h1`, `.account-form h1`, workspace headers)   |
+| `text-section-title` | `20 / 28` (`1.25rem / 1.75rem`)        | Section, panel and dialog titles                                        |
+| `text-body`          | `16 / 24` (`1rem / 1.5rem`)            | Body copy and mobile inputs (`<= 700px`, avoids iOS Safari auto-zoom)   |
+| `text-body-compact`  | `14 / 20` (`0.875rem / 1.25rem`)       | Inventory and deck lists, desktop inputs and dense workspace copy       |
+| `text-control`       | `14 / 20` (`0.875rem / 1.25rem`), 500+ | Navigation links, buttons, filter triggers and form labels (500 to 600) |
+| `text-meta`          | `12 / 16` (`0.75rem / 1rem`)           | Metadata, timestamps, counts, helper copy and status badges             |
+
+Typography consistency rules:
+
+- Keep controls of the same category (navigation, buttons, form labels) on `text-control` across all
+  views rather than ad-hoc sizes such as `12.8px` or `13px`.
+- Never override `.input` with smaller utility text classes (`text-xs`, `text-sm`) that would defeat
+  the `16px` (`text-body`) mobile rule against iOS auto-zoom.
 
 ## Spacing grid and control alignment
 

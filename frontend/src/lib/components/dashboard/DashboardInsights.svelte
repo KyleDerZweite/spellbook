@@ -359,7 +359,10 @@
 		padding: 24px 16px;
 		border-radius: 10px;
 		color: var(--color-text-primary);
-		font: 400 13px/1.4 var(--font-interface);
+		font-family: var(--font-interface);
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
+		font-weight: 400;
 	}
 	header {
 		display: flex;
@@ -373,7 +376,10 @@
 		align-items: center;
 		gap: 8px;
 		margin: 0;
-		font: 400 20px/1.3 var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 	}
 	p {
 		color: var(--color-text-muted);
@@ -418,7 +424,8 @@
 		align-items: center;
 		gap: 8px;
 		margin-top: 20px;
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	a {
 		color: var(--color-text-secondary);
@@ -478,13 +485,15 @@
 		font-weight: 500;
 	}
 	.center-label {
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.legend {
 		flex: 1;
 		margin: 0;
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.legend div {
 		display: flex;
@@ -534,7 +543,10 @@
 		background: transparent;
 		color: var(--color-text-primary);
 		cursor: pointer;
-		font: 400 11px var(--font-interface);
+		font-family: var(--font-interface);
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
+		font-weight: 400;
 	}
 	.plot {
 		display: flex;
@@ -560,13 +572,15 @@
 		font-size: 21px;
 	}
 	.columns strong {
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		font-weight: 400;
 	}
 	.inspection {
 		min-height: 16px;
 		margin: 8px 0 0;
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		text-align: center;
 	}
 	.entries {
@@ -616,7 +630,8 @@
 		grid-column: 1;
 		grid-row: 2;
 		color: var(--color-text-secondary);
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.entry-text > span {
 		display: block;
@@ -627,7 +642,8 @@
 		grid-row: 3;
 		align-self: center;
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		overflow-wrap: anywhere;
 	}
 	.chevron {
@@ -656,7 +672,8 @@
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 0 10px;
-			font-size: 11px;
+			font-size: var(--text-meta);
+			line-height: var(--text-meta--line-height);
 		}
 		.legend div {
 			padding: 3px 0;
@@ -709,7 +726,9 @@
 		gap: 8px;
 		align-items: center;
 		flex-shrink: 0;
-		font-size: 11px;
+		font-size: var(--text-control);
+		line-height: var(--text-control--line-height);
+		font-weight: 500;
 	}
 	.set-symbol {
 		width: 28px;
@@ -730,7 +749,6 @@
 	}
 	@media (min-width: 1150px) and (max-width: 1450px) {
 		h2 {
-			font-size: 17px;
 			gap: 8px;
 		}
 		.set-row {

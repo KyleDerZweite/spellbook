@@ -123,7 +123,8 @@
 	}
 	.membership-list span {
 		overflow-wrap: anywhere;
-		font-size: 0.8125rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.group-form-actions {
 		display: flex;

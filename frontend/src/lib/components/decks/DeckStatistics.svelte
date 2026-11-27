@@ -202,15 +202,22 @@
 		margin-bottom: 1rem;
 	}
 	h2 {
-		font: 400 1.25rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-section-title);
+		line-height: var(--text-section-title--line-height);
+		font-weight: 400;
 	}
 	h3 {
-		font: 400 1rem var(--font-display);
+		font-family: var(--font-display);
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
+		font-weight: 400;
 	}
 	.statistics-heading select {
 		width: auto;
 		max-width: 100%;
-		font-size: 0.6875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.analysis-grid {
 		display: grid;
@@ -228,7 +235,8 @@
 	}
 	.chart-heading > span {
 		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.curve {
 		display: flex;
@@ -243,7 +251,8 @@
 		flex: 1;
 		min-width: 0;
 		text-align: center;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		border-radius: 0.25rem;
 		font-variant-numeric: tabular-nums;
 	}
@@ -251,7 +260,8 @@
 		min-height: 1rem;
 		margin-top: 0.5rem;
 		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.curve-column:hover,
 	.curve-column:focus-visible {
@@ -281,7 +291,8 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		margin-top: 1rem;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
@@ -302,7 +313,8 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.color-caption {
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 	}
 	.color-key {
@@ -310,7 +322,8 @@
 		gap: 0.5rem;
 		flex: 1 1 10rem;
 		min-width: 0;
-		font-size: 0.6875rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 	}
 	.color-key > div {
 		display: flex;
@@ -333,15 +346,24 @@
 	.measure {
 		width: auto;
 		max-width: 100%;
-		font-size: 0.6875rem;
+		font-size: var(--text-body-compact);
+		line-height: var(--text-body-compact--line-height);
 	}
 	.empty-chart {
 		display: grid;
 		min-height: 11rem;
 		place-items: center;
-		font-size: 0.75rem;
+		font-size: var(--text-meta);
+		line-height: var(--text-meta--line-height);
 		color: var(--color-text-secondary);
 		text-align: center;
+	}
+	@media (max-width: 700px) {
+		.statistics-heading select,
+		.measure {
+			font-size: var(--text-body);
+			line-height: var(--text-body--line-height);
+		}
 	}
 	@container (max-width: 760px) {
 		.analysis-grid {
