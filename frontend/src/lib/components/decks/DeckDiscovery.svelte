@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Search from '@lucide/svelte/icons/search';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
@@ -66,7 +67,9 @@
 		maxlength="200"
 		required
 	/>
-	<Button type="submit" variant="default" disabled={searching}>{language.t('ui.Search')}</Button>
+	<Button type="submit" variant="default" disabled={searching}
+		><Search size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Search')}</Button
+	>
 </form>
 <div class="catalog-options">
 	<label><input type="checkbox" bind:checked={ownedOnly} /> {language.t('ui.Owned.only')}</label>
@@ -153,7 +156,7 @@
 							addQuantity < 1 ||
 							addQuantity > 10000}
 						aria-label={language.t('message.Add.p0', { p0: String(card.name) })}
-						><PlusIcon />{language.t('ui.Add')}</Button
+						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add')}</Button
 					>
 					<Button
 						variant="ghost"

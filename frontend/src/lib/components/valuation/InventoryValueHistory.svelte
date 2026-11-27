@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import RotateCcwClock from '@lucide/svelte/icons/rotate-ccw-clock';
 	import type { Snippet } from 'svelte';
 	import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
 	import type { InventoryValueHistory } from '@spellbook/contracts/inventory-value.ts';
@@ -102,15 +103,7 @@
 		{/if}
 		{#if overview.captured === 0 || chart.segments.length === 0}
 			<div class="history-empty">
-				<svg
-					viewBox="0 0 24 24"
-					width="24"
-					height="24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
-					aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6M12 7v5l3 2" /></svg
-				>
+				<RotateCcwClock size={20} aria-hidden="true" />
 				<strong
 					>{overview.captured === 0
 						? language.t('ui.No.saved.history.yet')

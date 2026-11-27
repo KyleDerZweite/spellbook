@@ -11,6 +11,17 @@
 	import { pwaState } from '#lib/pwa/state.svelte.ts';
 	import { asset } from '$app/paths';
 	import { Dialog } from 'bits-ui';
+	import Archive from '@lucide/svelte/icons/archive';
+	import House from '@lucide/svelte/icons/house';
+	import Layers from '@lucide/svelte/icons/layers';
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import LogOut from '@lucide/svelte/icons/log-out';
+	import Menu from '@lucide/svelte/icons/menu';
+	import QrCode from '@lucide/svelte/icons/qr-code';
+	import Search from '@lucide/svelte/icons/search';
+	import Settings from '@lucide/svelte/icons/settings';
+	import Smartphone from '@lucide/svelte/icons/smartphone';
+	import X from '@lucide/svelte/icons/x';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import AuthEntry from './AuthEntry.svelte';
@@ -30,46 +41,46 @@
 		{
 			href: user ? '/mtg/dashboard' : '/',
 			label: user ? language.t('ui.Dashboard') : language.t('ui.Home'),
-			icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'
+			icon: user ? LayoutGrid : House
 		},
 		{
 			href: '/mtg/search',
 			label: language.t('ui.Search'),
-			icon: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0'
+			icon: Search
 		},
 		{
 			href: '/mtg/inventory',
 			label: language.t('ui.Inventory'),
-			icon: 'M4 4h16v16H4zM4 10h16M10 10v10'
+			icon: Archive
 		},
 		{
 			href: '/mtg/decks',
 			label: language.t('ui.Decks'),
-			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
+			icon: Layers
 		}
 	]);
 
 	const APP_LINKS = $derived([
-		{ href: '/app', label: 'App', icon: 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h4' },
+		{ href: '/app', label: 'App', icon: Smartphone },
 		{
 			href: '/mtg/search',
 			label: language.t('ui.Search'),
-			icon: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0'
+			icon: Search
 		},
 		{
 			href: '/mtg/inventory',
 			label: language.t('ui.Inventory'),
-			icon: 'M4 4h16v16H4zM4 10h16M10 10v10'
+			icon: Archive
 		},
 		{
 			href: '/mtg/decks',
 			label: language.t('ui.Decks'),
-			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
+			icon: Layers
 		},
 		{
 			href: '/app/connect',
 			label: language.t('ui.Connect'),
-			icon: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M8 8h8v8H8z'
+			icon: QrCode
 		}
 	]);
 
@@ -88,9 +99,13 @@
 	let logoutForm: HTMLFormElement | undefined = $state();
 	const userName = $derived(user?.username || language.t('ui.Account'));
 	const accountActions: ComponentProps<typeof ActionMenu>['items'] = $derived([
-		{ label: language.t('ui.Settings'), href: '/settings' },
-		{ label: 'App', href: '/app' },
-		{ label: language.t('ui.Sign.out'), onSelect: () => logoutForm?.requestSubmit() }
+		{ label: language.t('ui.Settings'), href: '/settings', icon: settingsIcon },
+		{ label: 'App', href: '/app', icon: appIcon },
+		{
+			label: language.t('ui.Sign.out'),
+			icon: signOutIcon,
+			onSelect: () => logoutForm?.requestSubmit()
+		}
 	]);
 
 	function searchClick(event: MouseEvent, mobile = false) {
@@ -111,6 +126,10 @@
 	}
 </script>
 
+{#snippet settingsIcon()}<Settings size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet appIcon()}<Smartphone size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet signOutIcon()}<LogOut size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+
 <a
 	href="#main-content"
 	class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-[200] focus:rounded focus:bg-gold focus:px-4 focus:py-2 focus:text-text-on-gold"
@@ -120,20 +139,13 @@
 {#if pwaState.standalone}
 	<nav class="app-bottom-nav" aria-label={language.t('ui.App')}>
 		{#each APP_LINKS as link}
+			{@const Icon = link.icon}
 			<a
 				href={link.href}
 				onclick={link.href === '/mtg/search' ? (event) => searchClick(event) : undefined}
 				aria-current={isActive(link.href) ? 'page' : undefined}
 			>
-				<svg
-					aria-hidden="true"
-					width="20"
-					height="20"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"><path d={link.icon} /></svg
-				>
+				<Icon size={20} aria-hidden="true" class="shrink-0" />
 				<span>{link.label}</span>
 			</a>
 		{/each}
@@ -159,6 +171,7 @@
 		</div>
 		<div class="desktop-links">
 			{#each NAV_LINKS as link}
+				{@const Icon = link.icon}
 				<a
 					href={link.href}
 					onclick={link.href === '/mtg/search' ? (event) => searchClick(event) : undefined}
@@ -166,16 +179,9 @@
 					title={link.label}
 					aria-current={isActive(link.href) ? 'page' : undefined}
 					class="nav-link {isActive(link.href) ? 'nav-link--active' : ''}"
-					><svg
-						aria-hidden="true"
-						width={link.href === '/' || link.href === '/mtg/dashboard' ? 18 : 14}
-						height={link.href === '/' || link.href === '/mtg/dashboard' ? 18 : 14}
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						class="nav-icon"
-						stroke-width="1.5"><path d={link.icon} /></svg
-					><span class="nav-label">{link.label}</span></a
+					><Icon size={16} aria-hidden="true" class="nav-icon shrink-0" /><span class="nav-label"
+						>{link.label}</span
+					></a
 				>
 			{/each}
 		</div>
@@ -205,15 +211,7 @@
 					class="btn btn-secondary btn-icon lg:hidden"
 					data-navigation-trigger
 					aria-label={language.t('ui.Open.navigation.menu')}
-					><svg
-						aria-hidden="true"
-						width="18"
-						height="18"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" /></svg
-					></Dialog.Trigger
+					><Menu size={20} aria-hidden="true" /></Dialog.Trigger
 				>
 				<Dialog.Portal>
 					<Dialog.Overlay class="filter-overlay fixed inset-0 z-40" />
@@ -223,14 +221,16 @@
 						<div class="flex items-center justify-between p-3">
 							<Dialog.Title class="font-semibold tracking-tight">Spellbook</Dialog.Title>
 							<Dialog.Close
-								class="btn btn-ghost"
-								aria-label={language.t('ui.Close.navigation.menu')}>✕</Dialog.Close
+								class="btn btn-ghost btn-icon"
+								aria-label={language.t('ui.Close.navigation.menu')}
+								><X size={20} aria-hidden="true" /></Dialog.Close
 							>
 						</div>
 						<Dialog.Description class="sr-only"
 							>{language.t('ui.Navigate.your.Magic.card.workspace')}</Dialog.Description
 						>
 						{#each NAV_LINKS as link}
+							{@const Icon = link.icon}
 							<a
 								href={link.href}
 								aria-current={isActive(link.href) ? 'page' : undefined}
@@ -239,7 +239,7 @@
 									else mobileMenuOpen = false;
 								}}
 								class="mobile-nav-link {isActive(link.href) ? 'mobile-nav-link--active' : ''}"
-								>{link.label}</a
+								><Icon size={16} aria-hidden="true" class="shrink-0" />{link.label}</a
 							>
 						{/each}
 						<div class="mobile-account">
@@ -250,7 +250,8 @@
 										{#if item.href}<a
 												href={item.href}
 												class="btn btn-ghost"
-												onclick={() => (mobileMenuOpen = false)}>{item.label}</a
+												onclick={() => (mobileMenuOpen = false)}
+												>{#if item.icon}{@render item.icon()}{/if}{item.label}</a
 											>
 										{:else}<button
 												class="btn btn-ghost"
@@ -259,7 +260,8 @@
 													if (item.disabled) return;
 													mobileMenuOpen = false;
 													item.onSelect?.();
-												}}>{item.label}</button
+												}}
+												>{#if item.icon}{@render item.icon()}{/if}{item.label}</button
 											>{/if}
 									{/each}
 								</div>
@@ -459,10 +461,6 @@
 		height: 44px;
 		min-height: 44px;
 		padding: 0;
-	}
-	.account-controls > :global(.btn-icon svg) {
-		width: 16px;
-		height: 16px;
 	}
 	.account-controls :global(.game-symbol) {
 		font-size: 16px;

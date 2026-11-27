@@ -3,6 +3,8 @@
 	const language = useLanguage();
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import type { Snippet } from 'svelte';
+	import Minus from '@lucide/svelte/icons/minus';
+	import Plus from '@lucide/svelte/icons/plus';
 	import Button from './button/Button.svelte';
 	let {
 		quantity,
@@ -40,16 +42,10 @@
 					p0: String(delta === -1 ? language.t('ui.Decrease') : language.t('ui.Increase')),
 					p1: String(label)
 				})}
-				><svg
-					aria-hidden="true"
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
-					><path d="M5 12h14" />{#if delta === 1}<path d="M12 5v14" />{/if}</svg
-				></Button
+				>{#if delta === -1}<Minus size={20} aria-hidden="true" />{:else}<Plus
+						size={20}
+						aria-hidden="true"
+					/>{/if}</Button
 			>
 		</form>{/each}
 </div>

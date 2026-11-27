@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { DropdownMenu } from 'bits-ui';
 	import type { Snippet } from 'svelte';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import EllipsisVertical from '@lucide/svelte/icons/ellipsis-vertical';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 
 	let {
@@ -48,30 +50,16 @@
 		]}
 		aria-label={label}
 	>
-		{#if trigger}{@render trigger()}{:else if iconOnly}<svg
+		{#if trigger}{@render trigger()}{:else if iconOnly}<EllipsisVertical
+				size={20}
 				aria-hidden="true"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="currentColor"
-				><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle
-					cx="12"
-					cy="19"
-					r="1.5"
-				/></svg
-			>{:else}{label}{/if}
-		{#if !iconOnly}<svg
+				class="shrink-0"
+			/>{:else}{label}{/if}
+		{#if !iconOnly}<ChevronDown
+				size={16}
 				aria-hidden="true"
 				class="shrink-0 text-text-muted"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.7"
-				stroke-linecap="round"
-				stroke-linejoin="round"><path d="m7 10 5 5 5-5" /></svg
-			>{/if}
+			/>{/if}
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Portal>
 		<DropdownMenu.Content

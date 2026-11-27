@@ -367,6 +367,8 @@ button:disabled {
 
 	.mobile-nav-link {
 		display: flex;
+		align-items: center;
+		gap: var(--space-control-inline);
 		padding: 0.875rem 1.25rem;
 		border: 1px solid transparent;
 		border-radius: 0.5rem;

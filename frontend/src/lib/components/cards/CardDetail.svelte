@@ -3,6 +3,7 @@
 	const language = useLanguage();
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import { Dialog } from 'bits-ui';
+	import X from '@lucide/svelte/icons/x';
 	import type { Snippet } from 'svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import CardInspector from './CardInspector.svelte';
@@ -82,7 +83,8 @@
 				<Dialog.Close
 					disabled={pending}
 					class="btn btn-ghost btn-icon absolute right-2 top-2 z-10"
-					aria-label={language.t('ui.Close.card.detail')}>✕</Dialog.Close
+					aria-label={language.t('ui.Close.card.detail')}
+					><X size={20} aria-hidden="true" /></Dialog.Close
 				>
 			</Dialog.Content>
 		</Dialog.Overlay>

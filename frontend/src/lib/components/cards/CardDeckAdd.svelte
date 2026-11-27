@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Plus from '@lucide/svelte/icons/plus';
 	import { page } from '$app/state';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { onDestroy, untrack } from 'svelte';
@@ -307,7 +307,9 @@
 			class="btn btn-primary"
 			type="submit"
 			disabled={blocked || loading || !!readError || !selected}
-			><PlusIcon />{pending ? language.t('notice.Adding') : language.t('ui.Add.to.Deck')}</button
+			><Plus size={16} aria-hidden="true" class="shrink-0" />{pending
+				? language.t('notice.Adding')
+				: language.t('ui.Add.to.Deck')}</button
 		>
 		{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
 				{language.t(

@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Archive from '@lucide/svelte/icons/archive';
+	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Search from '@lucide/svelte/icons/search';
+	import X from '@lucide/svelte/icons/x';
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
@@ -1097,7 +1101,7 @@
 	};
 </script>
 
-{#snippet addIcon()}<PlusIcon />{/snippet}
+{#snippet addIcon()}<Plus size={16} aria-hidden="true" class="shrink-0" />{/snippet}
 
 <svelte:head><title>{language.t('ui.Inventory.Spellbook')}</title></svelte:head>
 
@@ -1153,7 +1157,10 @@
 						<input type="hidden" name="requestId" value={data.requestId} /><label
 							for="native-group-name">{language.t('ui.New.box.name')}</label
 						><input id="native-group-name" name="name" required maxlength="128" /><button
-							class="btn btn-primary"><PlusIcon />{language.t('ui.Create.box')}</button
+							class="btn btn-primary"
+							><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+								'ui.Create.box'
+							)}</button
 						>
 					</form>
 					{#each currentWindow.groupPage as group}<form
@@ -1204,11 +1211,15 @@
 				</p>{/snippet}
 			{#snippet actions()}{#if groupDirectory}<Button
 						onclick={(event) => editGroup(null, event.currentTarget)}
-						><PlusIcon />{language.t('ui.New.box')}</Button
+						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+							'ui.New.box'
+						)}</Button
 					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
 						>{language.t('ui.Assign.cards')}</Button
 					>{:else}<Button href="/mtg/search" onclick={openSearch}
-						><PlusIcon />{language.t('ui.Add.cards')}</Button
+						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+							'ui.Add.cards'
+						)}</Button
 					>{/if}{/snippet}
 		</WorkspaceHeader>
 		<noscript
@@ -1366,23 +1377,18 @@
 				/>{/key}
 		{:else if currentWindow.totals.entryCount === 0}
 			<div class="empty-state">
+				<Archive size={20} aria-hidden="true" class="text-text-muted" />
 				<p>{language.t('ui.No.cards.yet')}</p>
 				<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
-					>{language.t('ui.Find.your.first.card')}</a
+					><Search size={16} aria-hidden="true" class="shrink-0" />{language.t(
+						'ui.Find.your.first.card'
+					)}</a
 				>
 			</div>
 		{:else}
 			<div class="inventory-toolbar">
 				<div class="inventory-search">
-					<svg
-						aria-hidden="true"
-						width="17"
-						height="17"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></svg
-					><input
+					<Search size={16} aria-hidden="true" class="shrink-0" /><input
 						type="search"
 						bind:this={searchInput}
 						aria-label={language.t('ui.Search.inventory')}
@@ -1502,16 +1508,11 @@
 						}
 					]}
 				>
-					{#snippet trigger()}<svg
+					{#snippet trigger()}<ArrowUpDown
+							size={16}
 							aria-hidden="true"
-							width="14"
-							height="14"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.6"
-							stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
-						>{language.t('ui.Sort')}{/snippet}
+							class="shrink-0"
+						/>{language.t('ui.Sort')}{/snippet}
 				</ActionMenu>
 				<p class="inventory-result-count">
 					{language.t(`entries.${language.plural(currentWindow.matching.entryCount)}`, {
@@ -1539,7 +1540,7 @@
 									p0: String(setName(code))
 								})}
 								onclick={() => (selectedSets = selectedSets.filter((value) => value !== code))}
-								>×</button
+								><X size={20} aria-hidden="true" /></button
 							>
 						</div>
 					{/each}
@@ -1556,7 +1557,7 @@
 								aria-label={language.t('message.Clear.finish.filter.p0', {
 									p0: finishLabel(selectedFinish)
 								})}
-								onclick={() => (selectedFinish = 'all')}>×</button
+								onclick={() => (selectedFinish = 'all')}><X size={20} aria-hidden="true" /></button
 							>
 						</div>{/if}
 					{#if selectedCondition !== 'all'}<div class="filter-chip">
@@ -1571,7 +1572,8 @@
 								aria-label={language.t('message.Clear.condition.filter.p0', {
 									p0: String(selectedCondition)
 								})}
-								onclick={() => (selectedCondition = 'all')}>×</button
+								onclick={() => (selectedCondition = 'all')}
+								><X size={20} aria-hidden="true" /></button
 							>
 						</div>{/if}
 					<button type="button" class="clear-filters" onclick={clearFilters}
@@ -1643,6 +1645,7 @@
 				<span></span>
 			</div>
 			{#if currentWindow.matching.entryCount === 0}<div class="empty-state">
+					<Search size={20} aria-hidden="true" class="text-text-muted" />
 					<p>
 						{data.selectedGroupId && !hasFilters
 							? language.t('ui.No.cards.in.this.box.yet.Assign.cards.from.their.row.menu.in.Cards')
@@ -1942,7 +1945,10 @@
 					disabled={pendingId !== null || addingPending}
 					onclick={() => {
 						if (inspection) inspection.mode = 'add';
-					}}><PlusIcon />{language.t('ui.Add.another.printing')}</Button
+					}}
+					><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+						'ui.Add.another.printing'
+					)}</Button
 				>
 			</nav>
 			{#if inspection?.mode === 'add'}
@@ -2183,6 +2189,8 @@
 		text-underline-offset: 3px;
 	}
 	.filter-chip-remove {
+		display: grid;
+		place-items: center;
 		width: 40px;
 		min-height: 40px;
 		flex-shrink: 0;

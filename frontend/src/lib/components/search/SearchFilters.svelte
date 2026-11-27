@@ -4,6 +4,7 @@
 	import { printingLanguageOptions } from '#lib/search/languages.ts';
 	import { cardTypeSymbol } from '#lib/mtg/type-symbol.ts';
 	import { Collapsible } from 'bits-ui';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import type { FacetResponse } from '#lib/search/types.ts';
 	import {
@@ -36,17 +37,7 @@
 				aria-label={language.t('filter.selected', { count: selected })}>{selected}</span
 			>{/if}
 	</span>
-	<svg
-		aria-hidden="true"
-		width="14"
-		height="14"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.6"
-		class="filter-chevron"
-		class:expanded={open}><path d="m6 9 6 6 6-6" /></svg
-	>
+	<ChevronDown size={16} aria-hidden="true" class={['filter-chevron', open && 'expanded']} />
 {/snippet}
 
 <aside class="search-filters {className}" aria-label={language.t('ui.Search.filters')}>
@@ -298,11 +289,11 @@
 		line-height: var(--text-meta--line-height);
 		font-variant-numeric: tabular-nums;
 	}
-	.filter-chevron {
+	.search-filters :global(.filter-chevron) {
 		flex-shrink: 0;
 		transition: transform 120ms ease;
 	}
-	.filter-chevron.expanded {
+	.search-filters :global(.filter-chevron.expanded) {
 		transform: rotate(180deg);
 	}
 	.color-mode {
@@ -454,7 +445,7 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.filter-chevron {
+		.search-filters :global(.filter-chevron) {
 			transition: none;
 		}
 	}

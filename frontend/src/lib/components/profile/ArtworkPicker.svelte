@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import Check from '@lucide/svelte/icons/check';
 	import { PROFILE_ARTWORK, DEFAULT_ARTWORK_ID } from '#lib/profile/artwork.ts';
 
 	let {
@@ -27,16 +28,7 @@
 						loading="lazy"
 					/>
 					<span class="artwork-label">{artwork.label}</span>
-					<svg
-						class="artwork-check"
-						width="16"
-						height="16"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg
-					>
+					<Check size={16} aria-hidden="true" class="artwork-check" />
 				</span>
 			</label>
 		{/each}
@@ -84,7 +76,7 @@
 		font-size: 0.75rem;
 		color: var(--color-text-secondary);
 	}
-	.artwork-check {
+	.artwork-option :global(.artwork-check) {
 		position: absolute;
 		right: 0.5rem;
 		bottom: 0.5rem;
@@ -97,7 +89,7 @@
 	.artwork-choice input:checked + .artwork-option .artwork-label {
 		color: var(--color-text-primary);
 	}
-	.artwork-choice input:checked + .artwork-option .artwork-check {
+	.artwork-choice input:checked + .artwork-option :global(.artwork-check) {
 		visibility: visible;
 	}
 	.artwork-choice input:focus-visible + .artwork-option {

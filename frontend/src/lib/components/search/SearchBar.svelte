@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import Search from '@lucide/svelte/icons/search';
+	import X from '@lucide/svelte/icons/x';
 	interface Props {
 		value: string;
 		onInput: (value: string) => void;
@@ -38,14 +41,7 @@
 		class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
 		aria-hidden="true"
 	>
-		<svg
-			width="17"
-			height="17"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.5"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg
-		>
+		<Search size={16} aria-hidden="true" />
 	</span>
 
 	<label>
@@ -76,22 +72,12 @@
 			class:clear-before-submit={!!submitLabel}
 			aria-label={language.t('ui.Clear.search')}
 		>
-			&#10005;
+			<X size={20} aria-hidden="true" />
 		</button>
 	{/if}
 	{#if submitLabel}
 		<button type="submit" class="btn btn-ghost submit-search" aria-label={submitLabel}>
-			<svg
-				aria-hidden="true"
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.6"
-				stroke-linecap="round"
-				stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6" /></svg
-			>
+			<ArrowRight size={20} aria-hidden="true" />
 		</button>
 	{/if}
 </div>

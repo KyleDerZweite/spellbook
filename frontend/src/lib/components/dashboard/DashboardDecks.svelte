@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Plus from '@lucide/svelte/icons/plus';
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import OwnershipProgress from '#lib/components/decks/OwnershipProgress.svelte';
 	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
@@ -49,7 +49,7 @@
 				</li>{/each}
 		</ul>{:else}<p>{language.t('ui.No.decks.yet')}</p>
 		<a href="/mtg/decks" class="btn btn-secondary btn-sm"
-			><PlusIcon />{language.t('ui.Create.a.deck')}</a
+			><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Create.a.deck')}</a
 		>{/if}
 </section>
 

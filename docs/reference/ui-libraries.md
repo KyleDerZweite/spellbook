@@ -1,10 +1,11 @@
 # Selected UI components
 
 - Status: Canonical
-- Last Reviewed: 2026-11-01
+- Last Reviewed: 2026-11-27
 - Source of Truth: accepted product decision, current application, upstream documentation
 - Update Triggers:
-  - shared Plus icon and explicit ActionMenu item icons
+  - SVG icon library (`@lucide/svelte`), static per-icon imports and Mana Font separation
+  - explicit ActionMenu item icons
   - selected A+ Dashboard layout and native Demo evaluation
   - Mebius visual reference adaptation
   - compact distribution and Finish ring presentation
@@ -63,13 +64,13 @@ confirmation when their values change.
 
 ActionMenu owns action lists, link and download items, keyboard navigation, and the shared menu
 appearance. Items accept an optional decorative `icon` snippet; their text label still owns the
-accessible name and menu typeahead. Creation and Add actions reuse
-[PlusIcon](../../frontend/src/lib/components/ui/PlusIcon.svelte), including native form fallbacks.
-Use it for commands rather than option selection. Set `iconOnly` to omit the chevron and use the
-shared icon-button styling. Without a custom trigger snippet, it renders the standard three-dot icon
-while keeping `label` as the accessible name. Custom triggers provide avatars or another appropriate
-icon. When a command opens a dialog, suppress the menu's close autofocus while that dialog opens,
-then return focus to the menu trigger when the dialog closes.
+accessible name and menu typeahead. Creation and Add actions use `@lucide/svelte/icons/plus`,
+including native form fallbacks. Use it for commands rather than option selection. Set `iconOnly` to
+omit the chevron and use the shared icon-button styling. Without a custom trigger snippet, it
+renders `@lucide/svelte/icons/ellipsis-vertical` while keeping `label` as the accessible name.
+Custom triggers provide avatars or another appropriate icon. When a command opens a dialog, suppress
+the menu's close autofocus while that dialog opens, then return focus to the menu trigger when the
+dialog closes.
 
 FilterPopover owns the portalled filter panel, trigger appearance and collision handling. Callers
 own its fields, selected values and focus hooks. ConfirmationDialog uses Bits AlertDialog, owns the
@@ -108,6 +109,27 @@ controls.
 Future component changes must satisfy the
 [interface acceptance criteria](../product/specification.md#interface-acceptance) and follow the
 [verification workflow](../operations/github-automation.md#browser-verification-and-evidence).
+
+## UI icons
+
+General UI icons use [`@lucide/svelte`](https://lucide.dev/) (ISC license, native Svelte 5 runes;
+not the deprecated `lucide-svelte` package). Adding `@lucide/svelte` replaces ad-hoc manual UI SVGs
+(including the removed `PlusIcon.svelte`) with a consistent, tree-shakable vector icon set without
+introducing a second theme system.
+
+Icon conventions:
+
+- Import icons via static per-icon paths only (for example,
+  `import Search from '@lucide/svelte/icons/search'`). Never use barrel imports from
+  `@lucide/svelte`.
+- Size icons at `16px` (`size={16}`) next to button, menu, or navigation labels with `gap-1` (`4px`,
+  `--space-control-inline`) inline spacing.
+- Size standalone icons (icon-only buttons, bottom-navigation items, and empty-state indicators) at
+  `20px` (`size={20}`).
+- Inherit icon color via `currentColor`, mark decorative icons `aria-hidden="true"`, and give every
+  icon-only button an accessible name (`aria-label`).
+- Keep `mana-font` strictly separated for MTG mana, rarity, card-type, deck, and planeswalker
+  symbols.
 
 ## Analytics charts
 

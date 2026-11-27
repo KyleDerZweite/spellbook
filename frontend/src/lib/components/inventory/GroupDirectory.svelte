@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import Folder from '@lucide/svelte/icons/folder';
+	import Package from '@lucide/svelte/icons/package';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Trash from '@lucide/svelte/icons/trash';
 	import { untrack, tick } from 'svelte';
 	import {
 		initialLoadedSpan,
@@ -226,8 +230,12 @@
 	});
 </script>
 
+{#snippet renameIcon()}<Pencil size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet deleteIcon()}<Trash size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+
 {#if groups.length === 0}
 	<div class="empty-state">
+		<Package size={20} aria-hidden="true" class="mx-auto mb-2 text-text-muted" />
 		<p>{language.t('ui.No.boxes.yet.Create.one.then.assign.cards.from.their.row.menu')}</p>
 	</div>
 {:else}
@@ -252,18 +260,7 @@
 				use:measure={index}
 			>
 				<a href={groupHref(group.id)} class="group-link">
-					<svg
-						aria-hidden="true"
-						width="22"
-						height="22"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.4"
-						><path
-							d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"
-						/></svg
-					>
+					<Folder size={20} aria-hidden="true" class="shrink-0" />
 					<span
 						><strong>{group.name}</strong><small
 							>{language.t(`cards.${language.plural(group.quantity)}`, {
@@ -284,10 +281,12 @@
 					items={[
 						{
 							label: language.t('ui.Rename'),
+							icon: renameIcon,
 							onSelect: () => onRename(group, triggers[group.id] ?? null)
 						},
 						{
 							label: language.t('ui.Delete.box'),
+							icon: deleteIcon,
 							destructive: true,
 							onSelect: () => onRemove(group, triggers[group.id] ?? null)
 						}

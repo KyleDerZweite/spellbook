@@ -550,13 +550,13 @@ The signed-in desktop account trigger shows only the selected sprite, without a 
 Its shared action menu shows the username, Settings and Sign out. The accepted PWA delivery replaces
 App coming soon with an App link to `/app` in this menu and mobile navigation. Below 1024 pixels,
 account identity and actions move into the existing navigation dialog, with no separate account
-trigger. Signed-out mobile users also find Sign in in this dialog. Header navigation symbols are 14
-pixels, with an 18-pixel Home or Dashboard symbol. Utility symbols are 16 pixels. The brand uses a
-36-pixel logo, and all header links and icon controls retain 44-pixel targets without extra utility
-gaps. The larger brand text keeps its selected display font. Settings offers six original local
-pixel sprites: Wizard, Knight, Ranger, Rogue, Dragon and Slime. Labeled radio choices show selection
-and keyboard focus; Save persists the preference. Profile photos and language preferences remain
-deferred, with no placeholder controls.
+trigger. Signed-out mobile users also find Sign in in this dialog. Header navigation icons next to
+labels are 16 pixels (`gap-1` / `4px` inline spacing). Standalone utility and icon-only control
+symbols are 20 pixels. The brand uses a 36-pixel logo, and all header links and icon controls retain
+44-pixel targets without extra utility gaps. The larger brand text keeps its selected display font.
+Settings offers six original local pixel sprites: Wizard, Knight, Ranger, Rogue, Dragon and Slime.
+Labeled radio choices show selection and keyboard focus; Save persists the preference. Profile
+photos and language preferences remain deferred, with no placeholder controls.
 
 Public home addresses players who already own cards and remains the same at `/` for every session. A
 compact Search cards field is the primary action and opens the public catalog without an account.
@@ -962,6 +962,19 @@ Toolbar and header alignment rules:
 - Wrap toolbar controls cleanly by logical group on narrow viewports.
 - Keep root header heights (`72px` desktop, `64px` mobile) and scroll clearance (`16px`) on the 8px
   grid.
+
+## UI icons
+
+General UI icons use `@lucide/svelte` via static per-icon imports (`@lucide/svelte/icons/<name>`)
+for tree-shaking, while `mana-font` remains strictly dedicated to Magic mana, rarity, card-type,
+deck, and planeswalker symbols. See [selected UI components](../reference/ui-libraries.md#ui-icons)
+for dependency rationale and implementation rules:
+
+- `16px` (`size={16}`) for icons paired with button, menu, or navigation labels (`gap-1` / `4px`
+  inline spacing via `--space-control-inline`).
+- `20px` (`size={20}`) for standalone icons (icon-only buttons, bottom navigation, empty states).
+- Color inherits through `currentColor`; decorative icons set `aria-hidden="true"`, and every
+  icon-only button provides an accessible name (`aria-label`).
 
 ## Reusable design rules
 

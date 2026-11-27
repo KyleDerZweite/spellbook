@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Check from '@lucide/svelte/icons/check';
 	import Avatar from './Avatar.svelte';
 	import { AVATARS, DEFAULT_AVATAR_ID } from '#lib/profile/avatars.ts';
 
@@ -19,16 +20,7 @@
 				<input type="radio" name="avatarId" value={avatar.id} bind:group={selected} />
 				<span class="avatar-option"
 					><Avatar id={avatar.id} size={32} /><span>{avatar.label}</span>
-					<svg
-						class="avatar-check"
-						width="10"
-						height="10"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg
-					></span
+					<Check size={12} aria-hidden="true" class="avatar-check" /></span
 				>
 			</label>
 		{/each}
@@ -52,13 +44,13 @@
 		height: 1px;
 		opacity: 0;
 	}
-	.avatar-check {
+	.avatar-option :global(.avatar-check) {
 		position: absolute;
 		top: 0.3rem;
 		right: 0.3rem;
 		visibility: hidden;
 	}
-	.avatar-choice input:checked + .avatar-option .avatar-check {
+	.avatar-choice input:checked + .avatar-option :global(.avatar-check) {
 		visibility: visible;
 	}
 	.avatar-option {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { showcaseAsset } from '#lib/showcase/assets.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import { commanderDeck, commanderStack } from '#lib/showcase/commander-deck.ts';
@@ -102,15 +104,7 @@
 			aria-label={language.t('ui.Preview.previous.card')}
 			onclick={() => selectCard(selectedCard - 1)}
 		>
-			<svg
-				aria-hidden="true"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"><path d="m14 6-6 6 6 6" /></svg
-			>
+			<ChevronLeft size={20} aria-hidden="true" />
 		</Button>
 		<p class="current-card" aria-live="polite" aria-atomic="true">
 			<span>{currentCard.name}</span>
@@ -123,15 +117,7 @@
 			aria-label={language.t('ui.Preview.next.card')}
 			onclick={() => selectCard(selectedCard + 1)}
 		>
-			<svg
-				aria-hidden="true"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"><path d="m10 6 6 6-6 6" /></svg
-			>
+			<ChevronRight size={20} aria-hidden="true" />
 		</Button>
 	</div>
 	<div class="deck-details">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Trash from '@lucide/svelte/icons/trash';
 	import { cardImageCache, formatByteSize, type ImageCacheStats } from '#lib/cards/image-cache.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 
@@ -62,6 +63,7 @@
 	<p class="text-sm text-text-secondary">{summaryText}</p>
 	<div class="image-cache-actions">
 		<button type="button" class="btn btn-secondary" disabled={clearDisabled} onclick={handleClear}>
+			<Trash size={16} aria-hidden="true" class="shrink-0" />
 			{clearing ? language.t('imageCache.clearing') : language.t('imageCache.clear')}
 		</button>
 		{#if statusMessage}

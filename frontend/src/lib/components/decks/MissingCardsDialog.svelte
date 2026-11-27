@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import Copy from '@lucide/svelte/icons/copy';
+	import Download from '@lucide/svelte/icons/download';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import type {
 		MissingCardsExportResponse,
 		MissingExportFormat,
@@ -186,8 +189,13 @@
 					value={activeText}></textarea>
 
 				<div class="export-actions">
-					<Button variant="default" onclick={copyText}>{language.t('missingExport.copy')}</Button>
+					<Button variant="default" onclick={copyText}
+						><Copy size={16} aria-hidden="true" class="shrink-0" />{language.t(
+							'missingExport.copy'
+						)}</Button
+					>
 					<Button variant="secondary" onclick={downloadText}>
+						<Download size={16} aria-hidden="true" class="shrink-0" />
 						{language.t('missingExport.download')}
 					</Button>
 					{#if copyStatus}
@@ -216,21 +224,7 @@
 						</p>
 						<a class="bulk-link" href={bulkHint.url} target="_blank" rel="noopener noreferrer">
 							{language.t('missingExport.bulkHintLink', { domain: bulkHint.domain })}
-							<svg
-								aria-hidden="true"
-								width="13"
-								height="13"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.8"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-								<polyline points="15 3 21 3 21 9" />
-								<line x1="10" y1="14" x2="21" y2="3" />
-							</svg>
+							<ExternalLink size={16} aria-hidden="true" class="shrink-0" />
 						</a>
 					</aside>
 				{/if}

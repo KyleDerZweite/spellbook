@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Plus from '@lucide/svelte/icons/plus';
 	import { page } from '$app/state';
 	import { inventoryAction, effectiveInventoryUrl } from '#lib/mtg/inventory-action.ts';
 	import { enhance } from '$app/forms';
@@ -68,7 +68,7 @@
 			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
 				>{language.t('ui.Cancel')}</button
 			><button type="submit" class="btn btn-primary" disabled={mutation.pending}
-				>{#if !group}<PlusIcon />{/if}{mutation.pending
+				>{#if !group}<Plus size={16} aria-hidden="true" class="shrink-0" />{/if}{mutation.pending
 					? 'Saving...'
 					: group
 						? language.t('ui.Save')
