@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-26
+- Last Reviewed: 2026-11-27
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers:
   - Account and platform behavior:
@@ -16,7 +16,8 @@
   - Catalog, Inventory and Decks:
     - Catalog identity, Inventory and Deck behavior, and import formats.
     - Deck export formats, missing-cards wants-list export and the DIN A4 card sheet layout.
-    - Deck Library ownership filters and views, and managed Category removal.
+    - Deck Library ownership filters and views, SuperBrew Reference deck discovery and managed
+      Category removal.
     - Inventory metadata shortcuts, compact read-only rows and UTC New badges.
     - Bounded Inventory loading, scaling evidence and API contracts.
     - Continuous Lazy browsing, Card dialogs and selected versus implemented read limits.
@@ -467,6 +468,19 @@ exact-first allocation rule, without manual booking of individual inventory entr
 
 This allocation does not move or decrement inventory. Explicit single-entry binding, storage
 locations, and executable build plans remain planned.
+
+### SuperBrew Reference deck discovery
+
+Under `/mtg/decks`, a dedicated **Discovery** tab (`?tab=discovery`) compares global
+`Reference deck`s against the authenticated account's `Inventory` via `Canonical card` (`oracle_id`)
+so any owned printing counts. Discovery computes ownership percentage, missing card counts, and the
+missing-card `Market value estimate` with explicit `Price coverage` whenever some missing cards lack
+reference prices. Users can filter and sort by format, missing-card budget
+(`Missing cost <= X EUR`), minimum ownership percentage, search query, and inventory scope
+(`All inventory` versus `Free copies only`, which subtracts copies claimed by the account's
+`Assembled deck`s). A one-click **Add to Deck library** action
+(`POST /api/v1/mtg/decks/discovery/{referenceDeckId}/copy`) copies a Reference deck into a new
+standalone account-owned `Deck`.
 
 ## Import, export, and warnings
 

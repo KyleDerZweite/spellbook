@@ -6,7 +6,13 @@ import {
 } from '@spellbook/contracts/deck-library.ts';
 import type { DeckLibraryPage } from '@spellbook/contracts/deck-library.ts';
 import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
+import type { DeckDiscoveryResponse } from '@spellbook/contracts/reference-decks.ts';
 import { parseLazyBrowsePagination } from '#lib/browsing/pagination.ts';
+import {
+	DISCOVERY_PAGE_SIZE,
+	discoveryQueryFromState,
+	discoveryStateFromParams
+} from '#lib/decks/discovery-query.ts';
 import { error, fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
 import type { Action, Actions, PageServerLoad } from './$types';
 import {
@@ -35,6 +41,9 @@ import type { LegalityWarning } from '@spellbook/contracts/legality.ts';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks');
 	const selectedDeckId = url.searchParams.get('deck') ?? null;
+	const tab: 'library' | 'discovery' =
+		!selectedDeckId && url.searchParams.get('tab') === 'discovery' ? 'discovery' : 'library';
+	const discoveryState = discoveryStateFromParams(url.searchParams);
 	let directoryQuery;
 	try {
 		directoryQuery = deckLibraryQueryFromParams(url.searchParams);
@@ -56,49 +65,82 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		items: []
 	};
 	let deckLibraryReadError = '';
-	try {
-		for (let attempt = 0; attempt < 2; attempt++) {
-			try {
-				const page = await application.decks.getDeckLibrary(locals.user, {
-					...directoryQuery,
-					offset: directoryPagination.offset,
-					limit: 200
-				});
-				const boundedPage =
-					page.offset >= page.matchingTotal && page.offset > 0
-						? await application.decks.getDeckLibrary(locals.user, {
-								...directoryQuery,
-								offset: Math.max(0, Math.ceil(page.matchingTotal / 200) - 1) * 200,
-								limit: 200
-							})
-						: page;
-				deckLibrary = boundedPage;
-				break;
-			} catch (cause) {
-				if (
-					attempt === 0 &&
-					cause &&
+	let discovery: DeckDiscoveryResponse | null = null;
+	let discoveryReadError = '';
+	if (tab === 'discovery') {
+		try {
+			const page = await application.decks.discoverReferenceDecks(
+				locals.user,
+				discoveryQueryFromState(discoveryState)
+			);
+			discovery =
+				page.offset >= page.total && page.total > 0
+					? await application.decks.discoverReferenceDecks(locals.user, {
+							...discoveryQueryFromState(discoveryState),
+							offset:
+								Math.max(0, Math.ceil(page.total / DISCOVERY_PAGE_SIZE) - 1) * DISCOVERY_PAGE_SIZE
+						})
+					: page;
+		} catch (cause) {
+			if (
+				(cause &&
 					typeof cause === 'object' &&
 					'kind' in cause &&
-					cause.kind === 'RevisionChanged'
-				)
-					continue;
+					cause.kind === 'Unauthenticated') ||
+				(isHttpError(cause) && cause.status >= 400 && cause.status < 500 && cause.status !== 409)
+			)
 				throw cause;
-			}
+			if (cause instanceof ValidationError) throw error(400, cause.message);
+			discoveryReadError = 'Reference deck discovery is unavailable. Reload to try again.';
 		}
-	} catch (cause) {
-		if (
-			(cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated') ||
-			(isHttpError(cause) && cause.status >= 400 && cause.status < 500 && cause.status !== 409)
-		)
-			throw cause;
-		if (cause instanceof ValidationError) throw error(400, cause.message);
-		const changed =
-			!!cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'RevisionChanged';
-		deckLibraryReadError = changed
-			? 'Deck Library changed while loading. Reload to continue.'
-			: 'Deck Library is unavailable. Reload to try again.';
-		if (!selectedDeckId) throw error(changed ? 409 : 503, deckLibraryReadError);
+	} else {
+		try {
+			for (let attempt = 0; attempt < 2; attempt++) {
+				try {
+					const page = await application.decks.getDeckLibrary(locals.user, {
+						...directoryQuery,
+						offset: directoryPagination.offset,
+						limit: 200
+					});
+					const boundedPage =
+						page.offset >= page.matchingTotal && page.offset > 0
+							? await application.decks.getDeckLibrary(locals.user, {
+									...directoryQuery,
+									offset: Math.max(0, Math.ceil(page.matchingTotal / 200) - 1) * 200,
+									limit: 200
+								})
+							: page;
+					deckLibrary = boundedPage;
+					break;
+				} catch (cause) {
+					if (
+						attempt === 0 &&
+						cause &&
+						typeof cause === 'object' &&
+						'kind' in cause &&
+						cause.kind === 'RevisionChanged'
+					)
+						continue;
+					throw cause;
+				}
+			}
+		} catch (cause) {
+			if (
+				(cause &&
+					typeof cause === 'object' &&
+					'kind' in cause &&
+					cause.kind === 'Unauthenticated') ||
+				(isHttpError(cause) && cause.status >= 400 && cause.status < 500 && cause.status !== 409)
+			)
+				throw cause;
+			if (cause instanceof ValidationError) throw error(400, cause.message);
+			const changed =
+				!!cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'RevisionChanged';
+			deckLibraryReadError = changed
+				? 'Deck Library changed while loading. Reload to continue.'
+				: 'Deck Library is unavailable. Reload to try again.';
+			if (!selectedDeckId) throw error(changed ? 409 : 503, deckLibraryReadError);
+		}
 	}
 	let snapshot: DeckSnapshot;
 	try {
@@ -187,6 +229,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	]);
 	return {
 		...snapshot,
+		tab,
+		discovery,
+		discoveryState,
+		discoveryReadError,
 		deckLibrary,
 		deckLibraryReadError,
 		flow: ['create', 'edit', 'import', 'delete', 'search'].includes(
@@ -451,5 +497,14 @@ export const actions = {
 				'notice.All.imported.cards.added.Matching.printing.and.role.quantities.were.increased.Deck.details.were.retained'
 			)
 		};
+	}),
+	copyReferenceDeck: guarded(async ({ request, locals }) => {
+		const form = await request.formData();
+		const referenceDeckId = field(form, 'referenceDeckId');
+		if (!referenceDeckId) {
+			return fail(400, { message: translate(locals.locale, 'deckDiscovery.copyFailed') });
+		}
+		const result = await application.decks.copyReferenceDeck(locals.user!, referenceDeckId);
+		throw redirect(303, `/mtg/decks?deck=${encodeURIComponent(result.deck.id)}`);
 	})
 } satisfies Actions;

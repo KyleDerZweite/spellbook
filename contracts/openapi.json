@@ -6128,6 +6128,228 @@
 				]
 			}
 		},
+		"/api/v1/mtg/decks/discovery": {
+			"get": {
+				"summary": "Discover global Reference decks ranked against the account's Inventory and missing-card budget",
+				"description": "Compares global Reference decks against the authenticated account's Inventory via Canonical card (oracle_id), optionally subtracting copies claimed by Assembled decks, and computes ownership percentage, missing-card Market value estimate, and Price coverage. Responses use Cache-Control: private, no-store.",
+				"tags": ["mtg"],
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "format",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": [
+								"standard",
+								"pioneer",
+								"modern",
+								"legacy",
+								"vintage",
+								"commander",
+								"pauper",
+								"brawl"
+							]
+						}
+					},
+					{
+						"name": "source",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 64
+						}
+					},
+					{
+						"name": "q",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"maxLength": 200
+						}
+					},
+					{
+						"name": "maxMissingCost",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 1000000
+						}
+					},
+					{
+						"name": "minOwnership",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 100
+						}
+					},
+					{
+						"name": "inventoryMode",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["all", "free"],
+							"default": "all"
+						}
+					},
+					{
+						"name": "sort",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": ["missing_cost:asc", "ownership:desc", "meta_share:desc", "name:asc"],
+							"default": "missing_cost:asc"
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 100,
+							"default": 50
+						}
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"minimum": 0,
+							"maximum": 100000,
+							"default": 0
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ranked Reference deck discovery results for the authenticated account",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "private, no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DeckDiscoveryResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid discovery filter or pagination parameter",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mtg/decks/discovery/{referenceDeckId}/copy": {
+			"post": {
+				"summary": "Copy a global Reference deck into a new standalone account-owned Deck",
+				"tags": ["mtg"],
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "referenceDeckId",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Standalone account-owned Deck created from the Reference deck",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DeckDiscoveryCopyResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid Reference deck identifier",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Reference deck not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/v1/mtg/decks/missing-export": {
 			"post": {
 				"summary": "Export missing cards across one or more owned Decks for Cardmarket, TCGplayer or plain text",
@@ -14883,6 +15105,198 @@
 						"items": {
 							"$ref": "#/components/schemas/ReferenceDeckSourceStatus"
 						}
+					}
+				}
+			},
+			"DeckDiscoveryItem": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"id",
+					"source",
+					"externalId",
+					"name",
+					"format",
+					"archetype",
+					"sourceUrl",
+					"metaShare",
+					"sourceUpdatedAt",
+					"syncedAt",
+					"cardCount",
+					"uniqueCardCount",
+					"coverImageUri",
+					"ownedCards",
+					"missingCards",
+					"ownershipPercent",
+					"missingValue"
+				],
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"source": {
+						"type": "string"
+					},
+					"externalId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"format": {
+						"type": "string",
+						"enum": [
+							"standard",
+							"pioneer",
+							"modern",
+							"legacy",
+							"vintage",
+							"commander",
+							"pauper",
+							"brawl"
+						]
+					},
+					"archetype": {
+						"type": ["string", "null"]
+					},
+					"sourceUrl": {
+						"type": ["string", "null"]
+					},
+					"metaShare": {
+						"type": ["number", "null"]
+					},
+					"sourceUpdatedAt": {
+						"type": ["string", "null"],
+						"format": "date-time"
+					},
+					"syncedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"cardCount": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"uniqueCardCount": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"coverImageUri": {
+						"type": ["string", "null"]
+					},
+					"ownedCards": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"missingCards": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"ownershipPercent": {
+						"type": "number",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"missingValue": {
+						"$ref": "#/components/schemas/ValueEstimate"
+					}
+				}
+			},
+			"DeckDiscoveryResponse": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"decks",
+					"total",
+					"limit",
+					"offset",
+					"inventoryMode",
+					"sort",
+					"assembledDeckCount",
+					"valuationAvailable",
+					"evaluatedAt",
+					"availableFormats",
+					"sources"
+				],
+				"properties": {
+					"decks": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DeckDiscoveryItem"
+						}
+					},
+					"total": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 100
+					},
+					"offset": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"inventoryMode": {
+						"type": "string",
+						"enum": ["all", "free"]
+					},
+					"sort": {
+						"type": "string",
+						"enum": ["missing_cost:asc", "ownership:desc", "meta_share:desc", "name:asc"]
+					},
+					"assembledDeckCount": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"valuationAvailable": {
+						"type": "boolean"
+					},
+					"evaluatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"availableFormats": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"enum": [
+								"standard",
+								"pioneer",
+								"modern",
+								"legacy",
+								"vintage",
+								"commander",
+								"pauper",
+								"brawl"
+							]
+						}
+					},
+					"sources": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ReferenceDeckSourceStatus"
+						}
+					}
+				}
+			},
+			"DeckDiscoveryCopyResult": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["deck", "copiedCards", "skippedCards"],
+				"properties": {
+					"deck": {
+						"$ref": "#/components/schemas/Deck"
+					},
+					"copiedCards": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"skippedCards": {
+						"type": "integer",
+						"minimum": 0
 					}
 				}
 			}

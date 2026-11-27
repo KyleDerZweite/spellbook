@@ -345,6 +345,41 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
             },
         )
 
+    async def discovery(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
+        def _optional_float(name: str) -> float | None:
+            raw = request.query_params.get(name)
+            if raw is None or raw == "":
+                return None
+            try:
+                value = float(raw)
+            except ValueError:
+                raise HttpError(400, f"Invalid {name}") from None
+            return value
+
+        result = await decks.discover_reference_decks(
+            actor,
+            format=request.query_params.get("format"),
+            source=request.query_params.get("source"),
+            query=request.query_params.get("q"),
+            max_missing_cost=_optional_float("maxMissingCost"),
+            min_ownership=_optional_float("minOwnership"),
+            inventory_mode=request.query_params.get("inventoryMode") or "all",
+            sort=request.query_params.get("sort") or "missing_cost:asc",
+            limit=read_query_integer(request.query_params.get("limit"), "limit", 50, 100, 1),
+            offset=read_query_integer(request.query_params.get("offset"), "offset", 0, 100000, 0),
+        )
+        return json_response(result, headers={"Cache-Control": "private, no-store"})
+
+    async def copy_discovery_deck(
+        referenceDeckId: UUIDPath,
+        request: Request,
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        await drain_request_body(request)
+        return json_response(await decks.copy_reference_deck(actor, referenceDeckId))
+
     router.add_api_route("/api/v1/mtg/deck-library", library, methods=["GET"], response_model=None)
     router.add_api_route(
         "/api/v1/mtg/deck-library/locate", locate, methods=["GET"], response_model=None
@@ -353,6 +388,15 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
     router.add_api_route("/api/v1/mtg/decks", create, methods=["POST"], response_model=None)
     router.add_api_route(
         "/api/v1/mtg/decks/choices", choices, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/discovery", discovery, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/discovery/{referenceDeckId}/copy",
+        copy_discovery_deck,
+        methods=["POST"],
+        response_model=None,
     )
     router.add_api_route(
         "/api/v1/mtg/decks/import/commit", import_commit, methods=["POST"], response_model=None

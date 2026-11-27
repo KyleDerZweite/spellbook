@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
 	snapshot: vi.fn(),
 	deck: vi.fn(),
 	library: vi.fn(),
+	discover: vi.fn(),
+	copyReferenceDeck: vi.fn(),
 	search: vi.fn(),
 	legality: vi.fn(),
 	add: vi.fn(),
@@ -36,7 +38,9 @@ vi.mock('../../src/lib/server/composition.ts', async () => {
 				search: mocks.search,
 				ownership: vi.fn().mockResolvedValue([]),
 				getDeck: mocks.deck,
-				getDeckLibrary: mocks.library
+				getDeckLibrary: mocks.library,
+				discoverReferenceDecks: mocks.discover,
+				copyReferenceDeck: mocks.copyReferenceDeck
 			}
 		}
 	};
@@ -97,17 +101,67 @@ describe('web deck boundaries', () => {
 	it('opens the library without implicitly selecting a deck', async () => {
 		const result = await load(event() as Parameters<typeof load>[0]);
 		expect(result).toMatchObject({
+			tab: 'library',
 			selectedDeckId: null,
 			decks: [],
 			deckLibrary: { limit: 200, matchingTotal: 1001 }
 		});
 		expect(mocks.snapshot).not.toHaveBeenCalled();
 		expect(mocks.deck).not.toHaveBeenCalled();
+		expect(mocks.discover).not.toHaveBeenCalled();
 		expect(mocks.library).toHaveBeenCalledWith(
 			expect.objectContaining({ accountId: 'owner' }),
 			expect.objectContaining({ offset: 0, limit: 200 })
 		);
 		expect(mocks.legality).not.toHaveBeenCalled();
+	});
+	it('loads SuperBrew Discovery when tab=discovery is active and copies reference decks in one click', async () => {
+		mocks.discover.mockResolvedValue({
+			decks: [],
+			total: 0,
+			limit: 24,
+			offset: 0,
+			inventoryMode: 'free',
+			sort: 'missing_cost:asc',
+			assembledDeckCount: 1,
+			valuationAvailable: true,
+			evaluatedAt: '2026-11-27T10:00:00.000Z',
+			availableFormats: ['standard', 'modern'],
+			sources: []
+		});
+		const result = await load(
+			event(
+				'http://localhost/mtg/decks?tab=discovery&discFormat=modern&discBudget=25&discMode=free'
+			) as Parameters<typeof load>[0]
+		);
+		expect(result).toMatchObject({
+			tab: 'discovery',
+			selectedDeckId: null,
+			discovery: { assembledDeckCount: 1, inventoryMode: 'free' }
+		});
+		expect(mocks.library).not.toHaveBeenCalled();
+		expect(mocks.discover).toHaveBeenCalledWith(
+			expect.objectContaining({ accountId: 'owner' }),
+			expect.objectContaining({
+				format: 'modern',
+				maxMissingCost: 25,
+				inventoryMode: 'free',
+				sort: 'missing_cost:asc'
+			})
+		);
+
+		mocks.copyReferenceDeck.mockResolvedValue({
+			deck: { id: 'new-deck-1' },
+			copiedCards: 75,
+			skippedCards: 0
+		});
+		await expect(
+			actions.copyReferenceDeck(
+				event('http://localhost/mtg/decks?tab=discovery', {
+					referenceDeckId: '11111111-1111-4111-8111-111111111111'
+				})
+			)
+		).rejects.toMatchObject({ status: 303, location: '/mtg/decks?deck=new-deck-1' });
 	});
 	it('keeps the independently selected Deck when directory evidence fails', async () => {
 		mocks.library.mockRejectedValue(new Error('Directory unavailable'));
