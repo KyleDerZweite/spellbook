@@ -29,26 +29,26 @@
 		"qrcode": "^1.5.4"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-node": "^6.0.2",
-		"@sveltejs/kit": "^3.2.0",
-		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"@sveltejs/adapter-node": "^6.0.5",
+		"@sveltejs/kit": "^3.4.0",
+		"@sveltejs/vite-plugin-svelte": "^7.3.2",
 		"@tailwindcss/vite": "^4.3.5",
 		"@types/d3-scale": "^4.0.9",
 		"@types/d3-shape": "^3.2.0",
 		"@types/node": "^26.6.6",
 		"@types/pg": "^8.23.1",
 		"@types/qrcode": "^1.5.6",
-		"csstype": "^3.2.3",
+		"csstype": "^3.2.4",
 		"pg": "^8.23.1",
 		"prettier": "^3.10.1",
-		"prettier-plugin-svelte": "^4.1.1",
-		"svelte": "^5.57.3",
+		"prettier-plugin-svelte": "^4.2.0",
+		"svelte": "^5.59.1",
 		"svelte-check": "^4.7.8",
 		"tailwindcss": "^4.3.5",
 		"typescript": "^6.0.3",
 		"typescript-native": "npm:typescript@^7.0.2",
 		"vite": "^8.3.8",
-		"vitest": "^5.1.0"
+		"vitest": "^5.1.1"
 	},
 	"packageManager": "pnpm@12.8.1",
 	"engines": {
