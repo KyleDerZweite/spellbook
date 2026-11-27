@@ -115,12 +115,12 @@
 	});
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Profile.Card.Spellbook')}</title><meta
+<svelte:head>
+	<title>{language.t('ui.Profile.Card.Spellbook')}</title><meta
 		name="robots"
 		content="noindex, nofollow"
-	/></svelte:head
->
+	/>
+</svelte:head>
 
 <div class="settings-page">
 	{#if savedProfile.status !== 'live' && savedProfile.status !== 'idle'}<p
@@ -219,19 +219,22 @@
 				totals={saved.totals}
 			/>
 			<div class="settings-save">
-				<button class="btn btn-primary" disabled={pending}
-					>{pending ? language.t('ui.Saving') : language.t('ui.Save.card')}</button
-				>
+				<button class="btn btn-primary" disabled={pending}>
+					{pending ? language.t('ui.Saving') : language.t('ui.Save.card')}
+				</button>
 				<div
 					id="profile-status"
 					aria-live="polite"
 					aria-atomic="true"
 					class="text-sm text-text-secondary"
 				>
-					{#if saveError}<span class="text-error">{language.message(saveError)}</span
-						>{:else if form?.message && (!form.success || isSaved)}<span
-							class:text-error={!form.success}>{language.message(form.message)}</span
-						>{/if}
+					{#if saveError}<span class="text-error">
+							{language.message(saveError)}
+						</span>{:else if form?.message && (!form.success || isSaved)}<span
+							class:text-error={!form.success}
+						>
+							{language.message(form.message)}
+						</span>{/if}
 				</div>
 			</div>
 		</form>

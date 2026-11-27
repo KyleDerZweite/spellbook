@@ -56,17 +56,18 @@
 		>
 			<div class="form-dialog-heading">
 				<Dialog.Title class="font-display text-section-title">{title}</Dialog.Title>
-				<Dialog.Description class="text-body-compact text-text-secondary"
-					>{description}</Dialog.Description
-				>
+				<Dialog.Description class="text-body-compact text-text-secondary">
+					{description}
+				</Dialog.Description>
 				{#if variant === 'history'}<button
 						type="button"
 						class="history-close"
 						disabled={pending}
 						onclick={onCancel}
 						aria-label={language.t('ui.Close.value.history')}
-						><X size={20} aria-hidden="true" /></button
-					>{/if}
+					>
+						<X size={20} aria-hidden="true" />
+					</button>{/if}
 			</div>
 			<ScrollArea
 				class="form-dialog-body"

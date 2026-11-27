@@ -125,9 +125,9 @@
 							label: categoryLabel('type', item.label)
 						}))}
 					>
-						{#snippet center()}<strong class="total"
-								>{typeTotal.toLocaleString(language.locale)}</strong
-							><span class="center-label">{language.t('ui.copies')}</span>{/snippet}
+						{#snippet center()}<strong class="total">
+								{typeTotal.toLocaleString(language.locale)}
+							</strong><span class="center-label">{language.t('ui.copies')}</span>{/snippet}
 					</ProportionChart>
 				</div>
 				<dl class="legend">
@@ -148,9 +148,9 @@
 									></i>{/if}{categoryLabel('type', item.label)}
 							</dt>
 							<dd>
-								<span class="sr-only"
-									>{language.t('sentence.p0.copies', { p0: String(item.value) })}</span
-								>{percent(item.value, typeTotal)}
+								<span class="sr-only">
+									{language.t('sentence.p0.copies', { p0: String(item.value) })}
+								</span>{percent(item.value, typeTotal)}
 							</dd>
 						</div>{/each}
 				</dl>
@@ -205,18 +205,18 @@
 								}
 							}}
 						>
-							<span class="plot"
-								><i
+							<span class="plot">
+								<i
 									style:height={`${(item.quantity / colorMaximum) * 100}%`}
 									style:background={manaColors[item.label] ?? 'var(--color-text-muted)'}
-								></i></span
-							>
-							<span class="mana" aria-hidden="true"
-								>{#if symbols[item.label]}<i
+								></i>
+							</span>
+							<span class="mana" aria-hidden="true">
+								{#if symbols[item.label]}<i
 										class={`ms ms-${symbols[item.label]}`}
 										class:ms-cost={item.label !== 'Multicolor'}
-									></i>{:else}?{/if}</span
-							><strong>{item.quantity.toLocaleString(language.locale)}</strong>
+									></i>{:else}?{/if}
+							</span><strong>{item.quantity.toLocaleString(language.locale)}</strong>
 						</button>{/each}
 				</div>
 				<p class="inspection" aria-live="polite">
@@ -224,32 +224,35 @@
 							language.locale
 						)}
 						{language.t('ui.copies')}
-						{percent(active.quantity, dashboard.totals.total)}{:else}<span class="sr-only"
-							>{language.t('ui.Select.a.color.to.inspect')}</span
-						>{/if}
+						{percent(active.quantity, dashboard.totals.total)}{:else}<span class="sr-only">
+							{language.t('ui.Select.a.color.to.inspect')}
+						</span>{/if}
 				</p>
 			</div>
 		{/if}
 	</section>
 	<section class="panel dashboard-surface sets">
 		<header>
-			{@render heading(language.t('ui.Collection.by.Set'))}<a class="view-all" href="/mtg/inventory"
-				>{language.t('ui.View.all')} <span aria-hidden="true">→</span></a
+			{@render heading(language.t('ui.Collection.by.Set'))}<a
+				class="view-all"
+				href="/mtg/inventory"
 			>
+				{language.t('ui.View.all')} <span aria-hidden="true">→</span>
+			</a>
 		</header>
 		<div class="set-list">
 			{#each sets.slice(0, 5) as item}
 				<div class="set-row">
-					<span class="set-symbol" aria-hidden="true"
-						>{#if /^[a-z0-9]{2,8}$/i.test(item.label) && !failedIcons.includes(item.label)}<img
+					<span class="set-symbol" aria-hidden="true">
+						{#if /^[a-z0-9]{2,8}$/i.test(item.label) && !failedIcons.includes(item.label)}<img
 								src={`https://svgs.scryfall.io/sets/${encodeURIComponent(item.label.toLowerCase())}.svg`}
 								alt=""
 								width="32"
 								height="32"
 								loading="lazy"
 								onerror={() => (failedIcons = [...failedIcons, item.label])}
-							/>{:else}<span>{item.label.toUpperCase()}</span>{/if}</span
-					>
+							/>{:else}<span>{item.label.toUpperCase()}</span>{/if}
+					</span>
 					<span class="set-name">{setName(item.label)}</span>
 					<div
 						class="track"
@@ -286,9 +289,12 @@
 		<DashboardDecks {dashboard} />
 		<section class="panel dashboard-surface recent">
 			<header>
-				{@render heading(language.t('ui.Recent.activity'))}<a class="view-all" href="/mtg/inventory"
-					>{language.t('ui.View.all')} <span aria-hidden="true">→</span></a
+				{@render heading(language.t('ui.Recent.activity'))}<a
+					class="view-all"
+					href="/mtg/inventory"
 				>
+					{language.t('ui.View.all')} <span aria-hidden="true">→</span>
+				</a>
 			</header>
 			<!-- svelte-ignore a11y_no_noninteractive_tabindex (Native scrolling region needs keyboard access.) -->
 			<div
@@ -300,7 +306,8 @@
 				{#each dashboard.recentEntries.slice(0, 4) as entry}<a
 						class="entry"
 						href={`/mtg/inventory/${encodeURIComponent(entry.id)}`}
-						><div class="thumbnail">
+					>
+						<div class="thumbnail">
 							{#if entry.imageUri}<img
 									src={cardImageSrc(entry.imageUri)}
 									{@attach cachedCardImage(entry.imageUri)}
@@ -311,22 +318,24 @@
 								/>{:else}<span>{entry.setCode.toUpperCase()}</span>{/if}
 						</div>
 						<div class="entry-text">
-							<span class="entry-title">{entry.name}</span><span class="entry-context"
-								>{language.t('message.Inventory.updated.p0.p1.p2', {
+							<span class="entry-title">{entry.name}</span><span class="entry-context">
+								{language.t('message.Inventory.updated.p0.p1.p2', {
 									p0: String(entry.setCode.toUpperCase()),
 									p1: String(entry.quantity.toLocaleString(language.locale)),
 									p2: String(
 										entry.quantity === 1 ? language.t('unit.copy') : language.t('unit.copies')
 									)
-								})}</span
-							><time
+								})}
+							</span><time
 								class="entry-time"
 								datetime={entry.updatedAt}
-								title={timestamp(entry.updatedAt)}>{timestamp(entry.updatedAt)}</time
+								title={timestamp(entry.updatedAt)}
 							>
+								{timestamp(entry.updatedAt)}
+							</time>
 						</div>
-						<span class="chevron" aria-hidden="true">›</span></a
-					>{:else}<p>{language.t('ui.No.recent.inventory.updates')}</p>{/each}
+						<span class="chevron" aria-hidden="true">›</span>
+					</a>{:else}<p>{language.t('ui.No.recent.inventory.updates')}</p>{/each}
 			</div>
 		</section>
 	</div>

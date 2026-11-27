@@ -9,15 +9,16 @@
 <section class="panel dashboard-surface quick-actions" aria-label={language.t('ui.Quick.Actions')}>
 	<h2>{language.t('ui.Quick.Actions')}</h2>
 	<nav aria-label={language.t('ui.Dashboard.quick.actions')}>
-		<a href="/mtg/search"
-			><Plus size={16} aria-hidden="true" class="shrink-0" /><span
-				>{language.t('ui.Add.cards')}</span
-			><ArrowUpRight size={16} aria-hidden="true" class="arrow shrink-0" /></a
-		>
-		<a href="/mtg/decks?flow=create"
-			><Plus size={16} aria-hidden="true" class="shrink-0" /><span>{language.t('ui.New.deck')}</span
-			><ArrowUpRight size={16} aria-hidden="true" class="arrow shrink-0" /></a
-		>
+		<a href="/mtg/search">
+			<Plus size={16} aria-hidden="true" class="shrink-0" /><span>
+				{language.t('ui.Add.cards')}
+			</span><ArrowUpRight size={16} aria-hidden="true" class="arrow shrink-0" />
+		</a>
+		<a href="/mtg/decks?flow=create">
+			<Plus size={16} aria-hidden="true" class="shrink-0" /><span>
+				{language.t('ui.New.deck')}
+			</span><ArrowUpRight size={16} aria-hidden="true" class="arrow shrink-0" />
+		</a>
 		<a href="/mtg/inventory?view=groups">
 			<Package size={16} aria-hidden="true" class="shrink-0" />
 			<span>{language.t('ui.Manage.boxes')}</span><ArrowUpRight

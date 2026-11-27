@@ -52,8 +52,10 @@
 	{:else if data.selectedPrinting}<button
 			bind:this={returnFocus}
 			class="btn btn-primary"
-			onclick={() => (open = true)}>Inspect fixture Printing</button
+			onclick={() => (open = true)}
 		>
+			Inspect fixture Printing
+		</button>
 		{#if open}<CardDetail
 				card={data.selectedPrinting}
 				onClose={() => (open = false)}

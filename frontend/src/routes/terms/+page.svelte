@@ -74,8 +74,9 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-					>Impressum</a
-				>.
+				>
+					Impressum
+				</a>.
 			</p>
 		</section>
 
@@ -127,8 +128,9 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-					>Scryfall</a
-				>{language.t('ui.which.provides.this.data.under.its.own.terms.of.use')}
+				>
+					Scryfall
+				</a>{language.t('ui.which.provides.this.data.under.its.own.terms.of.use')}
 			</p>
 			<p>
 				{language.t(
@@ -181,8 +183,9 @@
 				<a
 					href="/privacy"
 					class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-					>{language.t('ui.Privacy.Policy')}</a
-				>{language.t(
+				>
+					{language.t('ui.Privacy.Policy')}
+				</a>{language.t(
 					'ui.which.describes.what.data.we.collect.how.we.use.it.and.your.rights.under.the.GDPR'
 				)}
 			</p>
@@ -200,8 +203,9 @@
 				<a
 					href="mailto:support@kylehub.dev"
 					class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-					>support@kylehub.dev</a
-				>.
+				>
+					support@kylehub.dev
+				</a>.
 			</p>
 			<p>
 				{language.t(
@@ -253,8 +257,9 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-					>https://ec.europa.eu/consumers/odr</a
-				>.
+				>
+					https://ec.europa.eu/consumers/odr
+				</a>.
 			</p>
 		</section>
 
@@ -282,32 +287,36 @@
 					<a
 						href="mailto:legal@kylehub.dev"
 						class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-						>legal@kylehub.dev</a
 					>
+						legal@kylehub.dev
+					</a>
 				</li>
 				<li>
 					{language.t('ui.Support')}
 					<a
 						href="mailto:support@kylehub.dev"
 						class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-						>support@kylehub.dev</a
 					>
+						support@kylehub.dev
+					</a>
 				</li>
 				<li>
 					{language.t('ui.Abuse.reports')}
 					<a
 						href="mailto:abuse@kylehub.dev"
 						class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-						>abuse@kylehub.dev</a
 					>
+						abuse@kylehub.dev
+					</a>
 				</li>
 				<li>
 					{language.t('ui.General.inquiries')}
 					<a
 						href="mailto:info@kylehub.dev"
 						class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-						>info@kylehub.dev</a
 					>
+						info@kylehub.dev
+					</a>
 				</li>
 			</ul>
 		</section>

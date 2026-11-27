@@ -95,24 +95,24 @@
 			<fieldset>
 				<legend>{language.t('physicalBoxes.printedColor')}</legend>
 				{#each colors as [value, key] (value)}
-					<label
-						><input
+					<label>
+						<input
 							type="checkbox"
 							name="printedColor"
 							{value}
 							checked={printedColor.includes(value)}
 						/>
-						{language.t(key)}</label
-					>
+						{language.t(key)}
+					</label>
 				{/each}
 			</fieldset>
 			<fieldset>
 				<legend>{language.t('ui.Rarity')}</legend>
 				{#each rarities as value (value)}
-					<label
-						><input type="checkbox" name="rarity" {value} checked={rarity.includes(value)} />
-						{language.t(`rarity.${value}`)}</label
-					>
+					<label>
+						<input type="checkbox" name="rarity" {value} checked={rarity.includes(value)} />
+						{language.t(`rarity.${value}`)}
+					</label>
 				{/each}
 			</fieldset>
 			<label for={`set-${box.id}`}>{language.t('physicalBoxes.setCodes')}</label>

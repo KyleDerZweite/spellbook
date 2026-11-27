@@ -73,8 +73,9 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-					>Impressum</a
-				>.
+				>
+					Impressum
+				</a>.
 			</p>
 		</section>
 
@@ -225,8 +226,9 @@
 					{language.t('ui.Request.information.about.what.personal.data.we.store.about.you')}
 				</li>
 				<li>
-					<strong class="text-text-primary">{language.t('ui.Right.to.Rectification.Art.16')}</strong
-					>
+					<strong class="text-text-primary">
+						{language.t('ui.Right.to.Rectification.Art.16')}
+					</strong>
 					{language.t('ui.Request.correction.of.inaccurate.personal.data')}
 				</li>
 				<li>
@@ -234,15 +236,15 @@
 					{language.t('ui.Request.deletion.of.your.personal.data')}
 				</li>
 				<li>
-					<strong class="text-text-primary"
-						>{language.t('ui.Right.to.Restrict.Processing.Art.18')}</strong
-					>
+					<strong class="text-text-primary">
+						{language.t('ui.Right.to.Restrict.Processing.Art.18')}
+					</strong>
 					{language.t('ui.Request.limitation.of.data.processing')}
 				</li>
 				<li>
-					<strong class="text-text-primary"
-						>{language.t('ui.Right.to.Data.Portability.Art.20')}</strong
-					>
+					<strong class="text-text-primary">
+						{language.t('ui.Right.to.Data.Portability.Art.20')}
+					</strong>
 					{language.t('ui.Receive.your.data.in.a.structured.machine.readable.format')}
 				</li>
 				<li>
@@ -250,9 +252,9 @@
 					{language.t('ui.Object.to.processing.based.on.legitimate.interest')}
 				</li>
 				<li>
-					<strong class="text-text-primary"
-						>{language.t('ui.Right.to.Lodge.a.Complaint.Art.77')}</strong
-					>
+					<strong class="text-text-primary">
+						{language.t('ui.Right.to.Lodge.a.Complaint.Art.77')}
+					</strong>
 					{language.t(
 						'ui.File.a.complaint.with.a.supervisory.authority.The.competent.authority.in.Germany.is.the.Landesbeauftragte.f.r.Datenschutz.und.Informationsfreiheit.Nordrhein.Westfalen.LDI.NRW'
 					)}
@@ -263,8 +265,9 @@
 				<a
 					href="mailto:privacy@kylehub.dev"
 					class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-					>privacy@kylehub.dev</a
-				>{language.t(
+				>
+					privacy@kylehub.dev
+				</a>{language.t(
 					'ui.We.will.respond.to.your.request.without.undue.delay.and.within.one.month.at.the.latest'
 				)}
 			</p>
@@ -298,24 +301,27 @@
 					<a
 						href="mailto:privacy@kylehub.dev"
 						class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-						>privacy@kylehub.dev</a
 					>
+						privacy@kylehub.dev
+					</a>
 				</li>
 				<li>
 					{language.t('ui.Security')}
 					<a
 						href="mailto:security@kylehub.dev"
 						class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-						>security@kylehub.dev</a
 					>
+						security@kylehub.dev
+					</a>
 				</li>
 				<li>
 					{language.t('ui.General.inquiries')}
 					<a
 						href="mailto:info@kylehub.dev"
 						class="text-gold underline decoration-gold-dim underline-offset-2 transition-colors hover:text-gold-bright"
-						>info@kylehub.dev</a
 					>
+						info@kylehub.dev
+					</a>
 				</li>
 			</ul>
 		</section>

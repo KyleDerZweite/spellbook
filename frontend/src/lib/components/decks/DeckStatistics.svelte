@@ -62,22 +62,24 @@
 			bind:value={scope}
 			disabled={!enhanced}
 		>
-			<option value="deck">{language.t('ui.Main.commander')}</option><option value="main"
-				>{language.t('ui.Main.deck')}</option
-			><option value="sideboard">{language.t('ui.Sideboard')}</option><option value="companion"
-				>{language.t('ui.Companion')}</option
-			><option value="all">{language.t('ui.All.sections')}</option>
+			<option value="deck">{language.t('ui.Main.commander')}</option><option value="main">
+				{language.t('ui.Main.deck')}
+			</option><option value="sideboard">{language.t('ui.Sideboard')}</option><option
+				value="companion"
+			>
+				{language.t('ui.Companion')}
+			</option><option value="all">{language.t('ui.All.sections')}</option>
 		</select>
 	</div>
 	<div class="analysis-grid">
 		<section class="analysis-panel" aria-label={language.t('ui.Mana.curve')}>
 			<div class="chart-heading">
 				<h3>{language.t('ui.Mana.curve')}</h3>
-				<span
-					>{language.t('sentence.p0.nonland.copies', {
+				<span>
+					{language.t('sentence.p0.nonland.copies', {
 						p0: String(statistics.curveQuantity.toLocaleString(language.locale))
-					})}</span
-				>
+					})}
+				</span>
 			</div>
 			{#if statistics.curveQuantity}<div
 					class="curve"
@@ -116,21 +118,21 @@
 						: language.t('ui.No.cards.in.this.section')}
 				</p>{/if}
 			<div class="chart-meta">
-				<span
-					>{language.t('ui.Average')}
-					<strong
-						>{statistics.averageManaValue === null
+				<span>
+					{language.t('ui.Average')}
+					<strong>
+						{statistics.averageManaValue === null
 							? language.t('ui.Unavailable')
 							: statistics.averageManaValue.toLocaleString(language.locale, {
 									maximumFractionDigits: 2
-								})}</strong
-					></span
-				><span
-					>{statistics.lands.toLocaleString(language.locale)}
+								})}
+					</strong>
+				</span><span>
+					{statistics.lands.toLocaleString(language.locale)}
 					{language.t('ui.lands.excluded')}{#if statistics.curveUnknown}
 						· {statistics.curveUnknown.toLocaleString(language.locale)}
-						{language.t('ui.unknown')}{/if}</span
-				>
+						{language.t('ui.unknown')}{/if}
+				</span>
 			</div>
 		</section>
 		<section class="analysis-panel" aria-label={language.t('ui.Color.distribution')}>
@@ -141,10 +143,11 @@
 					aria-label={language.t('ui.Deck.color.measure')}
 					bind:value={colorMeasure}
 					disabled={!enhanced}
-					><option value="colors">{language.t('ui.Colors')}</option><option value="colorIdentity"
-						>{language.t('ui.Color.identity')}</option
-					></select
 				>
+					<option value="colors">{language.t('ui.Colors')}</option><option value="colorIdentity">
+						{language.t('ui.Color.identity')}
+					</option>
+				</select>
 			</div>
 			{#if statistics.quantity}<div class="color-distribution">
 					<ProportionChart
@@ -156,9 +159,9 @@
 							color: palette[item.label]
 						}))}
 					>
-						{#snippet center()}<strong class="color-total"
-								>{statistics.quantity.toLocaleString(language.locale)}</strong
-							><span class="color-caption">{language.t('ui.copies')}</span>{/snippet}
+						{#snippet center()}<strong class="color-total">
+								{statistics.quantity.toLocaleString(language.locale)}
+							</strong><span class="color-caption">{language.t('ui.copies')}</span>{/snippet}
 					</ProportionChart>
 					<dl class="color-key">
 						{#each colors as item}<div>

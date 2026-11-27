@@ -19,22 +19,22 @@
 				d="M88 39c0 12 50 12 50 0M88 48c0 12 50 12 50 0M88 57c0 12 50 12 50 0M88 66c0 12 50 12 50 0M88 75c0 12 50 12 50 0"
 			/>
 		</g>
-		<g transform="rotate(-24 63 95)"
-			><ellipse class="solid" cx="63" cy="95" rx="27" ry="10" /><ellipse
+		<g transform="rotate(-24 63 95)">
+			<ellipse class="solid" cx="63" cy="95" rx="27" ry="10" /><ellipse
 				cx="63"
 				cy="95"
 				rx="20"
 				ry="6"
-			/><path d="M36 95v5c0 14 54 14 54 0v-5" /></g
-		>
-		<g transform="rotate(16 135 108)"
-			><ellipse class="solid" cx="135" cy="108" rx="24" ry="9" /><ellipse
+			/><path d="M36 95v5c0 14 54 14 54 0v-5" />
+		</g>
+		<g transform="rotate(16 135 108)">
+			<ellipse class="solid" cx="135" cy="108" rx="24" ry="9" /><ellipse
 				cx="135"
 				cy="108"
 				rx="17"
 				ry="5"
-			/></g
-		>
+			/>
+		</g>
 	{:else if kind === 'sets'}
 		<g transform="rotate(12 114 72)">
 			<path class="solid" d="m66 45 46-18 46 18v62l-46 19-46-19V45Z" />

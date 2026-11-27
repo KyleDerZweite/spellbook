@@ -239,9 +239,9 @@
 		<p>{language.t('ui.No.boxes.yet.Create.one.then.assign.cards.from.their.row.menu')}</p>
 	</div>
 {:else}
-	{#if lazy && span.start > 0}<button class="btn btn-secondary" onclick={loadEarlier}
-			>{language.t('ui.Load.earlier.boxes')}</button
-		>{/if}
+	{#if lazy && span.start > 0}<button class="btn btn-secondary" onclick={loadEarlier}>
+			{language.t('ui.Load.earlier.boxes')}
+		</button>{/if}
 	<ul
 		bind:this={list}
 		class="group-directory"
@@ -261,15 +261,15 @@
 			>
 				<a href={groupHref(group.id)} class="group-link">
 					<Folder size={20} aria-hidden="true" class="shrink-0" />
-					<span
-						><strong>{group.name}</strong><small
-							>{language.t(`cards.${language.plural(group.quantity)}`, {
+					<span>
+						<strong>{group.name}</strong><small>
+							{language.t(`cards.${language.plural(group.quantity)}`, {
 								count: language.number(group.quantity)
 							})} · {language.t(`entries.${language.plural(group.entryCount)}`, {
 								count: language.number(group.entryCount)
-							})}</small
-						></span
-					>
+							})}
+						</small>
+					</span>
 				</a>
 				<ActionMenu
 					label={language.t('message.Actions.for.box.p0', { p0: String(group.name) })}

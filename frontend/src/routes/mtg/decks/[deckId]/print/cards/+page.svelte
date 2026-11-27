@@ -38,12 +38,12 @@
 		};
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Card.sheet')} {data.deck.name} | Spellbook</title><meta
+<svelte:head>
+	<title>{language.t('ui.Card.sheet')} {data.deck.name} | Spellbook</title><meta
 		name="robots"
 		content="noindex"
-	/></svelte:head
->
+	/>
+</svelte:head>
 <article class="card-sheets print-document workspace-container">
 	<div class="print-actions">
 		<h1>{data.deck.name}</h1>
@@ -55,11 +55,11 @@
 			})}
 		</p>
 		<div class="buttons">
-			<Button onclick={() => window.print()} disabled={!ready || !copies.length}
-				>{language.t('ui.Print.cards')}</Button
-			><Button href={`/mtg/decks?deck=${data.deck.id}`} variant="secondary"
-				>{language.t('ui.Back.to.deck')}</Button
-			>
+			<Button onclick={() => window.print()} disabled={!ready || !copies.length}>
+				{language.t('ui.Print.cards')}
+			</Button><Button href={`/mtg/decks?deck=${data.deck.id}`} variant="secondary">
+				{language.t('ui.Back.to.deck')}
+			</Button>
 		</div>
 		{#if copies.length}<p role="status">
 				{ready

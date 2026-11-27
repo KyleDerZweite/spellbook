@@ -101,14 +101,18 @@
 				</p>
 				{#if hasFilters && clearFiltersHref}<a
 						class="btn btn-secondary mt-4"
-						href={clearFiltersHref}>{language.t('ui.Clear.filters')}</a
+						href={clearFiltersHref}
 					>
+						{language.t('ui.Clear.filters')}
+					</a>
 				{:else if hasFilters && onClearFilters}<button
 						class="btn btn-secondary mt-4"
-						onclick={onClearFilters}>{language.t('ui.Clear.filters')}</button
-					>{:else if onRetry}<button class="btn btn-secondary mt-4" onclick={onRetry}
-						>{language.t('ui.Retry.search')}</button
-					>{/if}
+						onclick={onClearFilters}
+					>
+						{language.t('ui.Clear.filters')}
+					</button>{:else if onRetry}<button class="btn btn-secondary mt-4" onclick={onRetry}>
+						{language.t('ui.Retry.search')}
+					</button>{/if}
 			</div>
 		</div>
 	{:else if totalCount > 0 || loading}
@@ -130,16 +134,17 @@
 							class="w-full rounded-lg"
 						/>
 						<span class="block truncate text-sm">{card.name}</span>
-						<span class="text-xs uppercase text-text-muted"
-							>{card.set_code} {card.collector_number}</span
-						>
+						<span class="text-xs uppercase text-text-muted">
+							{card.set_code}
+							{card.collector_number}
+						</span>
 					</a>
 				{/each}
 			</div>
 		{:else}
-			{#if span.start > 0}<button class="btn btn-secondary mb-4" onclick={onLoadEarlier}
-					>{language.t('ui.Load.earlier.cards')}</button
-				>{/if}
+			{#if span.start > 0}<button class="btn btn-secondary mb-4" onclick={onLoadEarlier}>
+					{language.t('ui.Load.earlier.cards')}
+				</button>{/if}
 			<VirtualCardGrid
 				span={span.end > span.start
 					? span

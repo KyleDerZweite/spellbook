@@ -124,12 +124,12 @@
 	});
 </script>
 
-<svelte:head
-	><title>{language.t('notice.Search.evaluation')} | Spellbook</title><meta
+<svelte:head>
+	<title>{language.t('notice.Search.evaluation')} | Spellbook</title><meta
 		name="robots"
 		content="noindex,nofollow"
-	/></svelte:head
->
+	/>
+</svelte:head>
 <div class="workspace-container evaluation-page" data-evaluation-ready={ready}>
 	<h1 class="font-display text-2xl">{language.t('notice.Search.evaluation')}</h1>
 	<p class="text-sm text-text-secondary">
@@ -138,9 +138,9 @@
 	</p>
 	<label for="evaluation-variant">{language.t('notice.Search.variant')}</label>
 	<select id="evaluation-variant" class="input" bind:value={variant}>
-		{#each data.experiment.variants as item}<option value={item.id}
-				>{language.message(item.label)}</option
-			>{/each}
+		{#each data.experiment.variants as item}<option value={item.id}>
+				{language.message(item.label)}
+			</option>{/each}
 	</select>
 	<p>{language.t('ui.Power.user.search')} <kbd>Ctrl / Cmd + K</kbd></p>
 	<p class="text-sm text-text-secondary">
@@ -163,11 +163,11 @@
 			}}
 		>
 			<Dialog.Title class="sr-only">{language.t('ui.Power.user.search')}</Dialog.Title>
-			<Dialog.Description class="sr-only"
-				>{language.t(
+			<Dialog.Description class="sr-only">
+				{language.t(
 					'notice.Search.cards.synthetic.Decks.and.pages.Arrow.keys.select.a.result.Enter.opens.it'
-				)}</Dialog.Description
-			>
+				)}
+			</Dialog.Description>
 			<Command.Root
 				shouldFilter={false}
 				vimBindings={false}
@@ -193,17 +193,17 @@
 								class="evaluation-result"
 								onSelect={() => (open = false)}
 							>
-								<span class="result-symbol" aria-hidden="true"
-									>{result.kind === 'card' ? '◇' : result.kind === 'deck' ? '▤' : '↗'}</span
-								>
-								<span class="result-copy"
-									><span>{result.name}</span><span class="result-reason"
-										>{result.reason
+								<span class="result-symbol" aria-hidden="true">
+									{result.kind === 'card' ? '◇' : result.kind === 'deck' ? '▤' : '↗'}
+								</span>
+								<span class="result-copy">
+									<span>{result.name}</span><span class="result-reason">
+										{result.reason
 											.split(' + ')
 											.map((reason) => language.message(reason))
-											.join(' + ')}</span
-									></span
-								>
+											.join(' + ')}
+									</span>
+								</span>
 								<span class="result-kind">{language.message(result.kind)}</span>
 							</Command.LinkItem>
 						{/each}
@@ -214,12 +214,12 @@
 				</Command.List>
 			</Command.Root>
 			<div class="evaluation-status" role="status" aria-live="polite">
-				<span
-					>{failure ||
+				<span>
+					{failure ||
 						(pending
 							? language.t('notice.Searching')
-							: language.t('message.p0.results', { p0: String(results.length) }))}</span
-				>
+							: language.t('message.p0.results', { p0: String(results.length) }))}
+				</span>
 				<span>{duration ? `${Math.round(duration)} ms` : ''} <kbd>Esc</kbd></span>
 			</div>
 		</Dialog.Content>

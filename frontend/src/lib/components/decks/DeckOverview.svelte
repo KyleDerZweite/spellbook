@@ -77,8 +77,8 @@
 	<div class="availability-summary">
 		<div class="availability-heading">
 			<h2>{language.t('ui.Inventory.match')}</h2>
-			<span class="color-identity" aria-label={language.t('ui.Commander.color.identity')}
-				>{#each colors as color}<i
+			<span class="color-identity" aria-label={language.t('ui.Commander.color.identity')}>
+				{#each colors as color}<i
 						class={`ms ms-${color.toLowerCase()} ms-cost`}
 						role="img"
 						aria-label={language.t('message.p0.identity', {
@@ -91,15 +91,15 @@
 								)[color]
 							)
 						})}
-					></i>{/each}</span
-			>
+					></i>{/each}
+			</span>
 		</div>
 		<p class="availability-number">
-			{(totals.exact + totals.alternate).toLocaleString(language.locale)}<span
-				>{language.t('sentence.p0.copies', {
+			{(totals.exact + totals.alternate).toLocaleString(language.locale)}<span>
+				{language.t('sentence.p0.copies', {
 					p0: String(total.toLocaleString(language.locale))
-				})}</span
-			>
+				})}
+			</span>
 		</p>
 		{#if total}<ProportionChart
 				label={language.t('ui.Deck.Inventory.match')}

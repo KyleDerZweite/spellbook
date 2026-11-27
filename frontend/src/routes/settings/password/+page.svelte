@@ -25,12 +25,12 @@
 	] as const);
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Password.Spellbook')}</title><meta
+<svelte:head>
+	<title>{language.t('ui.Password.Spellbook')}</title><meta
 		name="robots"
 		content="noindex, nofollow"
-	/></svelte:head
->
+	/>
+</svelte:head>
 <div class="page-title"><h1>{language.t('ui.Password')}</h1></div>
 <form
 	class="password-settings"
@@ -93,9 +93,9 @@
 		</div>
 	{/each}
 	<div class="password-save">
-		<button class="btn btn-primary" disabled={pending || data.demoMode}
-			>{pending ? language.t('ui.Saving') : language.t('ui.Change.password')}</button
-		>
+		<button class="btn btn-primary" disabled={pending || data.demoMode}>
+			{pending ? language.t('ui.Saving') : language.t('ui.Change.password')}
+		</button>
 		<p
 			role="status"
 			class="text-sm text-text-secondary"

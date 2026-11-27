@@ -18,12 +18,12 @@
 	)}
 >
 	<div class="counts">
-		<span
-			>{language.t('sentence.p0.p1.owned', {
+		<span>
+			{language.t('sentence.p0.p1.owned', {
 				p0: String(owned.toLocaleString(language.locale)),
 				p1: String(required.toLocaleString(language.locale))
-			})}</span
-		><span>{required ? Math.floor((owned / required) * 100) : 0}%</span>
+			})}
+		</span><span>{required ? Math.floor((owned / required) * 100) : 0}%</span>
 	</div>
 	<div class="track" aria-hidden="true">
 		{#each [{ value: exact, color: 'var(--color-success)' }, { value: alternate, color: 'var(--color-violet)' }, { value: missing, color: 'var(--color-warning)' }] as segment}<span

@@ -17,11 +17,9 @@
 <svelte:head><title>{language.t('ui.Import.Deck.Spellbook')}</title></svelte:head>
 <div class="workspace-container exchange">
 	<WorkspaceHeader title={language.t('ui.Import.a.new.Deck')}>
-		{#snippet actions()}<Button href="/mtg/decks" variant="secondary"
-				><ArrowLeft size={16} aria-hidden="true" class="shrink-0" />{language.t(
-					'ui.All.decks'
-				)}</Button
-			>{/snippet}
+		{#snippet actions()}<Button href="/mtg/decks" variant="secondary">
+				<ArrowLeft size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.All.decks')}
+			</Button>{/snippet}
 	</WorkspaceHeader>
 	<p>
 		{language.t(
@@ -41,9 +39,9 @@
 			<input type="hidden" name="name" value={form.name} />
 			<input type="hidden" name="format" value={form.format} />
 			<input type="hidden" name="description" value={form.description} />
-			<Button type="submit" name="intent" value="commit"
-				>{language.t('ui.Retry.creating.the.same.Deck')}</Button
-			>
+			<Button type="submit" name="intent" value="commit">
+				{language.t('ui.Retry.creating.the.same.Deck')}
+			</Button>
 		</form>
 	{/if}
 	<form method="POST" enctype="multipart/form-data" class="form-stack">
@@ -90,11 +88,9 @@
 				rows="3"
 				value={form?.description ?? ''}></textarea>
 		</details>
-		<Button type="submit" variant="secondary" name="intent" value="preview"
-			><Upload size={16} aria-hidden="true" class="shrink-0" />{language.t(
-				'ui.Preview.import'
-			)}</Button
-		>
+		<Button type="submit" variant="secondary" name="intent" value="preview">
+			<Upload size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Preview.import')}
+		</Button>
 	</form>
 	{#if preview}
 		<section aria-labelledby="preview-title" class="form-stack">
@@ -132,14 +128,14 @@
 				</ul>
 			</details>
 			{#if preview.warnings.length}<details open>
-					<summary
-						>{preview.metadata?.format || form?.format
+					<summary>
+						{preview.metadata?.format || form?.format
 							? language.t('deck.legality.notLegalCount', {
 									format: preview.metadata?.format || form?.format || '',
 									count: language.number(preview.warnings.length)
 								})
-							: language.t('ui.Format.warnings')}</summary
-					>
+							: language.t('ui.Format.warnings')}
+					</summary>
 					<p>{language.t('deck.legality.nonBlockingNote')}</p>
 					<ul>
 						{#each preview.warnings as warning}<li>
@@ -153,9 +149,9 @@
 				<input type="hidden" name="name" value={form?.name ?? ''} />
 				<input type="hidden" name="format" value={form?.format ?? 'Commander'} />
 				<input type="hidden" name="description" value={form?.description ?? ''} />
-				<Button type="submit" name="intent" value="commit" disabled={blocked}
-					>{language.t('ui.Create.complete.Deck')}</Button
-				>
+				<Button type="submit" name="intent" value="commit" disabled={blocked}>
+					{language.t('ui.Create.complete.Deck')}
+				</Button>
 			</form>
 		</section>
 	{/if}

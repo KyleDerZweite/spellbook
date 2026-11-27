@@ -71,8 +71,10 @@
 				role="img"
 				aria-label={language.t('message.p0.rarity', {
 					p0: String(rarity?.label ?? language.t('ui.Unknown'))
-				})}><i class="ms ms-rarity" aria-hidden="true"></i></span
+				})}
 			>
+				<i class="ms ms-rarity" aria-hidden="true"></i>
+			</span>
 		</div>
 	</div>
 	<div class="card-rules frame-section">
@@ -95,13 +97,15 @@
 					horizontal
 				/>
 				<div class="card-stats-content frame-content">
-					<span>{resolveProfileText(card.power, totals, language.locale) || '…'}</span><span>/</span
-					><span>{resolveProfileText(card.toughness, totals, language.locale) || '…'}</span>
+					<span>{resolveProfileText(card.power, totals, language.locale) || '…'}</span><span>
+						/
+					</span><span>{resolveProfileText(card.toughness, totals, language.locale) || '…'}</span>
 				</div>
 			</div>{/if}
 		<div class="card-footer frame-content">
-			<span class="card-owner"><Avatar id={avatarId} size={14} /><span>@{username}</span></span
-			><span class="font-display">Spellbook</span>
+			<span class="card-owner">
+				<Avatar id={avatarId} size={14} /><span>@{username}</span>
+			</span><span class="font-display">Spellbook</span>
 		</div>
 	</div>
 </article>

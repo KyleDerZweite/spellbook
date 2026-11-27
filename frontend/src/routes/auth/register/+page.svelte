@@ -12,12 +12,12 @@
 	let selectedArtwork = $derived(getProfileArtwork(form?.artworkId).id as string);
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Create.an.account.Spellbook')}</title><meta
+<svelte:head>
+	<title>{language.t('ui.Create.an.account.Spellbook')}</title><meta
 		name="robots"
 		content="noindex"
-	/></svelte:head
->
+	/>
+</svelte:head>
 
 <AccountLayout title={language.t('ui.Create.an.account')}>
 	<form
@@ -78,14 +78,14 @@
 			</p>
 		</div>
 		<ArtworkPicker bind:selected={selectedArtwork} disabled={pending} compact />
-		<button type="submit" disabled={pending} class="btn btn-primary w-full disabled:opacity-50"
-			>{pending ? language.t('ui.Please.wait') : language.t('ui.Create.an.account')}</button
-		>
+		<button type="submit" disabled={pending} class="btn btn-primary w-full disabled:opacity-50">
+			{pending ? language.t('ui.Please.wait') : language.t('ui.Create.an.account')}
+		</button>
 	</form>
 	<p class="auth-switch">
 		{language.t('ui.Already.have.an.account')}
-		<a href={`/auth/login?returnTo=${encodeURIComponent(data.returnTo)}`}
-			>{language.t('ui.Sign.in')}</a
-		>
+		<a href={`/auth/login?returnTo=${encodeURIComponent(data.returnTo)}`}>
+			{language.t('ui.Sign.in')}
+		</a>
 	</p>
 </AccountLayout>

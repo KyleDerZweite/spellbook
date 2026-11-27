@@ -6,12 +6,9 @@
 	let { data }: PageProps = $props();
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Spellbook.app')}</title><meta
-		name="robots"
-		content="noindex"
-	/></svelte:head
->
+<svelte:head>
+	<title>{language.t('ui.Spellbook.app')}</title><meta name="robots" content="noindex" />
+</svelte:head>
 
 <div class="app-home mx-auto w-full max-w-2xl px-4 py-8 space-y-8">
 	<header class="space-y-2">
@@ -28,8 +25,10 @@
 			<div class="grid grid-cols-2 gap-3">
 				<a href="/mtg/inventory" class="btn btn-secondary">{language.t('ui.Inventory')}</a><a
 					href="/mtg/decks"
-					class="btn btn-secondary">{language.t('ui.Decks')}</a
+					class="btn btn-secondary"
 				>
+					{language.t('ui.Decks')}
+				</a>
 			</div>
 		</section>
 	{:else}

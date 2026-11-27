@@ -61,29 +61,24 @@
 	}
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Dashboard.Spellbook')}</title><meta
-		name="robots"
-		content="noindex"
-	/></svelte:head
->
+<svelte:head>
+	<title>{language.t('ui.Dashboard.Spellbook')}</title><meta name="robots" content="noindex" />
+</svelte:head>
 <div class="workspace-container dashboard-page">
 	<SavedStateStatus resource={subscription} />
 	<WorkspaceHeader title={language.t('ui.Dashboard')} variant="overview">
-		{#snippet actions()}<a href="/mtg/inventory" class="btn btn-secondary btn-sm"
-				><Archive size={16} aria-hidden="true" class="shrink-0" />{language.t(
-					'ui.View.inventory'
-				)}</a
-			><a href="/mtg/search" class="btn btn-primary btn-sm"
-				><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add.cards')}</a
-			>{/snippet}
+		{#snippet actions()}<a href="/mtg/inventory" class="btn btn-secondary btn-sm">
+				<Archive size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.View.inventory')}
+			</a><a href="/mtg/search" class="btn btn-primary btn-sm">
+				<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add.cards')}
+			</a>{/snippet}
 	</WorkspaceHeader>
 	{#if loadError}
 		<div class="dashboard-empty" role="alert">
 			<p>{language.message(loadError)}</p>
-			<button class="btn btn-secondary btn-sm" onclick={retry} disabled={retrying}
-				>{retrying ? 'Loading...' : language.t('ui.Try.again')}</button
-			>
+			<button class="btn btn-secondary btn-sm" onclick={retry} disabled={retrying}>
+				{retrying ? 'Loading...' : language.t('ui.Try.again')}
+			</button>
 		</div>
 	{:else if dashboard}
 		<MetricCards {dashboard} demo={data.demoMode} />
@@ -93,9 +88,9 @@
 						'ui.Your.inventory.is.empty.Add.your.first.cards.to.start.building.your.collection'
 					)}
 				</p>
-				<a href="/mtg/search" class="btn btn-primary btn-sm"
-					><Search size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Find.cards')}</a
-				>
+				<a href="/mtg/search" class="btn btn-primary btn-sm">
+					<Search size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Find.cards')}
+				</a>
 			</div>{/if}
 		<DashboardInsights {dashboard} />
 	{/if}

@@ -65,9 +65,9 @@
 				style="max-height: 92dvh;"
 			>
 				<Dialog.Title class="sr-only">{card.name}</Dialog.Title>
-				<Dialog.Description class="sr-only"
-					>{language.t('ui.Card.information.and.printing.selection')}</Dialog.Description
-				>
+				<Dialog.Description class="sr-only">
+					{language.t('ui.Card.information.and.printing.selection')}
+				</Dialog.Description>
 				<CardInspector
 					{card}
 					{actions}
@@ -84,8 +84,9 @@
 					disabled={pending}
 					class="btn btn-ghost btn-icon absolute right-2 top-2 z-10"
 					aria-label={language.t('ui.Close.card.detail')}
-					><X size={20} aria-hidden="true" /></Dialog.Close
 				>
+					<X size={20} aria-hidden="true" />
+				</Dialog.Close>
 			</Dialog.Content>
 		</Dialog.Overlay>
 	</Dialog.Portal>

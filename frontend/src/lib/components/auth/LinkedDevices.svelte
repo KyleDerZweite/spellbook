@@ -95,8 +95,9 @@
 								class="btn btn-secondary"
 								disabled={pending === device.id}
 								aria-label={language.t('devices.rename.aria', { name: label(device) })}
-								>{language.t('devices.rename')}</button
 							>
+								{language.t('devices.rename')}
+							</button>
 							<button
 								type="button"
 								class="btn btn-secondary"
@@ -106,8 +107,10 @@
 									revokeTrigger = event.currentTarget;
 									revokeError = '';
 									revoking = device;
-								}}>{language.t('devices.revoke')}</button
+								}}
 							>
+								{language.t('devices.revoke')}
+							</button>
 						</div>
 					</form>
 					<noscript>
@@ -145,11 +148,11 @@
 			<input type="hidden" name="intent" value="device-revoke" />
 			<input type="hidden" name="deviceId" value={target.id} />
 			<input type="hidden" name="confirm" value="yes" />
-			<button class="btn btn-primary" disabled={pending === target.id}
-				>{pending === target.id
+			<button class="btn btn-primary" disabled={pending === target.id}>
+				{pending === target.id
 					? language.t('ui.Please.wait')
-					: language.t('devices.revoke.confirm')}</button
-			>
+					: language.t('devices.revoke.confirm')}
+			</button>
 		</form>
 	</ConfirmationDialog>
 {/if}

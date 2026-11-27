@@ -50,9 +50,9 @@
 						class="role-heading"
 						class:commander-role={cards.every((card) => card.role === 'commander')}
 					>
-						<span
-							>{#if symbol}<i class={`ms ms-${symbol}`} aria-hidden="true"></i>{/if}{group}</span
-						>
+						<span>
+							{#if symbol}<i class={`ms ms-${symbol}`} aria-hidden="true"></i>{/if}{group}
+						</span>
 						<span class="group-count">{cards.reduce((sum, card) => sum + card.quantity, 0)}</span>
 					</h2>{/if}
 				<div class="group-cards" style:--stack-rows={cards.length - 1}>
@@ -109,11 +109,11 @@
 										width="488"
 										height="680"
 									/>
-								{:else}<span class="art-fallback"
-										><i class="ms ms-card" aria-hidden="true"></i>{card.name}<ManaCost
+								{:else}<span class="art-fallback">
+										<i class="ms ms-card" aria-hidden="true"></i>{card.name}<ManaCost
 											cost={document.mana_cost}
-										/></span
-									>{/if}
+										/>
+									</span>{/if}
 							</button>
 							{#if view === 'stacks'}<span
 									class="stack-quantity"
@@ -128,8 +128,9 @@
 										p1: String(ownership)
 									})}
 									aria-label={language.t('message.p0.copies', { p0: String(card.quantity) })}
-									>{card.quantity}</span
-								>{/if}
+								>
+									{card.quantity}
+								</span>{/if}
 							<div class="entry-controls">
 								<QuantityControl
 									quantity={card.quantity}
@@ -149,9 +150,9 @@
 								</QuantityControl>
 								<button class="card-name" onclick={() => onInspect(document, card)}>
 									<span>{card.name}</span>
-									{#if document.mana_cost}<span class="row-mana"
-											><ManaCost cost={document.mana_cost} /></span
-										>{/if}
+									{#if document.mana_cost}<span class="row-mana">
+											<ManaCost cost={document.mana_cost} />
+										</span>{/if}
 									{#if view === 'list' && conflictText}
 										<span class="allocation-note conflict">{conflictText}</span>
 									{:else if view === 'list' && inOtherText}
@@ -173,8 +174,8 @@
 									})}
 									title={ownership}
 								>
-									<span class="ownership-mark" aria-hidden="true"
-										>{!owned
+									<span class="ownership-mark" aria-hidden="true">
+										{!owned
 											? '?'
 											: owned.missing
 												? '−'
@@ -184,8 +185,8 @@
 														? '⇄'
 														: owned.alternate
 															? '↔'
-															: '✓'}</span
-									><span class="ownership-label">{ownership}</span>
+															: '✓'}
+									</span><span class="ownership-label">{ownership}</span>
 								</button>
 							</div>
 						</div>

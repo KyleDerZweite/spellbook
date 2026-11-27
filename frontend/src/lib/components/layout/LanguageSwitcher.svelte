@@ -52,8 +52,9 @@
 		class="btn btn-ghost btn-icon"
 		aria-label={language.t('language.choose')}
 		title={language.t('language.choose')}
-		><span aria-hidden="true">{language.locale === 'de' ? '🇩🇪' : '🇬🇧'}</span></summary
 	>
+		<span aria-hidden="true">{language.locale === 'de' ? '🇩🇪' : '🇬🇧'}</span>
+	</summary>
 	<form
 		method="POST"
 		action="/language"
@@ -71,16 +72,20 @@
 			value="de"
 			lang="de"
 			aria-current={language.locale === 'de' ? 'true' : undefined}
-			disabled={busy}>🇩🇪 Deutsch</button
+			disabled={busy}
 		>
+			🇩🇪 Deutsch
+		</button>
 		<button
 			type="submit"
 			name="locale"
 			value="en"
 			lang="en"
 			aria-current={language.locale === 'en' ? 'true' : undefined}
-			disabled={busy}>🇬🇧 English</button
+			disabled={busy}
 		>
+			🇬🇧 English
+		</button>
 		{#if failed}<p role="alert">{language.t('language.failed')}</p>{/if}
 	</form>
 </details>

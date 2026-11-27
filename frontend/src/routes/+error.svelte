@@ -19,9 +19,9 @@
 	</p>
 	<div class="mt-6 flex flex-wrap gap-3">
 		{#if page.status >= 500}
-			<button class="btn btn-primary" onclick={() => window.location.reload()}
-				>{language.t('ui.Try.again')}</button
-			>
+			<button class="btn btn-primary" onclick={() => window.location.reload()}>
+				{language.t('ui.Try.again')}
+			</button>
 		{/if}
 		<a class="btn btn-secondary" href="/mtg/search">{language.t('ui.Search.cards')}</a>
 		<a class="btn btn-ghost" href="/">{language.t('ui.Home')}</a>

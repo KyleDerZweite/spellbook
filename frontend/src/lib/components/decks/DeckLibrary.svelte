@@ -616,9 +616,9 @@
 				label={language.t('ui.Filter.decks')}
 			>
 				{@render filterChoices()}
-				<Button type="submit" form={directoryFormId} variant="secondary"
-					>{language.t('ui.Apply.filters')}</Button
-				>
+				<Button type="submit" form={directoryFormId} variant="secondary">
+					{language.t('ui.Apply.filters')}
+				</Button>
 			</FilterPopover>
 			<ActionMenu
 				label={language.t('ui.Sort.decks')}
@@ -639,28 +639,31 @@
 			<details class="directory-filters">
 				<summary>{language.t('ui.Filter')}</summary>{@render filterChoices()}
 			</details>
-			<label
-				>{language.t('ui.Sort')}
-				<select name="dirSort" value={page.query.sort}
-					><option value="updated:desc">{language.t('ui.Recently.edited')}</option><option
-						value="name:asc">{language.t('ui.Name.A.to.Z')}</option
-					><option value="name:desc">{language.t('ui.Name.Z.to.A')}</option></select
-				></label
-			>
+			<label>
+				{language.t('ui.Sort')}
+				<select name="dirSort" value={page.query.sort}>
+					<option value="updated:desc">{language.t('ui.Recently.edited')}</option><option
+						value="name:asc"
+					>
+						{language.t('ui.Name.A.to.Z')}
+					</option><option value="name:desc">{language.t('ui.Name.Z.to.A')}</option>
+				</select>
+			</label>
 			<Button variant="secondary" type="submit">{language.t('ui.Search')}</Button>
 		{/if}
-		<label class="ownership-filter"
-			><span>{language.t('ui.Ownership')}</span>
+		<label class="ownership-filter">
+			<span>{language.t('ui.Ownership')}</span>
 			<select
 				class="input"
 				name="dirOwnership"
 				value={page.query.ownership ?? 'all'}
 				onchange={(event) => event.currentTarget.form?.requestSubmit()}
-				><option value="all">{language.t('ui.All')}</option><option value="complete"
-					>{language.t('ui.Complete')}</option
-				><option value="in-progress">{language.t('ui.In.Progress')}</option></select
-			></label
-		>
+			>
+				<option value="all">{language.t('ui.All')}</option><option value="complete">
+					{language.t('ui.Complete')}
+				</option><option value="in-progress">{language.t('ui.In.Progress')}</option>
+			</select>
+		</label>
 		<div class="view-toggle" aria-label={language.t('ui.Deck.view')}>
 			<Button
 				variant={view === 'grid' ? 'default' : 'secondary'}
@@ -671,8 +674,9 @@
 					version++;
 					schedule();
 				}}
-				><LayoutGrid size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Grid')}</Button
-			><Button
+			>
+				<LayoutGrid size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Grid')}
+			</Button><Button
 				variant={view === 'compact' ? 'default' : 'secondary'}
 				aria-pressed={view === 'compact'}
 				onclick={() => {
@@ -681,10 +685,9 @@
 					version++;
 					schedule();
 				}}
-				><List size={16} aria-hidden="true" class="shrink-0" />{language.t(
-					'ui.Compact.table'
-				)}</Button
 			>
+				<List size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Compact.table')}
+			</Button>
 		</div>
 		{#if enhanced && current.globalTotal > 0}
 			<Button
@@ -694,10 +697,11 @@
 					selectingForExport = !selectingForExport;
 					if (!selectingForExport) selectedDeckIds = [];
 				}}
-				><Download size={16} aria-hidden="true" class="shrink-0" />{language.t(
-					'missingExport.actionShort'
-				)}</Button
 			>
+				<Download size={16} aria-hidden="true" class="shrink-0" />{language.t(
+					'missingExport.actionShort'
+				)}
+			</Button>
 		{/if}
 		<p class="directory-total">
 			{current.matchingTotal.toLocaleString(
@@ -729,8 +733,10 @@
 						missingExportTrigger =
 							event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
 						missingExportOpen = true;
-					}}>{language.t('missingExport.action')}</Button
+					}}
 				>
+					{language.t('missingExport.action')}
+				</Button>
 				{#if selectedDeckIds.length > 0}
 					<Button variant="ghost" onclick={() => (selectedDeckIds = [])}>
 						{language.t('missingExport.clearSelection')}
@@ -741,38 +747,44 @@
 					onclick={() => {
 						selectingForExport = false;
 						selectedDeckIds = [];
-					}}>{language.t('ui.Cancel')}</Button
+					}}
 				>
+					{language.t('ui.Cancel')}
+				</Button>
 			</div>
 		</div>
 	{/if}
 	{#snippet filterChoices()}
-		<label class="format-filter"
-			>{language.t('ui.Format')}
+		<label class="format-filter">
+			{language.t('ui.Format')}
 			<select
 				class="input"
 				aria-label={language.t('ui.Format')}
 				name={enhanced ? undefined : 'dirFormat'}
 				bind:value={selectedFormat}
-				><option value="">{language.t('ui.All.formats')}</option
-				>{#each ['Commander', 'Standard', 'Modern', 'Pioneer', 'Legacy', 'Vintage', 'Pauper', 'Brawl', 'Casual'] as format}<option
-						value={format}>{format}</option
-					>{/each}</select
-			></label
-		>
+			>
+				<option value="">
+					{language.t('ui.All.formats')}
+				</option>{#each ['Commander', 'Standard', 'Modern', 'Pioneer', 'Legacy', 'Vintage', 'Pauper', 'Brawl', 'Casual'] as format}<option
+						value={format}
+					>
+						{format}
+					</option>{/each}
+			</select>
+		</label>
 	{/snippet}
 
 	{#if positionError || focusError}<p role="alert">
 			{focusError || positionError}
-			<Button class="directory-action" onclick={retryPosition}
-				>{language.t('ui.Retry.position')}</Button
-			>
+			<Button class="directory-action" onclick={retryPosition}>
+				{language.t('ui.Retry.position')}
+			</Button>
 		</p>{/if}
 	{#if enhanced && library.error}<p role="alert">
 			{library.error}
-			<Button class="directory-action" onclick={() => library.retry()}
-				>{language.t('ui.Retry')}</Button
-			>
+			<Button class="directory-action" onclick={() => library.retry()}>
+				{language.t('ui.Retry')}
+			</Button>
 		</p>{/if}
 	{#snippet tile(item: DeckLibraryItem, index: number, virtual = false)}
 		{@const position = deckLibraryTilePosition(
@@ -847,30 +859,31 @@
 				<strong>{item.name}</strong>
 				{#if item.assembled}<span class="assembled-badge">{language.t('deck.assembled')}</span>{/if}
 			</div>
-			<span class="deck-format"
-				><i
+			<span class="deck-format">
+				<i
 					class={`ms ms-${item.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
 					aria-hidden="true"
-				></i>{item.format}</span
-			>
-			<span class="deck-quantity"
-				>{item.quantity.toLocaleString(language.locale)}<span
-					>{language.t('sentence.p0.cards', { p0: String(' ') })}</span
-				></span
-			>
+				></i>{item.format}
+			</span>
+			<span class="deck-quantity">
+				{item.quantity.toLocaleString(language.locale)}<span>
+					{language.t('sentence.p0.cards', { p0: String(' ') })}
+				</span>
+			</span>
 			{#if item.availability}<OwnershipProgress {...item.availability} />
-				{#if item.availability.conflict > 0}<span class="library-conflict"
-						>{language.t('deck.allocation.conflict.short', {
+				{#if item.availability.conflict > 0}<span class="library-conflict">
+						{language.t('deck.allocation.conflict.short', {
 							count: item.availability.conflict.toLocaleString(language.locale)
-						})}</span
-					>{:else if item.availability.inOtherDecks > 0}<span class="library-in-other"
-						>{language.t('deck.allocation.inOtherDecks.short', {
+						})}
+					</span>{:else if item.availability.inOtherDecks > 0}<span class="library-in-other">
+						{language.t('deck.allocation.inOtherDecks.short', {
 							count: item.availability.inOtherDecks.toLocaleString(language.locale)
-						})}</span
-					>{/if}{/if}
-			<small class="deck-edited"
-				>{language.t('ui.Edited')} {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
-			>
+						})}
+					</span>{/if}{/if}
+			<small class="deck-edited">
+				{language.t('ui.Edited')}
+				{new Date(item.updatedAt).toLocaleDateString('en-GB')}
+			</small>
 		</a>
 	{/snippet}
 	<div
@@ -904,11 +917,13 @@
 			</p>
 		</section>{/if}
 	{#if !enhanced}<nav aria-label={language.t('ui.Deck.Library.pages')}>
-			{#if page.offset > 0}<a href={pageHref(Math.max(0, page.offset - page.limit))}
-					>{language.t('ui.Previous')}</a
-				>{/if}{#if page.offset + page.items.length < page.matchingTotal}<a
-					href={pageHref(page.offset + page.limit)}>{language.t('ui.Next')}</a
-				>{/if}
+			{#if page.offset > 0}<a href={pageHref(Math.max(0, page.offset - page.limit))}>
+					{language.t('ui.Previous')}
+				</a>{/if}{#if page.offset + page.items.length < page.matchingTotal}<a
+					href={pageHref(page.offset + page.limit)}
+				>
+					{language.t('ui.Next')}
+				</a>{/if}
 		</nav>{/if}
 	<MissingCardsDialog
 		bind:open={missingExportOpen}

@@ -88,8 +88,9 @@
 									{...props}
 									href={item.disabled ? undefined : item.href}
 									download={item.download || undefined}
-									>{#if item.icon}{@render item.icon()}{/if}{item.label}</a
 								>
+									{#if item.icon}{@render item.icon()}{/if}{item.label}
+								</a>
 							{:else}
 								<div {...props}>
 									{#if item.icon}{@render item.icon()}{/if}{item.label}

@@ -62,32 +62,35 @@
 					type="button"
 					disabled={!enhanced}
 					aria-haspopup="dialog"
-					onclick={() => (historyOpen = true)}>{@render card(metric, trend)}</button
+					onclick={() => (historyOpen = true)}
 				>
-			{:else}<a class="metric-card dashboard-surface" href={metric.href}
-					>{@render card(metric, trend)}</a
-				>{/if}
+					{@render card(metric, trend)}
+				</button>
+			{:else}<a class="metric-card dashboard-surface" href={metric.href}>
+					{@render card(metric, trend)}
+				</a>{/if}
 			<span
 				class="metric-visual"
 				style:color={`var(--color-nav-${metric.key === 'value' ? 'dashboard' : metric.key === 'total' ? 'search' : metric.key === 'sets' ? 'inventory' : 'decks'})`}
-				><MetricMiniChart
+			>
+				<MetricMiniChart
 					{trend}
 					kind={metric.key === 'value' ? 'line' : 'bars'}
 					label={language.t('message.p0.30.closed.reporting.dates.p1', {
 						p0: String(metric.label),
 						p1: String(trend.partial ? ', covered subtotal with partial price coverage' : '')
 					})}
-				/></span
-			>
+				/>
+			</span>
 		</li>
 	{/each}
 </ul>
 {#snippet card(metric: (typeof metrics)[number], trend: ReturnType<typeof metricTrend>)}
 	<DashboardCardMaterial kind={metric.key} />
 	<span class="metric-heading">{metric.label}</span>
-	<span class="metric-value"
-		><strong>{metric.value}</strong>{#if metric.secondary}<span>{metric.secondary}</span>{/if}</span
-	>
+	<span class="metric-value">
+		<strong>{metric.value}</strong>{#if metric.secondary}<span>{metric.secondary}</span>{/if}
+	</span>
 	<span class="metric-footer">
 		<span
 			class="metric-change"
@@ -97,16 +100,15 @@
 				? 'Change in covered value only; some historical copies have no price'
 				: undefined}
 		>
-			{#if trend.delta !== null}<span aria-hidden="true"
-					>{trend.delta > 0n ? '↗' : trend.delta < 0n ? '↘' : ''}</span
-				>
+			{#if trend.delta !== null}<span aria-hidden="true">
+					{trend.delta > 0n ? '↗' : trend.delta < 0n ? '↘' : ''}
+				</span>
 				{metricChange(trend.delta, metric.key === 'value', language.locale)}
 				<span class="comparison">{language.t('ui.over.last.month')}</span>{:else}<span
 					class="comparison"
-					>{trend.captured
-						? language.t('ui.No.comparison.yet')
-						: language.t('ui.No.history.yet')}</span
-				>{/if}
+				>
+					{trend.captured ? language.t('ui.No.comparison.yet') : language.t('ui.No.history.yet')}
+				</span>{/if}
 		</span>
 	</span>
 {/snippet}

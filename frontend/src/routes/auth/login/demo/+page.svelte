@@ -7,12 +7,9 @@
 	let { form }: PageProps = $props();
 </script>
 
-<svelte:head
-	><title>{language.t('ui.Sign.in.Spellbook')}</title><meta
-		name="robots"
-		content="noindex"
-	/></svelte:head
->
+<svelte:head>
+	<title>{language.t('ui.Sign.in.Spellbook')}</title><meta name="robots" content="noindex" />
+</svelte:head>
 
 <AccountLayout title={language.t('ui.Sign.in')}>
 	<p class="mb-4 text-sm text-text-secondary">

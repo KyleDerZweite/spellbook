@@ -122,10 +122,10 @@
 	</div>
 	<div class="deck-details">
 		<div class="deck-meta">
-			<span
-				><span class="commander-role">{commanderDeck.format}</span> · {commanderDeck.cardCount}
-				{language.t('ui.cards')}</span
-			>
+			<span>
+				<span class="commander-role">{commanderDeck.format}</span> · {commanderDeck.cardCount}
+				{language.t('ui.cards')}
+			</span>
 			<span
 				class="colors"
 				role="img"
@@ -142,9 +142,9 @@
 			{#if commanderDeck.creator !== commanderDeck.source}
 				<span class="credit">{commanderDeck.creator}</span>
 			{/if}
-			<a class="source" href={commanderDeck.sourceURL} target="_blank" rel="noreferrer"
-				>{commanderDeck.source} <span aria-hidden="true">↗</span></a
-			>
+			<a class="source" href={commanderDeck.sourceURL} target="_blank" rel="noreferrer">
+				{commanderDeck.source} <span aria-hidden="true">↗</span>
+			</a>
 		</div>
 	</div>
 </article>

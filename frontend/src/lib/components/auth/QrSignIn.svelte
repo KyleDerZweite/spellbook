@@ -162,15 +162,15 @@
 			/>
 		</details>
 	{:else if phase === 'finished'}
-		<button class="btn btn-secondary" type="button" onclick={create}
-			>{language.t('ui.Create.new.code')}</button
-		>
+		<button class="btn btn-secondary" type="button" onclick={create}>
+			{language.t('ui.Create.new.code')}
+		</button>
 	{/if}
-	<noscript
-		><p>
+	<noscript>
+		<p>
 			{language.t('ui.Enable.JavaScript.for.QR.sign.in.or.use.your.username.and.password')}
-		</p></noscript
-	>
+		</p>
+	</noscript>
 </section>
 
 <style>

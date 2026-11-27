@@ -49,8 +49,9 @@
 								{language.t('sentence.Artwork.unavailable.for.p0', { p0: String(face.name) })}
 							</p>{/if}
 					{:else}<details>
-							<summary>{face.name}</summary
-							>{#if face.imageUri || face.imageUriSmall}{@const faceUrl =
+							<summary>
+								{face.name}
+							</summary>{#if face.imageUri || face.imageUriSmall}{@const faceUrl =
 									face.imageUri ?? face.imageUriSmall ?? ''}<img
 									src={cardImageSrc(faceUrl)}
 									{@attach cachedCardImage(faceUrl)}

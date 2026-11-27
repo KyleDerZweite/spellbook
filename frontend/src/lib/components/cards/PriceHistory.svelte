@@ -63,35 +63,35 @@
 	</p>
 	{#if loading}<p role="status">{language.t('ui.Loading.source.history')}</p>
 	{:else if error}<p role="alert">{language.message(error)}</p>
-		<button type="button" class="btn btn-secondary" onclick={() => retry++}
-			>{language.t('ui.Retry.history')}</button
-		>
+		<button type="button" class="btn btn-secondary" onclick={() => retry++}>
+			{language.t('ui.Retry.history')}
+		</button>
 	{:else if history}
 		{#if !history.points.length}<p>{language.t('ui.No.source.points.in.this.window')}</p>
 		{:else}<div class="mt-2 max-h-64 overflow-auto">
 				<table class="w-full text-left text-xs">
-					<thead
-						><tr
-							><th
-								>{history.sourceStatuses.some((status) => status.source === 'Demo')
+					<thead>
+						<tr>
+							<th>
+								{history.sourceStatuses.some((status) => status.source === 'Demo')
 									? 'Example day'
-									: language.t('ui.Source.date')}</th
-							><th>{language.t('ui.Source.measure')}</th><th>EUR</th></tr
-						></thead
-					><tbody>
-						{#each history.points as point}<tr
-								><td class="py-1"
-									>{point.source === 'Demo'
+									: language.t('ui.Source.date')}
+							</th><th>{language.t('ui.Source.measure')}</th><th>EUR</th>
+						</tr>
+					</thead><tbody>
+						{#each history.points as point}<tr>
+								<td class="py-1">
+									{point.source === 'Demo'
 										? point.day
 										: point.timePrecision === 'Day'
 											? `${point.sourceDate} (day)`
-											: new Date(point.sourceTime).toLocaleString(language.locale)}</td
-								><td
-									>{point.source} · {point.measure}{point.provenance === 'EnglishFallback'
+											: new Date(point.sourceTime).toLocaleString(language.locale)}
+								</td><td>
+									{point.source} · {point.measure}{point.provenance === 'EnglishFallback'
 										? ' · English printing'
-										: ''}{point.source === 'MTGJSON' ? ' · upstream Cardmarket' : ''}</td
-								><td>{formatReferenceEUR(point.amount, 1, language.locale)}</td></tr
-							>{/each}
+										: ''}{point.source === 'MTGJSON' ? ' · upstream Cardmarket' : ''}
+								</td><td>{formatReferenceEUR(point.amount, 1, language.locale)}</td>
+							</tr>{/each}
 					</tbody>
 				</table>
 			</div>{/if}

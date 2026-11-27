@@ -150,11 +150,9 @@
 			}}
 		>
 			<Dialog.Title class="sr-only">{language.t('ui.Search.cards')}</Dialog.Title>
-			<Dialog.Description class="sr-only"
-				>{language.t(
-					'ui.Search.the.Magic.catalog.inspect.printings.and.add.cards.to.inventory'
-				)}</Dialog.Description
-			>
+			<Dialog.Description class="sr-only">
+				{language.t('ui.Search.the.Magic.catalog.inspect.printings.and.add.cards.to.inventory')}
+			</Dialog.Description>
 			{#if open}
 				<SearchWorkspace {viewport} controls={overlayControls} />
 			{/if}
@@ -168,15 +166,19 @@
 			type="button"
 			class="btn btn-ghost shrink-0"
 			onclick={fullView}
-			disabled={session.pending}>{language.t('ui.Full.view')}</button
+			disabled={session.pending}
 		>
+			{language.t('ui.Full.view')}
+		</button>
 		<button
 			type="button"
 			class="btn btn-ghost btn-icon shrink-0"
 			onclick={closeSearch}
 			disabled={session.pending}
-			aria-label={language.t('ui.Close.search')}><X size={20} aria-hidden="true" /></button
+			aria-label={language.t('ui.Close.search')}
 		>
+			<X size={20} aria-hidden="true" />
+		</button>
 	</div>
 {/snippet}
 

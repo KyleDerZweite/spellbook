@@ -66,8 +66,10 @@
 						y1="40"
 						y2="40"
 						stroke="currentColor"
-						stroke-width="1.5"><title>{point.day}: 0</title></line
+						stroke-width="1.5"
 					>
+						<title>{point.day}: 0</title>
+					</line>
 				{:else if point.value !== null}<rect
 						x={point.x - barWidth / 2}
 						y={point.y}
@@ -75,8 +77,9 @@
 						height={40 - point.y}
 						rx="1"
 						opacity={point.day === trend.to ? 1 : 0.6}
-						><title>{point.day}: {point.value.toLocaleString(language.locale)}</title></rect
-					>{/if}{/each}{/if}
+					>
+						<title>{point.day}: {point.value.toLocaleString(language.locale)}</title>
+					</rect>{/if}{/each}{/if}
 	</svg>
 {/if}
 

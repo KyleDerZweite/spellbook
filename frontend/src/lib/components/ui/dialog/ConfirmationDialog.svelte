@@ -49,9 +49,9 @@
 			<AlertDialog.Description class="confirm-description">{description}</AlertDialog.Description>
 			{#if error}<p class="confirm-error" role="alert">{language.message(error)}</p>{/if}
 			<div class="confirm-actions">
-				<AlertDialog.Cancel bind:ref={cancelButton} class="btn btn-secondary" disabled={pending}
-					>{language.t('ui.Cancel')}</AlertDialog.Cancel
-				>
+				<AlertDialog.Cancel bind:ref={cancelButton} class="btn btn-secondary" disabled={pending}>
+					{language.t('ui.Cancel')}
+				</AlertDialog.Cancel>
 				{@render children()}
 			</div>
 		</AlertDialog.Content>

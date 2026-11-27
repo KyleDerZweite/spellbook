@@ -18,10 +18,10 @@
 		{#each AVATARS as avatar (avatar.id)}
 			<label class="avatar-choice">
 				<input type="radio" name="avatarId" value={avatar.id} bind:group={selected} />
-				<span class="avatar-option"
-					><Avatar id={avatar.id} size={32} /><span>{avatar.label}</span>
-					<Check size={12} aria-hidden="true" class="avatar-check" /></span
-				>
+				<span class="avatar-option">
+					<Avatar id={avatar.id} size={32} /><span>{avatar.label}</span>
+					<Check size={12} aria-hidden="true" class="avatar-check" />
+				</span>
 			</label>
 		{/each}
 	</div>

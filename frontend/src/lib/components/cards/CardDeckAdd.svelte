@@ -246,8 +246,10 @@
 				class="btn btn-secondary"
 				type="button"
 				onclick={() => resource.invalidate()}
-				disabled={blocked}>{language.t('ui.Retry.Deck.read')}</button
-			>{:else if !choices?.items.length}<p class="text-sm text-text-secondary">
+				disabled={blocked}
+			>
+				{language.t('ui.Retry.Deck.read')}
+			</button>{:else if !choices?.items.length}<p class="text-sm text-text-secondary">
 				{language.t('ui.No.matching.Decks.Create.a.Deck.or.change.the.search')}
 			</p>{/if}
 		{#if draft.deckId && !loading && !readError && !selected}<p
@@ -261,16 +263,19 @@
 				type="button"
 				class="btn btn-secondary"
 				onclick={() => (offset = Math.max(0, offset - 20))}
-				disabled={blocked || loading || !offset}>{language.t('ui.Previous.Decks')}</button
-			><button
+				disabled={blocked || loading || !offset}
+			>
+				{language.t('ui.Previous.Decks')}
+			</button><button
 				type="button"
 				class="btn btn-secondary"
 				onclick={() => {
 					if (choices?.nextOffset != null) offset = choices.nextOffset;
 				}}
 				disabled={blocked || loading || choices?.nextOffset == null}
-				>{language.t('ui.Next.Decks')}</button
 			>
+				{language.t('ui.Next.Decks')}
+			</button>
 		</div>
 		<div class="fields">
 			<div>
@@ -307,10 +312,11 @@
 			class="btn btn-primary"
 			type="submit"
 			disabled={blocked || loading || !!readError || !selected}
-			><Plus size={16} aria-hidden="true" class="shrink-0" />{pending
-				? language.t('notice.Adding')
-				: language.t('ui.Add.to.Deck')}</button
 		>
+			<Plus size={16} aria-hidden="true" class="shrink-0" />{pending
+				? language.t('notice.Adding')
+				: language.t('ui.Add.to.Deck')}
+		</button>
 		{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
 				{language.t(
 					'sentence.Original.unconfirmed.addition.p0.of.p1.to.p2.p3.New.controls.are.a.separate.intent',
@@ -337,8 +343,10 @@
 				name="retryOriginal"
 				value={original.requestId}
 				formnovalidate
-				disabled={blocked}>{language.t('ui.Retry.original.Deck.addition')}</button
-			>{/each}
+				disabled={blocked}
+			>
+				{language.t('ui.Retry.original.Deck.addition')}
+			</button>{/each}
 		{#if draft.error}<p id={`${id}-error`} role="alert" class="text-sm text-error">
 				{language.message(draft.error)}
 			</p>{/if}

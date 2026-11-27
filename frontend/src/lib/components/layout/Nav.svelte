@@ -133,8 +133,9 @@
 <a
 	href="#main-content"
 	class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-[200] focus:rounded focus:bg-gold focus:px-4 focus:py-2 focus:text-text-on-gold"
-	>{language.t('ui.Skip.to.content')}</a
 >
+	{language.t('ui.Skip.to.content')}
+</a>
 
 {#if pwaState.standalone}
 	<nav class="app-bottom-nav" aria-label={language.t('ui.App')}>
@@ -179,10 +180,11 @@
 					title={link.label}
 					aria-current={isActive(link.href) ? 'page' : undefined}
 					class="nav-link {isActive(link.href) ? 'nav-link--active' : ''}"
-					><Icon size={16} aria-hidden="true" class="nav-icon shrink-0" /><span class="nav-label"
-						>{link.label}</span
-					></a
 				>
+					<Icon size={16} aria-hidden="true" class="nav-icon shrink-0" /><span class="nav-label">
+						{link.label}
+					</span>
+				</a>
 			{/each}
 		</div>
 		<div class="account-controls">
@@ -211,8 +213,9 @@
 					class="btn btn-secondary btn-icon lg:hidden"
 					data-navigation-trigger
 					aria-label={language.t('ui.Open.navigation.menu')}
-					><Menu size={20} aria-hidden="true" /></Dialog.Trigger
 				>
+					<Menu size={20} aria-hidden="true" />
+				</Dialog.Trigger>
 				<Dialog.Portal>
 					<Dialog.Overlay class="filter-overlay fixed inset-0 z-40" />
 					<Dialog.Content
@@ -223,12 +226,13 @@
 							<Dialog.Close
 								class="btn btn-ghost btn-icon"
 								aria-label={language.t('ui.Close.navigation.menu')}
-								><X size={20} aria-hidden="true" /></Dialog.Close
 							>
+								<X size={20} aria-hidden="true" />
+							</Dialog.Close>
 						</div>
-						<Dialog.Description class="sr-only"
-							>{language.t('ui.Navigate.your.Magic.card.workspace')}</Dialog.Description
-						>
+						<Dialog.Description class="sr-only">
+							{language.t('ui.Navigate.your.Magic.card.workspace')}
+						</Dialog.Description>
 						{#each NAV_LINKS as link}
 							{@const Icon = link.icon}
 							<a
@@ -239,8 +243,9 @@
 									else mobileMenuOpen = false;
 								}}
 								class="mobile-nav-link {isActive(link.href) ? 'mobile-nav-link--active' : ''}"
-								><Icon size={16} aria-hidden="true" class="shrink-0" />{link.label}</a
 							>
+								<Icon size={16} aria-hidden="true" class="shrink-0" />{link.label}
+							</a>
 						{/each}
 						<div class="mobile-account">
 							{#if user}
@@ -251,8 +256,9 @@
 												href={item.href}
 												class="btn btn-ghost"
 												onclick={() => (mobileMenuOpen = false)}
-												>{#if item.icon}{@render item.icon()}{/if}{item.label}</a
 											>
+												{#if item.icon}{@render item.icon()}{/if}{item.label}
+											</a>
 										{:else}<button
 												class="btn btn-ghost"
 												disabled={item.disabled}
@@ -261,8 +267,9 @@
 													mobileMenuOpen = false;
 													item.onSelect?.();
 												}}
-												>{#if item.icon}{@render item.icon()}{/if}{item.label}</button
-											>{/if}
+											>
+												{#if item.icon}{@render item.icon()}{/if}{item.label}
+											</button>{/if}
 									{/each}
 								</div>
 							{:else}<AuthEntry />{/if}
