@@ -3,6 +3,7 @@
 	const language = useLanguage();
 	import { Dialog } from 'bits-ui';
 	import { tick, type Snippet } from 'svelte';
+	import X from '@lucide/svelte/icons/x';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 	let {
 		title,
@@ -64,15 +65,7 @@
 						disabled={pending}
 						onclick={onCancel}
 						aria-label={language.t('ui.Close.value.history')}
-						><svg
-							width="18"
-							height="18"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.5"
-							aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg
-						></button
+						><X size={20} aria-hidden="true" /></button
 					>{/if}
 			</div>
 			<ScrollArea

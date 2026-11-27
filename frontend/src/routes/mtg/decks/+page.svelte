@@ -3,7 +3,17 @@
 	import { localizeLegalityWarning } from '#lib/i18n/presentation.ts';
 	const language = useLanguage();
 	import { deckSections } from '#lib/decks/sections.ts';
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Download from '@lucide/svelte/icons/download';
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Layers from '@lucide/svelte/icons/layers';
+	import List from '@lucide/svelte/icons/list';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Play from '@lucide/svelte/icons/play';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Printer from '@lucide/svelte/icons/printer';
+	import Trash from '@lucide/svelte/icons/trash';
+	import Upload from '@lucide/svelte/icons/upload';
 	import DeckOverview from '#lib/components/decks/DeckOverview.svelte';
 	import DeckStatistics from '#lib/components/decks/DeckStatistics.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
@@ -356,12 +366,13 @@
 		if (savedDecks.warnings.length > 0) {
 			return {
 				label,
+				icon: exportIcon,
 				onSelect: () => {
 					pendingExport = { label, href };
 				}
 			};
 		}
-		return { label, href, download: true };
+		return { label, icon: exportIcon, href, download: true };
 	}
 	let busy = $state(false);
 	let importText = $state(untrack(() => form?.importDraft?.text ?? form?.importText ?? ''));
@@ -754,7 +765,13 @@
 	};
 </script>
 
-{#snippet addIcon()}<PlusIcon />{/snippet}
+{#snippet addIcon()}<Plus size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet editIcon()}<Pencil size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet importIcon()}<Upload size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet exportIcon()}<Download size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet externalIcon()}<ExternalLink size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet printIcon()}<Printer size={16} aria-hidden="true" class="shrink-0" />{/snippet}
+{#snippet deleteIcon()}<Trash size={16} aria-hidden="true" class="shrink-0" />{/snippet}
 
 {#if deletedTarget}<p role="alert">
 		{language.t(
@@ -784,7 +801,9 @@
 			<div class="deck-picker">
 				{#if selectedDeck}
 					<Button href={`/mtg/decks/${selectedDeck.id}/playtest`} variant="secondary"
-						>{language.t('playtest.title')}</Button
+						><Play size={16} aria-hidden="true" class="shrink-0" />{language.t(
+							'playtest.title'
+						)}</Button
 					>
 					<ActionMenu
 						label={language.t('ui.Deck.actions')}
@@ -796,8 +815,16 @@
 								icon: addIcon,
 								onSelect: () => openEditor('create')
 							},
-							{ label: language.t('ui.Edit.details'), onSelect: () => openEditor('details') },
-							{ label: language.t('ui.Import.decklist'), onSelect: () => openEditor('import') },
+							{
+								label: language.t('ui.Edit.details'),
+								icon: editIcon,
+								onSelect: () => openEditor('details')
+							},
+							{
+								label: language.t('ui.Import.decklist'),
+								icon: importIcon,
+								onSelect: () => openEditor('import')
+							},
 							exportAction(language.t('ui.Export.Arena'), `/mtg/decks/${selectedDeck.id}/export`),
 							exportAction(
 								language.t('ui.Export.dck'),
@@ -821,6 +848,7 @@
 							),
 							{
 								label: language.t('missingExport.action'),
+								icon: exportIcon,
 								onSelect: () => {
 									missingExportTrigger = actionsTrigger;
 									missingExportOpen = true;
@@ -828,15 +856,22 @@
 							},
 							{
 								label: language.t('deck.phaseRs.action'),
+								icon: externalIcon,
 								onSelect: () => openPhaseRsDialog(selectedDeck.id)
 							},
-							{ label: language.t('ui.Print.deck'), href: `/mtg/decks/${selectedDeck.id}/print` },
+							{
+								label: language.t('ui.Print.deck'),
+								icon: printIcon,
+								href: `/mtg/decks/${selectedDeck.id}/print`
+							},
 							{
 								label: language.t('ui.Print.card.sheet.A4'),
+								icon: printIcon,
 								href: `/mtg/decks/${selectedDeck.id}/print/cards`
 							},
 							{
 								label: language.t('ui.Delete.deck'),
+								icon: deleteIcon,
 								destructive: true,
 								onSelect: () => openEditor('delete')
 							}
@@ -854,24 +889,17 @@
 								event.preventDefault();
 						}}
 					>
-						{#snippet trigger()}<svg
-								aria-hidden="true"
-								width="20"
-								height="20"
-								viewBox="0 0 24 24"
-								fill="currentColor"
-								><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle
-									cx="19"
-									cy="12"
-									r="1.8"
-								/></svg
-							>{/snippet}
+						{#snippet trigger()}<Ellipsis size={20} aria-hidden="true" />{/snippet}
 					</ActionMenu>
 				{/if}
 				{#if !selectedDeck}<Button href="/mtg/decks/import" variant="secondary"
-						>{language.t('ui.Import.deck')}</Button
+						><Upload size={16} aria-hidden="true" class="shrink-0" />{language.t(
+							'ui.Import.deck'
+						)}</Button
 					><Button href={flowHref('create')} onclick={openCreate} disabled={busy || deletedTarget}
-						><PlusIcon />{language.t('ui.New.deck')}</Button
+						><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+							'ui.New.deck'
+						)}</Button
 					>{/if}
 			</div>
 		{/snippet}
@@ -929,7 +957,9 @@
 					{language.message(form.message)}
 				</p>{/if}
 			<Button type="submit" variant="default" disabled={busy || deletedTarget}
-				><PlusIcon />{language.t('ui.Create.deck')}</Button
+				><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+					'ui.Create.deck'
+				)}</Button
 			>
 		</form>
 	</DeckDialog>
@@ -1203,9 +1233,12 @@
 										!importableCount ||
 										preview.unresolved.length > 0 ||
 										preview.ambiguous.length > 0}
-									><PlusIcon />{language.t(`deck.import.add.${language.plural(importableCount)}`, {
-										count: language.number(importableCount)
-									})}</Button
+									><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t(
+										`deck.import.add.${language.plural(importableCount)}`,
+										{
+											count: language.number(importableCount)
+										}
+									)}</Button
 								>
 							</form>
 						</div>
@@ -1342,8 +1375,8 @@
 		</section>
 		<noscript
 			><nav aria-label={language.t('ui.Deck.tasks')}>
-				<a class="inline-flex items-center gap-2" href={flowHref('create')}
-					><PlusIcon />{language.t('ui.New.deck')}</a
+				<a class="inline-flex items-center gap-1" href={flowHref('create')}
+					><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.deck')}</a
 				>
 				· <a href={flowHref('edit')}>{language.t('ui.Edit.details')}</a> ·
 				<a href={flowHref('import')}>{language.t('ui.Import.decklist')}</a>
@@ -1445,7 +1478,8 @@
 					event.preventDefault();
 					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
 					setSearchOpen(true);
-				}}><PlusIcon />{language.t('ui.Add.cards')}</Button
+				}}
+				><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add.cards')}</Button
 			>
 		</div>
 		{#if removed && removed.deckId === selectedDeck.id}
@@ -1472,13 +1506,17 @@
 						<Button
 							variant={displayedView === 'list' ? 'secondary' : 'ghost'}
 							aria-pressed={displayedView === 'list'}
-							onclick={() => (view = 'list')}>{language.t('ui.List')}</Button
+							onclick={() => (view = 'list')}
+							><List size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.List')}</Button
 						>
 						<Button
 							variant={displayedView === 'stacks' ? 'secondary' : 'ghost'}
 							aria-pressed={displayedView === 'stacks'}
 							disabled={!mounted}
-							onclick={() => (view = 'stacks')}>{language.t('ui.Stacks')}</Button
+							onclick={() => (view = 'stacks')}
+							><Layers size={16} aria-hidden="true" class="shrink-0" />{language.t(
+								'ui.Stacks'
+							)}</Button
 						>
 					</div>
 					<input
@@ -1497,6 +1535,7 @@
 					/>
 				</div>
 				{#if deckCards.length === 0}<div class="empty-state">
+						<Layers size={20} aria-hidden="true" class="mx-auto mb-2 text-text-muted" />
 						<p>
 							{language.t('ui.Search.the.catalog.to.add.a.card.or.import.an.existing.decklist')}
 						</p>
@@ -1687,7 +1726,11 @@
 						{busy ? 'Saving…' : saveError ? '' : (form?.message ?? '')}
 					</p>
 					<Button type="submit" variant="default" disabled={busy || deletedTarget || inspectorGone}
-						>{#if !inspectedEntryId}<PlusIcon />{/if}{inspectedEntryId
+						>{#if !inspectedEntryId}<Plus
+								size={16}
+								aria-hidden="true"
+								class="shrink-0"
+							/>{/if}{inspectedEntryId
 							? language.t('ui.Save.card')
 							: language.t('ui.Add.to.deck')}</Button
 					>

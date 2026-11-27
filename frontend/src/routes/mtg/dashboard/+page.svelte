@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Archive from '@lucide/svelte/icons/archive';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Search from '@lucide/svelte/icons/search';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import DashboardInsights from '#lib/components/dashboard/DashboardInsights.svelte';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
@@ -69,9 +71,11 @@
 	<SavedStateStatus resource={subscription} />
 	<WorkspaceHeader title={language.t('ui.Dashboard')} variant="overview">
 		{#snippet actions()}<a href="/mtg/inventory" class="btn btn-secondary btn-sm"
-				>{language.t('ui.View.inventory')}</a
+				><Archive size={16} aria-hidden="true" class="shrink-0" />{language.t(
+					'ui.View.inventory'
+				)}</a
 			><a href="/mtg/search" class="btn btn-primary btn-sm"
-				><PlusIcon />{language.t('ui.Add.cards')}</a
+				><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Add.cards')}</a
 			>{/snippet}
 	</WorkspaceHeader>
 	{#if loadError}
@@ -89,7 +93,9 @@
 						'ui.Your.inventory.is.empty.Add.your.first.cards.to.start.building.your.collection'
 					)}
 				</p>
-				<a href="/mtg/search" class="btn btn-primary btn-sm">{language.t('ui.Find.cards')}</a>
+				<a href="/mtg/search" class="btn btn-primary btn-sm"
+					><Search size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Find.cards')}</a
+				>
 			</div>{/if}
 		<DashboardInsights {dashboard} />
 	{/if}

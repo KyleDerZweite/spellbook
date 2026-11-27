@@ -2,6 +2,7 @@
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import { Dialog } from 'bits-ui';
+	import X from '@lucide/svelte/icons/x';
 	import { page } from '$app/state';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
@@ -174,7 +175,7 @@
 			class="btn btn-ghost btn-icon shrink-0"
 			onclick={closeSearch}
 			disabled={session.pending}
-			aria-label={language.t('ui.Close.search')}>✕</button
+			aria-label={language.t('ui.Close.search')}><X size={20} aria-hidden="true" /></button
 		>
 	</div>
 {/snippet}

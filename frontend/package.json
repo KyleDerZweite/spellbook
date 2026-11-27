@@ -19,6 +19,7 @@
 		"test:scan": "node --test tests/scan-http.test.ts"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.81.0",
 		"@spellbook/contracts": "workspace:*",
 		"@zxing/browser": "^0.2.1",
 		"bits-ui": "^2.21.0",

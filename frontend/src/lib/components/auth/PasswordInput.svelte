@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	let { ...attributes }: Omit<HTMLInputAttributes, 'type' | 'class'> = $props();
@@ -17,21 +19,11 @@
 		aria-controls={attributes.id}
 		onclick={() => (visible = !visible)}
 	>
-		<svg
-			aria-hidden="true"
-			width="18"
-			height="18"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.5"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
-			<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-			<circle cx="12" cy="12" r="3" />
-			{#if visible}<path d="m3 3 18 18" />{/if}
-		</svg>
+		{#if visible}
+			<EyeOff size={20} aria-hidden="true" />
+		{:else}
+			<Eye size={20} aria-hidden="true" />
+		{/if}
 	</button>
 </div>
 

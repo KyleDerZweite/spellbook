@@ -212,6 +212,9 @@ importers:
 
   frontend:
     dependencies:
+      '@lucide/svelte':
+        specifier: ^1.81.0
+        version: 1.81.0(svelte@5.57.3)
       '@spellbook/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -480,6 +483,11 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@lucide/svelte@1.81.0':
+    resolution: {integrity: sha512-q8rljlyKNiZP6oYt4gQkUQQ1K3QsKHS/uCv7TjaRgxW8cY+S9i0+VW32DiH5RTDQgnlZBaZf2qklL1Dj/0J/qw==}
+    peerDependencies:
+      svelte: ^5
 
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
@@ -1675,6 +1683,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@lucide/svelte@1.81.0(svelte@5.57.3)':
+    dependencies:
+      svelte: 5.57.3
 
   '@oxc-project/types@0.156.0': {}
 

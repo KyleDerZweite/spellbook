@@ -3,6 +3,7 @@
 	const language = useLanguage();
 	import { Popover } from 'bits-ui';
 	import type { Snippet } from 'svelte';
+	import Funnel from '@lucide/svelte/icons/funnel';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 
 	let {
@@ -26,17 +27,7 @@
 
 <Popover.Root bind:open>
 	<Popover.Trigger class="btn btn-ghost filter-trigger" data-active={active || undefined}>
-		<svg
-			aria-hidden="true"
-			width="14"
-			height="14"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.6"
-			stroke-linecap="round"
-			stroke-linejoin="round"><path d="M4 4h16l-6 7v7l-4 2v-9z" /></svg
-		>
+		<Funnel size={16} aria-hidden="true" class="shrink-0" />
 		{triggerLabel}
 	</Popover.Trigger>
 	<Popover.Portal>

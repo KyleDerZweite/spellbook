@@ -3,6 +3,8 @@
 	import { localizeLegalityWarning } from '#lib/i18n/presentation.ts';
 	const language = useLanguage();
 	import type { PageProps } from './$types';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Upload from '@lucide/svelte/icons/upload';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	let { data, form }: PageProps = $props();
@@ -16,7 +18,9 @@
 <div class="workspace-container exchange">
 	<WorkspaceHeader title={language.t('ui.Import.a.new.Deck')}>
 		{#snippet actions()}<Button href="/mtg/decks" variant="secondary"
-				>{language.t('ui.All.decks')}</Button
+				><ArrowLeft size={16} aria-hidden="true" class="shrink-0" />{language.t(
+					'ui.All.decks'
+				)}</Button
 			>{/snippet}
 	</WorkspaceHeader>
 	<p>
@@ -87,7 +91,9 @@
 				value={form?.description ?? ''}></textarea>
 		</details>
 		<Button type="submit" variant="secondary" name="intent" value="preview"
-			>{language.t('ui.Preview.import')}</Button
+			><Upload size={16} aria-hidden="true" class="shrink-0" />{language.t(
+				'ui.Preview.import'
+			)}</Button
 		>
 	</form>
 	{#if preview}

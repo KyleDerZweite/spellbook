@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Plus from '@lucide/svelte/icons/plus';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { goto } from '$app/navigation';
 	import { untrack, onMount, onDestroy } from 'svelte';
@@ -403,7 +403,7 @@
 			<h1>{language.t('ui.Scan')}</h1>
 		</div>
 		<button class="btn btn-primary" disabled={busy} onclick={createSession}
-			><PlusIcon />{language.t('ui.New.scan')}</button
+			><Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.scan')}</button
 		>
 	</div>
 
@@ -663,7 +663,7 @@
 								<button
 									class="btn btn-primary"
 									disabled={busy || searching || !confirmed || !validQuantity}
-									><PlusIcon />{busy
+									><Plus size={16} aria-hidden="true" class="shrink-0" />{busy
 										? language.t('notice.Adding')
 										: language.t('ui.Confirm.and.add.to.inventory')}</button
 								>

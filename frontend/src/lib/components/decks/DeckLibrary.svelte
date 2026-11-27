@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+	import Download from '@lucide/svelte/icons/download';
+	import Layers from '@lucide/svelte/icons/layers';
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import List from '@lucide/svelte/icons/list';
+	import Search from '@lucide/svelte/icons/search';
 	import OwnershipProgress from './OwnershipProgress.svelte';
 	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import { onMount, untrack, tick } from 'svelte';
@@ -590,15 +596,7 @@
 				value={route.url.searchParams.get('q') ?? ''}
 			/>{/if}
 		<div class="directory-search">
-			<svg
-				aria-hidden="true"
-				width="17"
-				height="17"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></svg
-			>
+			<Search size={16} aria-hidden="true" class="shrink-0" />
 			<input
 				class="input"
 				type="search"
@@ -631,16 +629,11 @@
 					{ label: language.t('ui.Name.Z.to.A'), onSelect: () => void sortBy('name:desc') }
 				]}
 			>
-				{#snippet trigger()}<svg
+				{#snippet trigger()}<ArrowUpDown
+						size={16}
 						aria-hidden="true"
-						width="14"
-						height="14"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.6"
-						stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
-					>{language.t('ui.Sort')}{/snippet}
+						class="shrink-0"
+					/>{language.t('ui.Sort')}{/snippet}
 			</ActionMenu>
 		{:else}
 			<details class="directory-filters">
@@ -677,7 +670,8 @@
 					heights.clear();
 					version++;
 					schedule();
-				}}>{language.t('ui.Grid')}</Button
+				}}
+				><LayoutGrid size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Grid')}</Button
 			><Button
 				variant={view === 'compact' ? 'default' : 'secondary'}
 				aria-pressed={view === 'compact'}
@@ -686,7 +680,10 @@
 					heights.clear();
 					version++;
 					schedule();
-				}}>{language.t('ui.Compact.table')}</Button
+				}}
+				><List size={16} aria-hidden="true" class="shrink-0" />{language.t(
+					'ui.Compact.table'
+				)}</Button
 			>
 		</div>
 		{#if enhanced && current.globalTotal > 0}
@@ -696,7 +693,10 @@
 				onclick={() => {
 					selectingForExport = !selectingForExport;
 					if (!selectingForExport) selectedDeckIds = [];
-				}}>{language.t('missingExport.actionShort')}</Button
+				}}
+				><Download size={16} aria-hidden="true" class="shrink-0" />{language.t(
+					'missingExport.actionShort'
+				)}</Button
 			>
 		{/if}
 		<p class="directory-total">
@@ -827,18 +827,7 @@
 						width="488"
 						height="680"
 					/>{:else}<div class="library-placeholder" aria-hidden="true">
-						<svg
-							aria-hidden="true"
-							width="40"
-							height="40"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.4"
-							><rect x="7" y="3" width="13" height="18" rx="2" /><path
-								d="m4 6-2 1 3 15 11-2"
-							/></svg
-						>
+						<Layers size={40} strokeWidth={1.4} aria-hidden="true" />
 					</div>{/if}
 			</div>
 			<div class="deck-name">
@@ -907,6 +896,7 @@
 				)}{/each}{/if}
 	</div>
 	{#if !current.matchingTotal}<section class="panel empty-state welcome">
+			<Layers size={20} aria-hidden="true" class="mx-auto mb-2 text-text-muted" />
 			<p>
 				{current.globalTotal
 					? language.t('ui.No.decks.match.these.filters')

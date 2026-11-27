@@ -131,6 +131,7 @@ Full guide: [Deployment](docs/operations/deployment.md).
 
 ## Credits and license
 
-Card data comes from [Scryfall](https://scryfall.com/). Optional external deck playtesting links to
+Card data comes from [Scryfall](https://scryfall.com/). UI icons use [Lucide](https://lucide.dev/)
+(`@lucide/svelte`, ISC) and MTG symbols use Mana Font. Optional external deck playtesting links to
 [phase.rs](https://github.com/phase-rs/phase) via standard `.dck` and `.dec` deck exports. Spellbook
 is licensed under the [GNU Affero General Public License v3.0](LICENSE).

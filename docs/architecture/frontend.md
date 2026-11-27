@@ -1,7 +1,7 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-11-26
+- Last Reviewed: 2026-11-27
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
 - Update Triggers:
   - Website shell and presentation:
@@ -66,11 +66,12 @@ backend implementation, pg, Drizzle or password hashing.
 failures, including current conflict values and revision tokens. The
 [application contract](./application-contract.md#implemented-application-lifecycle-and-operator-ownership)
 owns lifecycle and operator boundaries. Svelte components and Tailwind styles implement the
-interface; Bits UI supplies accessible interactive components. The
-[selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and
-its boundary with existing Bits UI controls. The shared stylesheet defines the neutral light and
-dark, icon-accented card workspace design described in
-[design direction](../product/ui-design-direction.md).
+interface; Bits UI supplies accessible interactive components and `@lucide/svelte` (via static
+per-icon imports) supplies general UI SVG icons, while `mana-font` stays dedicated to MTG symbols.
+The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption,
+[UI icon conventions](../reference/ui-libraries.md#ui-icons) and their boundary with existing Bits
+UI controls. The shared stylesheet defines the neutral light and dark, icon-accented card workspace
+design described in [design direction](../product/ui-design-direction.md).
 
 The root `/` always renders the shared
 [PublicLanding](../../frontend/src/lib/components/showcase/PublicLanding.svelte), including for

@@ -2,6 +2,9 @@
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import { Select } from 'bits-ui';
+	import Check from '@lucide/svelte/icons/check';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import Funnel from '@lucide/svelte/icons/funnel';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 
 	let {
@@ -72,17 +75,7 @@
 				: label}
 		>
 			{#if iconOnly}
-				<svg
-					aria-hidden="true"
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.7"
-					stroke-linecap="round"
-					stroke-linejoin="round"><path d="M4 4h16l-6 7v7l-4 2v-9z" /></svg
-				>
+				<Funnel size={20} aria-hidden="true" class="shrink-0" />
 			{:else}
 				<span class="truncate"
 					>{displayValue ??
@@ -90,18 +83,7 @@
 						placeholder ??
 						label}</span
 				>
-				<svg
-					aria-hidden="true"
-					class="shrink-0 text-text-muted"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.7"
-					stroke-linecap="round"
-					stroke-linejoin="round"><path d="m7 10 5 5 5-5" /></svg
-				>
+				<ChevronDown size={16} aria-hidden="true" class="shrink-0 text-text-muted" />
 			{/if}
 		</Select.Trigger>
 		<Select.Portal>
@@ -125,18 +107,11 @@
 							>
 								{#snippet children({ selected })}
 									<span class="min-w-0 flex-1">{option.label}</span>
-									<svg
+									<Check
+										size={16}
 										aria-hidden="true"
 										class={['shrink-0', !selected && 'invisible']}
-										width="16"
-										height="16"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="1.8"
-										stroke-linecap="round"
-										stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg
-									>
+									/>
 								{/snippet}
 							</Select.Item>
 						{:else}

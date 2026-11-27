@@ -1,37 +1,30 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import Package from '@lucide/svelte/icons/package';
+	import Plus from '@lucide/svelte/icons/plus';
 </script>
 
 <section class="panel dashboard-surface quick-actions" aria-label={language.t('ui.Quick.Actions')}>
 	<h2>{language.t('ui.Quick.Actions')}</h2>
 	<nav aria-label={language.t('ui.Dashboard.quick.actions')}>
 		<a href="/mtg/search"
-			><PlusIcon /><span>{language.t('ui.Add.cards')}</span><span class="arrow" aria-hidden="true"
-				>↗</span
-			></a
+			><Plus size={16} aria-hidden="true" class="shrink-0" /><span
+				>{language.t('ui.Add.cards')}</span
+			><ArrowUpRight size={16} aria-hidden="true" class="arrow shrink-0" /></a
 		>
 		<a href="/mtg/decks?flow=create"
-			><PlusIcon /><span>{language.t('ui.New.deck')}</span><span class="arrow" aria-hidden="true"
-				>↗</span
-			></a
+			><Plus size={16} aria-hidden="true" class="shrink-0" /><span>{language.t('ui.New.deck')}</span
+			><ArrowUpRight size={16} aria-hidden="true" class="arrow shrink-0" /></a
 		>
 		<a href="/mtg/inventory?view=groups">
-			<svg
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"
-				stroke-linecap="round"
-				stroke-linejoin="round"
+			<Package size={16} aria-hidden="true" class="shrink-0" />
+			<span>{language.t('ui.Manage.boxes')}</span><ArrowUpRight
+				size={16}
 				aria-hidden="true"
-				focusable="false"
-				><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7.5 5l9 4" /></svg
-			>
-			<span>{language.t('ui.Manage.boxes')}</span><span class="arrow" aria-hidden="true">↗</span>
+				class="arrow shrink-0"
+			/>
 		</a>
 	</nav>
 </section>
@@ -82,7 +75,7 @@
 	a :global(svg) {
 		flex: none;
 	}
-	.arrow {
+	a :global(.arrow) {
 		margin-left: auto;
 		color: var(--color-text-secondary);
 	}

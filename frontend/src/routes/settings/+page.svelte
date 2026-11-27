@@ -4,6 +4,9 @@
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { untrack, tick, onMount } from 'svelte';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import Save from '@lucide/svelte/icons/save';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
@@ -155,7 +158,9 @@
 				<p id="email-error" class="field-error">{language.message(emailError ?? '')}</p>
 				<div class="profile-save">
 					<button class="btn btn-primary" disabled={pending}
-						>{pending ? language.t('ui.Saving') : language.t('ui.Save.email')}</button
+						><Save size={16} aria-hidden="true" class="shrink-0" />{pending
+							? language.t('ui.Saving')
+							: language.t('ui.Save.email')}</button
 					>
 					<p
 						role="status"
@@ -204,9 +209,11 @@
 					</p>
 					<div class="profile-save">
 						<button type="submit" class="btn btn-secondary">
+							<Save size={16} aria-hidden="true" class="shrink-0" />
 							{language.t('settings.phaseRs.save')}
 						</button>
 						<button type="button" class="btn btn-ghost" onclick={resetPhaseRsUrl}>
+							<RotateCcw size={16} aria-hidden="true" class="shrink-0" />
 							{language.t('settings.phaseRs.reset')}
 						</button>
 						<p role="status" class="text-sm text-text-secondary">
@@ -224,7 +231,9 @@
 				totals={saved.totals}
 				definition={saved.card}
 			/>
-			<a href="/settings/profile-card" class="btn btn-secondary">{language.t('ui.Edit.Card')}</a>
+			<a href="/settings/profile-card" class="btn btn-secondary"
+				><Pencil size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Edit.Card')}</a
+			>
 			{#if saved.statsError}<p role="status" class="text-sm text-text-secondary">
 					{saved.statsError}
 				</p>{/if}

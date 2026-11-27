@@ -2,13 +2,17 @@
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import { page } from '$app/state';
+	import IdCard from '@lucide/svelte/icons/id-card';
+	import Lock from '@lucide/svelte/icons/lock';
+	import Package from '@lucide/svelte/icons/package';
+	import User from '@lucide/svelte/icons/user';
 	import type { LayoutProps } from './$types';
 	let { children }: LayoutProps = $props();
 	const links = $derived([
-		{ href: '/settings', label: language.t('ui.Profile') },
-		{ href: '/settings/profile-card', label: language.t('ui.Profile.Card') },
-		{ href: '/settings/password', label: language.t('ui.Password') },
-		{ href: '/settings/physical-boxes', label: language.t('physicalBoxes.title') }
+		{ href: '/settings', label: language.t('ui.Profile'), icon: User },
+		{ href: '/settings/profile-card', label: language.t('ui.Profile.Card'), icon: IdCard },
+		{ href: '/settings/password', label: language.t('ui.Password'), icon: Lock },
+		{ href: '/settings/physical-boxes', label: language.t('physicalBoxes.title'), icon: Package }
 	]);
 </script>
 
@@ -16,8 +20,9 @@
 	<div class="settings-frame">
 		<nav class="settings-nav" aria-label={language.t('ui.Settings')}>
 			{#each links as link}
+				{@const Icon = link.icon}
 				<a href={link.href} aria-current={page.url.pathname === link.href ? 'page' : undefined}
-					>{link.label}</a
+					><Icon size={16} aria-hidden="true" class="shrink-0" />{link.label}</a
 				>
 			{/each}
 		</nav>
@@ -44,6 +49,7 @@
 	.settings-nav a {
 		display: flex;
 		align-items: center;
+		gap: var(--space-control-inline);
 		min-height: 44px;
 		padding: 0.25rem 0;
 		border-bottom: 1px solid transparent;

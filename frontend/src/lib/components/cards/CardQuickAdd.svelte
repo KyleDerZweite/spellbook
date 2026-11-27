@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Minus from '@lucide/svelte/icons/minus';
+	import Plus from '@lucide/svelte/icons/plus';
 	import { page } from '$app/state';
 	import { untrack, onDestroy } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
@@ -189,7 +190,7 @@
 				disabled={blocked || draft.quantity <= 1}
 				class="btn btn-secondary btn-icon quantity-step"
 			>
-				-
+				<Minus size={20} aria-hidden="true" />
 			</button>
 			<input
 				id={`${id}-quantity`}
@@ -210,7 +211,7 @@
 				disabled={blocked || draft.quantity >= 99}
 				class="btn btn-secondary btn-icon quantity-step"
 			>
-				+
+				<Plus size={20} aria-hidden="true" />
 			</button>
 		</div>
 	</div>
@@ -245,7 +246,9 @@
 		disabled={blocked || !hasAvailableFinish}
 		class={['btn w-full', actionRole === 'secondary' ? 'btn-secondary text-sm' : 'btn-primary']}
 	>
-		<PlusIcon />{pending ? language.t('notice.Adding') : language.t('ui.Add.to.inventory')}
+		<Plus size={16} aria-hidden="true" class="shrink-0" />{pending
+			? language.t('notice.Adding')
+			: language.t('ui.Add.to.inventory')}
 	</button>
 	{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
 			{language.t('sentence.Original.unconfirmed.addition.p0.of.p1.p2.p3', {

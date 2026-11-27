@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
-	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
+	import Plus from '@lucide/svelte/icons/plus';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { InventoryAcknowledgement } from '@spellbook/contracts/inventory.ts';
 	import type { DeckChoicePage, DeckAcknowledgement } from '@spellbook/contracts/decks.ts';
@@ -179,7 +179,7 @@
 				</div>
 			</div>
 			<button class="btn btn-primary" disabled={!!choiceReadError || !choices}
-				><PlusIcon />{submitted && !receipt
+				><Plus size={16} aria-hidden="true" class="shrink-0" />{submitted && !receipt
 					? language.t('ui.Add.with.current.Deck.details')
 					: language.t('ui.Add.to.Deck')}</button
 			>
@@ -301,7 +301,8 @@
 				<button
 					class="btn btn-secondary text-sm"
 					disabled={!selectedPrinting.is_nonfoil_available && !selectedPrinting.is_foil_available}
-					><PlusIcon />{inventorySubmitted && !inventoryReceipt
+					><Plus size={16} aria-hidden="true" class="shrink-0" />{inventorySubmitted &&
+					!inventoryReceipt
 						? language.t('ui.Add.with.current.Inventory.details')
 						: language.t('ui.Add.to.Inventory')}</button
 				>
