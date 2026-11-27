@@ -533,7 +533,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = "==3.3.9" },
     { name = "psycopg-pool", marker = "extra == 'dev'", specifier = "==3.3.3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==9.2.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.5" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.6" },
 ]
 provides-extras = ["dev"]
 
