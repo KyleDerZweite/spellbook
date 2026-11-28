@@ -1,5 +1,6 @@
 import { demoLoginEnabled, demoMode } from '#lib/server/auth/demo.ts';
 import { registrationOpen } from '#lib/server/auth/registration.ts';
+import { configuredAppRelease } from '#lib/server/app-release.ts';
 import { configuredSocialLinks } from '#lib/server/social.ts';
 import type { LayoutServerLoad } from './$types';
 import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isAvailableGame } from '#lib/state/activeGame.svelte.ts';
@@ -15,6 +16,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 		demoLoginEnabled,
 		registrationOpen: registrationOpen(),
 		activeGame,
-		socialLinks: configuredSocialLinks
+		socialLinks: configuredSocialLinks,
+		appRelease: configuredAppRelease
 	};
 };

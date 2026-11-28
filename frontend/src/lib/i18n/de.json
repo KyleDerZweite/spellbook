@@ -1526,5 +1526,17 @@
 	"deckDiscovery.copyFailed": "Das Referenz-Deck konnte nicht kopiert werden. Versuche es erneut.",
 	"deckDiscovery.previousPage": "Zurück",
 	"deckDiscovery.nextPage": "Weiter",
-	"deckDiscovery.pageStatus": "Seite {page} von {pages}"
+	"deckDiscovery.pageStatus": "Seite {page} von {pages}",
+	"install.android.download": "Android-APK herunterladen",
+	"install.android.github": "Falls auf GitHub Releases eine APK verfügbar ist, findest du sie unter Assets.",
+	"install.android.version": "Version",
+	"install.android.minimum": "Mindestversion für Android",
+	"install.android.size": "Dateigröße",
+	"install.android.instructions": "So installierst du die APK",
+	"install.android.checksum": "SHA-256-Prüfsumme",
+	"install.android.openFile": "Lade die APK herunter und öffne sie im Browser oder Dateimanager.",
+	"install.android.allowSource": "Erlaube bei Nachfrage die Installation aus dieser Quelle und tippe dann auf Installieren. Nach der Installation kannst du die Berechtigung wieder entziehen.",
+	"install.ios.testFlight": "In TestFlight öffnen",
+	"install.ios.appStore": "Im App Store ansehen",
+	"install.settings.title": "Apps & Installation"
 }

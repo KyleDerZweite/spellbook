@@ -1526,5 +1526,17 @@
 	"deckDiscovery.copyFailed": "Could not copy the reference deck. Try again.",
 	"deckDiscovery.previousPage": "Previous",
 	"deckDiscovery.nextPage": "Next",
-	"deckDiscovery.pageStatus": "Page {page} of {pages}"
+	"deckDiscovery.pageStatus": "Page {page} of {pages}",
+	"install.android.download": "Download Android APK",
+	"install.android.github": "If an APK is available on GitHub Releases, download it under Assets.",
+	"install.android.version": "Version",
+	"install.android.minimum": "Minimum Android version",
+	"install.android.size": "File size",
+	"install.android.instructions": "How to install the APK",
+	"install.android.checksum": "SHA-256 checksum",
+	"install.android.openFile": "Download the APK and open it in your browser or file manager.",
+	"install.android.allowSource": "If Android asks, allow installs from that source, then tap Install. You can turn the permission off again after installation.",
+	"install.ios.testFlight": "Open in TestFlight",
+	"install.ios.appStore": "View in the App Store",
+	"install.settings.title": "Apps & Installation"
 }

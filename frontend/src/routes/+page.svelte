@@ -28,7 +28,9 @@
 	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
 
-<div class="public-home"><PublicLanding seed={data.landingSeed} /></div>
+<div class="public-home">
+	<PublicLanding seed={data.landingSeed} apkHref={data.appRelease.android.href} />
+</div>
 
 <style>
 	.public-home {

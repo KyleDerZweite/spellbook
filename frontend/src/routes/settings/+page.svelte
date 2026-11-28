@@ -11,6 +11,7 @@
 	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
 	import LinkedDevices from '#lib/components/auth/LinkedDevices.svelte';
+	import InstallApp from '#lib/components/pwa/InstallApp.svelte';
 	import ImageCacheSettings from '#lib/components/settings/ImageCacheSettings.svelte';
 	import { getAvatar } from '#lib/profile/avatars.ts';
 	import { DEFAULT_PHASE_RS_URL, getSavedPhaseRsUrl, savePhaseRsUrl } from '#lib/phase-rs.ts';
@@ -244,6 +245,12 @@
 		unavailable={data.devicesError}
 		result={form?.deviceId === undefined ? null : form}
 	/>
+	<section class="my-6 space-y-4" aria-labelledby="apps-installation-heading">
+		<h2 id="apps-installation-heading" class="font-display text-section-title">
+			{language.t('install.settings.title')}
+		</h2>
+		<InstallApp release={data.appRelease} />
+	</section>
 	<ImageCacheSettings />
 </div>
 
