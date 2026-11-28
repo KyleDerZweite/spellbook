@@ -42,6 +42,27 @@ describe('Deck print sheet', () => {
 		});
 	});
 
+	it('prints a back for each selected copy and appends one front per Related Token', () => {
+		const card = {
+			...entry('dfc', 2),
+			backFaceName: 'Back',
+			backFaceImageUri: 'https://img/back.jpg'
+		};
+		const token = {
+			catalogCardId: 'soldier',
+			name: 'Soldier',
+			faces: [{ imageUri: 'https://img/soldier.jpg' }]
+		};
+		expect(printCopies([card]).map(({ key }) => key)).toEqual(['dfc:0', 'dfc:1']);
+		expect(printCopies([card], { backFaces: true, tokens: [token] })).toEqual([
+			{ key: 'dfc:0', name: 'Card dfc', imageUri: 'https://img/dfc.jpg' },
+			{ key: 'dfc:0:back', name: 'Back', imageUri: 'https://img/back.jpg' },
+			{ key: 'dfc:1', name: 'Card dfc', imageUri: 'https://img/dfc.jpg' },
+			{ key: 'dfc:1:back', name: 'Back', imageUri: 'https://img/back.jpg' },
+			{ key: 'token:soldier', name: 'Soldier', imageUri: 'https://img/soldier.jpg' }
+		]);
+	});
+
 	it('keeps copies without an image so quantities stay complete', () => {
 		const copies = printCopies([entry('blank', 2, 'main', '')]);
 		expect(copies).toHaveLength(2);

@@ -2784,6 +2784,71 @@
 				}
 			}
 		},
+		"/api/v1/mtg/inventory/export": {
+			"get": {
+				"summary": "Download the authenticated account’s full MTG Inventory as CSV",
+				"tags": ["mtg"],
+				"security": [
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Inventory attachment. An empty Inventory contains only the header.",
+						"headers": {
+							"Content-Disposition": {
+								"schema": {
+									"type": "string",
+									"example": "attachment; filename=\"inventory.csv\""
+								}
+							}
+						},
+						"content": {
+							"text/csv": {
+								"schema": {
+									"type": "string",
+									"description": "UTF-8 RFC 4180 CSV with header name,setCode,collectorNumber,finish,condition,language,quantity,boxes,scryfallId,oracleId. The boxes field is a JSON array of names. Catalog metadata is blank when a printing is absent from the active Catalog."
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "A valid session cookie or bearer token is required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "The server is busy. Retry the export later.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/v1/mtg/inventory/{entryId}": {
 			"parameters": [
 				{
@@ -13332,6 +13397,13 @@
 						"type": "string"
 					},
 					"imageUri": {
+						"type": "string"
+					},
+					"backFaceImageUri": {
+						"type": "string",
+						"description": "Back-face image for this Printing when present in the active Catalog."
+					},
+					"backFaceName": {
 						"type": "string"
 					},
 					"quantity": {

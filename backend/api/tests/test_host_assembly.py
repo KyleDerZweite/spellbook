@@ -41,7 +41,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     resources: ApplicationResources = lifetime.http.state.resources
     installed = operations(lifetime.http)
     for routes, expected in (
-        (create_inventory_routes(resources.auth, resources.inventory, ORIGIN), 16),
+        (create_inventory_routes(resources.auth, resources.inventory, ORIGIN), 17),
         (create_deck_routes(resources.auth, resources.decks, ORIGIN), 21),
         (create_catalog_routes(resources.catalog), 4),
         (create_valuation_routes(resources.auth, resources.valuation, ORIGIN), 5),

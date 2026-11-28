@@ -9,7 +9,10 @@ Expected behavior follows Node inventory/read.ts and inventory/mutations.ts.
 """
 
 import asyncio
+import csv
+import json
 import os
+from io import StringIO
 from uuid import uuid4
 
 import pytest
@@ -38,6 +41,71 @@ def native_database_guard() -> None:
     if not target:
         pytest.skip("Requires exclusive api_python lease and protected test environment")
     assert target == "sb_py_0e56d611_api_python"
+
+
+def test_csv_exports_all_owned_entries_with_exact_printing_details_and_box_names() -> None:
+    async def scenario() -> None:
+        async with (
+            native_pool() as pool,
+            native_catalog(pool),
+            native_account(pool) as (_, token),
+            native_account(pool) as (_, other_token),
+        ):
+            inventory, actor = await native_inventory(pool, token)
+            other_inventory, other = await native_inventory(pool, other_token)
+            header = (
+                "name,setCode,collectorNumber,finish,condition,language,quantity,boxes,"
+                "scryfallId,oracleId\r\n"
+            )
+            empty = StringIO(newline="")
+            await other_inventory.write_csv(other, empty)
+            assert empty.getvalue() == header
+            await other_inventory.add_items(
+                other, request_id=str(uuid4()), operations=[operation(quantity=99)]
+            )
+            added = await inventory.add_items(
+                actor,
+                request_id=str(uuid4()),
+                operations=[operation(quantity=2), operation(condition="LP", quantity=5)],
+            )
+            names = ['Alpha, "Trade"', "Beta"]
+            ids = []
+            for name in names:
+                result = await inventory.create_group(
+                    actor, {"requestId": str(uuid4()), "name": name}
+                )
+                ids.append(result["groups"][0]["groupId"])
+            await inventory.replace_memberships(
+                actor,
+                {
+                    "requestId": str(uuid4()),
+                    "entryId": added["changes"][0]["entryId"],
+                    "groupIds": ids,
+                },
+            )
+
+            output = StringIO(newline="")
+            await inventory.write_csv(actor, output)
+            assert output.getvalue().startswith(header)
+            output.seek(0)
+            records = list(csv.DictReader(output))
+            assert [record["quantity"] for record in records] == ["5", "2"]
+            assert json.loads(records[0]["boxes"]) == []
+            assert json.loads(records[1]["boxes"]) == names
+            assert records[1] == {
+                "name": CARD["name"],
+                "setCode": CARD["set_code"],
+                "collectorNumber": CARD["collector_number"],
+                "finish": "nonfoil",
+                "condition": "NM",
+                "language": CARD["lang"],
+                "quantity": "2",
+                "boxes": records[1]["boxes"],
+                "scryfallId": CARD["id"],
+                "oracleId": CARD["oracle_id"],
+            }
+
+    asyncio.run(scenario())
 
 
 def test_filtered_ranges_keep_global_group_metadata_and_absolute_locations() -> None:

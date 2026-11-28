@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Attachment } from 'svelte/attachments';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteMap } from 'svelte/reactivity';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
 	import { printCopies, printPages } from '#lib/decks/print-sheet.ts';
@@ -9,10 +9,14 @@
 
 	let { data }: PageProps = $props();
 	const language = useLanguage();
-	const copies = $derived(printCopies(data.cards));
+	let cutMarks = $state(false);
+	let backFaces = $state(false);
+	let relatedTokens = $state(false);
+	const copies = $derived(
+		printCopies(data.cards, { backFaces, tokens: relatedTokens ? data.relatedTokens.items : [] })
+	);
 	const pages = $derived(printPages(copies));
-	const settled = new SvelteSet<string>();
-	const failed = new SvelteSet<string>();
+	const settled = new SvelteMap<string, { image: HTMLImageElement; failed: boolean }>();
 	const withImage = $derived(copies.filter((copy) => copy.imageUri));
 	const loaded = $derived(withImage.filter((copy) => settled.has(copy.key)).length);
 	const ready = $derived(loaded === withImage.length);
@@ -22,18 +26,17 @@
 		(key: string): Attachment<HTMLImageElement> =>
 		(image) => {
 			const settle = () => {
-				if (image.naturalWidth === 0) failed.add(key);
-				settled.add(key);
+				settled.set(key, { image, failed: image.naturalWidth === 0 });
 			};
-			if (image.complete && image.getAttribute('src')) {
-				settle();
-				return;
+			if (image.complete && image.getAttribute('src')) settle();
+			else {
+				image.addEventListener('load', settle, { once: true });
+				image.addEventListener('error', settle, { once: true });
 			}
-			image.addEventListener('load', settle, { once: true });
-			image.addEventListener('error', settle, { once: true });
 			return () => {
 				image.removeEventListener('load', settle);
 				image.removeEventListener('error', settle);
+				if (settled.get(key)?.image === image) settled.delete(key);
 			};
 		};
 </script>
@@ -61,6 +64,19 @@
 				{language.t('ui.Back.to.deck')}
 			</Button>
 		</div>
+		<div class="print-options">
+			<label>
+				<input type="checkbox" bind:checked={cutMarks} />{language.t('printSheet.cutMarks')}
+			</label>
+			<label>
+				<input type="checkbox" bind:checked={backFaces} />{language.t('printSheet.backFaces')}
+			</label>
+			<label>
+				<input type="checkbox" bind:checked={relatedTokens} />{language.t(
+					'printSheet.relatedTokens'
+				)}
+			</label>
+		</div>
 		{#if copies.length}<p role="status">
 				{ready
 					? language.t('ui.Card.images.are.ready.to.print')
@@ -69,7 +85,9 @@
 							total: language.number(withImage.length)
 						})}
 			</p>{/if}
-		{#if failed.size}<p>{language.t('ui.Some.card.images.are.unavailable')}</p>{/if}
+		{#if withImage.some((copy) => settled.get(copy.key)?.failed)}<p>
+				{language.t('ui.Some.card.images.are.unavailable')}
+			</p>{/if}
 		<p>{language.t('ui.Print.on.A4.paper.at.100.scale')}</p>
 	</div>
 	{#if pages.length}<div class="sheet-list">
@@ -83,12 +101,22 @@
 				>
 					{#each page as copy (copy.key)}
 						<div class="card">
-							{#if copy.imageUri && !failed.has(copy.key)}<img
+							{#if cutMarks}
+								<span class="crop-mark top-left" aria-hidden="true"></span>
+								<span class="crop-mark top-right" aria-hidden="true"></span>
+								<span class="crop-mark bottom-left" aria-hidden="true"></span>
+								<span class="crop-mark bottom-right" aria-hidden="true"></span>
+							{/if}
+							{#if copy.imageUri}<img
 									src={cardImageSrc(copy.imageUri)}
 									{@attach cachedCardImage(copy.imageUri)}
 									alt={copy.name}
+									hidden={settled.get(copy.key)?.failed}
 									{@attach track(copy.key)}
-								/>{:else}<span class="card-name">{copy.name}</span>{/if}
+								/>{/if}
+							{#if !copy.imageUri || settled.get(copy.key)?.failed}<span class="card-name">
+									{copy.name}
+								</span>{/if}
 						</div>
 					{/each}
 				</section>
@@ -105,10 +133,16 @@
 		gap: 0.75rem;
 		margin-bottom: 2rem;
 	}
-	.buttons {
+	.buttons,
+	.print-options {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.75rem;
+	}
+	.print-options label {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
 	}
 	h1 {
 		font-size: 2rem;
@@ -145,16 +179,61 @@
 		box-sizing: border-box;
 		width: 63mm;
 		height: 88mm;
-		overflow: hidden;
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+	.crop-mark {
+		position: absolute;
+		width: 0;
+		height: 0;
+		pointer-events: none;
+	}
+	.crop-mark::before,
+	.crop-mark::after {
+		content: '';
+		position: absolute;
+	}
+	.crop-mark::before {
+		top: -0.075mm;
+		right: 0.25mm;
+		width: 1.25mm;
+		border-top: 0.15mm solid black;
+	}
+	.crop-mark::after {
+		bottom: 0.25mm;
+		left: -0.075mm;
+		height: 1.25mm;
+		border-left: 0.15mm solid black;
+	}
+	.top-left {
+		top: 0;
+		left: 0;
+	}
+	.top-right {
+		top: 0;
+		right: 0;
+		rotate: 90deg;
+	}
+	.bottom-right {
+		bottom: 0;
+		right: 0;
+		rotate: 180deg;
+	}
+	.bottom-left {
+		bottom: 0;
+		left: 0;
+		rotate: 270deg;
 	}
 	.card img {
 		display: block;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+	}
+	.card img[hidden] {
+		display: none;
 	}
 	.card-name {
 		box-sizing: border-box;

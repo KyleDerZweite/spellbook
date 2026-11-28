@@ -1,6 +1,9 @@
 """Inventory/Groups HTTP adapters, including Arena import preview and commit."""
 
+import asyncio
 import math
+from collections.abc import AsyncIterator, Iterator
+from tempfile import SpooledTemporaryFile
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends
@@ -20,7 +23,8 @@ from spellbook_core.validation import (
     normalize_source,
 )
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, StreamingResponse
+from starlette.types import Message, Receive, Scope, Send
 
 from spellbook_api.http.auth import require_mobile_auth
 from spellbook_api.http.dependencies import UUIDPath, actor_dependency, body_dependency
@@ -33,6 +37,37 @@ from spellbook_api.http.parsing import (
 )
 
 QUERY_INTEGER = TypeAdapter(int)
+INVENTORY_CSV_ACTIVE = 4
+INVENTORY_CSV_SEND_SECONDS = 30.0
+
+
+class InventoryCsvResponse(StreamingResponse):
+    def __init__(self, output: SpooledTemporaryFile[str]):
+        self._output = output
+
+        def chunks() -> Iterator[str]:
+            while chunk := output.read(65536):
+                yield chunk
+
+        super().__init__(
+            chunks(),
+            media_type="text/csv",
+            headers={
+                "Cache-Control": "no-store",
+                "Content-Disposition": 'attachment; filename="inventory.csv"',
+            },
+        )
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        async def timed_send(message: Message) -> None:
+            async with asyncio.timeout(INVENTORY_CSV_SEND_SECONDS):
+                await send(message)
+
+        try:
+            # RequestPolicy owns the disconnect watcher and cancels this response.
+            await self.stream_response(timed_send)
+        finally:
+            self._output.close()
 
 
 async def add_items(
@@ -130,6 +165,34 @@ def create_inventory_routes(auth: SessionAuth, inventory: Inventory, origin: str
             actor, inventory_query_from_url(request), revisions[-1] if revisions else None
         )
         return json_response(result, status=409 if result["kind"] == "RevisionChanged" else 200)
+
+    active_exports = 0
+
+    async def reserve_export() -> AsyncIterator[None]:
+        nonlocal active_exports
+        if active_exports >= INVENTORY_CSV_ACTIVE:
+            raise HttpError(503, "Inventory CSV exports are busy. Try again.")
+        active_exports += 1
+        try:
+            yield
+        finally:
+            active_exports -= 1
+
+    async def export_inventory(
+        actor: Annotated[Actor, Depends(authenticated)],
+        _slot: Annotated[None, Depends(reserve_export, scope="request")],
+    ) -> Response:
+        # Finish the snapshot before sending headers or waiting for the download client.
+        output = SpooledTemporaryFile(  # noqa: SIM115 - the response owns the file on success.
+            max_size=1024 * 1024, mode="w+", encoding="utf-8", newline=""
+        )
+        try:
+            await inventory.write_csv(actor, output)
+            output.seek(0)
+            return InventoryCsvResponse(output)
+        except BaseException:
+            output.close()
+            raise
 
     async def add_inventory(request: Request) -> Response:
         return await add_items(request, auth, inventory, origin)
@@ -391,6 +454,9 @@ def create_inventory_routes(auth: SessionAuth, inventory: Inventory, origin: str
     )
     router.add_api_route(
         "/api/v1/mtg/inventory/import/commit", commit_import, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/inventory/export", export_inventory, methods=["GET"], response_model=None
     )
     router.add_api_route(
         "/api/v1/mtg/inventory/{entryId}", detail, methods=["GET"], response_model=None

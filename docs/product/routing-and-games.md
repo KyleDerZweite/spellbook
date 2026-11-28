@@ -1,10 +1,10 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-11-26
+- Last Reviewed: 2026-11-28
 - Source of Truth: route handlers and server hooks
 - Update Triggers:
-  - Deck import/download/print/playtest routes
+  - Deck import/download/print/playtest and Inventory CSV export routes
   - managed Category removal
   - removed standalone personal History page
   - shortcut-only global power-user search
@@ -170,6 +170,7 @@ accept bearer or browser sessions.
 | `/inventory/value`                                         | Authenticated current Inventory estimate and coverage          |
 | `/inventory/value-history`                                 | Authenticated closed daily checkpoints and explicit gaps       |
 | `/inventory`                                               | Account inventory                                              |
+| `/inventory/export`                                        | Authenticated full Inventory CSV download                      |
 | `/inventory/batch-add`                                     | Batch additions                                                |
 | `/inventory/bulk`                                          | Idempotent inventory mutations                                 |
 | `/inventory/import/preview`                                | Text import interpretation                                     |
