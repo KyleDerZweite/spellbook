@@ -62,6 +62,7 @@
 	import type { InventoryGroup } from '#lib/inventory/types.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
+	import { mobileSheet } from '#lib/components/ui/dialog/mobile-sheet.ts';
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
 	import {
@@ -942,6 +943,7 @@
 		filterOpen = true;
 	}
 	function focusFilter(event: Event) {
+		if (mobileSheet.current && filterField === 'set') return;
 		event.preventDefault();
 		void tick().then(() => {
 			if (!filterOpen) return;
@@ -1484,6 +1486,7 @@
 					</div>
 				</FilterPopover>
 				<ActionMenu
+					sheetOnMobile
 					label={language.t('ui.Sort.inventory')}
 					variant="toolbar"
 					items={[
@@ -1536,7 +1539,7 @@
 							class="shrink-0"
 						/>{language.t('ui.Sort')}{/snippet}
 				</ActionMenu>
-				<p class="inventory-result-count">
+				<p class="inventory-result-count" role="status">
 					{language.t(`entries.${language.plural(currentWindow.matching.entryCount)}`, {
 						count: language.number(currentWindow.matching.entryCount)
 					})} <span>·</span>
@@ -1772,6 +1775,7 @@
 								p2: finishLabel(card.finish),
 								p3: String(card.condition)
 							})}
+							sheetOnMobile
 							iconOnly
 							class="entry-menu"
 							bind:triggerRef={
@@ -2458,7 +2462,7 @@
 		position: relative;
 		min-width: 0;
 	}
-	.inventory-search svg {
+	.inventory-search :global(svg) {
 		position: absolute;
 		left: 0.75rem;
 		top: 50%;
@@ -2650,6 +2654,27 @@
 			padding-left: calc(40px + 0.75rem);
 		}
 	}
+	@media (max-width: 640px) {
+		.inventory-toolbar {
+			position: sticky;
+			top: var(--app-header-height);
+			z-index: 10;
+			grid-template-columns: auto auto minmax(0, 1fr);
+			gap: 0.25rem;
+			padding-block: 0.375rem;
+			background: var(--color-background);
+		}
+		.inventory-search {
+			grid-column: 1 / -1;
+		}
+		.inventory-result-count {
+			justify-self: end;
+			white-space: normal;
+			text-align: right;
+			overflow-wrap: anywhere;
+		}
+	}
+
 	@media (max-width: 560px) {
 		.inventory-totals {
 			font-size: var(--text-meta);
@@ -2658,26 +2683,12 @@
 		.inventory-totals span {
 			margin: 0 0.25rem;
 		}
-		.inventory-toolbar {
-			grid-template-columns: auto auto minmax(0, 1fr);
-			gap: 0.5rem;
-		}
-		.inventory-search {
-			grid-column: 1 / -1;
-		}
 		.filter-chip-edit,
 		.filter-chip-remove {
 			min-height: 44px;
 		}
 		.filter-chip-remove {
 			width: 44px;
-		}
-		.inventory-result-count {
-			justify-self: end;
-			white-space: normal;
-			text-align: right;
-			font-size: var(--text-meta);
-			line-height: var(--text-meta--line-height);
 		}
 		.inventory-row {
 			grid-template-columns: minmax(0, 1fr) 84px;

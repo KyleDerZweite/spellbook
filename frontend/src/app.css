@@ -759,3 +759,40 @@ html:not(.dark) .dashboard-surface {
 		color-mix(in srgb, var(--color-card), black 4%)
 	);
 }
+
+@media (max-width: 640px) {
+	.surface-menu.mobile-sheet {
+		position: fixed;
+		inset: auto 0 var(--sheet-viewport-bottom, 0px);
+		transform: none;
+		width: auto;
+		min-width: 0;
+		max-width: none;
+		max-height: calc(var(--sheet-viewport-height, 100dvh) - 1rem);
+		padding-bottom: env(safe-area-inset-bottom);
+		border-radius: 1rem 1rem 0 0;
+		display: flex;
+		flex-direction: column;
+		overflow-wrap: anywhere;
+	}
+
+	.mobile-sheet-heading {
+		position: relative;
+		flex-shrink: 0;
+		min-height: 3.75rem;
+		padding: 1.25rem 4.5rem 0 1.25rem;
+	}
+
+	.mobile-sheet-body {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+
+	.mobile-sheet .mobile-sheet-viewport {
+		flex: 1;
+		height: auto;
+		max-height: none;
+		overscroll-behavior: contain;
+	}
+}
