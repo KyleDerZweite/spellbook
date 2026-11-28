@@ -1,14 +1,14 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-11-26
+- Last Reviewed: 2026-11-28
 - Source of Truth: repo config
 - Update Triggers:
   - Three-file Compose selection, isolated projects, root configuration and standalone defaults.
   - Compose services, independent images, startup commands and graceful shutdown.
   - Stable server ingress, Development tunnels, loopback ports and origin builds.
   - Database migration ownership, retained data, recovery and operator commands.
-  - CI image publication and release tags.
+  - CI image publication, release tags and manual integration evidence.
   - Automatic Demo update eligibility, completion evidence, documentation-only restarts and proposed
     workflow improvements.
   - Catalog publication, Demo bundles, private reset and source refresh.
@@ -273,20 +273,17 @@ retained data.
 The [Images workflow](../../.github/workflows/images.yml) runs only when a version tag (`v*`) is
 pushed; `main` pushes publish no images. It first requires the newest `main` push CI run for the
 tagged commit to have succeeded, so an untested, failing, cancelled or still running commit cannot
-be published. That run includes the
-[Application Integration suites](./github-automation.md#ci-coverage), so every published image
-belongs to a commit that passed PostgreSQL migrations, the guarded Deck PostgreSQL tests and the
-HTTP, Scan and SavedState suites against the built web and installed API. Browser rendering, Android
-and the guarded suites that CI does not run remain separate evidence. Images builds every hosted
-image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and `frontend` to
-`ghcr.io/kylederzweite/spellbook-<name>` as `sha-<full SHA>` and as the tag name; `db-migrate`
-reuses the `api` image. No `main` image tag is published or moved. The CI web image is built without
-`APP_ORIGIN`, so the web server derives its Origin from the request `Host` header with `https` as
-default protocol; adapter-node reads `HOST_HEADER` and `PROTOCOL_HEADER` at runtime when a proxy
-needs other headers. Host builds through `scripts/compose.mjs` still embed `APP_ORIGIN`. The `api`,
-`state-worker`, `worker` and `scan-worker` packages pull anonymously, as verified on 2026-11-14.
-GHCR may create a new package as private; after a package's first publication, check an anonymous
-pull and set its visibility to public once if needed.
+be published. For release integration evidence, dispatch
+[Application Integration](./github-automation.md#ci-coverage) on the candidate revision. Images
+builds every hosted image once and publishes `api`, `state-worker`, `worker`, `scan-worker` and
+`frontend` to `ghcr.io/kylederzweite/spellbook-<name>` as `sha-<full SHA>` and as the tag name;
+`db-migrate` reuses the `api` image. No `main` image tag is published or moved. The CI web image is
+built without `APP_ORIGIN`, so the web server derives its Origin from the request `Host` header with
+`https` as default protocol; adapter-node reads `HOST_HEADER` and `PROTOCOL_HEADER` at runtime when
+a proxy needs other headers. Host builds through `scripts/compose.mjs` still embed `APP_ORIGIN`. The
+`api`, `state-worker`, `worker` and `scan-worker` packages pull anonymously, as verified on
+2026-11-14. GHCR may create a new package as private; after a package's first publication, check an
+anonymous pull and set its visibility to public once if needed.
 
 Tag only a `main` commit whose push CI succeeded, using Docker-safe tags matching
 `^v[0-9A-Za-z._-]{1,127}$` (no `+` build metadata). Pre-alpha and alpha tags use

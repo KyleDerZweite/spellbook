@@ -1,9 +1,7 @@
 name: Application Integration
 
-# Manual dispatch on any ref; CI calls it after every push to main, before Images may publish.
 on:
   workflow_dispatch:
-  workflow_call:
 
 permissions:
   contents: read
@@ -55,6 +53,20 @@ jobs:
         run: pnpm --dir .. setup:python
       - name: System ICU for Core Combo ordering
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev
+      - name: Create the operator test database
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec "$POSTGRES_CONTAINER" createdb -U postgres spellbook_operators_demo
+      - name: Migrate the operator test database
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_operators_demo
+        run: pnpm --dir .. db:migrate
+      - name: Python operator PostgreSQL checks
+        working-directory: backend/api
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_operators_demo
+          SPELLBOOK_OPERATORS_NATIVE_DATABASE: spellbook_operators_demo
+        run: .venv/bin/python -m pytest ../core/tests/test_operators_postgres.py
       - name: Start the actual Scan worker scaffold
         run: |
           uv run --project ../backend/workers/scan --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 5227 > ../.scan-worker-test.log 2>&1 &

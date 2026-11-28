@@ -50,11 +50,11 @@ const job = (source, id) => {
 	return section.split(/^  [\w-]+:\s*$/m)[0];
 };
 
-test('heavy workflows run on dispatch or CI call and keep their complete commands', () => {
+test('heavy workflows run only on dispatch and keep their complete commands', () => {
 	const android = workflow('android.yml');
 	const integration = workflow('application-integration.yml');
 	assert.equal(triggers(android), 'workflow_dispatch:');
-	assert.equal(triggers(integration), 'workflow_dispatch:\n  workflow_call:');
+	assert.equal(triggers(integration), 'workflow_dispatch:');
 	for (const source of [android, integration])
 		assert.doesNotMatch(source, /^concurrency:|^    (needs|if):|continue-on-error:/m);
 	assert.match(android, /uses: actions\/setup-java@v6/);
@@ -85,7 +85,7 @@ test('heavy workflows run on dispatch or CI call and keep their complete command
 	assert.match(integration, /name: Stop the owned Scan worker\n\s+if: always\(\)/);
 });
 
-test('automatic CI retains scoped check commands alongside push integration', () => {
+test('automatic CI runs only the four scoped jobs', () => {
 	const source = workflow('ci.yml');
 	const script = readFileSync(new URL('./ci-checks.mjs', import.meta.url), 'utf8');
 	assert.match(triggers(source), /^\s*push:/m);
@@ -99,6 +99,14 @@ test('automatic CI retains scoped check commands alongside push integration', ()
 			/android|gradlew|uvicorn|test:(integration|http|scan|sync)|workflow_call|workflow_run|dispatches|gh workflow run/
 		);
 	}
+	assert.deepEqual(
+		[...source.matchAll(/^    name: (.+)$/gm)].map(([, name]) => name),
+		['CI Scope', 'Application Checks', 'Python API/Core', 'Python Workers']
+	);
+	assert.deepEqual(
+		[...source.split(/^jobs:\n/m)[1].matchAll(/^  ([\w-]+):$/gm)].map(([, id]) => id),
+		['changes', 'frontend-lint-unit', 'python-backend', 'worker-tests']
+	);
 	const scope = job(source, 'changes');
 	assert.match(scope, /run: node scripts\/ci-checks.mjs scope\n/);
 	assert.match(scope, /run: node scripts\/ci-changes.mjs/);
@@ -234,17 +242,29 @@ test('only automatic runs cancel superseded work and every job has a bounded tim
 			name
 		);
 		if (/gradlew|test:(integration|http|scan|sync)|uvicorn/.test(text))
-			assert.match(triggers(text), /^workflow_dispatch:(\n  workflow_call:)?$/, name);
+			assert.equal(triggers(text), 'workflow_dispatch:', name);
 	}
 });
 
-test('CI calls Application Integration from one job for pushes only', () => {
-	const source = workflow('ci.yml');
-	assert.equal([...source.matchAll(/^    uses: /gm)].length, 1);
-	const integration = job(source, 'application-integration');
-	assert.match(integration, /^    if: github.event_name == 'push'$/m);
-	assert.match(integration, /^    uses: \.\/\.github\/workflows\/application-integration\.yml$/m);
-	assert.doesNotMatch(integration, /^    (needs|continue-on-error|secrets):/m);
+test('manual integration migrates a separate disposable database for guarded operators', () => {
+	const integration = job(workflow('application-integration.yml'), 'frontend-integration');
+	const target = 'spellbook_operators_demo';
+	const url = `postgres://postgres:postgres@localhost:5432/${target}`;
+	const create = integration.indexOf(`createdb -U postgres ${target}`);
+	const migrate = integration.indexOf('name: Migrate the operator test database');
+	const operators = integration.indexOf('name: Python operator PostgreSQL checks');
+	assert.ok(create >= 0 && create < migrate && migrate < operators);
+	assert.ok(integration.slice(migrate, operators).includes(`\n          DATABASE_URL: ${url}\n`));
+	assert.ok(integration.slice(migrate, operators).includes('run: pnpm --dir .. db:migrate'));
+	const step = integration.slice(operators).split('\n      - ')[0];
+	assert.ok(step.includes(`TEST_DATABASE_URL: ${url}`));
+	assert.ok(step.includes(`SPELLBOOK_OPERATORS_NATIVE_DATABASE: ${target}`));
+	assert.match(step, /working-directory: backend\/api/);
+	assert.match(
+		step,
+		/run: \.venv\/bin\/python -m pytest \.\.\/core\/tests\/test_operators_postgres\.py/
+	);
+	assert.doesNotMatch(workflow('ci.yml'), /test_operators_postgres|application-integration/);
 });
 
 test('Images publishes only version tags after green main push CI, then moves release', () => {
@@ -501,7 +521,10 @@ test('Python-only API/core changes and shared contracts select Python checks', (
 	const api = job(source, 'python-backend');
 	assert.match(api, /needs: changes/);
 	assert.match(api, /if: needs.changes.outputs.python_backend == 'true'/);
-	const boundary = commands('python-backend', { ...none, python_backend: true });
+	const boundary = commands('python-backend', {
+		...none,
+		python_backend: true
+	});
 	assert.ok(
 		boundary.some((command) => command.endsWith('python scripts/check_python_boundaries.py'))
 	);
@@ -639,9 +662,11 @@ test('state worker and Core/SQL changes select the packaged state consumer', () 
 	}
 	assert.equal(classifyPaths(['backend/drizzle/0024_qr_authorizations.sql']).state_worker, true);
 	assert.ok(
-		commands('python-backend', { ...none, python_backend: true, state_worker: true }).some(
-			(command) => command.startsWith('backend/workers/state: ')
-		)
+		commands('python-backend', {
+			...none,
+			python_backend: true,
+			state_worker: true
+		}).some((command) => command.startsWith('backend/workers/state: '))
 	);
 });
 
