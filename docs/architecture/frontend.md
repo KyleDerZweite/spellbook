@@ -1,7 +1,7 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-11-27
+- Last Reviewed: 2026-11-28
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
 - Update Triggers:
   - Website shell and presentation:
@@ -10,7 +10,7 @@
     - Shared controls, component choices and development review controls.
     - PWA installation, updates, cache policy, QR presentation and camera cleanup.
     - Client-side IndexedDB Scryfall card image LRU cache and Settings clear control.
-    - Installed narrow navigation and runtime compatibility.
+    - Responsive workspace navigation and installed runtime compatibility.
   - Search and Card inspection:
     - Shared Catalog filter option labels for native controls, enhanced controls and chips.
     - Language filter placement, flags, multi-selection and result counts.
@@ -592,10 +592,13 @@ ordinary account sessions. The API runs independently, and Kotlin/Compose Androi
 client under the [implementation contract](./independent-applications.md). `/app` is its public
 launch/install hub and the manifest start URL. It composes the shared InstallApp control. Signed-in
 users see Connect device linking to `/app/connect`, Inventory and Decks; anonymous users see Sign
-in. Installation remains optional. Existing account/mobile App links lead here. The installed narrow
-presentation adds App, Search, Inventory, Decks and Connect bottom links; Connect opens
-`/app/connect` for authorization QR scanning. Ordinary browser windows and wide layouts retain their
-existing navigation. Standalone display mode selects presentation, not account authority.
+in. Installation remains optional. Existing account/mobile App links lead here. At widths up to
+700px, signed-in users on MTG workspace routes, Settings and `/app/connect` have a bottom bar in
+both browser and standalone windows. Search, Inventory and Decks are direct entries, and More opens
+a bottom sheet with Dashboard, Settings, Physical Boxes, Connect device, App and the account
+sign-out action. The bar reserves its height and the bottom safe-area inset in the document,
+including for scrolling focused controls into view. Destinations use touch targets at least 44px
+high. Public pages, auth pages, signed-out views and wider layouts use header navigation.
 
 `/app/connect` requires sign-in and accepts a QR through the camera or manual input. The parser
 accepts only this instance's `/auth/approve?code=CODE` link or its opaque public request code.

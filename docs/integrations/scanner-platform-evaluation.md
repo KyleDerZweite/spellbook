@@ -1,7 +1,7 @@
 # Spellbook client, recognition and sorter research
 
 - Status: Research and decision support; not an accepted architecture
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-28
 - Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification
   and explicitly identified engineering assessments
 - Update Triggers:
@@ -48,8 +48,9 @@ compatibility nor a native app.
 The accepted 2026-10-16 delivery selects the shared same-origin SvelteKit PWA for online-first
 installation and QR authorization. It includes an `/app` hub, `/app/connect` camera/manual
 same-instance QR input, explicit signed-in approval/denial at `/auth/approve` and QR beside desktop
-password login. Bottom navigation applies only to installed narrow windows.
-[Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns these presentation contracts.
+password login. The original bottom navigation applied to installed narrow windows.
+[Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns the current presentation
+contracts.
 
 The backend browser/device QR API, manifest and public-only service worker are integrated.
 [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns

@@ -1,7 +1,7 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-11-26
+- Last Reviewed: 2026-11-28
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope
   clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19
   independent Android design clarification
@@ -98,9 +98,9 @@ remain distinct from local phone and Cardstation recognition.
 The accepted `/app` install/launch hub, `/app/connect` camera/manual same-instance QR scanner and
 `/auth/approve` signed-in decision page are defined in
 [Frontend](./frontend.md#pwa-and-qr-presentation). QR sign-in appears alongside desktop password
-login. Bottom navigation applies only when installed and narrow. Backend transport, the manifest and
-worker are integrated; the PWA pages and navigation are implemented. Target verification is recorded
-with the change.
+login. The linked Frontend contract also owns responsive workspace navigation. Backend transport,
+the manifest and worker are integrated; the PWA pages and navigation are implemented. Target
+verification is recorded with the change.
 
 During a sort run, the phone primarily provides login, operation and status. The Jetson Orin Nano
 Super owns Cardstation capture, recognition, motors and sensors in the current research direction.

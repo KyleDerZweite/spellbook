@@ -64,14 +64,21 @@
 </div>
 
 <style>
-	@media (max-width: 700px) {
+	@media screen and (max-width: 700px) {
 		.installed {
 			--app-header-height: calc(64px + env(safe-area-inset-top, 0px));
-			padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
 		}
-		.installed :global(:focus-visible) {
+		:global(html:has(.app-shell > .app-bottom-nav)) {
+			--app-bottom-nav-height: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+			scroll-padding-bottom: var(--app-bottom-nav-height);
+		}
+		.app-shell:has(> :global(.app-bottom-nav)) {
+			padding-bottom: var(--app-bottom-nav-height);
+		}
+		.installed :global(:focus-visible),
+		.app-shell:has(> :global(.app-bottom-nav)) :global(:focus-visible) {
 			scroll-margin-top: calc(var(--app-header-height) + var(--space-page-margin));
-			scroll-margin-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+			scroll-margin-bottom: 1rem;
 		}
 	}
 

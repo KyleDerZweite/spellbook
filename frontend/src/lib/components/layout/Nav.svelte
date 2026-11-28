@@ -4,14 +4,17 @@
 	import { authState } from '#lib/auth/state.svelte.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { tick } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
 	import { isPrimaryClick } from '#lib/search/navigation.ts';
 	import type { ComponentProps } from 'svelte';
 	import { page } from '$app/state';
 	import { pwaState } from '#lib/pwa/state.svelte.ts';
+	import { hasWorkspaceNavigation } from './workspace-navigation.ts';
 	import { asset } from '$app/paths';
 	import { Dialog } from 'bits-ui';
 	import Archive from '@lucide/svelte/icons/archive';
+	import Box from '@lucide/svelte/icons/box';
 	import House from '@lucide/svelte/icons/house';
 	import Layers from '@lucide/svelte/icons/layers';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
@@ -60,29 +63,26 @@
 		}
 	]);
 
-	const APP_LINKS = $derived([
-		{ href: '/app', label: 'App', icon: Smartphone },
+	const workspace = $derived(hasWorkspaceNavigation(page.route.id, !!user));
+	const workspaceLinks = $derived(NAV_LINKS.slice(1));
+	const moreLinks = $derived([
+		NAV_LINKS[0],
+		{ href: '/settings', label: language.t('ui.Settings'), icon: Settings },
 		{
-			href: '/mtg/search',
-			label: language.t('ui.Search'),
-			icon: Search
+			href: '/settings/physical-boxes',
+			label: language.t('physicalBoxes.title'),
+			icon: Box
 		},
-		{
-			href: '/mtg/inventory',
-			label: language.t('ui.Inventory'),
-			icon: Archive
-		},
-		{
-			href: '/mtg/decks',
-			label: language.t('ui.Decks'),
-			icon: Layers
-		},
-		{
-			href: '/app/connect',
-			label: language.t('ui.Connect'),
-			icon: QrCode
-		}
+		{ href: '/app/connect', label: language.t('ui.Connect.device'), icon: QrCode },
+		{ href: '/app', label: language.t('ui.App'), icon: Smartphone }
 	]);
+	const currentMoreLink = $derived(moreLinks.findLast((link) => isActive(link.href)));
+	const narrowViewport = new MediaQuery('screen and (max-width: 700px)');
+	let moreOpen = $state(false);
+	let brandLink: HTMLAnchorElement | undefined = $state();
+	$effect(() => {
+		if (!narrowViewport.current) moreOpen = false;
+	});
 
 	let collapsed = $state(false);
 	$effect(() => {
@@ -137,25 +137,10 @@
 	{language.t('ui.Skip.to.content')}
 </a>
 
-{#if pwaState.standalone}
-	<nav class="app-bottom-nav" aria-label={language.t('ui.App')}>
-		{#each APP_LINKS as link}
-			{@const Icon = link.icon}
-			<a
-				href={link.href}
-				onclick={link.href === '/mtg/search' ? (event) => searchClick(event) : undefined}
-				aria-current={isActive(link.href) ? 'page' : undefined}
-			>
-				<Icon size={20} aria-hidden="true" class="shrink-0" />
-				<span>{link.label}</span>
-			</a>
-		{/each}
-	</nav>
-{/if}
-
 <nav
 	class="primary-nav"
 	class:collapsed
+	class:workspace
 	class:installed={pwaState.standalone}
 	aria-label={language.t('ui.Primary')}
 >
@@ -163,6 +148,7 @@
 		<div class="brand-controls">
 			<a
 				href="/"
+				bind:this={brandLink}
 				class="brand-link font-display font-normal tracking-tight text-foreground no-underline"
 				aria-label={language.t('ui.Spellbook.home')}
 			>
@@ -210,7 +196,7 @@
 			</div>
 			<Dialog.Root bind:open={mobileMenuOpen}>
 				<Dialog.Trigger
-					class="btn btn-secondary btn-icon lg:hidden"
+					class="btn btn-secondary btn-icon header-menu-trigger lg:hidden"
 					data-navigation-trigger
 					aria-label={language.t('ui.Open.navigation.menu')}
 				>
@@ -281,6 +267,86 @@
 	</div>
 </nav>
 
+{#if workspace}
+	<nav class="app-bottom-nav" aria-label={language.t('ui.Workspace.navigation')}>
+		{#each workspaceLinks as link (link.href)}
+			{@const Icon = link.icon}
+			<a
+				class="bottom-tab"
+				href={link.href}
+				onclick={link.href === '/mtg/search' ? (event) => searchClick(event) : undefined}
+				aria-current={isActive(link.href) ? 'page' : undefined}
+			>
+				<Icon size={20} aria-hidden="true" class="shrink-0" />
+				<span>{link.label}</span>
+			</a>
+		{/each}
+		<Dialog.Root bind:open={moreOpen}>
+			<Dialog.Trigger
+				class="bottom-tab {currentMoreLink ? 'bottom-tab--active' : ''}"
+				data-navigation-trigger
+			>
+				<Menu size={20} aria-hidden="true" class="shrink-0" />
+				<span>{language.t('ui.More')}</span>
+			</Dialog.Trigger>
+			<Dialog.Portal>
+				<Dialog.Overlay class="filter-overlay fixed inset-0 z-40" />
+				<Dialog.Content
+					class="workspace-sheet fixed z-50 overflow-y-auto rounded-xl border border-border bg-stone p-2 shadow-xl"
+					onCloseAutoFocus={(event) => {
+						if (narrowViewport.current) return;
+						event.preventDefault();
+						brandLink?.focus({ preventScroll: true });
+					}}
+				>
+					<div class="flex items-center justify-between gap-2 px-3">
+						<Dialog.Title class="font-semibold tracking-tight">
+							{language.t('ui.More')}
+						</Dialog.Title>
+						<Dialog.Close
+							class="btn btn-ghost btn-icon min-h-[44px] min-w-[44px]"
+							aria-label={language.t('ui.Close.navigation.menu')}
+						>
+							<X size={20} aria-hidden="true" />
+						</Dialog.Close>
+					</div>
+					<Dialog.Description class="sr-only">
+						{language.t('ui.Navigate.your.Magic.card.workspace')}
+					</Dialog.Description>
+					{#each moreLinks as link (link.href)}
+						{@const Icon = link.icon}
+						<a
+							href={link.href}
+							aria-current={currentMoreLink === link ? 'page' : undefined}
+							onclick={(event) => {
+								if (isPrimaryClick(event)) moreOpen = false;
+							}}
+							class="mobile-nav-link min-h-[44px] {currentMoreLink === link
+								? 'mobile-nav-link--active'
+								: ''}"
+						>
+							<Icon size={16} aria-hidden="true" class="shrink-0" />{link.label}
+						</a>
+					{/each}
+					<div class="mt-2 border-t border-border px-3 pt-2">
+						{@render accountIdentity()}
+						<button
+							type="button"
+							class="btn btn-ghost min-h-[44px]"
+							onclick={() => {
+								moreOpen = false;
+								logoutForm?.requestSubmit();
+							}}
+						>
+							{@render signOutIcon()}{language.t('ui.Sign.out')}
+						</button>
+					</div>
+				</Dialog.Content>
+			</Dialog.Portal>
+		</Dialog.Root>
+	</nav>
+{/if}
+
 {#snippet accountIdentity()}
 	<div class="account-identity">
 		<Avatar id={user?.avatarId} size={28} />
@@ -292,43 +358,58 @@
 	.app-bottom-nav {
 		display: none;
 	}
-	@media (max-width: 700px) {
+	@media screen and (max-width: 700px) {
+		.primary-nav.workspace :global(.header-menu-trigger) {
+			display: none;
+		}
 		.primary-nav.installed .nav-inner {
 			padding-top: env(safe-area-inset-top, 0px);
 		}
 		.app-bottom-nav {
 			display: grid;
-			grid-template-columns: repeat(5, minmax(0, 1fr));
+			grid-template-columns: repeat(4, minmax(0, 1fr));
 			position: fixed;
 			inset: auto 0 0;
 			z-index: 30;
-			min-height: 4.5rem;
+			height: var(--app-bottom-nav-height);
 			padding: 0 max(0.25rem, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
 				max(0.25rem, env(safe-area-inset-left, 0px));
 			border-top: 1px solid var(--color-border);
 			background: var(--color-background);
 		}
-		.app-bottom-nav a {
+		.app-bottom-nav :global(.bottom-tab) {
 			display: flex;
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
 			gap: 0.25rem;
 			min-height: 44px;
-			padding: 0.5rem 0;
+			padding: 0.25rem 0;
+			text-align: center;
+			min-width: 0;
 			font-size: var(--text-meta);
 			line-height: var(--text-meta--line-height);
 			color: var(--color-foreground);
 			text-decoration: none;
 		}
-		.app-bottom-nav a[aria-current='page'] {
+		.app-bottom-nav a[aria-current='page'],
+		.app-bottom-nav :global(.bottom-tab--active) {
 			color: var(--color-gold);
 			box-shadow: inset 0 3px currentColor;
 		}
-		.app-bottom-nav a:focus-visible {
+		.app-bottom-nav :global(.bottom-tab:focus-visible) {
 			outline: 2px solid var(--color-gold);
 			outline-offset: -4px;
 		}
+	}
+
+	:global(.workspace-sheet) {
+		inset-inline: max(0.75rem, env(safe-area-inset-left, 0px))
+			max(0.75rem, env(safe-area-inset-right, 0px));
+		bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+		max-height: calc(
+			100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+		);
 	}
 
 	.account-identity {
@@ -402,10 +483,10 @@
 		);
 		pointer-events: none;
 	}
-	.primary-nav + :global(.app-main) {
+	.primary-nav ~ :global(.app-main) {
 		margin-top: calc(-1 * var(--app-header-height));
 	}
-	.primary-nav + :global(.app-main .app-content) {
+	.primary-nav ~ :global(.app-main .app-content) {
 		padding-top: var(--app-header-height);
 	}
 	.nav-inner {
