@@ -1,7 +1,7 @@
 # Python backend migration contract
 
 - Status: Source merged through PR 276; owner acceptance and production operations remain separate
-- Last Reviewed: 2026-11-09
+- Last Reviewed: 2026-11-28
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted
   migration, native FastAPI/Pydantic and pre-release direction
 - Update Triggers:
@@ -58,10 +58,10 @@ closes delivered base-port implementation while owner testing continues along th
 not establish unavailable target acceptance or authorize production operations. Authorized source
 work includes Python migrator preparation/rehearsal, Python default activation and removal of the
 replaced TypeScript server and obsolete server tests after their functional coverage transfers. Keep
-the Svelte/TypeScript frontend and Android, updating affected callers and shared contracts with
-interface changes. Schema changes may require reset/reimport; retain SQL needed for fresh
-installation. The pre-release policy does not authorize resetting an actual database or deleting
-unrelated files. Production cutover and productive migrator rollout have not been performed.
+the Svelte/TypeScript frontend, updating affected callers and shared contracts with interface
+changes. Schema changes may require reset/reimport; retain SQL needed for fresh installation. The
+pre-release policy does not authorize resetting an actual database or deleting unrelated files.
+Production cutover and productive migrator rollout have not been performed.
 
 ## Framework, modules and resources
 
@@ -140,9 +140,8 @@ the language-neutral structural owner. The
 [Python adapter](../../backend/api/src/spellbook_api/http/application.py) serves that artifact with
 the configured origin. Reconcile Python handlers against it, actual routes/consumers and the
 retained synthetic JSON/raw-HTTP fixtures. Keep client presentation helpers and TypeScript
-validators in `contracts/src/`; Python cannot import them. Initially retain handwritten
-TypeScript/Kotlin clients and test them against the neutral fixtures. Code generation is deferred
-until a concrete reviewed need exists.
+validators in `contracts/src/`; Python cannot import them. Verify the handwritten TypeScript client
+against the neutral fixtures. Code generation is deferred until a concrete reviewed need exists.
 
 Fixtures and adapter tests verify the selected current contract, including missing fields versus
 explicit null, exact domain numbers, safe errors, conflicts, cookies and limits. Native
@@ -222,9 +221,9 @@ addresses and requires database configuration unless schema-only mode is explici
 replaced Node server, build/operator tooling and coupled domain tests are removed; Python Core/API
 functional and opt-in PostgreSQL tests own those responsibilities. Frontend unit/browser/external
 HTTP tests remain, with installed Python as the fixed API target. SQL/journal/snapshots, four
-canonical Demo assets, contracts and Android remain in source. Any privately retained Node artifact
-stays under its operational owner; compatible rollback data is not a source acceptance requirement.
-Source activation establishes neither complete integration acceptance nor production cutover.
+canonical Demo assets and contracts remain in source. Any privately retained Node artifact stays
+under its operational owner; compatible rollback data is not a source acceptance requirement. Source
+activation establishes neither complete integration acceptance nor production cutover.
 
 ## Delivery, evidence and rollback
 
@@ -278,9 +277,10 @@ integration checks. Route counts, mocks and schema equality alone do not prove c
 functional correctness. Record the tested revision/build, command, actual provider/runtime, result,
 skips and missing evidence with its owner. Verify direct API and proxy separately, actual
 Scan/storage/provider paths and genuine scheduled observations. Substitutes do not establish real
-integration, rendered clients or physical Android/Keystore acceptance. Heavy application integration
-and Android checks remain manually triggered. Refresh affected evidence after migrator, packaging,
-default activation and server removal changes.
+integration or rendered clients. Application Integration remains manually triggered. Native device
+acceptance belongs to the Expo delivery under
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md). Refresh affected evidence
+after migrator, packaging, default activation and server removal changes.
 
 Retained production artifacts, configuration references, migration state, storage paths and data
 remain under their operational owner. Current source acceptance requires no Node API runtime or

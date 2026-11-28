@@ -52,27 +52,22 @@ a clearer Demo card. Home and the remaining Settings layout retain their accepte
 On 2026-10-19, Kyle rejected the PWA-first research recommendation and requested a new Spellbook
 Figma workspace covering the website and an independent Android app, plus a separate Cardstation
 file containing only a website design reference. [The design handoff](./mobile-app-exploration.md)
-owns the complete flow scaffold and Kotlin/Compose selection. Independent mobile UX is the design
-target; a failed browser benchmark is not required. The scaffold does not replace accepted website
-typography/design, remove the implemented PWA/QR delivery or establish native production acceptance.
-Native implementation follows the
-[independent applications contract](../architecture/independent-applications.md).
+owns the complete flow scaffold. Independent mobile UX is the design target; a failed browser
+benchmark is not required. The scaffold does not replace accepted website typography/design, remove
+the implemented PWA/QR delivery or establish native production acceptance. Native implementation
+follows the [independent applications contract](../architecture/independent-applications.md).
 
-On 2026-10-19, Kyle selected a coherent Android app structure. Home, Search, Inventory and Decks
-remain the four main destinations. Use compact root toolbars with a direct Settings gear, small
-object titles, contextual actions and explicit task completion. Remove large app wordmarks and
-filled user-avatar controls. Home and Settings expose the same Cardstation area. Android system
-typography is the current mobile proposal; website typography remains unchanged.
-[The design handoff](./mobile-app-exploration.md) owns the complete clickable journeys, simulated
-Cardstation/capture boundaries and online-first implementation direction. The accepted Figma
-direction now feeds Kotlin/Compose implementation; native verification remains separate. The
-separate Cardstation reference file contains only the public Landing page.
+The 2026-10-19 Android prototype used Home, Search, Inventory and Decks as its four destinations. It
+used compact toolbars, a Settings gear and Cardstation entrypoints from Home and Settings. The
+[design handoff](./mobile-app-exploration.md) records its visual direction, clickable journeys and
+simulations. [Issue #461](https://github.com/KyleDerZweite/spellbook/issues/461) owns the Expo MVP
+navigation. The separate Cardstation reference file contains only the public Landing page.
 
-The Android refinement retains the website's distinct colored tab icons. Inventory uses compact
-Camera, Plus and Settings actions instead of a large Add-cards button; phone capture is reached from
-Inventory. Cardstation uses eight boxes around the central stack, with device name/ID, connection
-state and coarse box filters. Filter-Box previews and optional physical references are prototype
-proposals; [the handoff](./mobile-app-exploration.md#cardstation-boundary) records their boundaries.
+The prototype reused the website's colored tab icons. Its Inventory view used compact Camera, Plus
+and Settings actions and placed phone capture in Inventory. The Cardstation prototype used eight
+boxes around the central stack, with device name/ID, connection state and coarse box filters.
+[The handoff](./mobile-app-exploration.md#cardstation-boundary) defines the simulated Filter-Box
+previews and proposed physical references.
 
 On 2026-10-19, Kyle selected only Discord's QR arrangement as a reference. Keep Spellbook's existing
 account layout, logo, spacing, equal desktop columns and separator. Center the QR code above its

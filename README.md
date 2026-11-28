@@ -24,14 +24,14 @@ Spellbook is **unreleased**. APIs and stored data may break at any commit, and y
 or reimport data. Read the [pre-release policy](CONTRIBUTING.md#replacing-interfaces) before you
 rely on it.
 
-| Area                      | State                                                                             |
-| ------------------------- | --------------------------------------------------------------------------------- |
-| Website, API, PostgreSQL  | Working                                                                           |
-| Accounts                  | Local username and password                                                       |
-| Android app               | In progress, see [Android](android/README.md)                                     |
-| Scan (image upload)       | Upload and manual Printing selection kept, UI entry paused                        |
-| Card recognition          | Not implemented. Local recognition is the planned direction                       |
-| Card sorter (Cardstation) | Design accepted, not implemented, see [integrations](docs/integrations/README.md) |
+| Area                      | State                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Website, API, PostgreSQL  | Working                                                                                                      |
+| Accounts                  | Local username and password                                                                                  |
+| Mobile app                | Planned for iOS and Android, see [ADR-0031](docs/decisions/0031-expo-mobile-app-replacing-kotlin-android.md) |
+| Scan (image upload)       | Upload and manual Printing selection kept, UI entry paused                                                   |
+| Card recognition          | Not implemented. Local recognition is the planned direction                                                  |
+| Card sorter (Cardstation) | Design accepted, not implemented, see [integrations](docs/integrations/README.md)                            |
 
 The [recognition decision](docs/decisions/0023-local-recognition-in-scanner-clients.md) explains how
 the planned recognition differs from today's upload and review flow.
@@ -111,7 +111,7 @@ Full guide: [Deployment](docs/operations/deployment.md).
 | API          | Python, FastAPI               | [`backend/api/`](backend/api/README.md)   |
 | Domain logic | Python                        | [`backend/core/`](backend/core/README.md) |
 | Workers      | Python (Catalog, State, Scan) | [`backend/workers/`](backend/workers)     |
-| Android app  | Kotlin, Compose               | [`android/`](android/README.md)           |
+| Mobile app   | Expo, React Native (planned)  | `apps/mobile/`                            |
 | Data         | PostgreSQL                    | [Postgres](docs/architecture/postgres.md) |
 | API contract | OpenAPI                       | [`contracts/`](contracts/README.md)       |
 

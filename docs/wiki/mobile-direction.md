@@ -20,7 +20,7 @@ zuvor akzeptierte Kotlin/Compose-Auswahl in
 und die Android-Auslieferung im
 [Applications-Vertrag](https://github.com/KyleDerZweite/spellbook/blob/62c13b5c7a1c5a9a97f25f4e214271bea7ad4951/docs/architecture/independent-applications.md#android-delivery).
 Für spätere Implementierungsfragen den
-[Applications-Owner](../architecture/independent-applications.md#android-delivery) lesen.
+[Applications-Owner](../architecture/independent-applications.md#mobile-delivery) lesen.
 
 Am 2026-10-24 empfahl Root unter diesem Scope, Kotlin beizubehalten. Das war keine neue
 Nutzerentscheidung für eine Framework-Migration. Ein konkretes iOS-Commitment wäre ein Anlass zur

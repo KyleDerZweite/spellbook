@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: Canonical
-- Last Reviewed: 2026-11-18
+- Last Reviewed: 2026-11-28
 - Source of Truth: code and explicitly marked accepted design
 - Update Triggers:
   - managed Category removal
@@ -45,8 +45,7 @@
 ## Current state
 
 - **Applications:** [Independent applications](./independent-applications.md) owns the HTTP boundary
-  between web, API and Android, the remote web adapter and the first native Android slice. Native
-  target acceptance is still pending.
+  between web, API and the planned Expo mobile app, and the implemented remote web adapter.
 - **Python backend:** [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the
   API and workers. [The evaluation](../integrations/backend-language-evaluation.md) records the
   tradeoffs.
@@ -66,7 +65,7 @@
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Application contract](./application-contract.md)                      | Workspace/Catalog/Auth/Profile/Dashboard, Inventory/Groups reads and mutations, Deck application/shared UI, Scan upload/read/result/review, SavedState transport and mounted workspace sync, Scryfall/optional references, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates implemented; later contracts planned |
 | [Valuation](./valuation.md)                                            | Scryfall/optional reference publication, reads and bounded public source history implemented; private daily Inventory history and Dashboard/selected-Deck estimates implemented                                                                                                                                                                                   |
-| [Independent applications](./independent-applications.md)              | Web/API/Android ownership, HTTP parity and native acceptance contract                                                                                                                                                                                                                                                                                             |
+| [Independent applications](./independent-applications.md)              | Web/API/mobile ownership, HTTP parity and native acceptance contract                                                                                                                                                                                                                                                                                              |
 | [Python migration](./python-backend-migration.md)                      | Accepted framework, packages, schema/migration ownership, reviewed delivery gates and rollback                                                                                                                                                                                                                                                                    |
 | [Migration evidence baseline](./python-migration-evidence-baseline.md) | Current OpenAPI, retained synthetic fixtures, Python runtime acceptance and remaining target evidence                                                                                                                                                                                                                                                             |
 | [System overview](./system-overview.md)                                | Runtime topology and data ownership                                                                                                                                                                                                                                                                                                                               |

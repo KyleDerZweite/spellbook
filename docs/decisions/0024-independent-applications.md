@@ -1,9 +1,9 @@
 # ADR-0024: Independent web, API and Android applications
 
 - Status: Accepted; Node host selection superseded by ADR-0025, old-interface retention superseded
-  by ADR-0029
+  by ADR-0029, Kotlin/Compose selection superseded by ADR-0031
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-28
 - Source of Truth: maintainer-selected implementation direction
 - Update Triggers:
   - ADR-0029 immediate interface removal and current Python implementation
@@ -47,17 +47,20 @@ verification.
 `2d640d0` foundation. Integrated `ff0b9a1` supplies separate Node API/web ownership and backend
 migrations/operators without changing SQL or publication history. Raw forms, OpenAPI, remote web
 adapters and the first Android slice are now integrated. Final native target acceptance remains
-pending. The selected Android toolchain pins SDK 37 and Kotlin/Compose in the
-[contract](../architecture/independent-applications.md#android-delivery). Producer build/JVM/lint
-passed; the root emulator attempt exited 139 before boot. Installation/native journeys were not run,
-and no workaround, hardware or production acceptance is claimed. The maintainer subsequently
-requested a non-TypeScript backend evaluation. [ADR-0025](./0025-python-api-and-workers.md) now
-selects Python for the future API and workers without changing this accepted separation of
-application responsibilities. [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
-retains migration context. The unmerged integration candidate now implements Python API/Core and
-workers; the Node host selection above is historical.
+pending. The selected Android toolchain pins SDK 37 and Kotlin/Compose in the implementation
+contract at the time. Producer build/JVM/lint passed; the root emulator attempt exited 139 before
+boot. Installation/native journeys were not run, and no workaround, hardware or production
+acceptance is claimed. The maintainer subsequently requested a non-TypeScript backend evaluation.
+[ADR-0025](./0025-python-api-and-workers.md) now selects Python for the future API and workers
+without changing this accepted separation of application responsibilities.
+[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains migration context. The
+unmerged integration candidate now implements Python API/Core and workers; the Node host selection
+above is historical.
 
 [ADR-0028](./0028-versioned-game-api.md) supersedes prior API-path and module-location immutability
 for the versioned shared/MTG API. [ADR-0029](./0029-remove-replaced-interfaces.md) removes replaced
 API paths and supersedes old-interface retention. Bodies, SQL history, stored data, receipts and
 separate production authority remain unchanged.
+
+[ADR-0031](./0031-expo-mobile-app-replacing-kotlin-android.md) supersedes the Android stack
+selection while retaining independent application ownership.

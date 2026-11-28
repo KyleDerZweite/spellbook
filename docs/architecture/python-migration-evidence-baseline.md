@@ -1,7 +1,7 @@
 # Python migration functional evidence
 
 - Status: Canonical functional evidence responsibilities
-- Last Reviewed: 2026-10-28
+- Last Reviewed: 2026-11-28
 - Source of Truth: current Python code/tests, OpenAPI, useful synthetic fixtures, ADR-0029 and PR
   276
 - Update Triggers:
@@ -47,7 +47,7 @@ methods remain web-owned. Native route tests compare complete operation sets, re
 operations and assert representative removed paths return 404. Route counts alone establish no
 functional result. The Python adapter reads the bundled artifact and substitutes the configured
 public origin. Backend owns route-specific validation, authorization, limits and error semantics;
-client helpers and handwritten TypeScript/Kotlin clients retain their owners.
+client helpers and the handwritten TypeScript client retain their owners.
 
 [`contracts/fixtures/wire.json`](../../contracts/fixtures/wire.json) retains synthetic public
 parsing, fingerprint, password, conflict and receipt vectors. Retain fixtures that verify current
@@ -90,16 +90,17 @@ proposed acceptance evidence manifest; no new manifest format is selected here.
 At the 2026-10-23 checkpoint, Python domain implementations, Deck assembly, closed web commands,
 default launchers, independent workers and removal of replaced Node source/tests were integrated in
 the then-unmerged candidate. PR 276 subsequently merged that source on 2026-10-25; the observations
-below retain their original tested scope. Canonical routes, OpenAPI, explicit MTG modules and
-Web/Android clients are implemented. Independent Standards and Spec reviews covered domain
-implementation, activation and canonical clients; current removal changes require integrated review
-and verification. The historical acceptance runs exercised disposable PostgreSQL transactions,
-jobs/publications, installed migrator/operators, original receipts, two Python replicas, proxy SSE
-and listener recovery. Built web journeys covered registration, Search, Inventory addition, Deck
-composition and Dashboard at desktop and narrow layouts. A multipart upload reached local storage
-and the Scan scaffold over TCP. An installed State worker completed an enqueued Category job and
-stopped cleanly on SIGTERM. These observations establish their recorded scope, not current-head
-acceptance or production deployment.
+below retain their original tested scope. Canonical routes, OpenAPI, explicit MTG modules and the
+web client were implemented. The earlier Android client was superseded by
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md). Independent Standards and
+Spec reviews covered domain implementation, activation and canonical clients; current removal
+changes require integrated review and verification. The historical acceptance runs exercised
+disposable PostgreSQL transactions, jobs/publications, installed migrator/operators, original
+receipts, two Python replicas, proxy SSE and listener recovery. Built web journeys covered
+registration, Search, Inventory addition, Deck composition and Dashboard at desktop and narrow
+layouts. A multipart upload reached local storage and the Scan scaffold over TCP. An installed State
+worker completed an enqueued Category job and stopped cleanly on SIGTERM. These observations
+establish their recorded scope, not current-head acceptance or production deployment.
 
 ## Native implementation evidence 2026-10-25
 
@@ -115,10 +116,11 @@ integrated results.
 
 ## Remaining target evidence
 
-Operator-owned S3 and live external-provider refreshes, a naturally scheduled daily value
-observation and physical Android/Keystore journeys remain target-owner checks. Local storage,
-protocol fixtures and PostgreSQL capture/DST tests do not establish those target results. Scan
-recognition retains the existing `no_match` scaffold. Owner acceptance remains separate from
+Backend and operations owners verify S3 refreshes, live external-provider refreshes and a naturally
+scheduled daily value observation. Local storage, protocol fixtures and PostgreSQL capture/DST tests
+do not establish those results. Physical device journeys belong to the Expo MVP.
+
+Scan recognition retains the existing `no_match` scaffold. Owner acceptance remains separate from
 technical checks. Production API cutover and productive migrator rollout have not been performed.
 Source removal does not authorize deleting retained production artifacts or data. Operational
 recovery must protect accepted writes under its authorized procedure; cross-version data

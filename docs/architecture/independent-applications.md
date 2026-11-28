@@ -1,10 +1,10 @@
 # Independent applications implementation contract
 
-- Status: Independent Python API and workers implemented; native target verification pending
-- Last Reviewed: 2026-11-26
+- Status: Independent Python API and workers implemented; Expo mobile app planned
+- Last Reviewed: 2026-11-28
 - Source of Truth: accepted maintainer direction and existing application contracts
 - Update Triggers:
-  - Android transport-agnostic adapter pattern and v1 offline read cache
+  - Mobile client ownership, API contract and acceptance
   - managed Category removal
   - native global search read and shared DTO
   - raw Web header multiplicity and native boolean queries
@@ -25,6 +25,7 @@
   - [Application contract](./application-contract.md)
   - [Auth](./auth.md)
   - [Mobile handoff](../product/mobile-app-exploration.md)
+  - [ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md)
   - [ADR-0024](../decisions/0024-independent-applications.md)
   - [Verification](../operations/github-automation.md)
   - [Backend language evaluation](../integrations/backend-language-evaluation.md)
@@ -33,22 +34,21 @@
 ## Outcome and ownership
 
 Retain `frontend/`, `backend/` and `contracts/`, with independent Catalog and Scan packages under
-`backend/workers/`. Add the independent Gradle project `android/`. SvelteKit owns rendering, native
-form actions and browser presentation. The Python API owns credential authentication, PostgreSQL,
-application use cases, transient Scan processing and SavedState lifetime. The independent Python
-State process owns the ValueHistory scheduler. Android owns native navigation, presentation,
-credentials and bounded local state. Contracts contain serialized DTOs and pure shared
-validation/presentation helpers only. No web runtime may import backend implementation, PostgreSQL,
-Drizzle or password hashing.
+`backend/workers/`. SvelteKit owns rendering, native form actions and browser presentation. The
+Python API owns credential authentication, PostgreSQL, application use cases, transient Scan
+processing and SavedState lifetime. The independent Python State process owns the ValueHistory
+scheduler. The planned mobile app owns native navigation, presentation, credentials and bounded
+local state. Contracts contain serialized DTOs and pure shared validation/presentation helpers only.
+No web runtime may import backend implementation, PostgreSQL, Drizzle or password hashing.
 
 The unmerged integration candidate uses Python API/Core and workers by default.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) owns functional acceptance
 and separate production authority. The [migration contract](./python-backend-migration.md) owns the
 pre-release policy, current-version correctness and remaining runtime evidence. The replaced
 TypeScript server is removed; Python functional tests and installed-Python HTTP consumers own
-current coverage. Frontend, contracts, Android and unchanged SQL/Demo assets retain their owners. A
-new monorepo orchestrator, hardware control and a complex offline write queue remain outside its
-scope. Existing PWA compatibility remains available, but it is not the Android application.
+current coverage. Frontend, contracts and unchanged SQL/Demo assets retain their owners. A new
+monorepo orchestrator, hardware control and a complex offline write queue remain outside its scope.
+SvelteKit continues to deliver the PWA.
 
 ## HTTP module interface
 
@@ -73,12 +73,12 @@ and `.errors`. There is no new game registry, generic filter framework, common a
 or implemented second TCG.
 
 Public Catalog reads remain public; private mutations and reads retain their authentication and
-account scope. Old API paths return 404 without aliases or redirects. Web and Android switch to
-canonical paths in the same change. OpenAPI owns the current route inventory; the obsolete legacy
-route inventory and transfer map are removed. Current-route tests cover native dispatch, last-value
-scalar queries, bodies, 405 method rejection, cache/Origin policy, QR cookies and SSE. Native route
-checks reject extra operations and representative removed paths return 404. Current-head
-production-app HTTP acceptance remains an integration-owner check.
+account scope. Old API paths return 404 without aliases or redirects. Web and future mobile clients
+use canonical paths. OpenAPI owns the current route inventory; the obsolete legacy route inventory
+and transfer map are removed. Current-route tests cover native dispatch, last-value scalar queries,
+bodies, 405 method rejection, cache/Origin policy, QR cookies and SSE. Native route checks reject
+extra operations and representative removed paths return 404. Current-head production-app HTTP
+acceptance remains an integration-owner check.
 
 `backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
 `create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent
@@ -179,47 +179,20 @@ rejected by SvelteKit before proxy dispatch use its native 400 response; well-fo
 retain API response bodies and policy. API schema/OpenAPI and migrations belong to backend;
 migration SQL, journal and snapshots retain their history.
 
-## Android delivery
+## Mobile delivery
 
-Use Kotlin and Jetpack Compose, Navigation3, ViewModel/StateFlow and Ktor in one app module with
-feature packages. Pin a compatible stable toolchain, using SDK 37, AGP 9.1.1, Gradle 9.6.1, Kotlin
-2.4.21 and the verified modern AndroidX versions. Document each dependency's purpose. Production
-uses HTTPS. Debug loopback access is isolated through adb reverse, without opening LAN ports or
-changing firewall rules.
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md) selects Expo and React
+Native for a single iOS and Android application in `apps/mobile/`. The mobile MVP is tracked
+separately in [issue #461](https://github.com/KyleDerZweite/spellbook/issues/461). The app uses the
+existing [OpenAPI contract](../../contracts/openapi.json).
 
-Pin Compose BOM `2026.09.00`, Navigation3 `1.2.0`, Lifecycle `2.11.0`, Activity `1.13.0` and Ktor
-`3.6.0`. Use AGP built-in Kotlin with KGP upgraded to `2.4.21`, without applying `kotlin.android`.
-Restrict debug cleartext policy to loopback.
+The mobile app owns native navigation, presentation, secure session storage and bounded local state.
+Keep private state and drafts scoped by backend and account. Honor session expiry and clear private
+state on logout or session invalidation. The initial design is online-first, with explicit
+user-confirmed mutations and no automatic mutation replay. Verify auth, account isolation, and real
+API journeys on the target devices when the MVP ships.
 
-Implement the accepted compact Home, Search, Inventory and Deck navigation, colored icons, Settings,
-login/register and contextual return. Public Search and Printing detail work as a guest.
-Authenticated Home, bounded Inventory and Boxes, entry detail, Deck library, selected Deck and
-availability read actual API data. Implement the explicit Inventory add journey through the small
-plus action, preserving a guest draft through sign-in and using an explicit user-confirmed mutation.
-State distinguishes loading, empty, unavailable and retry. Store session credentials encrypted with
-an Android Keystore key, scope private state by account, clear it on account changes, and retain
-only bounded permitted reads and drafts. No automatic mutation replay queue.
-
-Namespace private state, drafts and the v1 SQLite offline read cache by backend and account.
-`AppModel` and Compose screens consume transport-agnostic repository and storage adapters
-(`InventoryRepository`, `DeckRepository`, `ScanRepository`, `CatalogRepository`, `AuthRepository`,
-`LocalStorageAdapter`, `ConnectivityObserver`). When offline with a live saved session, Inventory
-and Decks remain browsable from the local read cache with an explicit offline banner while all write
-controls stay disabled (v1 Online-Writes; a future v2 offline write queue plugs in behind
-`InventoryRepository.submitMutation`). Cancel old requests and SSE on changes. Ktor/OkHttp installs
-no HTTP cache so online reads always honor `Cache-Control: no-store`; the app-private SQLite read
-cache is used strictly for offline read fallback of permitted account snapshots (Dashboard,
-Inventory, Boxes, Entry details, Decks, Selected Deck and Availability) and is cleared on logout or
-HTTP 401. Honor fixed session expiry and the absence of refresh tokens. An ambiguous save can retry
-only the frozen body and original request ID. Android supports pending mutations only for current
-operations and never rewrites an obsolete path into a new operation. Native acceptance includes
-guest draft through login to explicit Save, lost-response retry, saved-but-reload-failed feedback,
-account isolation, system Back and keyboard behavior, and real website-to-app SSE refresh.
-
-Card Station uses its accepted name and planned circular eight-box layout. Until registry, job,
-telemetry and physical allocation contracts exist, its view must state that no device connection is
-available. Camera recognition and device control must not show fabricated successful results. These
-capabilities remain future product slices, not silently completed by this restructuring.
+Cardstation registry, device control and local recognition remain separate product slices.
 
 ## Delivery and acceptance
 
@@ -234,28 +207,18 @@ with OpenAPI, deriving operation sets instead of maintaining a second route inve
 establish functional correctness.
 
 Before integration, independently review this contract against the actual callers. Writers verify
-checkout, branch, base, local changes and owned resources. The HTTP core, domain routes, web
-cutover, packaging and Android each have one owner. Integrate their commits sequentially.
-Independent final review checks both standards and this contract against the fixed base and current
-artifact.
+checkout, branch, base, local changes and owned resources. The HTTP core, domain routes, web cutover
+and packaging each have one owner. Integrate their commits sequentially. Independent final review
+checks both standards and this contract against the fixed base and current artifact.
 
 Acceptance requires independent API and web builds, enforced import rules, real PostgreSQL and HTTP
 checks, direct API and same-origin proxy parity, auth/QR/password failures, preserved receipts and
 text conflicts, two-process SavedState and actual scan-worker compatibility. Run the existing
 repository checks adapted to separate processes. Exercise rendered web SSR/native/enhanced journeys.
-Build and install Android on the existing task-owned emulator, run guest Search and authenticated
-Inventory add against the real API, and inspect native rendering and recovery. Record exact
-revision, commands, failures and unavailable evidence. Emulator evidence does not establish Honor
-hardware, camera recognition, production deployment or owner acceptance.
-
 API registry, raw forms, OpenAPI, web remote adapter, packaging, backend migration/fixture
-ownership, migrated tests and the first native Android slice are integrated. Canonical Web/Android
-clients and explicit MTG modules are implemented and reviewed in the unmerged migration candidate.
-Exact revisions, review findings and current-head checks belong to PR 276. Independent review
-identified and verified fixes for QR replacement-cookie ordering, HTTP error/status parity,
-upload-limit propagation, bounded native streaming and stale account callbacks.
-[Repository verification](../operations/github-automation.md) records checks and their limits. The
-root-owned emulator attempt exited 139 before boot; no workaround was attempted per maintainer
-instruction. Android installation, rendered native journeys, Keystore integration and website-to-app
-SSE remain unexecuted. These require owner/device verification before native target acceptance. No
-deployment or physical Honor/Card Station acceptance is claimed.
+ownership, migrated tests and explicit MTG modules are implemented and reviewed. Exact revisions,
+review findings and current-head checks belong to PR 276. Independent review identified and verified
+fixes for QR replacement-cookie ordering, HTTP error/status parity, upload-limit propagation,
+bounded native streaming and stale account callbacks.
+[Repository verification](../operations/github-automation.md) records checks and their limits.
+Mobile acceptance belongs to the Expo delivery.

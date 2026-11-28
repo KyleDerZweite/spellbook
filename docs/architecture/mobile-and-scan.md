@@ -4,9 +4,9 @@
 - Last Reviewed: 2026-11-28
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope
   clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19
-  independent Android design clarification
+  independent mobile design clarification
 - Update Triggers:
-  - Client scope, parity, PWA delivery, QR authentication and independent Android design
+  - Client scope, parity, PWA delivery, QR authentication and independent mobile design
   - Versioned API ownership, Python runtime assembly, adapters and operator responsibilities
   - Inventory and Deck bounded reads, revisions, availability and wire contracts
   - Portable Deck exchange, missing-cards export, complete import rejection and Deck choice reads
@@ -19,7 +19,8 @@
 - Related Docs:
   - [Application contract](./application-contract.md)
   - [Frontend](./frontend.md)
-  - [Android design handoff](../product/mobile-app-exploration.md)
+  - [ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md)
+  - [Mobile design handoff](../product/mobile-app-exploration.md)
   - [Auth](./auth.md)
   - [Postgres](./postgres.md)
   - [Catalog](./catalog.md)
@@ -42,28 +43,24 @@ card artifacts remain network-only. Scan presentation is paused; the retained au
 `/mtg/scan` route supports image upload, candidate review, manual printing selection and explicit
 Inventory commit. Card camera capture and local MTG recognition are not implemented.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records local recognition and
-the current allocation of new camera workflows to the Android-first app and Cardstation.
+the intended allocation of new camera workflows to the phone app and Cardstation.
 
 ## Client scope and open responsibilities
 
-On 2026-10-19, the maintainer rejected retaining PWA as the planning default for the future phone
-app and selected an independent Android application against the shared backend, with a distinct
-mobile design and complete cross-client Figma scaffold. Public Search and details remain available
-before login. [The current handoff](../product/mobile-app-exploration.md) supersedes the earlier
-research recommendation. Kotlin/Compose is now selected by
-[ADR-0024](../decisions/0024-independent-applications.md), with the
-[independent applications contract](./independent-applications.md) governing the implemented first
-slice and pending native target verification. New capture/device contracts remain open. Existing
-PWA/QR routes remain implemented; their removal is not selected. The dated PWA allowances below
-describe the preceding delivery, not a restriction on the approved independent-client design.
+SvelteKit continues to deliver the website and PWA, including the existing QR routes.
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md) selects Expo and React
+Native for an independent iOS and Android app that uses the shared API.
+[Issue #461](https://github.com/KyleDerZweite/spellbook/issues/461) owns the Expo MVP scope and
+navigation. Public Search and details remain available before login. Capture and device contracts
+remain open.
 
-The maintainer subsequently selected a complete clickable Android Figma prototype before a separate
-native implementation. The app uses compact toolbars, direct Settings and Home/Settings Cardstation
-entrypoints. Online-first operation, bounded read/image caches and account-scoped local drafts are
-the initial direction. Catalog generation/revision and HTTP no-store policies remain authoritative.
-No offline mutation queue or automatic resubmission is selected. Device registry/status/jobs and
-capture views in this prototype are identified simulations, not new implemented API contracts. The
-paused website Scan presentation remains unchanged.
+The earlier [Android Figma prototype](../product/mobile-app-exploration.md) used compact toolbars, a
+Settings gear and Cardstation entrypoints in Home and Settings. Online-first operation, bounded
+read/image caches and account-scoped local drafts are the initial direction. Catalog
+generation/revision and HTTP no-store policies remain authoritative. No offline mutation queue or
+automatic resubmission is selected. Device registry/status/jobs and capture views in this prototype
+are identified simulations, not new implemented API contracts. The paused website Scan presentation
+remains unchanged.
 
 The [Cardstation proposal](../integrations/card-robot.md#current-app-geometry-and-box-proposal) now
 distinguishes logical Inventory Boxes, optional physical container references and eight circular
@@ -431,8 +428,8 @@ review requirement need separate decisions.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) owns the local-recognition
 direction. Capture, preprocessing, candidate recognition, exact-printing recognition and any
 Condition estimation need a reviewed execution-host allocation across phone, sorter and potentially
-browser. No production recognizer is implemented. The independent Android project is in progress
-under the [native delivery contract](./independent-applications.md#android-delivery). The current
+browser. No production recognizer is implemented. The planned app follows the
+[native mobile delivery](./independent-applications.md#mobile-delivery) contract. The current
 backend Scan worker remains a scaffold for the existing upload contract; it is not the chosen future
 inference host.
 
@@ -458,9 +455,8 @@ The following are evaluation steps, not selected models or packages:
 Machine timing and actuator control belong to the device project. Hosting recognition and job
 planning on Jetson or a supporting phone is part of the open client comparison. The intended sorter
 does not wait for Cloud inference. Backend availability can delay synchronization and account
-effects, not create evidence of physical arrival. Android runtime and session storage are selected
-by the [native delivery contract](./independent-applications.md#android-delivery). Recognition
-runtime, offline device authorization and result recovery remain unselected.
+effects, not create evidence of physical arrival. Recognition runtime, offline device authorization
+and result recovery remain unselected.
 
 ## Proposed visual matching
 

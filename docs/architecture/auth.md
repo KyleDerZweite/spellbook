@@ -111,13 +111,13 @@ HTTP 400. [Migration 0028](../../backend/drizzle/0028_linked_device_sessions.sql
 `qr_authorizations`. The [devices module](../../backend/core/src/spellbook_core/devices.py) and the
 [contract](../../contracts/src/devices.ts) own the shared validation.
 
-**Approval.** The values are self-reported and unverified. `/auth/approve` and the Android request
-screen label the name as reported by the device and show the device type, the display code, the
-request time (`createdAt`) and the warning "Only approve if this device is in front of you and shows
-the same code." Device approval requires an explicit confirmation checkbox. The clients send it as
-`confirmed: true`, and the decision API enforces it for every caller. The display code is the first
-8 characters of the public code, grouped as `XXXX-XXXX` with case preserved, so the person compares
-it with the code on the device screen. A shared helper per platform formats it.
+**Approval.** The values are self-reported and unverified. `/auth/approve` labels the name as
+reported by the device and shows the device type, the display code, the request time (`createdAt`)
+and the warning "Only approve if this device is in front of you and shows the same code." Device
+approval requires an explicit confirmation checkbox. The client sends it as `confirmed: true`, and
+the decision API enforces it for every caller. The display code is the first 8 characters of the
+public code, grouped as `XXXX-XXXX` with case preserved, so the person compares it with the code on
+the device screen. A shared helper per platform formats it.
 
 **Session row.** Redemption stores a new random `device_id`, the request's `device_name` and
 `device_type`, and `last_seen_at`. `GET /api/v1/auth/session` returns `device: { id, name, type }`
@@ -187,21 +187,19 @@ and `offline.html`. Navigations use the network, with the public fallback only o
 HTTP error responses retain their status and body. Private SSR pages, API responses, authentication,
 QR state and card artifacts remain network-only. A fresh page activates a waiting worker and checks
 for updates. Open pages check every 30 minutes and keep their drafts. The PWA uses HTTPS outside
-localhost.
-Installation does not establish offline Inventory writes or recognition support.
+localhost. Installation does not establish offline Inventory writes or recognition support.
 
 The backend QR transport, manifest and service worker are integrated. The PWA pages and navigation
 are implemented. [Frontend](./frontend.md#pwa-and-qr-presentation) owns the accepted page contract;
 [repository verification](../operations/github-automation.md#pwa-and-qr-verification) owns commands
-and evidence limits. No browser or Android acceptance is recorded here.
+and evidence limits. Record browser acceptance with the change.
 
 Acceptance requires PostgreSQL and built-HTTP tests for browser/device issuance, bearer/cookie
 precedence, Origin rejection, explicit approval/denial, wrong secret, expiry after lock waits,
 conflicting accounts/decisions, revocation and concurrent redemption. Rendered desktop/mobile
 journeys cover password fallback, QR waiting/expiry/retry, approval and PWA
-installation/offline/update presentation. Android Studio/emulator testing is attempted only with
-installed tools; if unavailable or unsuccessful, stop that target check without alternate tooling
-and leave physical Android acceptance to the owner.
+installation/offline/update presentation. Native device acceptance belongs to the Expo delivery
+under [ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md).
 
 ## Application ownership
 

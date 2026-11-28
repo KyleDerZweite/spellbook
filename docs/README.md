@@ -1,7 +1,7 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-26
+- Last Reviewed: 2026-11-28
 - Source of Truth: mixed
 - Update Triggers:
   - Documentation ownership, product contracts and section structure
@@ -38,7 +38,7 @@
 | What a domain term means                      | [Glossary](../GLOSSARY.md)                                              |
 | How market value and Inventory history work   | [Value tracking](./product/value-tracking.md)                           |
 | How value references and checkpoints are made | [Valuation](./architecture/valuation.md)                                |
-| How web, API and Android are split            | [Independent applications](./architecture/independent-applications.md)  |
+| How web, API and mobile are split             | [Independent applications](./architecture/independent-applications.md)  |
 | Which API paths exist                         | [ADR-0028: versioned game API](./decisions/0028-versioned-game-api.md)  |
 | Why old interfaces are removed immediately    | [ADR-0029](./decisions/0029-remove-replaced-interfaces.md)              |
 | How the Python backend migration is accepted  | [Python migration contract](./architecture/python-backend-migration.md) |

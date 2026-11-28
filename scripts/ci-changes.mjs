@@ -23,7 +23,7 @@ export function classifyPaths(paths) {
 		if (
 			path.startsWith('docs/') ||
 			/^[^/]+\.md$/.test(path) ||
-			/^(frontend|backend|contracts|worker|scan-worker|android|backend\/api|backend\/core|backend\/workers\/(catalog|scan|state))\/README\.md$/.test(
+			/^(frontend|backend|contracts|worker|scan-worker|backend\/api|backend\/core|backend\/workers\/(catalog|scan|state))\/README\.md$/.test(
 				path
 			) ||
 			['LICENSE', 'NOTICE'].includes(path)
@@ -62,8 +62,7 @@ export function classifyPaths(paths) {
 			checks.worker = true;
 			checks.python_backend = true;
 			checks.state_worker = true;
-		} else if (path.startsWith('android/')) continue;
-		else if (path.startsWith('backend/workers/catalog/') || path.startsWith('worker/'))
+		} else if (path.startsWith('backend/workers/catalog/') || path.startsWith('worker/'))
 			checks.worker = true;
 		else if (path.startsWith('backend/workers/scan/') || path.startsWith('scan-worker/')) {
 			checks.application = true;

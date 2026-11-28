@@ -50,23 +50,10 @@ const job = (source, id) => {
 	return section.split(/^  [\w-]+:\s*$/m)[0];
 };
 
-test('heavy workflows run only on dispatch and keep their complete commands', () => {
-	const android = workflow('android.yml');
+test('application integration runs only on dispatch and keeps its complete commands', () => {
 	const integration = workflow('application-integration.yml');
-	assert.equal(triggers(android), 'workflow_dispatch:');
 	assert.equal(triggers(integration), 'workflow_dispatch:');
-	for (const source of [android, integration])
-		assert.doesNotMatch(source, /^concurrency:|^    (needs|if):|continue-on-error:/m);
-	assert.match(android, /uses: actions\/setup-java@v6/);
-	assert.match(android, /distribution: temurin/);
-	assert.match(android, /java-version: '21'/);
-	assert.match(android, /uses: android-actions\/setup-android@v4\.0\.4/);
-	assert.match(android, /packages: 'platform-tools platforms;android-37\.0 build-tools;36\.0\.0'/);
-	assert.match(android, /log-accepted-android-sdk-licenses: false/);
-	assert.match(
-		android,
-		/run: \.\/gradlew --no-daemon :app:lintDebug :app:testDebugUnitTest :app:assembleDebug/
-	);
+	assert.doesNotMatch(integration, /^concurrency:|^    (needs|if):|continue-on-error:/m);
 	assert.match(integration, /image: postgres:18\.6-bookworm/);
 	assert.match(integration, /run: pnpm --dir \.\. setup:python/);
 	assert.match(
@@ -96,7 +83,7 @@ test('automatic CI runs only the four scoped jobs', () => {
 		assert.doesNotMatch(text, /continue-on-error:/);
 		assert.doesNotMatch(
 			text,
-			/android|gradlew|uvicorn|test:(integration|http|scan|sync)|workflow_call|workflow_run|dispatches|gh workflow run/
+			/uvicorn|test:(integration|http|scan|sync)|workflow_call|workflow_run|dispatches|gh workflow run/
 		);
 	}
 	assert.deepEqual(
@@ -241,7 +228,7 @@ test('only automatic runs cancel superseded work and every job has a bounded tim
 			timeouts.every(([, minutes]) => Number(minutes) > 0 && Number(minutes) <= 30),
 			name
 		);
-		if (/gradlew|test:(integration|http|scan|sync)|uvicorn/.test(text))
+		if (/test:(integration|http|scan|sync)|uvicorn/.test(text))
 			assert.equal(triggers(text), 'workflow_dispatch:', name);
 	}
 });
@@ -460,9 +447,7 @@ test('CLI writes literal booleans to GitHub outputs without dependencies', () =>
 	});
 });
 
-test('native changes stay manual while application consumers retain automatic checks', () => {
-	assert.deepEqual(classifyPaths(['android/app/src/main/MainActivity.kt']), none);
-	assert.deepEqual(classifyPaths(['android/gradle/libs.versions.toml']), none);
+test('application consumers retain automatic checks', () => {
 	assert.deepEqual(classifyPaths(['backend/src/http/inventory.ts']), app);
 	assert.deepEqual(classifyPaths(['backend/Dockerfile']), app);
 	assert.deepEqual(classifyPaths(['frontend/Dockerfile']), app);
@@ -483,7 +468,7 @@ test('native changes stay manual while application consumers retain automatic ch
 	});
 });
 
-test('JavaScript manifests do not run unrelated Python or Android suites', () => {
+test('JavaScript manifests do not run unrelated Python suites', () => {
 	for (const path of [
 		'package.json',
 		'pnpm-lock.yaml',
@@ -635,7 +620,6 @@ test('main pushes select their actual changed paths as well', () => {
 		let base = commit();
 		for (const [path, checks] of [
 			['docs/changed.md', none],
-			['android/app/src/main/MainActivity.kt', none],
 			['backend/src/http/inventory.ts', app],
 			['unknown/source.ts', all]
 		]) {

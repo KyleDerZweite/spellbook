@@ -66,8 +66,8 @@ simulation remain outside this pass. Marketplace account connections are outside
 Acquisition-cost tracking is removed from selected scope; personal Inventory value history is
 implemented. Current Scryfall references and supplied product links are described in
 [value tracking](./value-tracking.md#current-reference-presentation). Value-only reporting is
-described below. The accepted PWA/QR delivery extends this same web application; independent
-Kotlin/Compose Android delivery is in progress under the
+described below. The accepted PWA/QR delivery extends this same web application; independent Expo
+delivery for iOS and Android is planned under the
 [implementation contract](../architecture/independent-applications.md). A separate future play
 application may consume catalog and deck data.
 
@@ -114,8 +114,9 @@ the dated client-scope clarification.
 [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns
 current status and unresolved contracts. The backend QR API, manifest and public-only service worker
 are integrated. The PWA pages and navigation are implemented. Target verification is recorded with
-the change. MTG card camera capture and production recognition remain unimplemented. The
-[Android client](../../android/README.md) has separate native acceptance checks.
+the change. MTG card camera capture and production recognition remain unimplemented. The planned
+Expo app has separate native acceptance under
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md).
 
 The public landing page links to the Android APK. The `/app` install hub and signed-in Settings
 under Apps & Installation show the same APK link, available release metadata and installation steps.
