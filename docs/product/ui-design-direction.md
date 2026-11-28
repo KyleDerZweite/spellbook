@@ -1,7 +1,7 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-11-27
+- Last Reviewed: 2026-11-28
 - Source of Truth: accepted product requirements, application components, selected logo and
   component choices
 - Update Triggers:
@@ -11,7 +11,7 @@
   - Workspace, landing, navigation, account controls, typography, artwork and brand identity
   - Shared components, icons, spacing grid, target sizes, toolbar alignment, contrast, responsive
     behavior and accessibility
-  - Continuous Lazy browsing, Card dialogs and accepted interaction contracts
+  - Continuous Lazy browsing, Card dialogs, mobile bottom sheets and Inventory toolbar behavior
   - PWA and QR sign-in, independent Android design and cross-client Figma handoff
   - Recognition placement, client parity, browser scanning and phone computation evaluation
   - Reference selection, rejected prototypes, implementation evidence and deferred UI polish
@@ -681,7 +681,9 @@ selection, finish and condition. Active chips reopen the relevant control for ed
 clear button removes each value. New entries have a small New badge only on their displayed UTC
 creation date, excluding future or invalid timestamps. The badge expires when that day ends,
 including while Inventory remains open, without changing stored entry timestamps or ordering. The
-controls remain available on narrow screens and when filters match no entries.
+controls remain available when filters match no entries. At 640 CSS pixels or less, the search,
+Filter, Sort and match count stay in a compact toolbar below the navigation while Inventory rows
+scroll. Rows wrap long card names without making the page scroll horizontally.
 [The specification](./specification.md#owned-inventory) owns ordering and filter semantics.
 
 Set, Finish and Condition use small, subtly filled badges. Set codes select a stable color from the
@@ -895,6 +897,12 @@ Settings share one workspace width; the full-width header keeps navigation cente
 its edge controls. Artwork and the deckbox grow within bounds while text retains readable sizes.
 Account for the actual footer height and allow natural scrolling when content needs more space. Do
 not fill excess space with headings, repeated artwork strips or unsupported product copy.
+
+At 640 CSS pixels or less, shared form dialogs, filter popovers and Inventory action menus open as
+bottom sheets. They have rounded top corners, space for the bottom safe area and a visible Close
+control outside the scrolling content. The sheet fits above the virtual keyboard, and closing it
+restores focus to the control that opened it. Wider screens use centered form dialogs and anchored
+popovers and menus.
 
 Reuse shared buttons, inputs, panels, dialogs, and loading indicators. Shared buttons use compact
 horizontal padding, 13-pixel interface text and medium weight; their existing control heights and

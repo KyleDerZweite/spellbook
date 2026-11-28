@@ -17,7 +17,9 @@ def main():
     parser.add_argument("--build-dir", type=Path, default=ROOT / "frontend/build")
     parser.add_argument("--browser-executable")
     parser.add_argument("--output", type=Path, default=ROOT / ".local/browser-smoke")
-    parser.add_argument("--preflight-only", action="store_true")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--preflight-only", action="store_true")
+    modes.add_argument("--workspace-only", action="store_true")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     report = {
@@ -123,6 +125,203 @@ def main():
                 expect(page.locator("[data-inventory-row]").first).to_be_visible()
                 passed()
                 if not args.preflight_only:
+                    for (
+                        lang,
+                        filter_title,
+                        deck_title,
+                        new_deck,
+                        close_filters,
+                        close_actions,
+                        close_dialog,
+                    ) in (
+                        (
+                            "en",
+                            "Filters",
+                            "Create a deck",
+                            "New deck",
+                            "Close filters",
+                            "Close actions",
+                            "Close dialog",
+                        ),
+                        (
+                            "de",
+                            "Filter",
+                            "Deck erstellen",
+                            "Neues Deck",
+                            "Filter schließen",
+                            "Aktionen schließen",
+                            "Dialog schließen",
+                        ),
+                    ):
+                        for width, height in ((390, 844), (1280, 800)):
+                            page.set_viewport_size({"width": width, "height": height})
+                            mobile = width == 390
+                            case = f"Inventory toolbar and actions ({lang}, {width}x{height})"
+                            go("/mtg/inventory")
+                            locale(lang)
+                            toolbar = page.locator(".inventory-toolbar")
+                            filters = toolbar.get_by_role(
+                                "button", name="Filter", exact=True
+                            )
+                            expect(toolbar.get_by_role("status")).to_have_text(
+                                re.compile(r"^[1-9].*·.*")
+                            )
+                            count = toolbar.locator(".inventory-result-count")
+                            match_count = count.inner_text()
+                            page.evaluate("window.scrollTo(0, 700)")
+                            if mobile:
+                                expect(toolbar).to_have_css("position", "sticky")
+                                assert abs(toolbar.bounding_box()["y"] - 64) <= 1
+                            assert page.evaluate(
+                                "document.documentElement.scrollWidth <= innerWidth"
+                            )
+                            filters.focus()
+                            filters.press("Enter")
+                            panel = page.get_by_role(
+                                "dialog", name=filter_title, exact=True
+                            )
+                            expect(panel).to_be_visible()
+                            if mobile:
+                                box = panel.bounding_box()
+                                assert abs(box["y"] + box["height"] - height) <= 1
+                                page.screenshot(
+                                    path=str(
+                                        args.output / f"inventory-sheet-{lang}.png"
+                                    )
+                                )
+                                panel.get_by_role("searchbox").fill("Kamigawa")
+                                expect(panel.get_by_role("checkbox")).to_have_count(1)
+                                panel.get_by_role("checkbox").check()
+                                expect(count).not_to_have_text(match_count)
+                                panel.get_by_role("checkbox").uncheck()
+                                expect(count).to_have_text(match_count)
+                                panel.get_by_role("button", name=close_filters).click()
+                            else:
+                                expect(panel).to_have_css("position", "relative")
+                                page.keyboard.press("Escape")
+                            expect(filters).to_be_focused()
+                            page.evaluate("window.scrollTo(0, 0)")
+                            actions = page.locator(
+                                "[data-inventory-row] .entry-menu"
+                            ).first
+                            actions.focus()
+                            actions.press("Enter")
+                            menu = page.get_by_role("menu")
+                            expect(menu).to_be_visible()
+                            if mobile:
+                                expect(menu).to_have_css("position", "fixed")
+                                menu.get_by_role("menuitem", name=close_actions).click()
+                            else:
+                                page.keyboard.press("Escape")
+                            expect(actions).to_be_focused()
+                            if mobile and lang == "en":
+                                # Both presentation changes replace the Bits UI trigger.
+                                for start, end in ((390, 641), (641, 390)):
+                                    page.set_viewport_size(
+                                        {"width": start, "height": height}
+                                    )
+                                    filters.focus()
+                                    filters.press("Enter")
+                                    expect(panel).to_be_visible()
+                                    page.set_viewport_size(
+                                        {"width": end, "height": height}
+                                    )
+                                    expect(panel).to_have_css(
+                                        "position",
+                                        "fixed" if end == 390 else "relative",
+                                    )
+                                    page.keyboard.press("Escape")
+                                    expect(filters).to_be_focused()
+
+                                rows = page.locator("[data-inventory-row]")
+                                for previous, following in (
+                                    (
+                                        page.get_by_role(
+                                            "button", name="Sort by Quantity ascending"
+                                        ),
+                                        rows.first.locator(".card-identity"),
+                                    ),
+                                    (
+                                        rows.nth(4).locator(".entry-menu"),
+                                        rows.nth(5).locator(".card-identity"),
+                                    ),
+                                ):
+                                    following.focus()
+                                    previous.evaluate(
+                                        """(button) => {
+                                            const toolbar = document.querySelector('.inventory-toolbar');
+                                            const pinnedBottom = parseFloat(getComputedStyle(toolbar).top)
+                                                + toolbar.offsetHeight;
+                                            window.scrollBy(0, button.getBoundingClientRect().bottom
+                                                - pinnedBottom + 2);
+                                        }"""
+                                    )
+                                    page.keyboard.press("Shift+Tab")
+                                    expect(previous).to_be_focused()
+                                    assert previous.bounding_box()["y"] >= (
+                                        toolbar.bounding_box()["y"]
+                                        + toolbar.bounding_box()["height"]
+                                        - 1
+                                    ), (
+                                        f"Toolbar covers focused control: {previous.get_attribute('aria-label')}"
+                                    )
+                            passed()
+
+                            case = f"Decks filters and form dialog ({lang}, {width}x{height})"
+                            go("/mtg/decks")
+                            filters = page.get_by_role(
+                                "button", name="Filter", exact=True
+                            )
+                            filters.focus()
+                            filters.press("Enter")
+                            panel = page.get_by_role(
+                                "dialog",
+                                name="Filter decks"
+                                if lang == "en"
+                                else "Decks filtern",
+                            )
+                            expect(panel).to_be_visible()
+                            page.keyboard.press("Escape")
+                            expect(filters).to_be_focused()
+                            create = page.get_by_role(
+                                "link", name=new_deck, exact=True
+                            ).first
+                            create.focus()
+                            create.press("Enter")
+                            dialog = page.get_by_role(
+                                "dialog", name=deck_title, exact=True
+                            )
+                            expect(dialog).to_be_visible()
+                            box = dialog.bounding_box()
+                            if mobile:
+                                assert abs(box["y"] + box["height"] - height) <= 1
+                                page.screenshot(
+                                    path=str(args.output / f"deck-sheet-{lang}.png")
+                                )
+                                # Reduce the available height with the form open, as a keyboard does.
+                                page.set_viewport_size({"width": width, "height": 260})
+                                dialog.locator("#new-name").fill("Sheet smoke draft")
+                                submit = dialog.locator("button[type=submit]")
+                                submit.scroll_into_view_if_needed()
+                                expect(submit).to_be_in_viewport()
+                                close = dialog.get_by_role("button", name=close_dialog)
+                                expect(close).to_be_in_viewport()
+                                close.click()
+                                page.set_viewport_size(
+                                    {"width": width, "height": height}
+                                )
+                            else:
+                                assert (
+                                    abs(box["y"] + box["height"] / 2 - height / 2) <= 1
+                                )
+                                page.keyboard.press("Escape")
+                            expect(create).to_be_focused()
+                            assert page.evaluate(
+                                "document.documentElement.scrollWidth <= innerWidth"
+                            )
+                            passed()
+
+                if not args.preflight_only and not args.workspace_only:
                     case = "enhanced bilingual search and semantic retention"
                     go("/mtg/search?q=Pili-Pala")
                     for lang in ("en", "de"):

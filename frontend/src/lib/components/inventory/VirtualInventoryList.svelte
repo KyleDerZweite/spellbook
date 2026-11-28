@@ -21,6 +21,7 @@
 		queryKey,
 		pinnedIndexes = [],
 		initialIndex = 0,
+		stickyToolbarHeight = 0,
 		row,
 		onRange
 	}: {
@@ -32,6 +33,7 @@
 		queryKey: string;
 		pinnedIndexes?: number[];
 		initialIndex?: number;
+		stickyToolbarHeight?: number;
 		row: Snippet<[InventoryEntry, number]>;
 		onRange: (start: number, end: number, reveal: boolean) => void;
 	} = $props();
@@ -129,9 +131,7 @@
 		return offset(span.end) - offset(span.start);
 	});
 	export function anchor() {
-		const relativeTop = viewport
-			? headerHeight() - viewport.getBoundingClientRect().top
-			: scrollTop;
+		const relativeTop = viewport ? viewportTop() - viewport.getBoundingClientRect().top : scrollTop;
 		const captured = captureBrowseAnchor(
 			relativeTop,
 			indexAt,
@@ -149,7 +149,7 @@
 			const top = viewport.getBoundingClientRect().top + window.scrollY;
 			previousListTop = top;
 			window.scrollTo({
-				top: browseAnchorScrollTop(top, offset(index) - offset(span.start), intra, headerHeight()),
+				top: browseAnchorScrollTop(top, offset(index) - offset(span.start), intra, viewportTop()),
 				behavior: 'instant'
 			});
 			readGeometry();
@@ -256,7 +256,9 @@
 		const element = viewport;
 		const scroll = () => readGeometry();
 		const focus = (event: FocusEvent) => {
-			const row = (event.target as HTMLElement).closest<HTMLElement>('[data-inventory-index]');
+			const target = event.target;
+			if (!(target instanceof HTMLElement)) return;
+			const row = target.closest<HTMLElement>('[data-inventory-index]');
 			if (!row) {
 				focused = null;
 				focusedSnapshot = null;
@@ -285,7 +287,7 @@
 				const previous = previousListTop;
 				previousListTop = nextTop;
 				if (positioned && previous !== undefined) {
-					const shift = browseOriginShift(previous, nextTop, window.scrollY, headerHeight());
+					const shift = browseOriginShift(previous, nextTop, window.scrollY, viewportTop());
 					if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
 				}
 				readGeometry();
@@ -303,18 +305,19 @@
 			prependAnchor = undefined;
 		};
 	});
-	function headerHeight() {
-		return (
+	function viewportTop() {
+		const headerHeight =
 			parseFloat(
 				getComputedStyle(document.documentElement).getPropertyValue('--app-header-height')
-			) || 80
-		);
+			) || 80;
+		return headerHeight + stickyToolbarHeight;
 	}
 	function readGeometry() {
 		if (!viewport) return;
-		scrollTop = Math.max(0, -viewport.getBoundingClientRect().top + headerHeight());
-		height = Math.max(0, window.innerHeight - headerHeight());
+		scrollTop = Math.max(0, -viewport.getBoundingClientRect().top + viewportTop());
+		height = Math.max(0, window.innerHeight - viewportTop());
 	}
+	$effect(() => readGeometry());
 	let previousSpan: typeof span | undefined;
 	let previousOwner: string | undefined;
 	$effect.pre(() => {
@@ -327,7 +330,7 @@
 			if (!old || next.start >= old.start || !positioned || !viewport) return;
 			const origin = previousListTop ?? viewport.getBoundingClientRect().top + window.scrollY;
 			const captured = captureBrowseAnchor(
-				headerHeight() - origin + window.scrollY,
+				viewportTop() - origin + window.scrollY,
 				(top) => indexAt(top, old),
 				(index) => offset(index) - offset(old.start)
 			);

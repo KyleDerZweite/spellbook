@@ -3,7 +3,8 @@
 	const language = useLanguage();
 	import { Dialog } from 'bits-ui';
 	import { tick, type Snippet } from 'svelte';
-	import X from '@lucide/svelte/icons/x';
+	import SheetClose from './SheetClose.svelte';
+	import { fitVisualViewport, mobileSheet } from './mobile-sheet.ts';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 	let {
 		title,
@@ -23,6 +24,10 @@
 		children: Snippet;
 	} = $props();
 	let content = $state<HTMLDivElement | null>(null);
+
+	$effect(() => {
+		if (content && mobileSheet.current) return fitVisualViewport(content);
+	});
 </script>
 
 <Dialog.Root
@@ -36,7 +41,7 @@
 		<Dialog.Content
 			bind:ref={content}
 			class={[
-				'surface-menu form-dialog',
+				'surface-menu form-dialog mobile-sheet',
 				variant === 'import' && 'form-dialog-import',
 				variant === 'history' && 'form-dialog-history'
 			]}
@@ -46,32 +51,29 @@
 			onOpenAutoFocus={(event) => {
 				event.preventDefault();
 				void tick().then(() =>
-					content
-						?.querySelector<HTMLElement>(
-							'input:not([type=hidden]):not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)'
-						)
-						?.focus()
+					(mobileSheet.current
+						? content?.querySelector<HTMLElement>('.sheet-close:not(:disabled)')
+						: content?.querySelector<HTMLElement>(
+								'input:not([type=hidden]):not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)'
+							)
+					)?.focus()
 				);
 			}}
 		>
-			<div class="form-dialog-heading">
+			<div class="form-dialog-heading mobile-sheet-heading">
 				<Dialog.Title class="font-display text-section-title">{title}</Dialog.Title>
 				<Dialog.Description class="text-body-compact text-text-secondary">
 					{description}
 				</Dialog.Description>
-				{#if variant === 'history'}<button
-						type="button"
-						class="history-close"
+				{#if mobileSheet.current || variant === 'history'}<SheetClose
+						label={language.t(variant === 'history' ? 'ui.Close.value.history' : 'ui.Close.dialog')}
 						disabled={pending}
 						onclick={onCancel}
-						aria-label={language.t('ui.Close.value.history')}
-					>
-						<X size={20} aria-hidden="true" />
-					</button>{/if}
+					/>{/if}
 			</div>
 			<ScrollArea
-				class="form-dialog-body"
-				viewportClass="form-dialog-content"
+				class="form-dialog-body mobile-sheet-body"
+				viewportClass="form-dialog-content mobile-sheet-viewport"
 				viewportTabindex={-1}
 			>
 				{@render children()}
@@ -110,21 +112,6 @@
 		position: relative;
 		padding-right: 4.5rem;
 	}
-	.history-close {
-		position: absolute;
-		top: 12px;
-		right: 12px;
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 44px;
-		color: var(--color-text-secondary);
-		border-radius: 8px;
-	}
-	.history-close:hover {
-		background: var(--color-muted);
-		color: var(--color-text-primary);
-	}
 	.form-dialog-heading {
 		flex-shrink: 0;
 		padding: 1.25rem 1.25rem 0;
@@ -141,5 +128,10 @@
 		flex: 1;
 		height: auto;
 		padding: 1.25rem;
+	}
+	@media (max-width: 640px) {
+		.form-dialog-heading.mobile-sheet-heading {
+			padding-right: 4.5rem;
+		}
 	}
 </style>
