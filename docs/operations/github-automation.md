@@ -1,13 +1,13 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-28
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers:
   - Local checks, `check:changed` selection, runtime pins, installed Python packages and canonical
     operator commands
   - CI scope, shared CI check commands, workflow coverage, conditional boundaries and manual heavy
-    workflows
+    workflows, including guarded PostgreSQL operator checks
   - HTTP validation, listener lifecycle, resource cleanup and graceful test-process shutdown
   - Application, Core, State, transient Scan and worker integration evidence and replay fixtures
   - Browser, PWA, QR and native Android acceptance, prerequisites and unavailable target evidence
@@ -406,18 +406,18 @@ Python API lifecycle/resource tests cover validated configuration, unopened cons
 startup, concurrent close, request settlement, stream drain, Scan adapter cleanup, password work and
 final pool closure. Core owns Demo fixtures/operators and actual credential/session behavior;
 installed API CLI tests cover argument/stdin handling and bundled asset discovery. Run guarded
-`backend/core/tests/test_operators_postgres.py` from the Core development environment against an
-empty migrated disposable `_demo` or `_design` target, setting `SPELLBOOK_OPERATORS_NATIVE_DATABASE`
-to its exact name. Those scenarios verify guarded preservation/replacement, rollback, password
-recovery and session revocation. They do not restrict authorized password recovery to disposable
-targets in actual operations. The TypeScript and Python boundary checks enforce
-frontend/Core/HTTP/worker responsibilities. Rendered acceptance and real deployment remain separate
-evidence.
+`backend/core/tests/test_operators_postgres.py` from the installed API environment against an empty
+migrated disposable `_demo` or `_design` target. Set `TEST_DATABASE_URL` to its connection URL and
+`SPELLBOOK_OPERATORS_NATIVE_DATABASE` to its exact name. Those scenarios verify guarded
+preservation/replacement, rollback, password recovery and session revocation. They do not restrict
+authorized password recovery to disposable targets in actual operations. The TypeScript and Python
+boundary checks enforce frontend/Core/HTTP/worker responsibilities. Rendered acceptance and real
+deployment remain separate evidence.
 
 ## CI coverage
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests, pushes to `main`
-and manual dispatch. It has five jobs. The short `CI Scope` job first runs the dependency-free
+and manual dispatch. It has four jobs. The short `CI Scope` job first runs the dependency-free
 [Markdown width check and fixtures](../../scripts/docs.mjs) for every change. It then runs the
 native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and
 [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies. The
@@ -448,35 +448,25 @@ dependency rules without depending on the API/Core job. Scope tests run only in 
 boundary fixtures run only through Application Checks tooling. The scope job has a five-minute
 timeout; Application Checks, Python API/Core and Python Workers each have fifteen minutes.
 
-[Application Integration](../../.github/workflows/application-integration.yml) has a
-`workflow_dispatch` trigger and a `workflow_call` entry point. The fifth CI job, also named
-Application Integration, calls it only for `push` events, so every push to `main` runs it in
-parallel with the scoped jobs and independent of CI Scope. Pull requests and manual CI dispatches
-skip it. A failed integration job fails the CI run, and the Images workflow then refuses to publish
-a version tag on that commit. A newer `main` push cancels the running CI, including its integration
-job, so the cancelled commit cannot be published either.
-[Android Build](../../.github/workflows/android.yml) is triggered only by `workflow_dispatch`, and
-automatic CI never invokes it. Each heavy workflow has one job with a thirty-minute timeout and no
-concurrency cancellation of another manual run. Application Integration retains disposable
-PostgreSQL 18, the actual locked Scan worker, Python migration and guarded Deck PostgreSQL checks,
-the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`. As measured on
-2026-11-15, a green run takes about eight and a half minutes, six and a half of them in `test:sync`,
-and a version tag can publish images only after it succeeds. Android Build retains explicit SDK
-37.0, build-tools 36.0.0, setup-android v4.0.4, JDK 21 and
-`:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`. Dispatch a heavy workflow against the
-revision being verified, for example:
+[Application Integration](../../.github/workflows/application-integration.yml) and
+[Android Build](../../.github/workflows/android.yml) run only via `workflow_dispatch`. Each has one
+job with a thirty-minute timeout. Application Integration runs Python migration, the guarded Deck
+PostgreSQL checks, the web build, and `test:http`, `test:scan` and `test:sync` with the installed
+API and actual locked Scan worker. It creates and migrates an empty `spellbook_operators_demo`
+database in its disposable PostgreSQL 18 service for the guarded operator checks, separate from the
+application fixtures. Android Build retains explicit SDK 37.0, build-tools 36.0.0, setup-android
+v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`. Dispatch a heavy
+workflow against the revision being verified, for example:
 
 ```sh
 gh workflow run application-integration.yml --ref <branch-or-tag>
 gh workflow run android.yml --ref <branch-or-tag>
 ```
 
-Pull request CI trades full application builds and PostgreSQL/HTTP/Scan/SavedState integration plus
-Android verification for shorter feedback. A green pull request run establishes only the selected
-lightweight checks. A green `main` push run additionally establishes Application Integration for
-that commit. No automatic run establishes Android Build, and moving a failing suite to manual
-dispatch does not resolve its failure. Run the relevant workflow or documented local checks before
-claiming their coverage, and record their revision, result and skipped cases separately.
+A green pull request or `main` push run establishes the selected automatic checks. Run Application
+Integration on the release candidate when integration evidence is needed. Images requires green
+`main` push CI for the tagged commit. Record manual workflow results, revisions, and skipped cases
+separately.
 
 PR scope uses the complete local Git merge-base diff between event base/head SHAs; main pushes use
 the pushed `base..head` diff. Paths are NUL-delimited and rename detection is disabled so additions
@@ -513,26 +503,24 @@ Markdown width checks run before classification even when no application suite i
 dependency-free check. The [documentation maintenance rule](../README.md#maintenance) owns prose
 width, metadata structure and syntax exceptions. Backend `test` includes standalone native/operator
 suites under `backend/scripts/`; database-dependent operator cases skip without their explicitly
-guarded disposable target. The manual application workflow's database name does not satisfy the
-`_demo`/`_design` guard, so those transaction checks require separate local evidence. Android Build
-assembles/tests/lints; it does not boot an emulator or establish installation/native journeys.
-Browser workflows, container builds, image publication and deployment also remain explicit checks
-when relevant. [Deployment](./deployment.md) owns container startup and operator verification. Its
-[storage guide](./deployment.md#storage-and-upgrades) covers backup and recovery.
+guarded disposable target. Android Build assembles/tests/lints; it does not boot an emulator or
+establish installation/native journeys. Browser workflows, container builds, image publication and
+deployment also remain explicit checks when relevant. [Deployment](./deployment.md) owns container
+startup and operator verification. Its [storage guide](./deployment.md#storage-and-upgrades) covers
+backup and recovery.
 
 ## Proposed workflow improvements
 
 The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) tracks unresolved
-recommendations for protected runtime ownership and graceful recovery, CI wiring for existing
-operator/Markdown checks, one acceptance evidence manifest per integration and verified worktree
-closeout. Concise Agent instructions and targeted tool output were selected for
+recommendations for protected runtime ownership and graceful recovery, one acceptance evidence
+manifest per integration and verified worktree closeout. Concise Agent instructions and targeted
+tool output were selected for
 [PR 220](https://github.com/KyleDerZweite/spellbook/pull/220); the rules below own evidence
 handling. [Issue #217](https://github.com/KyleDerZweite/spellbook/issues/217) owns the acceptance
 evidence manifest proposal; reuse that issue rather than creating duplicate tracking. No common
 manifest, stop helper, CI change or automatic cleanup is selected by this planning record. Existing
 process-safety constraints apply now. Worktree closeout requires the runtime-ownership and evidence
-contracts to be settled; unfinished and user-owned work remains preserved. The CI proposal initially
-reuses existing tests rather than adding new cases.
+contracts to be settled; unfinished and user-owned work remains preserved.
 
 ## Tool output and evidence
 
