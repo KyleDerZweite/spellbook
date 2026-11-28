@@ -714,7 +714,11 @@ def test_mutation_receipt_and_library_revision_are_atomic(
             patch("spellbook_core.mtg.decks.mutation.transaction", context),
             patch(
                 "spellbook_core.mtg.decks.mutation.require_deck",
-                AsyncMock(return_value=dict(id=DECK, composition_revision=1)),
+                AsyncMock(
+                    return_value=dict(
+                        id=DECK, composition_revision=1, deck_tokens={}, auto_refresh_tokens=False
+                    )
+                ),
             ),
             patch(
                 "spellbook_core.mtg.decks.mutation.first",
@@ -771,6 +775,7 @@ def test_optional_deck_valuation_failure_rolls_back_savepoint_and_keeps_snapshot
             format="Commander",
             description_revision=0,
             composition_revision=1,
+            auto_refresh_tokens=True,
             created_at=NOW,
             updated_at=NOW,
         )

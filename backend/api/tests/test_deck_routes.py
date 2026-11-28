@@ -359,6 +359,22 @@ def test_patch_keeps_description_revision_and_delta(
     )
 
 
+def test_deck_token_patch_forwards_settings_and_action(
+    routes: tuple[Any, TestClient],
+) -> None:
+    decks, client = routes
+    path = BASE + "/decks/" + DECK
+    action = dict(op="quantity", catalogCardId=ENTRY, quantity=0)
+    assert (
+        client.patch(path, json=dict(autoRefreshTokens=False, tokenAction=action)).status_code
+        == 200
+    )
+    decks.update_deck.assert_awaited_once_with(
+        ACTOR, dict(deckId=DECK, autoRefreshTokens=False, tokenAction=action)
+    )
+    assert client.patch(path, json=dict(autoRefreshTokens="off")).status_code == 400
+
+
 def test_assembled_flag_is_forwarded_and_type_checked(
     routes: tuple[Any, TestClient],
 ) -> None:

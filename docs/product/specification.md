@@ -96,7 +96,7 @@ tracked separately in the
 workflows and ownership. The [application contract](../architecture/application-contract.md) owns
 the reviewed mechanisms and acceptance evidence.
 [Card grouping](./card-grouping.md#deck-presentation) owns the accepted Deck type groups and
-read-only related Token appendix.
+persisted Deck Token list.
 
 Scan UI development is paused for this pass. Navigation, Inventory and Dashboard omit Scan
 entrypoints; the existing route, sessions and API remain available. The 2026-10-15 scope prioritizes
@@ -543,6 +543,13 @@ at least 20 cards with a known EUR reference price under `0.50 EUR` are missing,
 external eBay search link hint appears with no live eBay API integration; its domain follows the UI
 locale (`de` uses `ebay.de`, otherwise `ebay.com`).
 
+### Deck Tokens
+
+The [Deck Token list](./card-grouping.md#deck-tokens) estimates quantities from Commander, Main and
+Companion entries. Each Deck has automatic and manual refresh, and users can adjust the suggested
+quantities or include orphaned Tokens in the printed Deck list. Deck Tokens are independent of Deck
+size, format legality, valuation and Inventory ownership.
+
 ### Deck card sheet
 
 The authenticated `/mtg/decks/[deckId]/print/cards` view prints the cards the Deck text export
@@ -553,8 +560,10 @@ workspace displays.
 
 The preview offers three options, all off by default. Cut marks add corner guides outside each
 occupied slot. Print back faces adds a separate slot immediately after each copy of a double-faced
-Printing with a stored back image. Related Tokens appends one slot for each resolved Related Token
-using its first face. The options apply to the current preview and stay off the printed page.
+Printing with a stored back image. Related Tokens adds one slot per eligible Deck Token using its
+first face. Active Tokens qualify with a positive effective quantity. Orphaned Tokens qualify when
+selected for printing. The separate printed Deck list shows quantities. The options apply to the
+current preview and stay off the printed page.
 
 Printing uses the browser print dialog on DIN A4 portrait paper. Each page holds 3 × 3 cards at the
 real card size of 63 mm × 88 mm with 3 mm gaps, 7.5 mm left and right margins and 13.5 mm top and

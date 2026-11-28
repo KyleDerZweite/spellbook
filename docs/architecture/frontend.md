@@ -484,8 +484,8 @@ Graveyard, Exile and Command Zone, tapping, counters, life tracking and hand sum
 interactive board and opening-hand/mana-curve helper using `deckStatistics`.
 
 The authenticated print page uses the owned selected Deck read model and renders Commander, Main
-Deck, Sideboard and Companion with actual quantities and stored printing IDs. Related Tokens form a
-separate supplemental reference appendix without requirement counts. A user-initiated
+Deck, Sideboard and Companion with actual quantities and stored printing IDs. A separate Deck Token
+section shows effective quantities and any orphaned Tokens selected for print. A user-initiated
 `window.print()` button invokes browser printing; the browser print command also works without
 JavaScript. Print CSS removes application navigation/actions, uses paper colors, wraps long names
 and printing IDs, repeats table headers and avoids splitting ordinary card rows. Rendered acceptance

@@ -19,11 +19,18 @@ from spellbook_core.mtg.decks.common import (
     game,
     normalize_operations,
     read_acknowledgement,
+    read_cards,
     require_deck,
     text,
 )
 from spellbook_core.mtg.decks.library import advance_deck_library_revision
 from spellbook_core.mtg.decks.models import Change, Deck, DeckAcknowledgement, Document
+from spellbook_core.mtg.decks.tokens import (
+    adjust_token,
+    calculate_tokens,
+    merge_suggestions,
+    save_tokens,
+)
 from spellbook_core.mtg.errors import DeckNotFoundError, DescriptionConflictError
 from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import (
@@ -265,18 +272,39 @@ class DeckMutations:
                 if "assembled" in input
                 else current_assembled
             )
-            if (name, format, description, assembled) == (
+            auto_refresh = boolean(
+                input.get("autoRefreshTokens", MISSING),
+                "autoRefreshTokens",
+                deck["auto_refresh_tokens"],
+            )
+            action = input.get("tokenAction")
+            if "tokenAction" in input and not isinstance(action, dict):
+                raise ValidationError("Invalid Deck Token action")
+            setting_changed = auto_refresh != deck["auto_refresh_tokens"]
+            refresh = auto_refresh and setting_changed
+            if setting_changed or action is not None:
+                tokens = deck["deck_tokens"]
+                if refresh or tokens is None or (action and action.get("op") == "refresh"):
+                    current = await calculate_tokens(
+                        tx, await read_cards(tx, account, str(deck["id"]))
+                    )
+                    tokens = merge_suggestions(tokens, current) if tokens is not None else current
+                if action is not None and action.get("op") != "refresh":
+                    tokens = adjust_token(tokens, action)
+                await save_tokens(tx, str(deck["id"]), tokens)
+            if action is None and (name, format, description, assembled, auto_refresh) == (
                 deck["name"],
                 deck["format"],
                 deck["description"],
                 current_assembled,
+                deck["auto_refresh_tokens"],
             ):
                 return deck_dto(deck)
             updated = await first(
                 tx,
                 (
                     "UPDATE decks SET "
-                    "name=%s,format=%s,description=%s,assembled=%s,"
+                    "name=%s,format=%s,description=%s,assembled=%s,auto_refresh_tokens=%s,"
                     "description_revision=description_revision+%s,updated_at=%s"
                     " WHERE id=%s::uuid RETURNING *"
                 ),
@@ -285,6 +313,7 @@ class DeckMutations:
                     format,
                     description,
                     assembled,
+                    auto_refresh,
                     int(description != deck["description"]),
                     datetime.now(UTC),
                     deck["id"],
@@ -403,6 +432,11 @@ class DeckMutations:
             changes: list[Change] = []
             removed: list[str] = []
             semantic = False
+            previous_tokens = deck["deck_tokens"]
+            if previous_tokens is None and normalized and not create:
+                previous_tokens = await calculate_tokens(
+                    tx, await read_cards(tx, account, deck_id)
+                )
             for operation in normalized:
                 applied = await apply_operation(
                     tx, account, deck_id, operation, now, resolved, floor
@@ -417,6 +451,17 @@ class DeckMutations:
                     "UPDATE decks SET composition_revision=%s,updated_at=%s WHERE id=%s::uuid",
                     (revision, now, deck_id),
                 )
+            if semantic and deck["auto_refresh_tokens"]:
+                current = await calculate_tokens(tx, await read_cards(tx, account, deck_id))
+                await save_tokens(
+                    tx,
+                    deck_id,
+                    merge_suggestions(previous_tokens, current)
+                    if previous_tokens is not None
+                    else current,
+                )
+            elif semantic and previous_tokens is not None and deck["deck_tokens"] is None:
+                await save_tokens(tx, deck_id, previous_tokens)
             if semantic or create:
                 await advance_deck_library_revision(tx, account)
             acknowledgement = DeckAcknowledgement(

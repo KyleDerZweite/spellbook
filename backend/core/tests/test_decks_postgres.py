@@ -29,6 +29,7 @@ from spellbook_core.mtg.catalog import Catalog, create_catalog
 from spellbook_core.mtg.decks import Decks, create_decks
 from spellbook_core.mtg.decks.common import first
 from spellbook_core.mtg.decks.library import DeckLibraryRevisionChanged
+from spellbook_core.mtg.decks.models import Document
 from spellbook_core.mtg.errors import DeckNotFoundError, DescriptionConflictError
 from spellbook_core.mtg.models import CardDocument
 
@@ -210,7 +211,7 @@ async def create_deck(f: Fixture, name: str = "Functional Deck") -> str:
     return deck["id"]
 
 
-def test_related_tokens_use_active_catalog_without_changing_requirements() -> None:
+def test_deck_tokens_refresh_and_persist_adjustments_without_changing_requirements() -> None:
     async def scenario() -> None:
         async with fixture() as f:
             deck_id = await create_deck(f)
@@ -225,6 +226,7 @@ def test_related_tokens_use_active_catalog_without_changing_requirements() -> No
                 ),
             )
             legacy = await f.decks.get_deck(f.actor, deck_id)
+            legality = await f.decks.get_deck_legality(f.actor, deck_id)
             assert legacy["relatedTokens"]["status"] == "unavailable"
             token_id = str(uuid4())
             facts = {
@@ -255,17 +257,69 @@ def test_related_tokens_use_active_catalog_without_changing_requirements() -> No
             async with transaction(f.pool) as tx:
                 await tx.execute(
                     "UPDATE catalog_printings SET "
-                    "document=jsonb_set(document,'{related_tokens}',%s) "
+                    "document=jsonb_set(document,'{related_tokens}',%s) || %s "
                     "WHERE id=%s::uuid AND generation_id="
                     "(SELECT active_generation FROM catalog_state WHERE id=1)",
-                    (Jsonb(facts), f.printing),
+                    (Jsonb(facts), Jsonb({"oracle_text": "Create a Spirit token."}), f.printing),
                 )
+            await f.decks.update_deck(f.actor, dict(deckId=deck_id, tokenAction={"op": "refresh"}))
             current = await f.decks.get_deck(f.actor, deck_id)
             assert current["deckCards"] == legacy["deckCards"]
+            assert current["deckTotals"] == legacy["deckTotals"]
+            assert current["ownedByCanonical"] == legacy["ownedByCanonical"]
+            assert current["availability"] == legacy["availability"]
+            assert (await f.decks.get_deck_legality(f.actor, deck_id))["warnings"] == legality[
+                "warnings"
+            ]
             assert current["relatedTokens"]["status"] == "available"
             assert current["relatedTokens"]["items"] == [
-                {**facts["items"][0], "sourceEntryIds": [current["deckCards"][0]["id"]]}
+                {
+                    **facts["items"][0],
+                    "sourceEntryIds": [current["deckCards"][0]["id"]],
+                    "suggestedQuantity": 3,
+                    "userDelta": 0,
+                    "effectiveQuantity": 3,
+                    "includeWhenOrphaned": False,
+                }
             ]
+            entry = current["deckCards"][0]["id"]
+
+            async def action(op: str, **fields: object) -> None:
+                await f.decks.update_deck(
+                    f.actor,
+                    dict(
+                        deckId=deck_id, tokenAction=dict(op=op, catalogCardId=token_id, **fields)
+                    ),
+                )
+
+            async def token() -> Document:
+                return cast(
+                    Document,
+                    (await f.decks.get_deck(f.actor, deck_id))["relatedTokens"]["items"][0],
+                )
+
+            assert current["decks"][0]["autoRefreshTokens"] is True
+            await action("quantity", quantity=6)
+            assert (await token())["userDelta"] == 3
+            await f.decks.update_deck(f.actor, dict(deckId=deck_id, autoRefreshTokens=False))
+            await f.decks.update_deck_card(f.actor, entry, 4, "main", str(uuid4()), None, "web")
+            assert (await token())["suggestedQuantity"] == 3
+            await action("refresh")
+            assert (await token())["effectiveQuantity"] == 7
+            await action("reset")
+            assert (await token())["effectiveQuantity"] == 4
+            await action("quantity", quantity=5)
+            await f.decks.update_deck(f.actor, dict(deckId=deck_id, autoRefreshTokens=True))
+            await f.decks.remove_deck_card(f.actor, entry, str(uuid4()), "web")
+            orphan = await token()
+            assert orphan["suggestedQuantity"] == 0
+            assert orphan["userDelta"] == 1
+            assert orphan["sourceEntryIds"] == []
+            assert orphan["includeWhenOrphaned"] is False
+            await action("include", included=True)
+            assert (await token())["includeWhenOrphaned"] is True
+            await action("remove")
+            assert (await f.decks.get_deck(f.actor, deck_id))["relatedTokens"]["items"] == []
             assert "related_tokens" not in await f.catalog.get_catalog_printing(f.printing)
             with pytest.raises(DeckNotFoundError):
                 await f.decks.get_deck(f.other, deck_id)

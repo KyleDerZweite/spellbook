@@ -23,6 +23,10 @@ interface PrintOptions {
 	})[];
 }
 
+export function isPrintableToken(token: RelatedToken): boolean {
+	return token.suggestedQuantity > 0 ? token.effectiveQuantity > 0 : token.includeWhenOrphaned;
+}
+
 /** Expands Deck quantities, then adds one slot for each selected Related Token. */
 export function printCopies(
 	cards: readonly Pick<

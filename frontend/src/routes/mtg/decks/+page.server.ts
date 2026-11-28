@@ -5,7 +5,7 @@ import {
 	deckLibraryQueryKey
 } from '@spellbook/contracts/deck-library.ts';
 import type { DeckLibraryPage } from '@spellbook/contracts/deck-library.ts';
-import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
+import type { DeckPatch, DeckSnapshot } from '@spellbook/contracts/decks.ts';
 import type { DeckDiscoveryResponse } from '@spellbook/contracts/reference-decks.ts';
 import { parseLazyBrowsePagination } from '#lib/browsing/pagination.ts';
 import {
@@ -327,6 +327,46 @@ export const actions = {
 			),
 			savedDetails: deck
 		};
+	}),
+	tokenSettings: guarded(async ({ request, locals }) => {
+		const form = await request.formData();
+		const patch: DeckPatch = { deckId: field(form, 'deckId') };
+		const catalogCardId = field(form, 'catalogCardId');
+		const op = field(form, 'op');
+		switch (op) {
+			case 'auto':
+				patch.autoRefreshTokens = field(form, 'enabled') === 'true';
+				break;
+			case 'refresh':
+				patch.tokenAction = { op };
+				break;
+			case 'reset':
+			case 'remove':
+				patch.tokenAction = { op, catalogCardId };
+				break;
+			case 'include':
+				patch.tokenAction = { op, catalogCardId, included: field(form, 'included') === 'true' };
+				break;
+			case 'quantity': {
+				const quantity = field(form, 'quantity');
+				patch.tokenAction = {
+					op,
+					catalogCardId,
+					quantity: /^\d+$/.test(quantity) ? Number(quantity) : -1
+				};
+				break;
+			}
+			default:
+				return fail(400, { message: translate(locals.locale, 'deck.tokens.invalidAction') });
+		}
+		try {
+			const deck = await updateDeck(locals.user!, patch);
+			return { success: true, savedDetails: deck };
+		} catch (cause) {
+			if (cause instanceof ValidationError)
+				return fail(400, { message: translate(locals.locale, 'deck.tokens.invalidAction') });
+			throw cause;
+		}
 	}),
 	updateDeck: guarded(async ({ request, locals }) => {
 		const form = await request.formData();

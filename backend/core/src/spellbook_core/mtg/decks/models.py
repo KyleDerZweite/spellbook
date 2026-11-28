@@ -15,6 +15,7 @@ class Deck(TypedDict):
     description: str
     format: str
     assembled: bool
+    autoRefreshTokens: bool
     descriptionRevision: str
     compositionRevision: str
     createdAt: str

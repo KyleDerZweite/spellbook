@@ -28,6 +28,7 @@ const deck: Deck = {
 	format: 'Modern',
 	description: 'Saved text',
 	assembled: false,
+	autoRefreshTokens: true,
 	descriptionRevision: '2',
 	compositionRevision: '3',
 	createdAt: '',

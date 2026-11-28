@@ -133,6 +133,7 @@ def deck_dto(row: Document) -> Deck:
         description=row["description"],
         format=row["format"],
         assembled=bool(row.get("assembled", False)),
+        autoRefreshTokens=row["auto_refresh_tokens"],
         descriptionRevision=str(row["description_revision"]),
         compositionRevision=str(row["composition_revision"]),
         createdAt=iso_timestamp(row["created_at"]),

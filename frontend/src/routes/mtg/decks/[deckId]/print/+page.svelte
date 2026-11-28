@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
+	import { isPrintableToken } from '#lib/decks/print-sheet.ts';
 	import type { PageProps } from './$types';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	let { data }: PageProps = $props();
+	const printableTokens = $derived(data.relatedTokens.items.filter(isPrintableToken));
 	const sections = $derived([
 		{ role: 'commander', label: 'Commander' },
 		{ role: 'main', label: 'Main Deck' },
@@ -58,11 +60,11 @@
 		</section>
 	{/each}
 	<section class="tokens" aria-labelledby="tokens-title">
-		<h2 id="tokens-title">{language.t('ui.Related.tokens')}</h2>
-		<p>{language.t('ui.References.only.Tokens.are.not.included.in.the.Deck.s.card.totals')}</p>
-		{#if data.relatedTokens.items.length}<ul>
-				{#each data.relatedTokens.items as token}<li>
-						{token.name} · {token.setCode.toUpperCase()}
+		<h2 id="tokens-title">{language.t('deck.tokens.title')}</h2>
+		<p>{language.t('deck.tokens.printNote')}</p>
+		{#if printableTokens.length}<ul>
+				{#each printableTokens as token}<li>
+						{(token.effectiveQuantity || 1).toLocaleString(language.locale)} × {token.name} · {token.setCode.toUpperCase()}
 						{token.collectorNumber}
 					</li>{/each}
 			</ul>{:else}<p>{language.t('ui.No.resolved.Token.references')}</p>{/if}

@@ -16,6 +16,7 @@ export interface Deck {
 	description: string;
 	format: string;
 	assembled: boolean;
+	autoRefreshTokens: boolean;
 	descriptionRevision: string;
 	compositionRevision: string;
 	createdAt: string;
@@ -112,7 +113,14 @@ export type DeckFailure =
 	  }
 	| { kind: 'NotFound'; message: string }
 	| { kind: 'RequestConflict'; message: string };
+export type DeckTokenAction =
+	| { op: 'refresh' }
+	| { op: 'reset' | 'remove'; catalogCardId: string }
+	| { op: 'include'; catalogCardId: string; included: boolean }
+	| { op: 'quantity'; catalogCardId: string; quantity: number };
 export interface DeckPatch {
+	autoRefreshTokens?: boolean;
+	tokenAction?: DeckTokenAction;
 	deckId: string;
 	name?: string;
 	format?: string;
