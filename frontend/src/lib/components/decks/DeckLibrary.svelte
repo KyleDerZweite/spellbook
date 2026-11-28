@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { demoDeckLibrary } from '#lib/demo/decks.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
@@ -45,7 +46,17 @@
 	import MissingCardsDialog from './MissingCardsDialog.svelte';
 	import { MAX_MISSING_EXPORT_DECKS } from '@spellbook/contracts/decks.ts';
 
-	let { page, accountId }: { page: DeckLibraryPage; accountId: string } = $props();
+	let {
+		page,
+		accountId,
+		demoSession,
+		analysisUnavailable = false
+	}: {
+		page: DeckLibraryPage;
+		accountId: string;
+		demoSession?: string | null;
+		analysisUnavailable?: boolean;
+	} = $props();
 	const directoryFormId = $props.id();
 	let view = $state<'grid' | 'compact'>('grid');
 	let filterOpen = $state(false);
@@ -103,13 +114,22 @@
 	const library = untrack(
 		() =>
 			new DeckLibraryWindow(
-				async (query, offset, limit, revision, signal, owned) =>
-					readDeckLibraryJSON<DeckLibraryPage | { kind: 'RevisionChanged'; revision: string }>(
+				async (query, offset, limit, revision, signal, owned) => {
+					if (demoSession && page.revision.startsWith('[')) {
+						const local = await demoDeckLibrary(demoSession, query, offset, limit);
+						return revision && revision !== local.revision
+							? { kind: 'RevisionChanged', revision: local.revision }
+							: local;
+					}
+					return readDeckLibraryJSON<
+						DeckLibraryPage | { kind: 'RevisionChanged'; revision: string }
+					>(
 						`/api/v1/mtg/deck-library?${deckLibraryParams(query, offset, limit, revision)}`,
 						signal,
 						() => owned() && alive && !terminal,
 						() => workspaceSavedState.expire()
-					),
+					);
+				},
 				() => {
 					version++;
 					schedule();
@@ -170,6 +190,20 @@
 		return library.locateAndLoad(
 			deckId,
 			async (query, id, revision, signal, current) => {
+				if (demoSession && revision.startsWith('[')) {
+					const local = await demoDeckLibrary(demoSession, query, 0, Number.MAX_SAFE_INTEGER);
+					if (local.revision !== revision)
+						return { kind: 'RevisionChanged', revision: local.revision };
+					const position = local.items.findIndex((item) => item.id === id);
+					return {
+						query,
+						queryKey: local.queryKey,
+						revision,
+						deckId: id,
+						offset: position < 0 ? null : position,
+						matchingTotal: local.matchingTotal
+					};
+				}
 				const params = deckLibraryParams(query, 0, 200, revision);
 				params.set('deckId', id);
 				return readDeckLibraryJSON<
@@ -567,6 +601,7 @@
 				missingExportOpen = false;
 			},
 			refresh: async (lease) => {
+				if (demoSession) return;
 				const account = accountId,
 					query = page.queryKey;
 				const current = () =>
@@ -651,19 +686,21 @@
 			</label>
 			<Button variant="secondary" type="submit">{language.t('ui.Search')}</Button>
 		{/if}
-		<label class="ownership-filter">
-			<span>{language.t('ui.Ownership')}</span>
-			<select
-				class="input"
-				name="dirOwnership"
-				value={page.query.ownership ?? 'all'}
-				onchange={(event) => event.currentTarget.form?.requestSubmit()}
+		{#if analysisUnavailable}<p role="status">{language.t('demo.localAnalysis')}</p>{:else}<label
+				class="ownership-filter"
 			>
-				<option value="all">{language.t('ui.All')}</option><option value="complete">
-					{language.t('ui.Complete')}
-				</option><option value="in-progress">{language.t('ui.In.Progress')}</option>
-			</select>
-		</label>
+				<span>{language.t('ui.Ownership')}</span>
+				<select
+					class="input"
+					name="dirOwnership"
+					value={page.query.ownership ?? 'all'}
+					onchange={(event) => event.currentTarget.form?.requestSubmit()}
+				>
+					<option value="all">{language.t('ui.All')}</option><option value="complete">
+						{language.t('ui.Complete')}
+					</option><option value="in-progress">{language.t('ui.In.Progress')}</option>
+				</select>
+			</label>{/if}
 		<div class="view-toggle" aria-label={language.t('ui.Deck.view')}>
 			<Button
 				variant={view === 'grid' ? 'default' : 'secondary'}
@@ -689,7 +726,7 @@
 				<List size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Compact.table')}
 			</Button>
 		</div>
-		{#if enhanced && current.globalTotal > 0}
+		{#if enhanced && current.globalTotal > 0 && !analysisUnavailable}
 			<Button
 				variant={selectingForExport ? 'default' : 'secondary'}
 				aria-pressed={selectingForExport}
@@ -711,7 +748,7 @@
 			{language.t('ui.decks')}
 		</p>
 	</form>
-	{#if enhanced && selectingForExport}
+	{#if enhanced && selectingForExport && !analysisUnavailable}
 		<div class="selection-bar" role="region" aria-label={language.t('missingExport.selectDecks')}>
 			<span class="selection-count">
 				{language.t(`missingExport.selectedCount.${language.plural(selectedDeckIds.length)}`, {
@@ -808,7 +845,7 @@
 			data-library-id={item.id}
 			use:measure={item}
 			onclick={(event) => {
-				if (selectingForExport) {
+				if (selectingForExport && !analysisUnavailable) {
 					event.preventDefault();
 					toggleDeckSelection(item.id);
 				}
@@ -843,7 +880,7 @@
 					</div>{/if}
 			</div>
 			<div class="deck-name">
-				{#if selectingForExport}
+				{#if selectingForExport && !analysisUnavailable}
 					<input
 						type="checkbox"
 						class="deck-select-checkbox"
@@ -925,11 +962,13 @@
 					{language.t('ui.Next')}
 				</a>{/if}
 		</nav>{/if}
-	<MissingCardsDialog
-		bind:open={missingExportOpen}
-		deckIds={selectedDeckIds}
-		returnFocus={missingExportTrigger}
-	/>
+	{#if !analysisUnavailable}
+		<MissingCardsDialog
+			bind:open={missingExportOpen}
+			deckIds={selectedDeckIds}
+			returnFocus={missingExportTrigger}
+		/>
+	{/if}
 {/if}
 
 <style>

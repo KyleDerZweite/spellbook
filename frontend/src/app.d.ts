@@ -39,6 +39,7 @@ declare global {
 			api: import('#lib/server/remote/client.ts').RemoteClient;
 			user: AuthUser | null;
 			mobileBearerUser: AuthUser | null;
+			demoSession: string | null;
 		}
 	}
 }

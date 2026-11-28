@@ -88,8 +88,10 @@ describe('shared demo login', () => {
 		const { body } = render(DemoLoginPage, {
 			props: { data: { returnTo: '/' }, form: null } as never
 		});
-		expect(body).toContain('This is the shared Demo account.');
-		expect(body).toContain('Sign out anytime to use your own account.');
+		expect(body).toContain('This shared Demo account starts with prepared data.');
+		expect(body).toContain(
+			'Your changes stay in this browser until you reset the Demo or sign out.'
+		);
 		expect(body).toMatch(/name="username"[^>]*value="demo"/);
 		expect(body).toMatch(/value="demo"[^>]*type="password"|type="password"[^>]*value="demo"/);
 		expect(body).toContain('minlength="4"');

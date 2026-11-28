@@ -93,6 +93,9 @@
 	<p id="power-user-search" class="text-sm text-text-secondary">
 		{language.t('ui.Power.user.search')} <kbd>Ctrl / Cmd + K</kbd>
 	</p>
+	{#if data.demoSession}
+		<p role="status">{language.t('demo.disabled')}</p>
+	{/if}
 	<div class="profile-settings">
 		<div class="profile-fields">
 			<div>
@@ -149,7 +152,7 @@
 					autocomplete="email"
 					maxlength={254}
 					bind:value={email}
-					disabled={pending}
+					disabled={pending || !!data.demoSession}
 					aria-invalid={!!emailError}
 					aria-describedby="email-help email-error"
 				/>
@@ -158,7 +161,7 @@
 				</p>
 				<p id="email-error" class="field-error">{language.message(emailError ?? '')}</p>
 				<div class="profile-save">
-					<button class="btn btn-primary" disabled={pending}>
+					<button class="btn btn-primary" disabled={pending || !!data.demoSession}>
 						<Save size={16} aria-hidden="true" class="shrink-0" />{pending
 							? language.t('ui.Saving')
 							: language.t('ui.Save.email')}
@@ -182,7 +185,9 @@
 				>
 					<Avatar id={saved.user.avatarId} size={88} />
 				</div>
-				{#key saved.user.accountId}<AvatarEditor avatarId={saved.user.avatarId} />{/key}
+				{#if !data.demoSession}{#key saved.user.accountId}<AvatarEditor
+							avatarId={saved.user.avatarId}
+						/>{/key}{/if}
 			</div>
 			<section class="phase-rs-settings" aria-labelledby="phase-rs-heading">
 				<h2 id="phase-rs-heading" class="font-display text-section-title">
@@ -240,11 +245,11 @@
 				</p>{/if}
 		</div>
 	</div>
-	<LinkedDevices
-		devices={data.devices}
-		unavailable={data.devicesError}
-		result={form?.deviceId === undefined ? null : form}
-	/>
+	{#if !data.demoSession}<LinkedDevices
+			devices={data.devices}
+			unavailable={data.devicesError}
+			result={form?.deviceId === undefined ? null : form}
+		/>{/if}
 	<section class="my-6 space-y-4" aria-labelledby="apps-installation-heading">
 		<h2 id="apps-installation-heading" class="font-display text-section-title">
 			{language.t('install.settings.title')}

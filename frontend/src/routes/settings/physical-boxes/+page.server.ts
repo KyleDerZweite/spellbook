@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { parseSortPredicates, type SortField } from '@spellbook/contracts/cardstation-sort-rule.ts';
+import { physicalBoxCondition } from '#lib/mtg/physical-box-form.ts';
 import { isPhysicalBoxId, type PhysicalBox } from '@spellbook/contracts/physical-boxes.ts';
 import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { requireSameOrigin } from '#lib/server/auth/local.ts';
@@ -75,26 +75,8 @@ export const actions: Actions = {
 		const printedColor = form.getAll('printedColor').map(String);
 		const rarity = form.getAll('rarity').map(String);
 		const setCodes = String(form.get('setCode') ?? '');
-		const fields: [SortField, string[]][] = [
-			['printedColor', printedColor],
-			['rarity', rarity],
-			[
-				'setCode',
-				setCodes
-					.split(',')
-					.map((code) => code.trim())
-					.filter(Boolean)
-			]
-		];
 		try {
-			const predicates = fields
-				.filter(([, values]) => values.length)
-				.map(([field, oneOf]) => ({
-					field,
-					oneOf
-				}));
-			const condition =
-				form.get('clear') || !predicates.length ? null : parseSortPredicates(predicates);
+			const condition = physicalBoxCondition(form);
 			if (!isPhysicalBoxId(id)) throw new ValidationError('Invalid Physical Box ID');
 			await event.locals.api.request(`${apiPath}/${id}`, {
 				method: 'PATCH',

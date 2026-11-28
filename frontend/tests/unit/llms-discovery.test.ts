@@ -68,7 +68,7 @@ describe('public agent discovery', () => {
 		expect(guide).toMatch(/^# Spellbook\n\n> /);
 		expect(guide).toContain('New account registration is disabled.');
 		expect(guide).toContain('Do not call the registration API');
-		expect(guide).toContain('shared editable account');
+		expect(guide).toContain('shared Demo account is read-only through the API');
 		expect(guide).toContain('[Demo login](https://demo.test/auth/login)');
 		expect(guide).toContain('[OpenAPI](https://demo.test/openapi.json)');
 		expect(guide).not.toContain('/api/v1/auth/register');

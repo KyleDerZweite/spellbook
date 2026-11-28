@@ -280,14 +280,17 @@ export function createRemoteApplication(client: () => RemoteClient) {
 	};
 	const auth = {
 		qr,
-		async validateSession(token: string | undefined): Promise<AuthUser | null> {
+		async inspectSession(token: string | undefined): Promise<SessionInfo | null> {
 			if (!token) return null;
 			try {
-				return (await client().request<SessionInfo>('/api/v1/auth/session', { token })).user;
+				return await client().request<SessionInfo>('/api/v1/auth/session', { token });
 			} catch (cause) {
 				if (cause instanceof RemoteError && cause.status === 401) return null;
 				throw cause;
 			}
+		},
+		async validateSession(token: string | undefined): Promise<AuthUser | null> {
+			return (await auth.inspectSession(token))?.user ?? null;
 		},
 		async revokeSession(token: string | undefined): Promise<void> {
 			if (token)

@@ -22,6 +22,7 @@ DEMO_ALLOWED_POSTS = {
     "/api/v1/web/auth/login",
     "/api/v1/mtg/catalog/search",
     "/api/v1/mtg/decks/import/preview",
+    "/api/v1/mtg/decks/token-preview",
     "/api/v1/mtg/decks/missing-export",
     "/api/v1/mtg/inventory/import/preview",
     "/api/v1/mtg/inventory/prices",

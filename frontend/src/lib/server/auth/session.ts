@@ -2,7 +2,7 @@ import type { Cookies } from '@sveltejs/kit';
 import { application } from '#lib/server/composition.ts';
 export { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '#lib/server/remote/client.ts';
 import { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '#lib/server/remote/client.ts';
-export const { validateSession, revokeSession } = application.auth;
+export const { inspectSession, validateSession, revokeSession } = application.auth;
 export function writeSessionCookie(cookies: Cookies, token: string, url: URL): void {
 	cookies.set(SESSION_COOKIE, token, {
 		path: '/',

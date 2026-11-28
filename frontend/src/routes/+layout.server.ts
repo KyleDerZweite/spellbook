@@ -13,6 +13,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 		locale: locals.locale,
 		user: locals.user,
 		demoMode,
+		demoSession: locals.demoSession,
 		demoLoginEnabled,
 		registrationOpen: registrationOpen(),
 		activeGame,

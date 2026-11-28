@@ -38,9 +38,15 @@ async def get_session(request: Request, auth: SessionAuth, public_origin: str) -
     session = await auth.inspect_session(selected_token(request))
     if session is None:
         raise HttpError(401, "Authentication required")
+    read_only_demo = (
+        current.username == "demo"
+        and isinstance(auth, LocalAuth)
+        and await auth.password_change_locked(current) is True
+    )
     return json_response(
         {
             "user": current.to_dto(),
+            **({"readOnlyDemo": True} if read_only_demo else {}),
             "expiresAt": session.expires_at,
             "device": session.device.to_dto() if session.device else None,
         },

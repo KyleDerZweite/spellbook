@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import DemoBanner from '#lib/demo/DemoBanner.svelte';
 	import { provideLanguage } from '#lib/i18n/context.ts';
 	import type { Locale } from '#lib/i18n/locale.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
@@ -24,6 +25,7 @@
 			user: AuthUser | null;
 			activeGame: Game;
 			socialLinks: readonly SocialLink[];
+			demoSession: string | null;
 		};
 		children: Snippet;
 	}
@@ -39,8 +41,23 @@
 	$effect(() => {
 		document.documentElement.lang = language.locale;
 	});
+	$effect(() => {
+		// Demo reads its IndexedDB generation when navigation loads the workspace.
+		document.body.dataset.sveltekitPreloadData = data.demoSession ? 'false' : 'hover';
+	});
 	const search = provideSearchSession();
 	if (page.url.pathname === '/mtg/search') search.hydrate(parseSearchUrl(page.url));
+
+	const demoUnavailable = $derived(
+		page.url.pathname.startsWith('/mtg/scan') ||
+			[
+				'/settings/password',
+				'/settings/profile-card',
+				'/app/connect',
+				'/auth/approve',
+				'/mtg/decks/import'
+			].includes(page.url.pathname)
+	);
 
 	let activation = $state('initial');
 	let navigation = 0;
@@ -100,6 +117,15 @@
 			{language.t('session.ended')} <a href="/auth/login">{language.t('session.signIn')}</a>.
 		</p>
 	{:else}
-		{@render children()}
+		{#if data.demoSession}<DemoBanner session={data.demoSession} />{/if}
+		{#if data.demoSession && demoUnavailable}
+			<p role="status">
+				{language.t(
+					page.url.pathname === '/mtg/decks/import' ? 'demo.importDisabled' : 'demo.disabled'
+				)}
+			</p>
+		{:else}
+			{@render children()}
+		{/if}
 	{/if}
 </Shell>

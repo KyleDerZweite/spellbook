@@ -15,7 +15,16 @@
 		type InventoryMetadataKind
 	} from '#lib/inventory/filter-shortcuts.ts';
 	import { InventoryTargetReads } from '#lib/inventory/targets.ts';
-	import { goto } from '$app/navigation';
+	import { demoSaveError } from '#lib/demo/conflict.ts';
+	import { goto, invalidate } from '$app/navigation';
+	import {
+		demoInventoryEntries,
+		demoInventoryEntry,
+		demoInventoryOperation,
+		demoInventoryPage,
+		mutateDemoInventory,
+		readDemoInventory
+	} from '#lib/demo/inventory.ts';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import NativeRangeNavigation from '#lib/components/ui/pagination/NativeRangeNavigation.svelte';
@@ -198,6 +207,14 @@
 		async (input, revision, signal) => {
 			const publication = inventorySubscription?.publication() ?? (() => hydrated);
 			const account = page.data.user?.accountId;
+			const session = page.data.demoSession;
+			const local = session ? await readDemoInventory(session) : undefined;
+			if (local) {
+				if (revision !== undefined && revision !== local.revision) {
+					return { kind: 'RevisionChanged', revision: local.revision };
+				}
+				return demoInventoryPage(local, input);
+			}
 			const response = await fetch(`/api/v1/mtg/inventory?${inventoryUrl(input, revision)}`, {
 				signal
 			});
@@ -559,6 +576,7 @@
 		lease?: ReadLease
 	) {
 		if (!lease) {
+			if (page.data.demoSession) await invalidate('demo:inventory');
 			inventorySubscription?.invalidate();
 			return;
 		}
@@ -627,6 +645,14 @@
 			const location = await window.locateAndLoad(
 				id,
 				async (query, entryId, revision, signal) => {
+					const session = page.data.demoSession;
+					const local = session ? await readDemoInventory(session) : undefined;
+					if (local) {
+						if (revision !== local.revision)
+							return { kind: 'RevisionChanged', revision: local.revision };
+						const index = demoInventoryEntries(local, query).findIndex(({ id }) => id === entryId);
+						return { kind: 'Location', revision, index: index < 0 ? null : index };
+					}
 					const response = await fetch(
 						`/api/v1/mtg/inventory/${entryId}/location?${inventoryUrl(query, revision)}`,
 						{ signal }
@@ -734,6 +760,12 @@
 			]
 		}),
 		async (id) => {
+			const session = page.data.demoSession;
+			const local = session ? await readDemoInventory(session) : undefined;
+			if (local) {
+				const detail = demoInventoryEntry(local, id);
+				return detail ? Response.json(detail) : new Response(null, { status: 404 });
+			}
 			const response = await fetch(`/api/v1/mtg/inventory/${id}`);
 			return response;
 		},
@@ -1009,9 +1041,45 @@
 		selectedCondition = 'all';
 	}
 	const pendingRequests = new Map<string, string>();
+	async function saveDemoEntry(session: string, account: string, action: URL, form: FormData) {
+		const id = String(form.get('entryId') ?? '');
+		const operation = demoInventoryOperation(action);
+		pendingId = id;
+		mutationError = '';
+		try {
+			await mutateDemoInventory(session, operation, form, account, page.data.demoWriteGeneration);
+			if (page.data.demoSession !== session) return;
+			if (operation === 'remove') removeId = null;
+			else if (inspection?.entryId === id) {
+				const local = await readDemoInventory(session);
+				const entry = local && demoInventoryEntry(local, id)?.entry;
+				if (entry) {
+					quantityBase = quantityDraft = entry.quantity;
+					notesOriginal = notesDraft = entry.notes;
+					notesBase = entry.notesRevision;
+					draftDirty = false;
+				}
+			}
+			await refreshInventory(account);
+			status = language.t(operation === 'remove' ? 'message.p0.removed' : 'message.p0.saved', {
+				p0: language.t('ui.Entry')
+			});
+		} catch (cause) {
+			mutationError = language.t(demoSaveError(cause));
+		} finally {
+			pendingId = null;
+		}
+	}
+
 	const saveEntry: SubmitFunction = ({ formData, action, cancel }) => {
 		if (pendingId) {
 			cancel();
+			return;
+		}
+		const session = page.data.demoSession;
+		if (session && page.data.user) {
+			cancel();
+			void saveDemoEntry(session, page.data.user.accountId, action, formData);
 			return;
 		}
 		const payload =

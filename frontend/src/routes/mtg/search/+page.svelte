@@ -23,13 +23,16 @@
 		mounted &&
 			currentContext &&
 			data.selectedPrinting &&
-			!form &&
-			!data.printingReadError &&
-			!data.choiceReadError &&
-			!data.draftReadError &&
-			!data.deckDraft &&
-			!data.inventoryDraft &&
-			!['deckQuery', 'deckOffset', 'selectedDeckId'].some((key) => page.url.searchParams.has(key))
+			(data.demoSession ||
+				(!form &&
+					!data.printingReadError &&
+					!data.choiceReadError &&
+					!data.draftReadError &&
+					!data.deckDraft &&
+					!data.inventoryDraft &&
+					!['deckQuery', 'deckOffset', 'selectedDeckId'].some((key) =>
+						page.url.searchParams.has(key)
+					)))
 			? { key: data.nativePageKey, card: data.selectedPrinting }
 			: null
 	);
