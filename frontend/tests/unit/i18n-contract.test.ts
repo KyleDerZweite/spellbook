@@ -13,6 +13,12 @@ import {
 } from '../../src/lib/search/filter-options.ts';
 
 describe('translation contract', () => {
+	it('translates the shared Demo write rejection in both directions', () => {
+		const english = 'The shared Demo account is read-only.';
+		const german = 'Das gemeinsame Demo-Konto erlaubt nur Lesezugriff.';
+		expect(localizeMessage('de', english)).toBe(german);
+		expect(localizeMessage('en', german)).toBe(english);
+	});
 	it('translates shared Catalog options and preserves format names', () => {
 		expect(filterOptionLabel(MANA_COLORS[0], 'en')).toBe('White');
 		expect(filterOptionLabel(MANA_COLORS[0], 'de')).toBe('Weiß');

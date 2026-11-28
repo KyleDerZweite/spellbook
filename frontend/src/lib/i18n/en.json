@@ -1028,7 +1028,7 @@
 	"notice.Invalid.username.or.password": "Invalid username or password.",
 	"notice.Unable.to.create.an.account.with.those.details": "Unable to create an account with those details.",
 	"notice.Registration.is.disabled.on.this.instance": "Registration is disabled on this instance.",
-	"notice.Password.changes.are.disabled.for.the.shared.demo.account": "Password changes are disabled for the shared demo account.",
+	"notice.The.shared.Demo.account.is.read-only": "The shared Demo account is read-only.",
 	"notice.Enter.your.current.password": "Enter your current password.",
 	"notice.Use.12.to.128.characters.for.your.new.password": "Use 12 to 128 characters for your new password.",
 	"notice.The.new.passwords.must.match": "The new passwords must match.",

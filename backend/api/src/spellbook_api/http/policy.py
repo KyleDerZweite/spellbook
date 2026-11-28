@@ -3,16 +3,29 @@
 import asyncio
 
 from fastapi import Depends, FastAPI, Request
-from spellbook_core.auth import SessionAuth
+from spellbook_core.auth import LocalAuth, SessionAuth
+from spellbook_core.errors import DemoAccountReadOnly
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from spellbook_api.http.admission import RequestAdmission
-from spellbook_api.http.auth import require_form_origin, stale_session_cookie
+from spellbook_api.http.auth import require_form_origin, selected_token, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response, install_error_handlers
 from spellbook_api.http.parsing import header
 
 HOST_BODY_BYTES = 12 * 1024 * 1024
+
+# POST reads take structured inputs. Login and logout only manage the caller's session.
+DEMO_ALLOWED_POSTS = {
+    "/api/v1/auth/login",
+    "/api/v1/auth/logout",
+    "/api/v1/web/auth/login",
+    "/api/v1/mtg/catalog/search",
+    "/api/v1/mtg/decks/import/preview",
+    "/api/v1/mtg/decks/missing-export",
+    "/api/v1/mtg/inventory/import/preview",
+    "/api/v1/mtg/inventory/prices",
+}
 
 
 def cache_policy(path: str) -> str | None:
@@ -63,7 +76,16 @@ def configure_http(
         for name in ("authorization", "origin", "content-type"):
             header(request, name)
         route = request.scope.get("route")
-        require_form_origin(request, origin, getattr(route, "path", ""))
+        path = getattr(route, "path", "")
+        if (
+            isinstance(auth, LocalAuth)
+            and request.method not in {"GET", "HEAD", "OPTIONS"}
+            and (request.method != "POST" or path not in DEMO_ALLOWED_POSTS)
+            and (token := selected_token(request))
+            and await auth.is_read_only_demo_session(token)
+        ):
+            raise DemoAccountReadOnly()
+        require_form_origin(request, origin, path)
         if auth is not None:
             request.state.cleanup_cookie = await stale_session_cookie(request, auth, origin)
 

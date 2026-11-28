@@ -451,11 +451,12 @@ timeout; Application Checks, Python API/Core and Python Workers each have fiftee
 
 [Application Integration](../../.github/workflows/application-integration.yml) and
 [Android Build](../../.github/workflows/android.yml) run only via `workflow_dispatch`. Each has one
-job with a thirty-minute timeout. Application Integration runs Python migration, the guarded Deck
-PostgreSQL checks, the web build, and `test:http`, `test:scan` and `test:sync` with the installed
-API and actual locked Scan worker. It creates and migrates an empty `spellbook_operators_demo`
-database in its disposable PostgreSQL 18 service for the guarded operator checks, separate from the
-application fixtures. Android Build retains explicit SDK 37.0, build-tools 36.0.0, setup-android
+job with a thirty-minute timeout. Application Integration runs Python migration, guarded PostgreSQL
+checks for Decks and the shared Demo account, the web build, and `test:http`, `test:scan` and
+`test:sync` with the installed API and actual locked Scan worker. It creates and migrates an empty
+`spellbook_operators_demo` database in its disposable PostgreSQL 18 service for the guarded operator
+checks, separate from the application fixtures. Android Build retains explicit SDK 37.0,
+build-tools 36.0.0, setup-android
 v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`. Dispatch a heavy
 workflow against the revision being verified, for example:
 

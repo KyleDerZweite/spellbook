@@ -3,7 +3,7 @@
 	"info": {
 		"title": "Spellbook OpenAPI Schema",
 		"version": "0.1.0",
-		"description": "Spellbook shared account authentication and the versioned MTG API. API mutations affect the authenticated account only. Replaced API paths are removed; clients must use the current documented operations. Native FastAPI routing accepts canonical paths without trailing slashes or redirects. HEAD and OPTIONS are not registered and return 405 on known paths. Scalar queries select the last value; list parameters retain all values. Request validation uses safe 400 errors. This pre-release API provides no cross-version compatibility or stored-data upgrade guarantee."
+		"description": "Spellbook shared account authentication and the versioned MTG API. API mutations affect the authenticated account only. Shared Demo account writes return HTTP 403 with kind DEMO_ACCOUNT_READ_ONLY. Read operations and password sign-in and session sign-out remain available. Replaced API paths are removed; clients must use the current documented operations. Native FastAPI routing accepts canonical paths without trailing slashes or redirects. HEAD and OPTIONS are not registered and return 405 on known paths. Scalar queries select the last value; list parameters retain all values. Request validation uses safe 400 errors. This pre-release API provides no cross-version compatibility or stored-data upgrade guarantee."
 	},
 	"servers": [
 		{
@@ -941,7 +941,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, the caller is a linked device session (kind DeviceSessionForbidden), or the shared demo account password is locked (kind PasswordChangeDisabled)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, the caller is a linked device session (kind DeviceSessionForbidden), or the shared Demo account is read-only (kind DEMO_ACCOUNT_READ_ONLY)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1338,7 +1338,7 @@
 						}
 					},
 					"403": {
-						"description": "Invalid request origin",
+						"description": "Invalid request origin or read-only shared Demo account (kind DEMO_ACCOUNT_READ_ONLY)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1602,7 +1602,7 @@
 						}
 					},
 					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden)",
+						"description": "Cookie-authenticated mutations require a matching Origin header, or the caller is a linked device session (kind DeviceSessionForbidden), or the shared Demo account is read-only (kind DEMO_ACCOUNT_READ_ONLY)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1722,7 +1722,7 @@
 						}
 					},
 					"403": {
-						"description": "Invalid request origin",
+						"description": "Invalid request origin or read-only shared Demo account (kind DEMO_ACCOUNT_READ_ONLY)",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7607,18 +7607,11 @@
 						}
 					},
 					"403": {
-						"description": "Invalid public Origin, password changes disabled in Demo, or the shared demo account password is locked",
+						"description": "Invalid public Origin, linked device session, or read-only shared Demo account (kind DEMO_ACCOUNT_READ_ONLY)",
 						"content": {
 							"application/json": {
 								"schema": {
-									"oneOf": [
-										{
-											"$ref": "#/components/schemas/ErrorResponse"
-										},
-										{
-											"$ref": "#/components/schemas/WebPasswordFormFailure"
-										}
-									]
+									"$ref": "#/components/schemas/ErrorResponse"
 								}
 							}
 						}

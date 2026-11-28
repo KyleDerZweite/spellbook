@@ -308,6 +308,7 @@ def test_bodyless_origin_exception_and_command_retry_inputs_are_unchanged(
         "validate_session",
         AsyncMock(side_effect=lambda token: ACTOR if token == TOKEN else None),
     )
+    monkeypatch.setattr(resources.auth, "is_read_only_demo_session", AsyncMock(return_value=False))
     removed = AsyncMock(return_value={"requestId": "original", "revision": "9"})
     command = AsyncMock(return_value={"requestId": "original", "revision": "9"})
     monkeypatch.setattr(resources.inventory, "remove", removed)

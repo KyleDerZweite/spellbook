@@ -1,7 +1,7 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-28
 - Source of Truth: code
 - Update Triggers:
   - Credentials, sessions, bearer tokens, origin checks and safe HTTP validation errors
@@ -254,14 +254,25 @@ contain 3 to 32 ASCII letters, digits, underscores, or hyphens, start with a let
 are trimmed and lowercased. Passwords contain 12 to 128 characters. Explicit `DEMO_MODE=true`
 permits the seeded `demo` account to sign in with `demo`, still using password hashing and ordinary
 sessions. This mode closes registration like `REGISTRATION_ENABLED=false`, rejects other usernames,
-rejects existing non-Demo sessions and fences QR session issuance. The login page displays the demo
-credentials; the registration page redirects to login. On a normal deployment,
+rejects existing non-Demo sessions and disables QR session issuance. The login page displays the
+demo credentials; the registration page redirects to login. On a normal deployment,
 `DEMO_LOGIN_ENABLED=true` (strict `true` or `false`, default `false`) lets the `demo` account sign
-in with `demo` beside ordinary accounts and refuses password changes for the shared `demo`/`demo`
-account with HTTP 403 `PasswordChangeDisabled` on both `POST /api/v1/account/password` and
-`POST /api/v1/web/password`. The lock checks the stored credential rather than the username alone,
-so an ordinary account named `demo` keeps working and switching `DEMO_LOGIN_ENABLED` off keeps the
-shared account locked until an operator replaces its password.
+in with `demo` beside ordinary accounts. The API recognizes the shared account by its `demo`
+username and stored credential, even if the switch is later turned off. An ordinary account named
+`demo` with its own password keeps write access. In explicit Demo mode all admitted sessions are
+read-only.
+
+For a valid shared Demo bearer or cookie session, the API rejects writes before parsing their bodies
+or calling the application. The response is HTTP 403 with
+`{"kind": "DEMO_ACCOUNT_READ_ONLY", "message": "The shared Demo account is read-only.", "status": 403}`.
+This covers account and credential changes, QR requests and decisions, linked device changes,
+Inventory, Deck and Physical Box changes, import commits, and Scan uploads and review commits. Read
+operations remain available, including POST Catalog search, Inventory price lookups, import previews
+and missing-card export. Demo device sessions do not slide their expiry. Password sign-in and
+session sign-out may still create and revoke the caller's own session. Unauthenticated QR requesters
+can use the ordinary challenge flow, but a previously approved shared Demo challenge cannot issue a
+session.
+
 [Demo setup](../operations/local-auth.md#demo-mode) and
 [shared demo login](../operations/local-auth.md#shared-demo-login) own seeding and reset commands.
 Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.

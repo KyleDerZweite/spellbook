@@ -1,5 +1,6 @@
 """Session-bound actors issued only after a fresh PostgreSQL session/profile read."""
 
+import asyncio
 import hashlib
 import logging
 import re
@@ -26,7 +27,7 @@ from .devices import (
 )
 from .errors import ActorError
 from .models import Actor, SessionDevice, SessionInfo
-from .passwords import PasswordVerifier
+from .passwords import PasswordVerifier, verify_password_hash
 from .validation import js_trim, js_utf8, utf16_length, valid_password
 
 ARTWORK_IDS = ("grove", "tide", "ember", "astral")
@@ -235,6 +236,8 @@ class LocalAuth(SessionAuth):
         self.passwords = passwords
         self.registration_enabled = registration_enabled
         self.demo_login_enabled = demo_login_enabled
+        self._demo_hash_check = asyncio.Lock()
+        self._demo_verification: tuple[str, asyncio.Task[bool]] | None = None
         self._attempts = AttemptLimiter(20)
         self.qr = QrAuth(pool, self)
         self.devices = DeviceSessions(pool, self)
@@ -255,20 +258,56 @@ class LocalAuth(SessionAuth):
         `demo` keeps working while the shared `demo`/`demo` account stays locked even after
         `DEMO_LOGIN_ENABLED` is switched off.
         """
+        return await self.is_shared_demo_account(actor.account_id, actor.username)
+
+    async def is_shared_demo_account(
+        self, account_id: str, username: str, tx: Transaction | None = None
+    ) -> bool:
         if self.demo_mode:
             return True
-        if actor.username != "demo":
+        if username != "demo":
             return False
-        async with transaction(self._pool, read_only=True) as tx:
-            cursor = await tx.execute(
-                "SELECT password_hash FROM local_credentials WHERE account_id=%s",
-                (actor.account_id,),
-            )
-            row = await cursor.fetchone()
-        encoded = str(row[0]) if row else None
+        if tx is None:
+            async with transaction(self._pool, read_only=True) as connection:
+                encoded = await self._credential_hash(connection, account_id)
+        else:
+            encoded = await self._credential_hash(tx, account_id)
         if encoded is None:
             return False
-        return await self.passwords.verify("demo", encoded)
+        # Keep one derivation in flight, even if the requesting client disconnects.
+        # Classification has its own admission and reads the current hash on every check.
+        async with self._demo_hash_check:
+            cached = self._demo_verification
+            if cached is None or cached[0] != encoded:
+                if cached is not None and not cached[1].done():
+                    await asyncio.shield(cached[1])
+                check = asyncio.create_task(
+                    asyncio.to_thread(verify_password_hash, "demo", encoded)
+                )
+                cached = self._demo_verification = (encoded, check)
+        return await asyncio.shield(cached[1])
+
+    @staticmethod
+    async def _credential_hash(tx: Transaction, account_id: str) -> str | None:
+        cursor = await tx.execute(
+            "SELECT password_hash FROM local_credentials WHERE account_id=%s", (account_id,)
+        )
+        row = await cursor.fetchone()
+        return str(row[0]) if row else None
+
+    async def is_read_only_demo_session(self, token: str) -> bool:
+        """Check a presented session without updating its device metadata."""
+        if not valid_session_token(token):
+            return False
+        session = await self._inspect(hash_session_token(token))
+        return session is not None and await self.password_change_locked(session.user)
+
+    async def _renew_device(self, digest: str, row: _SessionRow) -> _SessionRow:
+        if row.device_id is not None and await self.is_shared_demo_account(
+            row.account_id, row.username
+        ):
+            return row
+        return await super()._renew_device(digest, row)
 
     def take_auth_attempt(self, address: str) -> None:
         self._attempts.take(address)

@@ -50,7 +50,9 @@ class Dependencies:
         self.auth.devices = create_autospec(DeviceSessions, instance=True)
         self.auth.authenticate.return_value = Authenticated(ACTOR, TokenSession(TOKEN, EXPIRES))
         self.auth.change_password.return_value = TokenSession(TOKEN, EXPIRES)
-        self.auth.password_change_locked.return_value = False
+        self.auth.is_read_only_demo_session.side_effect = lambda token: (
+            demo_mode and token == TOKEN
+        )
         self.auth.qr.create.side_effect = lambda kind, address, name=None, device_type=None: {
             "code": CODE,
             "kind": kind,
@@ -343,37 +345,18 @@ def test_native_password_bridge_retains_errors_never_passwords_and_demo_is_immut
 
 def test_shared_demo_password_lock_returns_explicit_403_on_both_bridges() -> None:
     d = Dependencies()
-    d.auth.password_change_locked.return_value = True
-    message = "Password changes are disabled for the shared demo account."
+    d.auth.is_read_only_demo_session.side_effect = lambda token: token == TOKEN
     headers = {"Cookie": "spellbook_session=" + TOKEN, "Origin": ORIGIN}
     with TestClient(d.app) as client:
-        native = client.post(
-            "/api/v1/account/password",
-            json={"currentPassword": "demo", "newPassword": "new-valid-password"},
-            headers=headers,
-        )
-        form = client.post(
-            "/api/v1/web/password",
-            data={
-                "currentPassword": "demo",
-                "newPassword": "new-valid-password",
-                "confirmPassword": "new-valid-password",
-            },
-            headers=headers,
-        )
-    assert native.status_code == 403
-    assert native.json() == {"kind": "PasswordChangeDisabled", "message": message, "status": 403}
-    assert form.status_code == 403
-    assert form.json() == {
-        "success": False,
-        "kind": "PasswordChangeDisabled",
-        "message": message,
-        "errors": {},
-    }
-    assert d.auth.password_change_locked.call_args_list == [
-        ((ACTOR,),),
-        ((ACTOR,),),
-    ]
+        for path in ("/api/v1/account/password", "/api/v1/web/password"):
+            response = client.post(path, content="invalid body", headers=headers)
+            assert response.status_code == 403
+            assert response.json() == {
+                "kind": "DEMO_ACCOUNT_READ_ONLY",
+                "message": "The shared Demo account is read-only.",
+                "status": 403,
+            }
+    d.auth.take_auth_attempt.assert_not_called()
     d.auth.change_password.assert_not_awaited()
 
 

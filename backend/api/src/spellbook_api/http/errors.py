@@ -10,6 +10,7 @@ from spellbook_core.devices import DeviceSessionError
 from spellbook_core.errors import (
     ActorError,
     AuthError,
+    DemoAccountReadOnly,
     ProfileError,
     RequestConflictError,
     ValidationError,
@@ -49,7 +50,12 @@ def json_response(
 
 
 def error_response(cause: Exception) -> Response:
-    if isinstance(cause, QrAuthError):
+    if isinstance(cause, DemoAccountReadOnly):
+        cause = HttpError(
+            403,
+            dict(kind="DEMO_ACCOUNT_READ_ONLY", message="The shared Demo account is read-only."),
+        )
+    elif isinstance(cause, QrAuthError):
         status = {
             "ValidationFailed": 400,
             "ConfirmationRequired": 400,
@@ -142,6 +148,7 @@ def install_error_handlers(http: FastAPI) -> None:
     for domain_exception in (
         ActorError,
         AuthError,
+        DemoAccountReadOnly,
         ValidationError,
         RequestConflictError,
         DeckLibraryRevisionChanged,

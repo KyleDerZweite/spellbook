@@ -1028,7 +1028,7 @@
 	"notice.Invalid.username.or.password": "Benutzername oder Passwort ungültig.",
 	"notice.Unable.to.create.an.account.with.those.details": "Mit diesen Angaben kann kein Konto erstellt werden.",
 	"notice.Registration.is.disabled.on.this.instance": "Die Registrierung ist auf dieser Instanz deaktiviert.",
-	"notice.Password.changes.are.disabled.for.the.shared.demo.account": "Passwortänderungen sind für das gemeinsame Demokonto deaktiviert.",
+	"notice.The.shared.Demo.account.is.read-only": "Das gemeinsame Demo-Konto erlaubt nur Lesezugriff.",
 	"notice.Enter.your.current.password": "Gib dein aktuelles Passwort ein.",
 	"notice.Use.12.to.128.characters.for.your.new.password": "Verwende 12 bis 128 Zeichen für dein neues Passwort.",
 	"notice.The.new.passwords.must.match": "Die neuen Passwörter müssen übereinstimmen.",

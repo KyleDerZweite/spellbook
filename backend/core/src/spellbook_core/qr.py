@@ -11,7 +11,7 @@ from .auth import LocalAuth, TokenSession, _now, hash_session_token, valid_sessi
 from .auth_attempts import AttemptLimiter
 from .db import ConnectionPool, Transaction, iso_timestamp, transaction
 from .devices import DEVICE_TYPES, DeviceMetadata, normalize_device_name
-from .errors import AuthError
+from .errors import AuthError, DemoAccountReadOnly
 from .models import Actor
 from .validation import MISSING, Missing
 
@@ -146,12 +146,14 @@ class QrAuth:
             raise QrAuthError("NotFound", "QR request not found. Start a new request.")
         return row
 
-    async def _lock_profile(self, tx: Transaction, account_id: str) -> None:
+    async def _lock_profile(self, tx: Transaction, account_id: str) -> str:
         cursor = await tx.execute(
-            "SELECT account_id FROM user_profiles WHERE account_id=%s FOR UPDATE", (account_id,)
+            "SELECT username FROM user_profiles WHERE account_id=%s FOR UPDATE", (account_id,)
         )
-        if not await cursor.fetchone():
+        row = await cursor.fetchone()
+        if row is None:
             raise QrAuthError("Unauthenticated", "Authentication required")
+        return str(row[0])
 
     async def _live_session(self, tx: Transaction, digest: str, account_id: str) -> bool:
         cursor = await tx.execute(
@@ -264,13 +266,17 @@ class QrAuth:
             return Redemption(initial.kind, status)
         assert initial.approver_account_id is not None
         async with transaction(self._pool) as tx:
-            await self._lock_profile(tx, initial.approver_account_id)
+            username = await self._lock_profile(tx, initial.approver_account_id)
             row = await self._read(code, tx, lock=True)
             _verify_requester(row, requester)
             current = _status(row)
             if current != "approved":
                 return Redemption(row.kind, current)
             assert row.approver_account_id is not None and row.approver_session_hash is not None
+            if username == "demo" and await self._auth.is_shared_demo_account(
+                row.approver_account_id, username, tx
+            ):
+                raise DemoAccountReadOnly()
             live = await self._live_session(tx, row.approver_session_hash, row.approver_account_id)
             if not live or row.expires_at <= self._auth.now():
                 await tx.execute(
