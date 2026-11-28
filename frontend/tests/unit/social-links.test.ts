@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import Footer from '../../src/lib/components/layout/Footer.svelte';
-import { parseOptionalSocialUrl, parseSocialLinks } from '../../src/lib/server/social.ts';
+import { parseSocialLinks } from '../../src/lib/server/social.ts';
 import { GITHUB_REPOSITORY_URL } from '../../src/lib/social.ts';
 
 describe('social link configuration', () => {
@@ -26,7 +26,7 @@ describe('social link configuration', () => {
 			'not-a-url',
 			'ftp://discord.gg/spellbook'
 		]) {
-			expect(() => parseOptionalSocialUrl('SOCIAL_DISCORD_URL', invalid)).toThrow(
+			expect(() => parseSocialLinks({ SOCIAL_DISCORD_URL: invalid })).toThrow(
 				'SOCIAL_DISCORD_URL must be a valid HTTPS URL'
 			);
 		}

@@ -8,7 +8,7 @@
     - Account access, preferences and browser website language selection.
     - Independent API/web ownership, versioned MTG routes and module ownership.
     - Supported platforms, client feature parity and release acceptance.
-    - PWA/QR delivery and pending browser/Android acceptance.
+    - Mobile installation, PWA/QR delivery and pending browser/Android acceptance.
   - Dashboard and value:
     - Dashboard summaries, selected layout and compact Deck cards.
     - Daily metric cards, direct detail links and personal History previews.
@@ -113,8 +113,15 @@ recognition and the dated client-scope clarification.
 [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns
 current status and unresolved contracts. The backend QR API, manifest and public-only service worker
 are integrated. The PWA pages and navigation are implemented. Target verification is recorded with
-the change. A native package, MTG card camera capture and production recognition remain
-unimplemented.
+the change. MTG card camera capture and production recognition remain unimplemented. The
+[Android client](../../android/README.md) has separate native acceptance checks.
+
+The public landing page links to the Android APK. The `/app` install hub and signed-in Settings
+under Apps & Installation show the same APK link, available release metadata and installation steps.
+Both include the browser PWA flow, Safari's Add to Home Screen instructions and optional TestFlight
+and App Store links. See
+[mobile app release configuration](../operations/deployment.md#mobile-app-release-configuration) for
+the GitHub Releases fallback and runtime settings.
 
 ## Capability status
 

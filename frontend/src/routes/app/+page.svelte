@@ -44,6 +44,6 @@
 		<h2 class="font-display text-section-title font-semibold">
 			{language.t('ui.Spellbook.on.your.phone')}
 		</h2>
-		<InstallApp />
+		<InstallApp release={data.appRelease} />
 	</section>
 </div>

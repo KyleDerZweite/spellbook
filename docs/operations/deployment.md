@@ -13,8 +13,8 @@
     workflow improvements.
   - Catalog publication, Demo bundles, private reset and source refresh.
   - Transient Scan processing, worker ownership, value-history scheduling and reporting.
-  - Authentication, registration and demo login switches, QR sessions, PWA operation and current
-    runtime acceptance.
+  - Authentication, registration and demo login switches, QR sessions, mobile release configuration,
+    PWA operation and current runtime acceptance.
   - QR approval display code and device confirmation
 - Related Docs:
   - [Postgres](../architecture/postgres.md)
@@ -413,6 +413,29 @@ HTTPS and physical Android acceptance remain separate from implementation checks
 [PWA/QR verification](./github-automation.md#pwa-and-qr-verification) owns target checks. A future
 Jetson may use device-kind QR requests to obtain an ordinary bearer session; this deployment adds no
 hardware enrollment, machine control or synchronization protocol.
+
+## Mobile app release configuration
+
+The web process reads these optional settings at startup. For native web, set unprefixed names and
+restart the process after a change. In Compose use `LOCAL_` for isolated localhost, `DEV_` for
+configured Development, `DEMO_` for Demo or `PROD_` for Production. Recreate the `frontend`
+container with the updated settings. For hosted environments, use the existing launcher with
+`up frontend` and the currently selected revision.
+
+| Setting                   | Value                                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| `ANDROID_APK_URL`         | Public HTTPS URL that serves the Android APK                   |
+| `ANDROID_APK_VERSION`     | Release version displayed to users                             |
+| `ANDROID_APK_MIN_ANDROID` | Minimum supported Android version or SDK, such as `Android 10` |
+| `ANDROID_APK_SIZE`        | Display-ready file size, such as `24 MB`                       |
+| `ANDROID_APK_SHA256`      | SHA-256 checksum of the APK, shown in installation details     |
+| `IOS_TESTFLIGHT_URL`      | Public HTTPS TestFlight invitation                             |
+| `IOS_APP_STORE_URL`       | Public HTTPS App Store listing                                 |
+
+Blank URLs are treated as unset. Invalid HTTPS URLs fail web startup. When the direct APK URL is
+unset, Spellbook links to the repository's latest GitHub release and omits direct-download metadata.
+That fallback needs a published release with an APK asset. Optional iOS links appear independently
+when configured. All configured values shown by the website are public.
 
 ## Manual Demo Catalog update
 

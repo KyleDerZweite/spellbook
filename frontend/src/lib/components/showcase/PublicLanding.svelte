@@ -7,7 +7,7 @@
 	import LandingCommander from './LandingCommander.svelte';
 	import SearchBar from '#lib/components/search/SearchBar.svelte';
 
-	let { seed }: { seed: number } = $props();
+	let { seed, apkHref }: { seed: number; apkHref: string } = $props();
 
 	const search = getSearchSession();
 	let query = $state('');
@@ -46,6 +46,7 @@
 			submitLabel="Search cards"
 		/>
 	</form>
+	<a href={apkHref} class="btn btn-secondary mt-3">{language.t('install.android.download')}</a>
 {/snippet}
 {#snippet supportNotice()}
 	<p class="support-note">
