@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Spellbook",
+    "slug": "spellbook-mobile",
+    "version": "0.1.0",
+    "scheme": "spellbook-mobile",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios", "android"],
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "dev.spellbook.mobile",
+      "supportsTablet": true,
+      "config": { "usesNonExemptEncryption": false }
+    },
+    "android": {
+      "package": "dev.spellbook.mobile",
+      "allowBackup": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Spellbook to photograph cards for Scan.",
+          "photosPermission": "Allow Spellbook to choose card photos for Scan.",
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}

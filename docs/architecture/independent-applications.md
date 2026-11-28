@@ -1,10 +1,10 @@
 # Independent applications implementation contract
 
-- Status: Independent Python API and workers implemented; Expo mobile app planned
-- Last Reviewed: 2026-11-28
+- Status: Independent Python API and workers implemented; Expo mobile MVP implemented
+- Last Reviewed: 2026-12-07
 - Source of Truth: accepted maintainer direction and existing application contracts
 - Update Triggers:
-  - Mobile client ownership, API contract and acceptance
+  - Mobile client ownership, API contract, build setup and acceptance
   - managed Category removal
   - native global search read and shared DTO
   - raw Web header multiplicity and native boolean queries
@@ -24,6 +24,7 @@
   - [System overview](./system-overview.md)
   - [Application contract](./application-contract.md)
   - [Auth](./auth.md)
+  - [Expo mobile setup](../../apps/mobile/README.md)
   - [Mobile handoff](../product/mobile-app-exploration.md)
   - [ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md)
   - [ADR-0024](../decisions/0024-independent-applications.md)
@@ -37,7 +38,7 @@ Retain `frontend/`, `backend/` and `contracts/`, with independent Catalog and Sc
 `backend/workers/`. SvelteKit owns rendering, native form actions and browser presentation. The
 Python API owns credential authentication, PostgreSQL, application use cases, transient Scan
 processing and SavedState lifetime. The independent Python State process owns the ValueHistory
-scheduler. The planned mobile app owns native navigation, presentation, credentials and bounded
+scheduler. The mobile app owns native navigation, presentation, credentials and bounded
 local state. Contracts contain serialized DTOs and pure shared validation/presentation helpers only.
 No web runtime may import backend implementation, PostgreSQL, Drizzle or password hashing.
 
@@ -182,9 +183,10 @@ migration SQL, journal and snapshots retain their history.
 ## Mobile delivery
 
 [ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md) selects Expo and React
-Native for a single iOS and Android application in `apps/mobile/`. The mobile MVP is tracked
-separately in [issue #461](https://github.com/KyleDerZweite/spellbook/issues/461). The app uses the
-existing [OpenAPI contract](../../contracts/openapi.json).
+Native for the iOS and Android app in `apps/mobile/`. The mobile app generates its HTTP types from
+the [OpenAPI contract](../../contracts/openapi.json). It has an independent npm lockfile and EAS
+profiles for Android APK previews and Android and iOS store builds. The
+[app README](../../apps/mobile/README.md) owns setup, contract generation and EAS commands.
 
 The mobile app owns native navigation, presentation, secure session storage and bounded local state.
 Keep private state and drafts scoped by backend and account. Honor session expiry and clear private
