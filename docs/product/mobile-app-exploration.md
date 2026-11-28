@@ -1,7 +1,7 @@
 # Spellbook website and Android design handoff
 
-- Status: Android first slice implemented; native target verification pending
-- Last Reviewed: 2026-10-24
+- Status: Design accepted; Expo implementation planned
+- Last Reviewed: 2026-11-28
 - Source of Truth: maintainer's selected Android structure and Figma-first sequence, inspected
   first-party app images and versioned mobile source, linked Figma files and shared API contracts
 - Update Triggers:
@@ -30,10 +30,9 @@
 The maintainer selected a separate Android application against the shared backend. On 2026-10-19,
 the maintainer requested a complete clickable Figma prototype before native implementation in a
 separate application directory. The earlier mobile scaffold and isolated T3 comparisons did not
-establish the required overall experience. This handoff owns the replacement app structure.
-Kotlin/Compose is selected in [ADR-0024](../decisions/0024-independent-applications.md). The
+establish the required overall experience. This handoff records the Android prototype structure. The
 [implementation contract](../architecture/independent-applications.md) owns the independent runtime
-extraction and first native acceptance.
+boundary and mobile delivery.
 
 ## Figma files and current entry
 
@@ -54,9 +53,10 @@ state bindings. Cardstation and capture use demo data. On 2026-10-19, the mainta
 visual direction for implementation and renamed the example device from Atelier to Card Station.
 This does not establish native or hardware acceptance.
 
-## Selected app structure
+## Android prototype structure
 
-Home, Search, Inventory and Decks are the four main destinations. Root views use compact toolbars
+In the Android prototype, Home, Search, Inventory and Decks are the four main destinations.
+Root views use compact toolbars
 and a directly reachable Settings gear. Search puts its field in the toolbar. Large Spellbook
 wordmarks, filled avatar buttons and website chrome do not belong in this app. Details have Back, an
 object title and contextual actions. Focused tasks have explicit finish/cancel controls and omit the
@@ -135,56 +135,11 @@ Product images establish visible composition, not conversion, performance or Spe
 
 ## Native implementation handoff
 
-The selected next delivery separates the Svelte website, backend and Android application in one
-monorepo. Keep the existing frontend/backend/contracts owners and add a separate Android project.
-[System overview](../architecture/system-overview.md#selected-independent-applications) owns the
-deployment transition. The unmerged migration candidate uses an independent Python API and Python
-workers under [ADR-0025](../decisions/0025-python-api-and-workers.md). Web and Android use the
-current canonical API; native target acceptance remains pending.
-
-The selected framework is Kotlin with Jetpack Compose for Android-first delivery. Use the accepted
-Figma components, Navigation 3, ViewModel/StateFlow and lifecycle-aware state collection, following
-[Android's architecture guidance](https://developer.android.com/topic/architecture/recommendations).
-Ktor Client with the OkHttp engine and kotlinx.serialization can handle HTTP and the existing
-[SSE invalidations](https://ktor.io/docs/client-server-sent-events.html).
-[CameraX](https://developer.android.com/media/camera/camerax) is the proposed later capture adapter;
-QR decoding and MTG recognition need their own implementations.
-[The reviewed implementation contract](../architecture/independent-applications.md#android-delivery)
-pins the compatible toolchain and initial native scope.
-
-React Native/Expo remains the strongest alternative if near-term iOS delivery becomes required. It
-adds React alongside Svelte but can share mobile implementation across Android and iOS;
-[Expo Camera](https://docs.expo.dev/versions/latest/sdk/camera/) supports camera and barcode
-workflows. Kotlin adds a separate language/Gradle toolchain and does not itself deliver an iOS app.
-Both can implement the accepted visual design.
-
-The selected first delivery is online-first. Use bounded read/image caches and local drafts scoped
-by backend, account and target. Respect Catalog generation/revision and HTTP no-store contracts.
-Refresh private reads after mutation and resume. Keep secure session storage, reauthentication and
-logout separate from draft persistence. No offline mutation queue, CRDT or implicit resubmission is
-selected.
-
-DataStore is the proposed owner of small settings; use Room only when structured drafts or permitted
-cache queries need it. Neither is a secret store. Keep session ciphertext in app-private storage
-with its encryption key protected by
-[Android Keystore](https://developer.android.com/privacy-and-security/keystore). The implementation
-contract owns dependency versions, retention limits and session lifecycle.
-
-Public single-Printing lookup, web/API parity and initial native session/lifecycle requirements are
-covered by the [reviewed implementation contract](../architecture/independent-applications.md). App
-Links, local recognition assets and Cardstation registry/jobs/sync need their own contracts.
-Existing mutation authority stays in the backend. The first native slices should exercise public
-Search/Printing, contextual Auth with draft retention, acknowledged Inventory changes visible on the
-website, then Deck editing/Availability.
-
-Rendered screens, saved Figma reactions and simulated scenarios do not prove Player execution,
-Android keyboard/Back, accessibility, real authentication, physical capture or hardware integration.
-Maintainer visual acceptance covers the design direction; native verification remains separate work.
-
-The selected toolchain pins SDK 37, AGP 9.1.1, Gradle 9.6.1, Kotlin 2.4.21 and Compose BOM
-2026.09.00, with Navigation3, Lifecycle, Activity and Ktor versions in the
-[contract](../architecture/independent-applications.md#android-delivery). The native source is
-integrated, and debug assembly, JVM unit tests and lint passed in the parent checkout. The
-root-owned emulator attempt exited 139 before boot. Per maintainer instruction, no workaround was
-attempted. Install, rendered UI, real API native journeys and website-to-app SSE remain unexecuted.
-No physical Honor, camera, hardware or production deployment acceptance is established.
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md) selects Expo and React
+Native for iOS and Android. The
+[independent applications contract](../architecture/independent-applications.md#mobile-delivery)
+owns the shared API boundary and native acceptance. The prototype informs the visual design.
+[Issue #461](https://github.com/KyleDerZweite/spellbook/issues/461) owns the Expo MVP scope,
+including its Search, Inventory, Decks and More / Settings navigation.
+App links, local recognition and Cardstation registry, jobs and synchronization require separate
+contracts.

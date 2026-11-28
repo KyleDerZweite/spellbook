@@ -52,8 +52,8 @@ so run `pnpm setup:python` after Python source changes; CI starts from fresh env
 whose tool is not on `PATH` or whose service is unconfigured is reported as not run, never as
 passed: Compose configuration needs `podman-compose`, and Catalog worker tests need
 `WORKER_TEST_DATABASE_URL` for an exclusively assigned disposable PostgreSQL 18 database because
-they otherwise skip. It provides no evidence for the Application Integration and Android Build
-workflows, browser, PWA and QR checks, container builds or deployment; the sections below own those.
+they otherwise skip. It provides no evidence for the Application Integration workflow, browser, PWA
+and QR checks, container builds or deployment; the sections below own those.
 
 The pnpm workspace owns frontend/contracts; independently locked Python packages own API/Core and
 workers. For a broader pass that includes the full build, run from the repository root in an
@@ -368,38 +368,14 @@ cached private data, and silent update checks on fresh entry and at 30-minute in
 a fresh page activates a waiting worker and another open page retains its draft. Use deployed
 same-origin HTTPS for physical phone camera/install acceptance.
 
-Attempt Android Studio/emulator checks only with already installed tools. If those tools are absent
-or the target check fails, record the limit without alternate tooling. Physical Android acceptance
-belongs to the owner. Record browser and emulator results with the change; those results do not
-establish physical Android acceptance. Record the final head/base/diff, commands, skipped checks and
-target owner with the change, separately from deployment.
+Record browser and physical phone results with the final head/base/diff, commands, skipped checks
+and target owner. Keep deployment evidence separate.
 
-## Native Android verification
+## Native mobile verification
 
-The [independent Android contract](../architecture/independent-applications.md#android-delivery)
-owns toolchain pins and native acceptance. From the integrated `android/` Gradle project, the
-selected producer/CI command is:
-
-```sh
-./gradlew --no-daemon :app:lintDebug :app:testDebugUnitTest :app:assembleDebug
-```
-
-The integrated Android source passed this command in the parent checkout. Build/JVM/lint evidence
-does not establish install, UI, real account journeys or cross-client SSE. On 2026-10-19, the
-root-owned emulator attempt exited 139 before boot. The maintainer requested no workaround, so
-installation, native guest Search and authenticated Inventory-add journeys, keyboard/Back and
-website-to-app refresh remain unexecuted. Physical Honor, camera, hardware and production deployment
-acceptance are also absent. The parent integration owner records final revision, commands and target
-evidence in [issue 244](https://github.com/KyleDerZweite/spellbook/issues/244).
-
-The manually dispatched [Android Build workflow](../../.github/workflows/android.yml) uses
-[setup-android v4.0.4](https://github.com/android-actions/setup-android/tree/v4.0.4) to install
-command-line tools, put `sdkmanager` on PATH and provision platform 37.0 and build-tools 36.0.0 with
-JDK 21. Java provisioning uses [setup-java v6](https://github.com/actions/setup-java/tree/v6) with
-Temurin 21 on `ubuntu-latest`. Its Node 24 action runtime retains the v5 minimum runner version
-`v2.327.1`; local JDK checks do not verify execution of the GitHub action. This explicit setup
-avoids relying on the runner image's SDK installation. SDK license acceptance is authorized for this
-delivery; accepted license text is omitted from logs.
+Native iOS and Android builds and device acceptance belong to the planned Expo delivery under
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md). Web, API and PWA checks
+continue to run independently of that delivery.
 
 ## Application and native operator checks
 
@@ -449,20 +425,16 @@ dependency rules without depending on the API/Core job. Scope tests run only in 
 boundary fixtures run only through Application Checks tooling. The scope job has a five-minute
 timeout; Application Checks, Python API/Core and Python Workers each have fifteen minutes.
 
-[Application Integration](../../.github/workflows/application-integration.yml) and
-[Android Build](../../.github/workflows/android.yml) run only via `workflow_dispatch`. Each has one
-job with a thirty-minute timeout. Application Integration runs Python migration, guarded PostgreSQL
-checks for Decks and the shared Demo account, the web build, and `test:http`, `test:scan` and
-`test:sync` with the installed API and actual locked Scan worker. It creates and migrates an empty
-`spellbook_operators_demo` database in its disposable PostgreSQL 18 service for the guarded operator
-checks, separate from the application fixtures. Android Build retains explicit SDK 37.0,
-build-tools 36.0.0, setup-android
-v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`. Dispatch a heavy
-workflow against the revision being verified, for example:
+[Application Integration](../../.github/workflows/application-integration.yml) runs only via
+`workflow_dispatch`. It has one job with a thirty-minute timeout. It runs Python migration,
+guarded PostgreSQL checks for Decks and the shared Demo account, the web build, and `test:http`,
+`test:scan` and `test:sync` with the installed API and actual locked Scan worker. It creates and
+migrates an empty `spellbook_operators_demo` database in its disposable PostgreSQL 18 service for
+the guarded operator checks, separate from the application fixtures. Dispatch the workflow
+against the revision being verified, for example:
 
 ```sh
 gh workflow run application-integration.yml --ref <branch-or-tag>
-gh workflow run android.yml --ref <branch-or-tag>
 ```
 
 A green pull request or `main` push run establishes the selected automatic checks. Run Application
@@ -479,13 +451,12 @@ select both Application Checks and Python API/Core, including Discovery compatib
 `frontend/`, `backend/` and `scripts/` source paths select Application Checks. Migration paths under
 `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core,
 the state package step and Catalog worker tests. `backend/workers/catalog/` selects Catalog tests;
-`backend/workers/scan/` selects Application Checks and Scan worker tests. Android-only changes and
-known documentation alone select no substantive automatic job. JS workspace/lockfile changes select
-Application Checks without forcing Python. CI/workflow files, unknown paths, manual lightweight CI
-runs or unavailable comparisons select every automatic suite. The classifier has no Android output
-because Android is always an explicit manual check. The automatic workflow has no path filter and
-avoids GitHub's path-filter limits. New pushes cancel obsolete runs of the same PR or main branch;
-manual CI dispatches use unique concurrency groups and remain independent.
+`backend/workers/scan/` selects Application Checks and Scan worker tests. Known documentation alone
+selects no substantive automatic job. JS workspace/lockfile changes select Application Checks
+without forcing Python. CI/workflow files, unknown paths, manual lightweight CI runs or unavailable
+comparisons select every automatic suite. The automatic workflow has no path filter and avoids
+GitHub's path-filter limits. New pushes cancel obsolete runs of the same PR or main branch; manual
+CI dispatches use unique concurrency groups and remain independent.
 
 If repository protection later requires status checks, include `CI Scope` alongside Application
 Checks, Python API/Core and Python Workers. A failed classifier skips dependent jobs, and
@@ -505,11 +476,10 @@ Markdown width checks run before classification even when no application suite i
 dependency-free check. The [documentation maintenance rule](../README.md#maintenance) owns prose
 width, metadata structure and syntax exceptions. Backend `test` includes standalone native/operator
 suites under `backend/scripts/`; database-dependent operator cases skip without their explicitly
-guarded disposable target. Android Build assembles/tests/lints; it does not boot an emulator or
-establish installation/native journeys. Browser workflows, container builds, image publication and
-deployment also remain explicit checks when relevant. [Deployment](./deployment.md) owns container
-startup and operator verification. Its [storage guide](./deployment.md#storage-and-upgrades) covers
-backup and recovery.
+guarded disposable target. Browser workflows, container builds, image publication and deployment
+also remain explicit checks when relevant. [Deployment](./deployment.md) owns container startup and
+operator verification. Its [storage guide](./deployment.md#storage-and-upgrades) covers backup and
+recovery.
 
 ## Proposed workflow improvements
 

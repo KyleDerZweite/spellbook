@@ -47,8 +47,6 @@ node_modules/
 .svelte-kit/
 .output/
 build/
-.gradle/
-local.properties
 
 # Logs
 *.log

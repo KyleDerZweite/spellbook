@@ -5,7 +5,7 @@
   upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace
   consumers, source references, optional public providers, bounded public source history, private
   daily Inventory history, Dashboard/selected-Deck estimates; later feature slices planned
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-28
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/SavedState/Valuation
   code and contracts, Worker price publication code, unaffected Q56 contracts and Kyle's value-only
   and continuous Lazy decisions of 2026-10-07
@@ -153,15 +153,16 @@ Check imports with the existing TypeScript compiler API, resolving aliases, type
 imports and re-exports. Deliberately forbidden imports and built client output verify enforcement.
 The final policy contains no legacy persistence exceptions. Web runtime has no backend import
 exceptions. Root commands invoke installed Python CLIs for backend-owned operators. The HTTP adapter
-preserves current callers; independent Android and aggregate acceptance remain in progress.
+preserves current callers. [ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md)
+owns the planned mobile delivery.
 
 ## Implemented application lifecycle and operator ownership
 
 The [contraction slice](https://github.com/KyleDerZweite/spellbook/issues/192) established
 application, transport and operator ownership.
-[Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks independent runtimes and
-Android delivery while preserving existing HTTP contracts. Current-head automated, PostgreSQL, HTTP,
-browser and public-provider acceptance remain separate evidence.
+[Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) records the independent runtimes
+and the earlier Android delivery. Current-head automated, PostgreSQL, HTTP, browser and
+public-provider acceptance remain separate evidence.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and server
 workers. The [accepted Python migration contract](./python-backend-migration.md) owns framework,
 wire/SQL ownership, worker relocation and delivery gates; the unmerged candidate now activates

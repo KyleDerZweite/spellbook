@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-11-28
 - Source of Truth: code and explicitly marked design requirements
 - Update Triggers:
-  - Service boundaries, independent web/API/Android delivery and runtime allocation
+  - Service boundaries, independent web/API/mobile delivery and runtime allocation
   - Python API/worker implementation, OpenAPI ownership and source contraction
   - Application and operator resource ownership, topology and hosted capacity
   - Authentication, same-origin PWA delivery and shared QR sessions
@@ -31,12 +31,12 @@
 Spellbook has an independent SvelteKit web runtime and Python/FastAPI API. The API owns Auth,
 Profile, Dashboard, Catalog, Inventory/Groups, Deck, Valuation, Scan and SavedState use cases.
 PostgreSQL stores account-owned state and public reference publications. Python workers retain
-ingestion and Scan scaffold responsibilities. The first Kotlin/Compose Android slice is integrated;
-native target acceptance remains pending.
+ingestion and Scan scaffold responsibilities. Expo mobile delivery is planned under
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md).
 
 ```text
 Browser -> SvelteKit SSR/forms and same-origin proxy -> Python API -> Postgres
-Android / API client -> Python API using a local session bearer token
+API client -> Python API using a local session bearer token
 Scryfall -> Python worker -> Postgres catalog generation -> atomic publication
 Scan image bytes -> Python API -> Python scan-worker in memory
                                -> Postgres recognition/review metadata only
@@ -104,8 +104,8 @@ integrated parity reads and closed web commands, verification evidence and remai
 checks.
 
 The earlier API-preparation pass left app delivery for later. The accepted 2026-10-16 PWA/QR
-delivery extends the shared web client. The 2026-10-19 decision selects native Android delivery;
-hardware integration remains later work. MTG remains the only functional game scope. The selected
+delivery extends the shared web client. The native mobile app targets iOS and Android; hardware
+integration remains later work. MTG remains the only functional game scope. The selected
 synchronization scope is online-first visibility of saved account changes across connected clients
 within approximately two seconds under normal conditions. Clients reload current data after
 reconnect or app resume and preserve unsaved input. Offline writes and push notifications to closed
@@ -138,27 +138,25 @@ scalability, synchronization evidence or deployment.
 [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md) still describes the delivered
 web client; [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) replaces its
 future capture and recognition placement. The shared SvelteKit PWA supplies the implemented
-install/QR delivery; a separate Android application is the selected next client.
-[ADR-0024](../decisions/0024-independent-applications.md) now selects Kotlin/Compose for Android.
-Recognition runtime remains unselected.
+install/QR delivery. Expo and React Native are selected for independent mobile delivery. Recognition
+runtime remains unselected.
 [Mobile and scan](./mobile-and-scan.md#client-scope-and-open-responsibilities) owns integration
 status and pending target acceptance.
 
 ## Selected independent applications
 
 On 2026-10-19, the maintainer requested three separate applications in the same monorepo: the Svelte
-website, application backend and Android app. The integrated Python HTTP host and remote web adapter
-have separate build/start ownership. The layout retains frontend/backend/contracts and adds an
-independent Android Gradle project. Android source integration is complete; native device and final
-cross-client target acceptance remain pending. Worker packages retain Catalog/price publication and
-scan responsibilities. A wholesale directory rename or new monorepo orchestrator is not required.
+website, application backend and mobile app. The integrated Python HTTP host and remote web adapter
+have separate build/start ownership. The planned mobile app has its own build and release lifecycle.
+Worker packages retain Catalog/price publication and scan responsibilities. A wholesale directory
+rename or new monorepo orchestrator is not required.
 
 The independent HTTP boundary remains stable while the unmerged candidate activates the Python
 implementation. The HTTP host owns session authentication and backend use cases. SvelteKit retains
 SSR, native forms and browser cookies, forwarding session credentials through HTTP and preserving
 public same-origin API paths through the proxy. Serialized actor DTOs do not carry authority; the
-API must reauthenticate credentials. Kotlin, Go and Python clients need language-neutral request,
-response and error contracts, rather than importing TypeScript implementation types.
+API must reauthenticate credentials. API clients use language-neutral request, response and error
+contracts, rather than importing TypeScript implementation types.
 
 The implementation contract must cover complete web/API parity, wire errors, origin protection,
 QR/session behavior, account-scoped SSE and cancellation, original mutation receipts, text
@@ -166,10 +164,8 @@ conflicts, and Catalog generation/revision. Preserve Drizzle migration history, 
 resource Start/Close and PostgreSQL transaction ownership. Verify real HTTP/PostgreSQL, web
 SSR/forms, retries and two-process saved-state invalidation before declaring extraction complete.
 [The mobile handoff](../product/mobile-app-exploration.md#native-implementation-handoff) owns the
-stack recommendation and first native journeys.
-[ADR-0024](../decisions/0024-independent-applications.md) selects Kotlin/Compose. The
-[reviewed implementation contract](./independent-applications.md) owns extraction interfaces and
-acceptance. Language migration remains separate from this implemented first slice.
+mobile design. The [reviewed implementation contract](./independent-applications.md) owns extraction
+interfaces and acceptance. Language migration remains separate from this implemented first slice.
 
 ## Selected Python direction
 
@@ -180,7 +176,7 @@ server workers, grouped under `backend/`.
 ownership, exact package layout and migration planning. The unmerged candidate now activates Python
 API/Core and independent State, Catalog and Scan processes. Default launchers run the explicit
 Python migrator before starting runtime owners. The replaced Node server is removed while
-frontend/contracts/Android and unchanged SQL/Demo assets remain.
+frontend/contracts and unchanged SQL/Demo assets remain.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) and the
 [migration contract](./python-backend-migration.md) separate source completion from final
 integration and production operations. Review responsibilities, interfaces, dependency directions

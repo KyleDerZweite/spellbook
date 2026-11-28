@@ -368,7 +368,8 @@ from `API_TRUSTED_PROXY_ADDRESSES`.
 [Repository verification](./github-automation.md#python-api-and-core) owns package and real
 integration checks. Final-head PostgreSQL/HTTP/browser, scheduled worker, S3/provider and container
 shutdown evidence remains with Root and the operational owner. Source builds do not establish
-deployment. Android retains its [separate build and run instructions](../../android/README.md).
+deployment. The planned Expo app has its own delivery under
+[ADR-0031](../decisions/0031-expo-mobile-app-replacing-kotlin-android.md).
 
 ## PWA installation and QR use
 

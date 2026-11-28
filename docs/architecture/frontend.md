@@ -588,8 +588,8 @@ recognition boundaries.
 ## PWA and QR presentation
 
 The retained PWA uses one same-origin SvelteKit presentation with remote server loads/actions and
-ordinary account sessions. The API runs independently, and Kotlin/Compose Android is a separate
-client under the [implementation contract](./independent-applications.md). `/app` is its public
+ordinary account sessions. The API runs independently. The planned mobile app follows the
+[mobile delivery contract](./independent-applications.md#mobile-delivery). `/app` is the PWA
 launch/install hub and the manifest start URL. It composes the shared InstallApp control. Signed-in
 users see Connect device linking to `/app/connect`, Inventory and Decks; anonymous users see Sign
 in. Installation remains optional. Existing account/mobile App links lead here. At widths up to

@@ -66,7 +66,7 @@ def forbidden(owner: str, module: str) -> str | None:
         "backend",
         "workers",
     ]
-    client = parts[0] in {"frontend", "android", "contracts"}
+    client = parts[0] in {"frontend", "contracts"}
     framework = parts[0] in {"fastapi", "starlette", "uvicorn"}
     if client:
         return "server-client"
