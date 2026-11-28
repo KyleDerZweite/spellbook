@@ -856,9 +856,9 @@ External recognition results remain reviewable evidence.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records the local-recognition
 direction. MTG card camera capture remains under review, and the phone app should offer the
 website's functions. The accepted PWA delivery adds authorization QR camera/manual input, explicit
-signed-in approval and installed narrow bottom navigation. It retains ordinary browser navigation
-and password sign-in. [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns these
-interfaces and pending target acceptance.
+signed-in approval and password sign-in.
+[Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns these interfaces, responsive
+workspace navigation and pending target acceptance.
 [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns
 the open allocation and technology choices. The existing upload/review interface remains retained
 compatibility behavior.

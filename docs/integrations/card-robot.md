@@ -1,7 +1,7 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-11-24
+- Last Reviewed: 2026-11-28
 - Source of Truth: product requirements, scan API code, maintainer scope brief and supplied hardware
   concept
 - Update Triggers:
@@ -226,15 +226,16 @@ passwords, requester secrets or existing bearer tokens belong in a public QR.
 
 The existing website and Dashboard remain useful for Inventory, Deck and later machine/job
 management. QR and individual-card camera workflows are intended for the app presentation, with the
-accepted install/QR delivery using a same-origin SvelteKit PWA and installed narrow navigation. The
-shared API must support those extensions even when the ordinary website does not display them. A
-machine display and phone interface are proposed additional views of authorized state. The initial
-install/QR client is selected; device-to-phone communication, recognition runtimes and reuse remain
-open. The backend QR API, manifest and public-only worker are integrated; the PWA pages and
-navigation are implemented. Target verification is recorded with the change. No Jetson client,
-hardware control or local MTG recognition is implemented by that delivery. The existing
-image-upload/review route and API remain available; Scan UI development and navigation entrypoints
-are paused.
+accepted install/QR delivery using a same-origin SvelteKit PWA.
+[Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns responsive workspace
+navigation. The shared API must support those extensions even when the ordinary website does not
+display them. A machine display and phone interface are proposed additional views of authorized
+state. The initial install/QR client is selected; device-to-phone communication, recognition
+runtimes and reuse remain open. The backend QR API, manifest and public-only worker are integrated;
+the PWA pages and navigation are implemented. Target verification is recorded with the change. No
+Jetson client, hardware control or local MTG recognition is implemented by that delivery. The
+existing image-upload/review route and API remain available; Scan UI development and navigation
+entrypoints are paused.
 [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns
 the current allocation and unresolved contracts.
 

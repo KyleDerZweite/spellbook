@@ -143,7 +143,9 @@
 				const desktop = document.querySelector<HTMLElement>('.primary-nav a[href="/mtg/search"]');
 				const fallback = desktop?.getClientRects().length
 					? desktop
-					: document.querySelector<HTMLElement>('[data-navigation-trigger]');
+					: Array.from(document.querySelectorAll<HTMLElement>('[data-navigation-trigger]')).find(
+							(trigger) => trigger.getClientRects().length
+						);
 				const target =
 					returnFocus?.isConnected && returnFocus.getClientRects().length ? returnFocus : fallback;
 				target?.focus({ preventScroll: true });

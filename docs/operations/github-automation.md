@@ -361,10 +361,11 @@ integration; final current-head results remain the implementation owner's eviden
 
 Rendered desktop and narrow journeys must cover password fallback, QR pending/expiry/denial/retry,
 sign-in return to approval, manual input and foreign-instance rejection, camera
-denial/unavailability and stream cleanup. Verify installation from `/app`, standalone/narrow-only
-App, Search, Inventory, Decks and Connect bottom navigation, offline navigation without cached
-private data, and silent update checks on fresh entry and at 30-minute intervals. Check that a
-fresh page activates a waiting worker and another open page retains its draft. Use deployed
+denial/unavailability and stream cleanup. Verify installation from `/app`, bottom navigation in
+narrow browser and standalone workspace views per the
+[Frontend contract](../architecture/frontend.md#pwa-and-qr-presentation), offline navigation without
+cached private data, and silent update checks on fresh entry and at 30-minute intervals. Check that
+a fresh page activates a waiting worker and another open page retains its draft. Use deployed
 same-origin HTTPS for physical phone camera/install acceptance.
 
 Attempt Android Studio/emulator checks only with already installed tools. If those tools are absent

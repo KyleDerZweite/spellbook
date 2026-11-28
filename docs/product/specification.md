@@ -8,7 +8,8 @@
     - Account access, preferences and browser website language selection.
     - Independent API/web ownership, versioned MTG routes and module ownership.
     - Supported platforms, client feature parity and release acceptance.
-    - Mobile installation, PWA/QR delivery and pending browser/Android acceptance.
+    - Mobile installation, responsive workspace navigation, PWA/QR delivery and pending
+      browser/Android acceptance.
   - Dashboard and value:
     - Dashboard summaries, selected layout and compact Deck cards.
     - Daily metric cards, direct detail links and personal History previews.
@@ -106,10 +107,10 @@ common functions and app extensions; the ordinary website need not expose every 
 accepted 2026-10-16 delivery selects an installable, online-first, same-origin SvelteKit PWA with an
 `/app` launch/install hub, `/app/connect` camera/manual authorization QR scanning and explicit
 signed-in approval/denial at `/auth/approve`. Desktop login keeps the password form and adds QR
-sign-in alongside it. Installed narrow windows gain App, Search, Inventory, Decks and Connect bottom
-navigation; ordinary browser layouts retain their navigation. Further app-specific ideas are not yet
-requirements. [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records local
-recognition and the dated client-scope clarification.
+sign-in alongside it. [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns the
+responsive workspace navigation contract.
+[ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records local recognition and
+the dated client-scope clarification.
 [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns
 current status and unresolved contracts. The backend QR API, manifest and public-only service worker
 are integrated. The PWA pages and navigation are implemented. Target verification is recorded with
@@ -125,19 +126,19 @@ the GitHub Releases fallback and runtime settings.
 
 ## Capability status
 
-| Capability             | Current contract                                                                                                        | Boundary                                                                           |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Catalog search         | Search locally indexed Scryfall cards and select printings                                                              | Search quality and catalog freshness depend on successful worker ingestion         |
-| Dashboard              | Current account inventory totals, distributions, recently edited entries, deck availability and pending scan reviews    | Covered value estimates and captured history; no reservation across decks          |
-| Owned inventory        | Add, change, decrement, remove, bulk mutate and export printing entries as CSV                                          | No physical locations or per-copy identifiers                                      |
-| Inventory presentation | List presentation, filters, sorting, and owned set progress                                                             | No binder-style view or physical-location tracking                                 |
-| Deck builder           | Private deck editing, catalog and printing selection, role moves, import/export, and exact/alternate/missing totals     | Availability allocates within one deck and does not reserve inventory across decks |
-| Text exchange          | MTG Arena-style import preview and commit, plus deck text export                                                        | No CSV importer profiles or hosted-service scraping                                |
-| Import warnings        | Lightweight size, copy-count, and catalog legality warnings                                                             | No full MTG rules engine                                                           |
-| Automation             | Versioned inventory, deck, import, printing, and scan endpoints                                                         | The route and OpenAPI documents own wire contracts                                 |
-| Scan review            | Retained photo upload, owned session review, candidate submission, manual printing choice and explicit inventory commit | UI presentation is paused; no production recognizer, card camera capture or sorter |
-| Mobile web             | Accepted online-first SvelteKit PWA with install hub and installed narrow navigation                                    | Public-only offline fallback; final browser/Android acceptance pending             |
-| QR account sign-in     | Integrated five-minute browser/device challenge API; accepted camera/manual approval journey                            | Explicit signed-in decision; one-use redemption; no hardware enrollment            |
+| Capability             | Current contract                                                                                                                | Boundary                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Catalog search         | Search locally indexed Scryfall cards and select printings                                                                      | Search quality and catalog freshness depend on successful worker ingestion         |
+| Dashboard              | Current account inventory totals, distributions, recently edited entries, deck availability and pending scan reviews            | Covered value estimates and captured history; no reservation across decks          |
+| Owned inventory        | Add, change, decrement, remove, bulk mutate and export printing entries as CSV                                                  | No physical locations or per-copy identifiers                                      |
+| Inventory presentation | List presentation, filters, sorting, and owned set progress                                                                     | No binder-style view or physical-location tracking                                 |
+| Deck builder           | Private deck editing, catalog and printing selection, role moves, import/export, and exact/alternate/missing totals             | Availability allocates within one deck and does not reserve inventory across decks |
+| Text exchange          | MTG Arena-style import preview and commit, plus deck text export                                                                | No CSV importer profiles or hosted-service scraping                                |
+| Import warnings        | Lightweight size, copy-count, and catalog legality warnings                                                                     | No full MTG rules engine                                                           |
+| Automation             | Versioned inventory, deck, import, printing, and scan endpoints                                                                 | The route and OpenAPI documents own wire contracts                                 |
+| Scan review            | Retained photo upload, owned session review, candidate submission, manual printing choice and explicit inventory commit         | UI presentation is paused; no production recognizer, card camera capture or sorter |
+| Mobile web             | Online-first PWA with an install hub and [responsive workspace navigation](../architecture/frontend.md#pwa-and-qr-presentation) | Public-only offline fallback; final browser/Android acceptance pending             |
+| QR account sign-in     | Integrated five-minute browser/device challenge API; accepted camera/manual approval journey                                    | Explicit signed-in decision; one-use redemption; no hardware enrollment            |
 
 Local authentication and the interactive deck workspace are implemented. The deck workspace includes
 catalog and printing selection, quantity and role editing, per-deck availability, previewed imports,

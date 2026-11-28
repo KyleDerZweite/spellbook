@@ -1,7 +1,7 @@
 # System overview
 
 - Status: Canonical
-- Last Reviewed: 2026-11-02
+- Last Reviewed: 2026-11-28
 - Source of Truth: code and explicitly marked design requirements
 - Update Triggers:
   - Service boundaries, independent web/API/Android delivery and runtime allocation
@@ -60,16 +60,17 @@ database is required.
 Application requests run in Python and Catalog ingestion runs in the Python worker.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records future local
 recognition in the Android-first phone app and Jetson-hosted Cardstation. The accepted PWA/QR
-delivery uses the website's same-origin SvelteKit application with installed narrow navigation.
-Backend Auth owns the integrated browser/device QR authorization API; frontend owns QR/camera
-presentation and cookies. This does not implement a Jetson client or local MTG recognition. The
-shared API must support app extensions whether or not the ordinary website exposes them; exact
-runtimes and device contracts remain open. The backend accepts authorized outcomes and owns
-Inventory/Deck persistence; it does not infer a presented card from its image. Preparing public
-recognition references for client download remains part of the concept, with its contract unbuilt.
-The current Python Scan scaffold and image-upload workflow remain implemented compatibility
-behavior. [Mobile and scan](./mobile-and-scan.md#client-scope-and-open-responsibilities) owns client
-scope, including website functionality and additional capabilities in the phone app.
+delivery uses the website's same-origin SvelteKit application.
+[Frontend](./frontend.md#pwa-and-qr-presentation) owns responsive workspace navigation. Backend Auth
+owns the integrated browser/device QR authorization API; frontend owns QR/camera presentation and
+cookies. This does not implement a Jetson client or local MTG recognition. The shared API must
+support app extensions whether or not the ordinary website exposes them; exact runtimes and device
+contracts remain open. The backend accepts authorized outcomes and owns Inventory/Deck persistence;
+it does not infer a presented card from its image. Preparing public recognition references for
+client download remains part of the concept, with its contract unbuilt. The current Python Scan
+scaffold and image-upload workflow remain implemented compatibility behavior.
+[Mobile and scan](./mobile-and-scan.md#client-scope-and-open-responsibilities) owns client scope,
+including website functionality and additional capabilities in the phone app.
 
 Before setting hosted capacity targets, measure request latency, database query and connection
 waits, memory, and account-transaction latency during catalog refreshes. Budget PostgreSQL
