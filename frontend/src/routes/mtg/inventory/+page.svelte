@@ -187,6 +187,7 @@
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null),
 		groupList = $state<ReturnType<typeof GroupDirectory> | null>(null);
+	let toolbarHeight = $state(0);
 	let confirmedInventoryWrite = $state(0);
 	let anchorRestoreActive = false,
 		anchorController: AbortController | null = null;
@@ -1407,7 +1408,7 @@
 				</a>
 			</div>
 		{:else}
-			<div class="inventory-toolbar">
+			<div class="inventory-toolbar" bind:offsetHeight={toolbarHeight}>
 				<div class="inventory-search">
 					<Search size={16} aria-hidden="true" class="shrink-0" /><input
 						type="search"
@@ -1824,6 +1825,7 @@
 							{language.t('ui.Load.earlier.entries')}
 						</button>{/if}<VirtualInventoryList
 						bind:this={virtualList}
+						stickyToolbarHeight={mobileSheet.current ? toolbarHeight : 0}
 						total={currentWindow.matching.entryCount}
 						span={visitedSpan}
 						queryKey={window.queryIdentity}

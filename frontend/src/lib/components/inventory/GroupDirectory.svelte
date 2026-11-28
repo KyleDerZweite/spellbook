@@ -273,6 +273,7 @@
 				</a>
 				<ActionMenu
 					label={language.t('message.Actions.for.box.p0', { p0: String(group.name) })}
+					sheetOnMobile
 					iconOnly
 					bind:triggerRef={() => triggers[group.id] ?? null, (ref) => (triggers[group.id] = ref)}
 					onCloseAutoFocus={(event) => {

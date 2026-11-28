@@ -214,6 +214,43 @@ def main():
                             else:
                                 page.keyboard.press("Escape")
                             expect(actions).to_be_focused()
+                            if mobile and lang == "en":
+                                # Both presentation changes replace the Bits UI trigger.
+                                for start, end in ((390, 641), (641, 390)):
+                                    page.set_viewport_size(
+                                        {"width": start, "height": height}
+                                    )
+                                    filters.focus()
+                                    filters.press("Enter")
+                                    expect(panel).to_be_visible()
+                                    page.set_viewport_size(
+                                        {"width": end, "height": height}
+                                    )
+                                    expect(panel).to_have_css(
+                                        "position",
+                                        "fixed" if end == 390 else "relative",
+                                    )
+                                    page.keyboard.press("Escape")
+                                    expect(filters).to_be_focused()
+
+                                rows = page.locator("[data-inventory-row]")
+                                previous = rows.nth(4).locator(".entry-menu")
+                                following = rows.nth(5).locator(".card-identity")
+                                following.focus()
+                                previous.evaluate(
+                                    """(button) => {
+                                        const toolbar = document.querySelector('.inventory-toolbar');
+                                        window.scrollBy(0, button.getBoundingClientRect().bottom
+                                            - toolbar.getBoundingClientRect().bottom + 2);
+                                    }"""
+                                )
+                                page.keyboard.press("Shift+Tab")
+                                expect(previous).to_be_focused()
+                                assert previous.bounding_box()["y"] >= (
+                                    toolbar.bounding_box()["y"]
+                                    + toolbar.bounding_box()["height"]
+                                    - 1
+                                )
                             passed()
 
                             case = f"Decks filters and form dialog ({lang}, {width}x{height})"

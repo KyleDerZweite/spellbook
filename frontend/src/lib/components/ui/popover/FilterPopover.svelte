@@ -25,6 +25,20 @@
 		onOpenAutoFocus?: (event: Event) => void;
 		onCloseAutoFocus?: (event: Event) => void;
 	} = $props();
+	let triggerRef = $state<HTMLButtonElement | null>(null);
+
+	function restoreFocus(event: Event) {
+		// The old presentation unmounts when the viewport crosses the sheet breakpoint.
+		if (open) {
+			event.preventDefault();
+			return;
+		}
+		onCloseAutoFocus?.(event);
+		if (!event.defaultPrevented && triggerRef?.isConnected) {
+			event.preventDefault();
+			triggerRef.focus({ preventScroll: true });
+		}
+	}
 </script>
 
 {#snippet trigger()}
@@ -34,7 +48,11 @@
 
 {#if mobileSheet.current}
 	<Dialog.Root bind:open>
-		<Dialog.Trigger class="btn btn-ghost filter-trigger" data-active={active || undefined}>
+		<Dialog.Trigger
+			bind:ref={triggerRef}
+			class="btn btn-ghost filter-trigger"
+			data-active={active || undefined}
+		>
 			{@render trigger()}
 		</Dialog.Trigger>
 		<Dialog.Portal>
@@ -42,7 +60,7 @@
 			<Dialog.Content
 				class="surface-menu mobile-sheet filter-sheet"
 				{onOpenAutoFocus}
-				{onCloseAutoFocus}
+				onCloseAutoFocus={restoreFocus}
 			>
 				{#snippet child({ props })}
 					<div {...props} {@attach fitVisualViewport}>
@@ -64,7 +82,11 @@
 	</Dialog.Root>
 {:else}
 	<Popover.Root bind:open>
-		<Popover.Trigger class="btn btn-ghost filter-trigger" data-active={active || undefined}>
+		<Popover.Trigger
+			bind:ref={triggerRef}
+			class="btn btn-ghost filter-trigger"
+			data-active={active || undefined}
+		>
 			{@render trigger()}
 		</Popover.Trigger>
 		<Popover.Portal>
@@ -75,7 +97,7 @@
 				sideOffset={8}
 				collisionPadding={12}
 				{onOpenAutoFocus}
-				{onCloseAutoFocus}
+				onCloseAutoFocus={restoreFocus}
 			>
 				<ScrollArea viewportClass="filter-popover-body" viewportTabindex={-1}>
 					{@render children()}
