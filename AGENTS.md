@@ -15,6 +15,11 @@
   gracefully. After a crash, verify repository state, preserved work and runtime ownership yourself
   before starting subagents.
 - Use `main` as the base for PRs and merges.
+- Do not pause for confirmation on non-destructive in-scope work (installing dependencies, deleting
+  superseded files in scope, rebasing or `--force-with-lease` pushing a feature branch, running
+  local builds, tests or browser checks). Pause for confirmation only before truly destructive or
+  irreversible actions (force-pushing `main`, wiping production data or deleting unbacked-up user
+  data).
 - Write short, technical responses without internal summaries or verbose feedback loops. Avoid em
   dashes and en dashes. Use emojis only when functional.
 
