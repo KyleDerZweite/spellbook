@@ -68,15 +68,16 @@ async def read_transaction_token_facts(
     facts: dict[str, TokenFacts] = {}
     for offset in range(0, len(ids), 500):
         cursor = await tx.execute(
-            "SELECT p.id::text AS id,p.document->'related_tokens' AS tokens "
+            "SELECT p.id::text AS id,p.document->'related_tokens' AS tokens,"
+            "p.document->>'oracle_text' AS oracle_text "
             "FROM catalog_state s JOIN catalog_printings p "
             "ON p.generation_id=s.active_generation WHERE s.id=1 AND p.id=ANY(%s::uuid[])",
             (ids[offset : offset + 500],),
         )
-        for printing_id, metadata in await cursor.fetchall():
+        for printing_id, metadata, oracle in await cursor.fetchall():
             projected = token_facts_dto(metadata)
             if projected is not None and isinstance(printing_id, str):
-                facts[printing_id] = projected
+                facts[printing_id] = {**projected, "oracleText": oracle or ""}
     return {
         original: facts[normalized]
         for original, normalized in aliases.items()

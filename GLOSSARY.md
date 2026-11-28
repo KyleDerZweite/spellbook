@@ -1,11 +1,11 @@
 # Spellbook
 
 - Status: Canonical domain glossary
-- Last Reviewed: 2026-11-25
+- Last Reviewed: 2026-11-28
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account
   repositories
 - Update Triggers:
-  - Deck type groups and related Tokens
+  - Deck type groups and Deck Tokens
   - card identity
   - inventory grouping and Physical Box identity
   - deck roles
@@ -126,9 +126,9 @@ _Avoid_: Physical location, card type
 **Deck type group**: A presentation group of Main entries sharing an actual card type. _Avoid_: Deck
 role, Inventory group
 
-**Related Token**: A read-only reference to a Token associated with a Deck card, displayed after the
-Deck sections. It has no quantity, ownership or Deck requirement. _Avoid_: Deck entry, Inventory
-entry
+**Deck Token**: A per-Deck Token printing with a suggested quantity, source Deck entries and a
+signed user adjustment. Deck Tokens are independent of Deck requirements and Inventory ownership.
+_Avoid_: Deck entry, Inventory entry
 
 **Deck availability**: A comparison of one deck's required quantities with its owner's inventory,
 allocating exact printing matches before alternate printings. _Avoid_: Legality, physical

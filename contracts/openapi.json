@@ -10731,6 +10731,83 @@
 					},
 					"assembled": {
 						"type": "boolean"
+					},
+					"autoRefreshTokens": {
+						"type": "boolean"
+					},
+					"tokenAction": {
+						"oneOf": [
+							{
+								"type": "object",
+								"properties": {
+									"op": {
+										"type": "string",
+										"const": "refresh"
+									}
+								},
+								"required": ["op"]
+							},
+							{
+								"type": "object",
+								"properties": {
+									"op": {
+										"type": "string",
+										"const": "quantity"
+									},
+									"catalogCardId": {
+										"type": "string"
+									},
+									"quantity": {
+										"type": "integer",
+										"minimum": 0,
+										"maximum": 2147483647
+									}
+								},
+								"required": ["op", "catalogCardId", "quantity"]
+							},
+							{
+								"type": "object",
+								"properties": {
+									"op": {
+										"type": "string",
+										"const": "include"
+									},
+									"catalogCardId": {
+										"type": "string"
+									},
+									"included": {
+										"type": "boolean"
+									}
+								},
+								"required": ["op", "catalogCardId", "included"]
+							},
+							{
+								"type": "object",
+								"properties": {
+									"op": {
+										"type": "string",
+										"const": "remove"
+									},
+									"catalogCardId": {
+										"type": "string"
+									}
+								},
+								"required": ["op", "catalogCardId"]
+							},
+							{
+								"type": "object",
+								"properties": {
+									"op": {
+										"type": "string",
+										"const": "reset"
+									},
+									"catalogCardId": {
+										"type": "string"
+									}
+								},
+								"required": ["op", "catalogCardId"]
+							}
+						]
 					}
 				},
 				"required": []
@@ -13311,7 +13388,8 @@
 					"descriptionRevision",
 					"compositionRevision",
 					"createdAt",
-					"updatedAt"
+					"updatedAt",
+					"autoRefreshTokens"
 				],
 				"properties": {
 					"id": {
@@ -13351,6 +13429,10 @@
 					"updatedAt": {
 						"type": "string",
 						"format": "date-time"
+					},
+					"autoRefreshTokens": {
+						"type": "boolean",
+						"default": true
 					}
 				}
 			},
@@ -14419,7 +14501,11 @@
 					"collectorNumber",
 					"canonicalCardId",
 					"faces",
-					"sourceEntryIds"
+					"sourceEntryIds",
+					"suggestedQuantity",
+					"effectiveQuantity",
+					"userDelta",
+					"includeWhenOrphaned"
 				],
 				"properties": {
 					"catalogCardId": {
@@ -14451,6 +14537,20 @@
 						"items": {
 							"type": "string"
 						}
+					},
+					"suggestedQuantity": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"effectiveQuantity": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"userDelta": {
+						"type": "integer"
+					},
+					"includeWhenOrphaned": {
+						"type": "boolean"
 					}
 				}
 			},

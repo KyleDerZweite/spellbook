@@ -11,6 +11,10 @@ export interface RelatedTokenFace {
 }
 
 export interface RelatedToken {
+	suggestedQuantity: number;
+	userDelta: number;
+	effectiveQuantity: number;
+	includeWhenOrphaned: boolean;
 	catalogCardId: string;
 	canonicalCardId: string | null;
 	name: string;

@@ -12,6 +12,10 @@ const token = (id: string): RelatedToken => ({
 	setCode: 'TST',
 	collectorNumber: id,
 	sourceEntryIds: [],
+	suggestedQuantity: 1,
+	userDelta: 0,
+	effectiveQuantity: 1,
+	includeWhenOrphaned: false,
 	faces: ['Front', 'Back'].map((name) => ({
 		name,
 		typeLine: 'Token Creature',
@@ -40,6 +44,28 @@ describe('Deck token appendix', () => {
 		expect(body).toContain('two/Back.png');
 		expect(body.match(/<details/g)).toHaveLength(2);
 		expect(body).not.toMatch(/Add to deck|missing|owned/i);
+	});
+	it('marks an orphan and shows its retained quantity and print controls', () => {
+		const { body } = render(DeckTokens, {
+			props: {
+				tokens: snapshot('available', [
+					{
+						...token('orphan'),
+						suggestedQuantity: 0,
+						userDelta: 2,
+						effectiveQuantity: 2
+					}
+				]),
+				entries: [],
+				deckId: 'deck',
+				formAction: '?/tokenSettings'
+			}
+		});
+		expect(body).toContain('orphaned');
+		expect(body).toContain('No remaining source in this Deck');
+		expect(body).toContain('value="2"');
+		expect(body).toContain('Include in print');
+		expect(body).toContain('Reset to suggested');
 	});
 	it.each(['partial', 'unavailable'] as const)('shows %s source status', (status) => {
 		const { body } = render(DeckTokens, { props: { tokens: snapshot(status), entries: [] } });

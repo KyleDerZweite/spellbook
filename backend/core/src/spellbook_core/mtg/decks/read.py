@@ -10,7 +10,6 @@ from spellbook_core.db import ConnectionPool, Transaction, iso_timestamp, transa
 from spellbook_core.errors import ValidationError
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
-from spellbook_core.mtg.catalog_tokens import read_transaction_token_facts
 from spellbook_core.mtg.decks.common import (
     aggregate_quantity,
     card_dto,
@@ -42,7 +41,7 @@ from spellbook_core.mtg.decks.rules import (
     canonical_quantities,
     legality_warnings,
 )
-from spellbook_core.mtg.decks.tokens import related_tokens
+from spellbook_core.mtg.decks.tokens import calculate_tokens, token_snapshot
 from spellbook_core.mtg.errors import CatalogPrintingNotFoundError, DeckNotFoundError
 from spellbook_core.mtg.inventory_value import estimate_holdings, pair_key
 from spellbook_core.mtg.models import CardDocument
@@ -160,7 +159,9 @@ class DeckReads:
             clock = await first(tx, "SELECT statement_timestamp() AS as_of")
             user_decks = await rows(
                 tx,
-                "SELECT * FROM decks WHERE account_id=%s AND game=%s"
+                "SELECT id,account_id,game,name,description,format,assembled,auto_refresh_tokens,"
+                "description_revision,composition_revision,created_at,updated_at "
+                "FROM decks WHERE account_id=%s AND game=%s"
                 + (" AND id=%s::uuid" if independent and selected_deck_id else "")
                 + " ORDER BY updated_at DESC,name",
                 (account, requested_game, selected_deck_id)
@@ -215,12 +216,17 @@ class DeckReads:
                     error = PriceReadUnavailable()
                     failure = dict(kind=error.kind, message=str(error))
                 await tx.execute("RELEASE SAVEPOINT deck_value_summary")
+            persisted = (
+                await first(
+                    tx, "SELECT deck_tokens FROM decks WHERE id=%s::uuid", (selected_deck_id,)
+                )
+                if selected_deck_id
+                else {}
+            )
+            tokens = persisted.get("deck_tokens")
             return DeckSnapshot(
-                relatedTokens=related_tokens(
-                    cards,
-                    await read_transaction_token_facts(
-                        tx, [card["catalogCardId"] for card in cards]
-                    ),
+                relatedTokens=token_snapshot(
+                    tokens if tokens is not None else await calculate_tokens(tx, cards)
                 ),
                 decks=[deck_dto(d) for d in user_decks],
                 deckTotals={s["deck_id"]: aggregate_quantity(s["quantity"]) for s in summaries},

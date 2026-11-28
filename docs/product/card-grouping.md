@@ -1,7 +1,7 @@
 # Card grouping
 
 - Status: Canonical, Inventory groups implemented; Deck presentation contract accepted
-- Last Reviewed: 2026-11-11
+- Last Reviewed: 2026-11-28
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
 - Update Triggers:
   - managed Category removal
@@ -115,8 +115,22 @@ Commander, Main, Sideboard and Companion remain distinct Deck roles. Main groups
 actual card types from the Catalog. These presentation groups do not change Deck requirements,
 quantities or Inventory ownership.
 
-Tokens appear after the Deck sections as a read-only reference appendix. Each Token links directly
-to its source card. Tokens have no quantities, ownership or Deck requirements. The accepted
-implementation uses metadata published with the native Catalog and Demo Catalog and returned with
-the selected Deck snapshot. The browser performs no provider reads for Tokens. Runtime and rendered
-acceptance remain separate from this contract.
+### Deck Tokens
+
+The Deck Token list appears after the Deck sections. Spellbook uses direct Catalog Token references
+from Commander, Main and Companion entries and records the source entry IDs. Each source contributes
+an estimate. A fixed amount is multiplied by the entry's copies and capped at 10. Repeatable
+abilities contribute 3 per copy, capped at 6. Variable X contributes 3 per entry. An unclear
+Oracle-text amount contributes 1 per entry. Spellbook adds these estimates for each Token printing.
+
+Auto-refresh is on by default and recalculates the list when Deck composition changes. Turning it on
+recalculates immediately. Refresh Tokens recalculates on demand. Each refresh preserves the signed
+adjustment. Setting a quantity stores the difference from the suggestion, and reset clears the
+adjustment. The effective quantity is the suggestion plus the adjustment, with a minimum of 0.
+
+Tokens whose last source disappears stay visible with a zero suggestion and retain any positive
+adjustment. Users can remove these Tokens or include them in the printed Deck list. An included
+Token with quantity 0 prints as one copy. When source metadata is unavailable, Spellbook retains
+the last estimate for that source and reports incomplete Catalog evidence.
+
+Deck Tokens are independent of Deck size, format legality, valuation and Inventory ownership.

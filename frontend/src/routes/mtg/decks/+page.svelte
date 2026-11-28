@@ -1587,7 +1587,17 @@
 							onInspect={inspect}
 						/>
 					</section>{/each}
-				<DeckTokens tokens={savedDecks.relatedTokens} entries={deckCards} />
+				{#key selectedDeck?.id}
+					<DeckTokens
+						tokens={savedDecks.relatedTokens}
+						entries={deckCards}
+						deckId={selectedDeck?.id}
+						autoRefresh={selectedDeck?.autoRefreshTokens}
+						formAction={action('tokenSettings')}
+						{save}
+						{busy}
+					/>
+				{/key}
 
 				{#if !visibleCards.length && deckCards.length}<p class="empty-state">
 						{language.t('ui.No.deck.cards.match.this.filter')}

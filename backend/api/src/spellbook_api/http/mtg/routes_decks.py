@@ -203,6 +203,10 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
                 input[key] = read_string(body[key], key)
         if "assembled" in body:
             input["assembled"] = read_bool(body["assembled"], "assembled")
+        if "autoRefreshTokens" in body:
+            input["autoRefreshTokens"] = read_bool(body["autoRefreshTokens"], "autoRefreshTokens")
+        if "tokenAction" in body:
+            input["tokenAction"] = body["tokenAction"]
         if "description" in body:
             input["descriptionRevision"] = read_string(
                 body.get("descriptionRevision", MISSING), "descriptionRevision", ""

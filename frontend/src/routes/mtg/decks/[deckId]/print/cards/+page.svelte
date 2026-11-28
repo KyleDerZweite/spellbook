@@ -3,7 +3,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import { cachedCardImage, cardImageSrc } from '#lib/cards/card-image.ts';
-	import { printCopies, printPages } from '#lib/decks/print-sheet.ts';
+	import { isPrintableToken, printCopies, printPages } from '#lib/decks/print-sheet.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	import type { PageProps } from './$types';
 
@@ -13,7 +13,10 @@
 	let backFaces = $state(false);
 	let relatedTokens = $state(false);
 	const copies = $derived(
-		printCopies(data.cards, { backFaces, tokens: relatedTokens ? data.relatedTokens.items : [] })
+		printCopies(data.cards, {
+			backFaces,
+			tokens: relatedTokens ? data.relatedTokens.items.filter(isPrintableToken) : []
+		})
 	);
 	const pages = $derived(printPages(copies));
 	const settled = new SvelteMap<string, { image: HTMLImageElement; failed: boolean }>();

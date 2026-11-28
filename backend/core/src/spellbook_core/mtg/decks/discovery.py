@@ -15,10 +15,12 @@ from spellbook_core.mtg.decks.common import (
     authorize_write,
     deck_dto,
     first,
+    read_cards,
     rows,
 )
 from spellbook_core.mtg.decks.library import advance_deck_library_revision
 from spellbook_core.mtg.decks.models import Deck, Document
+from spellbook_core.mtg.decks.tokens import calculate_tokens, save_tokens
 from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.mtg.formats import MTG_FORMATS, MtgFormat
 from spellbook_core.mtg.inventory_value import exact_amount, pair_key, value_estimate
@@ -704,6 +706,9 @@ class DeckDiscovery:
                 )
                 copied_cards += qty
 
+            await save_tokens(
+                tx, deck_id, await calculate_tokens(tx, await read_cards(tx, account, deck_id))
+            )
             await advance_deck_library_revision(tx, account)
             return {
                 "deck": deck_dto(created),

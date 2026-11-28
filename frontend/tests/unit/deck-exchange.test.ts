@@ -256,7 +256,29 @@ describe('authenticated downloads and print', () => {
 					})),
 					relatedTokens: {
 						status: 'partial',
-						items: [{ name: 'Soldier', setCode: 'tst', collectorNumber: '1' }],
+						items: [
+							{
+								name: 'Soldier',
+								setCode: 'tst',
+								collectorNumber: '1',
+								suggestedQuantity: 2,
+								effectiveQuantity: 3
+							},
+							{
+								name: 'Included Spirit',
+								suggestedQuantity: 0,
+								includeWhenOrphaned: true,
+								effectiveQuantity: 2,
+								setCode: 'tst'
+							},
+							{
+								name: 'Excluded Spirit',
+								suggestedQuantity: 0,
+								includeWhenOrphaned: false,
+								effectiveQuantity: 2,
+								setCode: 'tst'
+							}
+						],
 						unresolved: [{ name: 'Unknown', catalogCardId: 'unknown' }],
 						unavailableEntryIds: []
 					}
@@ -266,8 +288,11 @@ describe('authenticated downloads and print', () => {
 		expect(body).toContain('Long &lt;Deck>');
 		for (const role of ['main', 'commander', 'sideboard', 'companion'])
 			expect(body).toContain(`Long &lt;Card> ${role}`);
-		expect(body).toContain('Related tokens');
-		expect(body).toContain("not included in the Deck's card totals");
+		expect(body).toContain('Deck Tokens');
+		expect(body).toContain('3 × Soldier');
+		expect(body).toContain('2 × Included Spirit');
+		expect(body).not.toContain('Excluded Spirit');
+		expect(body).toContain('Deck Tokens are listed separately from the Deck card total.');
 		expect(body).toContain('unavailable Printing unknown');
 	});
 });

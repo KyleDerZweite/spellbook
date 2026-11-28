@@ -225,6 +225,13 @@
 			"when": 1795680000000,
 			"tag": "0031_reference_decks",
 			"breakpoints": true
+		},
+		{
+			"idx": 32,
+			"version": "7",
+			"when": 1795824000000,
+			"tag": "0032_deck_tokens",
+			"breakpoints": true
 		}
 	]
 }
