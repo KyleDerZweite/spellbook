@@ -1,7 +1,7 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-11-22
+- Last Reviewed: 2026-11-28
 - Source of Truth: code
 - Update Triggers:
   - Registration policy, shared demo login and password recovery
@@ -97,16 +97,13 @@ While enabled:
   sign-in. `/auth/login` links to it and keeps its 12-character client-side rule.
 - Only the exact `demo` / `demo` login skips the 12-character rule, and the stored scrypt hash still
   decides. Every other account keeps the normal password rules.
-- Nobody can change the shared `demo` account's password, so visitors cannot lock each other out.
-  Both password APIs check the stored credential rather than the username alone and return HTTP 403
-  with `kind: PasswordChangeDisabled` when the account uses the shared `demo` password;
-  `/settings/password` stays usable for ordinary accounts (including one named `demo`) and shows the
-  localized 403 error if the shared account submits it. Other accounts change passwords as usual.
+- The shared account has read access. The API rejects writes with HTTP 403 and kind
+  `DEMO_ACCOUNT_READ_ONLY`, including password changes and QR linking.
+  [Authentication](../architecture/auth.md#credentials-and-sessions) owns the API contract.
 
 While disabled, both routes return 404 and `demo` / `demo` is rejected like any short password.
-Existing `demo` sessions stay valid, and the password lock stays in effect because it checks the
-stored credential, so switching off and on again keeps the shared credentials. To retire the account
-for good, set a new password with the [password operator](#set-or-reset-a-password).
+Existing shared Demo sessions stay valid and read-only. To retire the shared account, set a new
+password and revoke its sessions with the [password operator](#set-or-reset-a-password).
 
 Seed the account before enabling the switch. `spellbook-demo-account` works on any migrated database
 whose active Catalog contains the Upgrades Unleashed printings, including Production with other
@@ -160,8 +157,9 @@ sealed basic artwork variants and physical condition are unverified. Chishiro an
 as foil, the remaining cards as nonfoil, with NM as the Demo condition.
 [WPN product contents](https://wpn.wizards.com/en/products/kamigawa-neon-dynasty) identify two foil
 legendary cards and 98 additional cards. Public Catalog and private starters have separate
-responsibilities. Card images retain Scryfall source URLs. This is a shared editable account;
-changes persist across server restarts.
+responsibilities. Card images retain Scryfall source URLs. Visitors sign in to read the prepared
+state. The [Demo API policy](../architecture/auth.md#credentials-and-sessions) rejects writes
+from the shared account.
 
 The seed refuses databases with other usernames. To recreate the sole Demo account in an explicitly
 disposable target, stop private writers and run from the repository root:
@@ -289,11 +287,11 @@ with an automatic session.
 
 The selected 2026-11-06 contract separates public reference publication from disposable private Demo
 state. Production uses normal accounts and persistent private data, and remains disabled until its
-first deliberate activation by the deployment owner. Public Demo permits only `demo` sessions,
-including previously issued sessions and QR issuance. Development uses normal accounts and
-persistent private data, without Demo seeding or reset. Demo static example valuation remains
-selected through `DEMO_MODE`; Catalog freshness does not change that valuation policy. Splitting
-valuation into a separate mode is an unselected product change.
+first deliberate activation by the deployment owner. Public Demo admits only read-only `demo`
+sessions. Development uses normal accounts and persistent private data, without Demo seeding or
+reset. Demo static example valuation remains selected through `DEMO_MODE`; Catalog freshness does
+not change that valuation policy. Splitting valuation into a separate mode is an unselected product
+change.
 
 Ordinary Demo startup migrates once and seeds only missing private state. It bootstraps the English
 bundle only when no active Catalog exists. An existing full `all_cards` publication and all public

@@ -85,6 +85,11 @@ jobs:
         env:
           DECK_NATIVE_DATABASE: spellbook_test
         run: .venv/bin/python -m pytest ../core/tests/test_decks_postgres.py
+      - name: Shared Demo API read-only PostgreSQL coverage
+        working-directory: backend/api
+        env:
+          DEMO_READ_ONLY_TEST_DATABASE: spellbook_test
+        run: .venv/bin/python -m pytest tests/test_demo_read_only.py
       - run: pnpm test:http
       - run: pnpm test:scan
       - run: pnpm test:sync

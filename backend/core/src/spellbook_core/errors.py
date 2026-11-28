@@ -33,3 +33,7 @@ class ProfileError(Exception):
     def __init__(self, message: str, fields: dict[str, str]):
         self.fields = fields
         super().__init__(message)
+
+
+class DemoAccountReadOnly(Exception):
+    """The shared Demo account cannot persist changes."""
