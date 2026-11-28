@@ -1214,9 +1214,11 @@
 					<strong>{currentWindow.totals.setCount}</strong>
 					{language.t('ui.sets')}
 				</p>{/snippet}
-			{#snippet actions()}{#if groupDirectory}<Button
-						onclick={(event) => editGroup(null, event.currentTarget)}
-					>
+			{#snippet actions()}
+				<Button href="/api/v1/mtg/inventory/export" download variant="secondary">
+					{language.t('ui.Export.inventory.csv')}
+				</Button>
+				{#if groupDirectory}<Button onclick={(event) => editGroup(null, event.currentTarget)}>
 						<Plus size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.New.box')}
 					</Button>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}>
 						{language.t('ui.Assign.cards')}

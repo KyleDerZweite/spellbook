@@ -1,7 +1,9 @@
 """Inventory snapshot queries. The application owns authentication and transactions."""
 
+import csv
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from io import Writer
 from typing import Literal, TypedDict
 
 from psycopg.rows import class_row
@@ -327,3 +329,46 @@ async def read_page(
         "setProgress": progress,
         "viewedAt": iso_timestamp(datetime.now(UTC)),
     }
+
+
+async def write_inventory_csv(
+    tx: Transaction, inventory_id: str | None, account_id: str, output: Writer[str]
+) -> None:
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(
+        (
+            "name",
+            "setCode",
+            "collectorNumber",
+            "finish",
+            "condition",
+            "language",
+            "quantity",
+            "boxes",
+            "scryfallId",
+            "oracleId",
+        )
+    )
+    if inventory_id is None:
+        return
+
+    async with tx.cursor("inventory_csv") as cursor:
+        await cursor.execute(
+            """SELECT e.name,e.set_code,p.collector_number,e.finish,e.condition,p.lang,e.quantity,
+                COALESCE((
+                    SELECT json_agg(g.name ORDER BY g.name,g.id)::text
+                    FROM inventory_group_memberships m
+                    JOIN inventory_groups g ON g.id=m.group_id AND g.inventory_id=e.inventory_id
+                    WHERE m.entry_id=e.id
+                ),'[]'),e.catalog_card_id,e.canonical_card_id
+            FROM inventory_cards e
+            LEFT JOIN catalog_printings p
+                ON p.generation_id=(SELECT active_generation FROM catalog_state WHERE id=1)
+                AND p.id=CASE WHEN pg_input_is_valid(e.catalog_card_id,'uuid')
+                        THEN e.catalog_card_id::uuid END
+            WHERE e.inventory_id=%s AND e.account_id=%s AND e.game='mtg'
+            ORDER BY e.catalog_card_id,e.finish,e.condition""",
+            (inventory_id, account_id),
+        )
+        async for row in cursor:
+            writer.writerow(row)

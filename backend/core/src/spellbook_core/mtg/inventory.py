@@ -6,6 +6,7 @@ The caller owns pool lifetime and composed transactions. Construction performs n
 import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from io import Writer
 from typing import Literal, NotRequired, TypedDict, cast
 from uuid import uuid4
 
@@ -43,6 +44,7 @@ from spellbook_core.mtg.inventory_read import (
     _EntryRow,
     read_location,
     read_page,
+    write_inventory_csv,
 )
 from spellbook_core.mtg.inventory_read import (
     InventoryEntry as InventoryEntry,
@@ -1055,6 +1057,12 @@ class Inventory:
             if expected_revision is not None and expected_revision != revision:
                 return {"kind": "RevisionChanged", "revision": revision}
             return await read_page(tx, inventory_id, current.account_id, revision, query)
+
+    async def write_csv(self, actor: Actor, output: Writer[str]) -> None:
+        current = await self._auth.require_actor(actor)
+        async with transaction(self._pool, read_only=True, repeatable_read=True) as tx:
+            inventory_id, _ = await self._snapshot_inventory(tx, current.account_id)
+            await write_inventory_csv(tx, inventory_id, current.account_id, output)
 
     async def locate(
         self, actor: Actor, input: object, entry_id: str, expected_revision: str

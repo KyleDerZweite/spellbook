@@ -37,6 +37,8 @@ export interface DeckCard {
 	name: string;
 	setCode: string;
 	imageUri: string;
+	backFaceImageUri?: string;
+	backFaceName?: string;
 	quantity: number;
 	role: string;
 	createdAt: string;

@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-27
+- Last Reviewed: 2026-11-28
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers:
   - Account and platform behavior:
@@ -15,10 +15,10 @@
     - Market reference values, Inventory history and native Demo evaluation.
   - Catalog, Inventory and Decks:
     - Catalog identity, Inventory and Deck behavior, and import formats.
-    - Deck export formats, missing-cards wants-list export and the DIN A4 card sheet layout.
+    - Deck export formats, missing-cards wants-list export and DIN A4 card sheet options.
     - Deck Library ownership filters and views, SuperBrew Reference deck discovery and managed
       Category removal.
-    - Inventory metadata shortcuts, compact read-only rows and UTC New badges.
+    - Inventory metadata shortcuts, compact read-only rows, UTC New badges and CSV export.
     - Bounded Inventory loading, scaling evidence and API contracts.
     - Continuous Lazy browsing, Card dialogs and selected versus implemented read limits.
   - Scan and physical integration:
@@ -122,7 +122,7 @@ unimplemented.
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Catalog search         | Search locally indexed Scryfall cards and select printings                                                              | Search quality and catalog freshness depend on successful worker ingestion         |
 | Dashboard              | Current account inventory totals, distributions, recently edited entries, deck availability and pending scan reviews    | Covered value estimates and captured history; no reservation across decks          |
-| Owned inventory        | Add, change, decrement, remove, and bulk mutate printing entries                                                        | No physical locations or per-copy identifiers                                      |
+| Owned inventory        | Add, change, decrement, remove, bulk mutate and export printing entries as CSV                                          | No physical locations or per-copy identifiers                                      |
 | Inventory presentation | List presentation, filters, sorting, and owned set progress                                                             | No binder-style view or physical-location tracking                                 |
 | Deck builder           | Private deck editing, catalog and printing selection, role moves, import/export, and exact/alternate/missing totals     | Availability allocates within one deck and does not reserve inventory across decks |
 | Text exchange          | MTG Arena-style import preview and commit, plus deck text export                                                        | No CSV importer profiles or hosted-service scraping                                |
@@ -377,8 +377,14 @@ replacement's current-head acceptance. Performance on other hardware remains unm
 Physical locations, binder or box assignment, loans, individual copy identifiers, per-copy
 provenance, and physical movement history are planned. The inventory currently stores aggregate
 quantities. Catalog printing identity includes language, but there is no separate physical-copy
-language or location record. Inventory export and CSV exchange require separate implementation; deck
-text export does not establish inventory export support.
+language or location record.
+
+Export Inventory (CSV) downloads all entries for the signed-in account, regardless of filters,
+selected Box or loaded ranges. The UTF-8 CSV uses RFC 4180 escaping and includes one row per entry
+with its canonical card name, set code, collector number, finish, condition, printing language,
+quantity, Box names, Scryfall ID and Oracle ID. The Box names form a JSON array in one CSV field. If
+the active Catalog lacks a Printing, the collector number and language are blank. An empty Inventory
+downloads a header-only file. Inventory CSV import remains outside the current scope.
 
 ## Deck builder
 
@@ -534,8 +540,13 @@ locale (`de` uses `ebay.de`, otherwise `ebay.com`).
 The authenticated `/mtg/decks/[deckId]/print/cards` view prints the cards the Deck text export
 covers: every entry in every Deck role, with one printed card per required copy, so an entry with
 quantity three prints three cards. Copies follow Commander, Main Deck, Sideboard and Companion
-order. Related Tokens are not printed. Each card shows the stored image of the entry's selected
-Printing, the same image the Deck workspace displays.
+order. Each card shows the stored image of the entry's selected Printing, the same image the Deck
+workspace displays.
+
+The preview offers three options, all off by default. Cut marks add corner guides outside each
+occupied slot. Print back faces adds a separate slot immediately after each copy of a double-faced
+Printing with a stored back image. Related Tokens appends one slot for each resolved Related Token
+using its first face. The options apply to the current preview and stay off the printed page.
 
 Printing uses the browser print dialog on DIN A4 portrait paper. Each page holds 3 × 3 cards at the
 real card size of 63 mm × 88 mm with 3 mm gaps, 7.5 mm left and right margins and 13.5 mm top and
@@ -545,10 +556,8 @@ does not depend on the viewport. Cards do not overlap, are not clipped and never
 The Print cards action stays disabled until every card image has loaded or failed. A card without a
 stored image, or whose image fails to load, keeps its slot and shows its card name.
 
-Known limits: double-faced cards print only the stored front-face image, and back faces are not
-added. The output contains no cut marks, bleed, other paper sizes or layout options, and Spellbook
-does not generate a PDF; users can save as PDF from the browser dialog. Real size requires printing
-at 100% scale (actual size); browser or printer scaling such as "fit to page" changes the card size.
+The sheet has no bleed and uses A4 portrait. To create a PDF, use the browser print dialog's Save as
+PDF option. Print at 100% scale (actual size) to preserve the card dimensions.
 
 Warnings follow the versioned [deck format legality rules (`deck-rules` v1)](./deck-rules.md),
 covering constructed and Commander deck sizes, copy limits, Vintage restricted quantities, catalog

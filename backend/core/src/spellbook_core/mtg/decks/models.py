@@ -1,6 +1,6 @@
 """Deck DTOs and JSON operation boundaries shared by application and HTTP callers."""
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from spellbook_core.mtg.models import CardDocument
 
@@ -48,6 +48,8 @@ class AssembledDeckShare(TypedDict):
 
 
 class DeckCard(CardIdentity):
+    backFaceName: NotRequired[str]
+    backFaceImageUri: NotRequired[str]
     id: str
     deckId: str
     accountId: str

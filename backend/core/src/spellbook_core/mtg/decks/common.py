@@ -111,8 +111,13 @@ async def read_cards(tx: Transaction, account: str, deck_id: str) -> list[DeckCa
         for row in await rows(
             tx,
             (
-                "SELECT * FROM deck_cards WHERE deck_id=%s::uuid AND "
-                "account_id=%s ORDER BY role,name"
+                """SELECT e.*,p.document->>'back_face_name' AS back_face_name,
+                p.document->>'back_face_image_uri' AS back_face_image_uri
+                FROM deck_cards e LEFT JOIN catalog_printings p
+                    ON p.generation_id=(SELECT active_generation FROM catalog_state WHERE id=1)
+                    AND p.id=CASE WHEN pg_input_is_valid(e.catalog_card_id,'uuid')
+                        THEN e.catalog_card_id::uuid END
+                WHERE e.deck_id=%s::uuid AND e.account_id=%s ORDER BY e.role,e.name"""
             ),
             (deck_id, account),
         )
@@ -136,7 +141,7 @@ def deck_dto(row: Document) -> Deck:
 
 
 def card_dto(row: Document) -> DeckCard:
-    return DeckCard(
+    card = DeckCard(
         id=str(row["id"]),
         deckId=str(row["deck_id"]),
         accountId=row["account_id"],
@@ -151,6 +156,12 @@ def card_dto(row: Document) -> DeckCard:
         createdAt=iso_timestamp(row["created_at"]),
         updatedAt=iso_timestamp(row["updated_at"]),
     )
+
+    if back_image := row.get("back_face_image_uri"):
+        card["backFaceImageUri"] = back_image
+        if back_name := row.get("back_face_name"):
+            card["backFaceName"] = back_name
+    return card
 
 
 def card_identity(card: CardDocument) -> CardIdentity:

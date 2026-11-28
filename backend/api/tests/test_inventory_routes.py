@@ -3,9 +3,12 @@
 SQL integration is covered by the separately guarded Core tests, not by these receipts.
 """
 
+import asyncio
 import json
 from collections.abc import Iterator
+from io import Writer
 from pathlib import Path
+from tempfile import SpooledTemporaryFile
 from typing import Any, cast
 from unittest.mock import AsyncMock, create_autospec, patch
 
@@ -26,6 +29,8 @@ from spellbook_core.mtg.inventory import (
     InventoryAcknowledgement,
     RecordedInventoryMutation,
 )
+from starlette.types import Message
+from test_request_disconnect import scope
 
 from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
 
@@ -83,6 +88,94 @@ def test_factory_matches_openapi_inventory_operations() -> None:
         if method in {"get", "post", "put", "patch", "delete"}
     }
     assert actual == expected
+
+
+def test_export_download_requires_auth_and_contains_csv(
+    routes: tuple[Any, Inventory, TestClient, AsyncMock],
+) -> None:
+    auth, inventory, client, _ = routes
+
+    async def write_csv(actor: Actor, output: Writer[str]) -> None:
+        assert actor == ACTOR
+        output.write("name,quantity\r\n")
+
+    with patch.object(inventory, "write_csv", write_csv):
+        response = client.get(BASE + "/export?accountId=other&limit=1")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/csv; charset=utf-8"
+        assert response.headers["content-disposition"] == 'attachment; filename="inventory.csv"'
+        assert response.headers["cache-control"] == "no-store"
+        assert response.content == b"name,quantity\r\n"
+
+        auth.validate_session.return_value = None
+        assert client.get(BASE + "/export").status_code == 401
+
+
+def test_stalled_exports_leave_admission_for_inventory_reads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from spellbook_api.http.mtg import routes_inventory
+
+    async def scenario() -> None:
+        monkeypatch.setattr(routes_inventory, "INVENTORY_CSV_SEND_SECONDS", 0.5)
+        auth = create_autospec(SessionAuth, instance=True)
+        auth.validate_session.return_value = ACTOR
+        inventory = create_autospec(Inventory, instance=True)
+        inventory.page.return_value = {"kind": "Page"}
+        files: list[SpooledTemporaryFile[str]] = []
+
+        async def write_csv(actor: Actor, output: SpooledTemporaryFile[str]) -> None:
+            files.append(output)
+            output.write("name\r\n")
+
+        inventory.write_csv.side_effect = write_csv
+        app = application(create_inventory_routes(auth, inventory, ORIGIN), ORIGIN, auth)
+
+        async def request(path: str, block: bool = False) -> int:
+            status = 0
+
+            reading = False
+
+            async def receive() -> Message:
+                nonlocal reading
+                assert not reading
+                reading = True
+                try:
+                    return await asyncio.Future()
+                finally:
+                    reading = False
+
+            async def send(message: Message) -> None:
+                nonlocal status
+                if message["type"] == "http.response.start":
+                    status = message["status"]
+                elif block and status == 200:
+                    await asyncio.Future()
+
+            try:
+                await app(
+                    scope("GET", path, [(b"authorization", b"Bearer " + TOKEN.encode())]),
+                    receive,
+                    send,
+                )
+            except TimeoutError:
+                assert block and status == 200
+            return status
+
+        stalled = [asyncio.create_task(request(BASE + "/export", block=True)) for _ in range(32)]
+        try:
+            assert await asyncio.wait_for(request(BASE), timeout=2) == 200
+            results = await asyncio.wait_for(asyncio.gather(*stalled), timeout=2)
+            assert results.count(200) == routes_inventory.INVENTORY_CSV_ACTIVE
+            assert results.count(503) == len(stalled) - results.count(200)
+            assert all(file.closed for file in files)
+            assert await request(BASE + "/export") == 200
+        finally:
+            for task in stalled:
+                task.cancel()
+            await asyncio.gather(*stalled, return_exceptions=True)
+
+    asyncio.run(scenario())
 
 
 @pytest.mark.parametrize(

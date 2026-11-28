@@ -2599,7 +2599,10 @@ test('built HTTP application preserves public Catalog and local account journeys
 					required: 4294967294,
 					exact: 4294967294,
 					alternate: 0,
-					missing: 0
+					missing: 0,
+					free: 4294967294,
+					inOtherDecks: 0,
+					conflict: 0
 				});
 			}
 		);
