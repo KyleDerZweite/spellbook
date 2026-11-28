@@ -274,10 +274,6 @@
 				return;
 			focused = index;
 			focusedSnapshot = { queryKey, index, entry };
-			if (stickyToolbarHeight > 0) {
-				const overlap = viewportTop() + 4 - target.getBoundingClientRect().top;
-				if (overlap > 0) window.scrollBy({ top: -overlap, behavior: 'instant' });
-			}
 		};
 		window.addEventListener('scroll', scroll, { passive: true });
 		window.addEventListener('resize', scroll, { passive: true });

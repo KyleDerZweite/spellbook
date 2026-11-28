@@ -187,6 +187,7 @@
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null),
 		groupList = $state<ReturnType<typeof GroupDirectory> | null>(null);
+	let toolbar = $state<HTMLDivElement | null>(null);
 	let toolbarHeight = $state(0);
 	let confirmedInventoryWrite = $state(0);
 	let anchorRestoreActive = false,
@@ -938,6 +939,19 @@
 		if (removalReturnTarget?.isConnected) removalReturnTarget.focus({ preventScroll: true });
 		else searchInput?.focus({ preventScroll: true });
 	}
+	function revealInventoryFocus(event: FocusEvent) {
+		const target = event.target;
+		if (
+			!mobileSheet.current ||
+			!toolbar ||
+			!(target instanceof HTMLElement) ||
+			toolbar.contains(target) ||
+			!(toolbar.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING)
+		)
+			return;
+		const overlap = toolbar.getBoundingClientRect().bottom + 4 - target.getBoundingClientRect().top;
+		if (overlap > 0) globalThis.window.scrollBy({ top: -overlap, behavior: 'instant' });
+	}
 	function editFilter(field: 'set' | 'finish' | 'condition', event: MouseEvent) {
 		filterField = field;
 		filterReturnTarget = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
@@ -1112,7 +1126,7 @@
 		<SavedStateStatus resource={inventorySubscription} />
 		<p>{language.t('ui.Sign.in.again.to.load.Inventory')}</p>
 	</div>{:else}
-	<div class="inventory-page workspace-container">
+	<div class="inventory-page workspace-container" onfocusin={revealInventoryFocus}>
 		<SavedStateStatus resource={inventorySubscription} />
 		{#if notesRecovery}
 			<section aria-labelledby="notes-recovery-title" class="inspector-form">
@@ -1408,7 +1422,7 @@
 				</a>
 			</div>
 		{:else}
-			<div class="inventory-toolbar" bind:offsetHeight={toolbarHeight}>
+			<div class="inventory-toolbar" bind:this={toolbar} bind:offsetHeight={toolbarHeight}>
 				<div class="inventory-search">
 					<Search size={16} aria-hidden="true" class="shrink-0" /><input
 						type="search"

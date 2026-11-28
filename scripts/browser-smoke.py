@@ -234,23 +234,37 @@ def main():
                                     expect(filters).to_be_focused()
 
                                 rows = page.locator("[data-inventory-row]")
-                                previous = rows.nth(4).locator(".entry-menu")
-                                following = rows.nth(5).locator(".card-identity")
-                                following.focus()
-                                previous.evaluate(
-                                    """(button) => {
-                                        const toolbar = document.querySelector('.inventory-toolbar');
-                                        window.scrollBy(0, button.getBoundingClientRect().bottom
-                                            - toolbar.getBoundingClientRect().bottom + 2);
-                                    }"""
-                                )
-                                page.keyboard.press("Shift+Tab")
-                                expect(previous).to_be_focused()
-                                assert previous.bounding_box()["y"] >= (
-                                    toolbar.bounding_box()["y"]
-                                    + toolbar.bounding_box()["height"]
-                                    - 1
-                                )
+                                for previous, following in (
+                                    (
+                                        page.get_by_role(
+                                            "button", name="Sort by Quantity ascending"
+                                        ),
+                                        rows.first.locator(".card-identity"),
+                                    ),
+                                    (
+                                        rows.nth(4).locator(".entry-menu"),
+                                        rows.nth(5).locator(".card-identity"),
+                                    ),
+                                ):
+                                    following.focus()
+                                    previous.evaluate(
+                                        """(button) => {
+                                            const toolbar = document.querySelector('.inventory-toolbar');
+                                            const pinnedBottom = parseFloat(getComputedStyle(toolbar).top)
+                                                + toolbar.offsetHeight;
+                                            window.scrollBy(0, button.getBoundingClientRect().bottom
+                                                - pinnedBottom + 2);
+                                        }"""
+                                    )
+                                    page.keyboard.press("Shift+Tab")
+                                    expect(previous).to_be_focused()
+                                    assert previous.bounding_box()["y"] >= (
+                                        toolbar.bounding_box()["y"]
+                                        + toolbar.bounding_box()["height"]
+                                        - 1
+                                    ), (
+                                        f"Toolbar covers focused control: {previous.get_attribute('aria-label')}"
+                                    )
                             passed()
 
                             case = f"Decks filters and form dialog ({lang}, {width}x{height})"
