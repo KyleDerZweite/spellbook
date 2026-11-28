@@ -26,11 +26,13 @@
 	let {
 		discovery,
 		state: urlState,
+		demo = false,
 		readError = ''
 	}: {
 		discovery: DeckDiscoveryResponse | null;
 		state: DiscoveryUrlState;
 		readError?: string;
+		demo?: boolean;
 	} = $props();
 
 	let searchQuery = $state('');
@@ -465,10 +467,12 @@
 								class="copy-form"
 							>
 								<input type="hidden" name="referenceDeckId" value={deck.id} />
-								<Button type="submit" variant="default" disabled={copyingDeckId !== null}>
-									<Plus size={16} aria-hidden="true" />{copyingDeckId === deck.id
-										? language.t('deckDiscovery.addingToLibrary')
-										: language.t('deckDiscovery.addToLibrary')}
+								<Button type="submit" variant="default" disabled={demo || copyingDeckId !== null}>
+									<Plus size={16} aria-hidden="true" />{demo
+										? language.t('demo.disabled')
+										: copyingDeckId === deck.id
+											? language.t('deckDiscovery.addingToLibrary')
+											: language.t('deckDiscovery.addToLibrary')}
 								</Button>
 							</form>
 							{#if externalSourceUrl}

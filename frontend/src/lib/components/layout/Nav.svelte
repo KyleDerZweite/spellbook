@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { clearDemo } from '#lib/demo/storage.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import { authState } from '#lib/auth/state.svelte.ts';
@@ -96,6 +97,25 @@
 		return () => window.removeEventListener('scroll', update);
 	});
 	let mobileMenuOpen = $state(false);
+	let logoutError = $state(false);
+	let signingOut = false;
+
+	async function clearDemoBeforeLogout(event: SubmitEvent) {
+		const session = page.data.demoSession;
+		if (!session) return;
+		event.preventDefault();
+		if (signingOut) return;
+		signingOut = true;
+		logoutError = false;
+		try {
+			await clearDemo(session, true);
+			logoutForm?.submit();
+		} catch {
+			logoutError = true;
+			signingOut = false;
+		}
+	}
+
 	let logoutForm: HTMLFormElement | undefined = $state();
 	const userName = $derived(user?.username || language.t('ui.Account'));
 	const accountActions: ComponentProps<typeof ActionMenu>['items'] = $derived([
@@ -178,7 +198,13 @@
 			<ThemeToggle />
 			<LanguageSwitcher />
 			{#if user}
-				<form method="POST" action="/auth/logout" bind:this={logoutForm}></form>
+				<form
+					method="POST"
+					action="/auth/logout"
+					bind:this={logoutForm}
+					onsubmit={clearDemoBeforeLogout}
+				></form>
+				{#if logoutError}<p role="alert">{language.t('ui.Could.not.save.Try.again')}</p>{/if}
 			{/if}
 			<div class="desktop-account">
 				{#if user}

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { negotiateLocale, LOCALE_COOKIE } from '#lib/i18n/locale.ts';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { error } from '@sveltejs/kit';
@@ -9,7 +10,7 @@ import { requireFormOrigin } from '#lib/server/auth/csrf.ts';
 import '#lib/server/auth/registration.ts';
 import '#lib/server/auth/demo.ts';
 import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '#lib/seo/site.ts';
-import { SESSION_COOKIE, clearSessionCookie, validateSession } from '#lib/server/auth/session.ts';
+import { SESSION_COOKIE, clearSessionCookie, inspectSession } from '#lib/server/auth/session.ts';
 import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isAvailableGame } from '#lib/state/activeGame.svelte.ts';
 
 const PUBLIC_PATH_PREFIXES = ['/auth/', '/privacy', '/terms'];
@@ -84,13 +85,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 		token,
 		signal: event.request.signal
 	});
-	let session;
+	let inspected;
 	try {
-		session = await validateSession(token);
+		inspected = await inspectSession(token);
 	} catch (cause) {
 		if (cause instanceof RemoteError) error(cause.status, cause.message);
 		throw cause;
 	}
+	const session = inspected?.user ?? null;
+	event.locals.demoSession =
+		inspected?.readOnlyDemo && token
+			? createHash('sha256').update('spellbook-demo:').update(token).digest('hex')
+			: null;
 	if (token && !session) clearSessionCookie(event.cookies);
 	event.locals.user = session;
 	event.locals.mobileBearerUser = null;
@@ -120,7 +126,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const response = await resolve(event, {
-		transformPageChunk: ({ html }) => html.replace('%website.locale%', event.locals.locale)
+		transformPageChunk: ({ html }) =>
+			html
+				.replace('%website.locale%', event.locals.locale)
+				.replace('%website.preload%', event.locals.demoSession ? 'false' : 'hover')
 	});
 	response.headers.set('Content-Language', event.locals.locale);
 	response.headers.append('Vary', 'Cookie, Accept-Language');

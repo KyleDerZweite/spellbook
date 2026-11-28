@@ -14,6 +14,7 @@
     - Dashboard summaries, selected layout and compact Deck cards.
     - Daily metric cards, direct detail links and personal History previews.
     - Market reference values, Inventory history and native Demo evaluation.
+  - Shared Demo actions, reset and sign-out behavior.
   - Catalog, Inventory and Decks:
     - Catalog identity, Inventory and Deck behavior, and import formats.
     - Deck export formats, missing-cards wants-list export and DIN A4 card sheet options.
@@ -189,6 +190,18 @@ The [authentication architecture](../architecture/auth.md) owns the exact regist
 credential limits, session duration, rate limits, cookie behavior, bearer-token behavior, and
 migration procedure. Email verification, email password recovery, MFA, and delegated identity
 providers are not current features.
+
+## Shared Demo account
+
+The shared Demo sign-in opens prepared Inventory and Deck data. Visitors can edit Inventory entries
+and Boxes, Decks and their cards, the Assembled flag, Deck Tokens, and Physical Boxes. The browser
+keeps these changes for the current Demo sign-in across reloads. Reset Demo restores the prepared
+data. Signing out discards the browser's Demo changes.
+
+Scan uploads, account and password edits, QR device linking, and server-side imports are disabled in
+Demo mode. Personal accounts save to the server as usual. The
+[frontend architecture](../architecture/frontend.md#shared-demo-workspace) owns browser storage and
+read behavior.
 
 ## Profile card editor
 

@@ -27,6 +27,7 @@ ERROR = {
 }
 READ_POSTS: dict[str, dict[str, object]] = {
     "/api/v1/mtg/catalog/search": {"query": "Forest"},
+    "/api/v1/mtg/decks/token-preview": {"cards": []},
     "/api/v1/mtg/decks/import/preview": {"text": "1 Forest", "format": "Commander"},
     "/api/v1/mtg/decks/missing-export": {},
     "/api/v1/mtg/inventory/import/preview": {"text": "1 Forest"},
@@ -90,6 +91,7 @@ def test_demo_writes_do_not_reach_storage_or_scan_worker(
         assert normal.status_code == 201, normal.text
         account_id = normal.json()["user"]["accountId"]
         bearer = {"Authorization": "Bearer " + normal.json()["token"]}
+        assert "readOnlyDemo" not in client.get(f"{credentials}/session", headers=bearer).json()
         challenge = client.post(f"{qr}/requests", json={"kind": "device"}).json()
         code = challenge["code"]
         approval = client.post(
@@ -133,6 +135,7 @@ def test_demo_writes_do_not_reach_storage_or_scan_worker(
             f"{credentials}/session", headers={"Authorization": "Bearer " + linked_token}
         )
         assert linked.status_code == 200 and linked.json()["device"]["id"] == PLACEHOLDER
+        assert linked.json()["readOnlyDemo"] is True
 
         for method, template in sorted(operations(lifetime.http)):
             if method not in {"POST", "PUT", "PATCH", "DELETE"} or (

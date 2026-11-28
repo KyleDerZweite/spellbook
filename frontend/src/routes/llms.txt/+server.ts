@@ -14,7 +14,7 @@ Catalog browsing is public. Inventory, decks, scan sessions, and account setting
 		? `
 This deployment is in demo mode. New account registration is disabled. Do not call the registration API or claim that you created an account here.
 
-If the user explicitly asks to explore this shared demo, open the demo login page and follow the credentials displayed there. Demo activity uses a shared editable account. It does not create a personal account.
+If the user explicitly asks to explore this shared demo, open the demo login page and follow the credentials displayed there. The shared Demo account is read-only through the API. Interactive changes in the web app stay in the browser.
 
 For personal registration, ask the user for their intended non-demo Spellbook deployment.
 

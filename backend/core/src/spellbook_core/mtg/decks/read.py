@@ -35,6 +35,7 @@ from spellbook_core.mtg.decks.models import (
     DeckSnapshot,
     Document,
     OwnedPrinting,
+    TokenSource,
 )
 from spellbook_core.mtg.decks.rules import (
     allocate_deck_availability,
@@ -144,6 +145,10 @@ class DeckReads:
     auth: SessionAuth
     catalog: Catalog
     valuation: Valuation
+
+    async def preview_tokens(self, cards: list[TokenSource]) -> Document:
+        async with transaction(self.pool, read_only=True, repeatable_read=True) as tx:
+            return token_snapshot(await calculate_tokens(tx, cards))
 
     async def get_deck_snapshot(
         self,

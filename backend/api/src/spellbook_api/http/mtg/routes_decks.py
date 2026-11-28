@@ -8,12 +8,14 @@ from spellbook_core.errors import ValidationError
 from spellbook_core.models import Actor
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.decks.library import parse_library_input
+from spellbook_core.mtg.decks.models import TokenSource
 from spellbook_core.validation import (
     DECK_SOURCES,
     MISSING,
     assert_request_id,
     normalize_quantity,
     normalize_source,
+    positive_quantity,
 )
 from starlette.requests import Request
 from starlette.responses import Response
@@ -55,6 +57,39 @@ def library_input(request: Request) -> dict[str, object]:
 def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRouter:
     router = APIRouter()
     authenticated = actor_dependency(auth, origin)
+
+    async def token_preview(
+        actor: Annotated[Actor, Depends(authenticated)],
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 262144))],
+    ) -> Response:
+        source = body.get("cards")
+        if not isinstance(source, list) or len(source) > 1000:
+            raise ValidationError("Invalid Deck Token sources")
+        cards: list[TokenSource] = []
+        ids: set[str] = set()
+        for item in source:
+            if not isinstance(item, dict):
+                raise ValidationError("Invalid Deck Token source")
+            entry_id = require_uuid(item.get("id"))
+            role = item.get("role")
+            if entry_id in ids or role not in ("main", "commander", "companion", "sideboard"):
+                raise ValidationError("Invalid Deck Token source")
+            ids.add(entry_id)
+            cards.append(
+                {
+                    "id": entry_id,
+                    "catalogCardId": require_uuid(item.get("catalogCardId")),
+                    "quantity": positive_quantity(item.get("quantity")),
+                    "role": role,
+                }
+            )
+        return json_response(
+            await decks.preview_tokens(cards), headers={"Cache-Control": "private, no-store"}
+        )
+
+    router.add_api_route(
+        "/api/v1/mtg/decks/token-preview", token_preview, methods=["POST"], response_model=None
+    )
 
     async def library(
         request: Request, actor: Annotated[Actor, Depends(authenticated)]

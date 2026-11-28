@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { demoSaveError } from '#lib/demo/conflict.ts';
+	import { demoDeckChoices, mutateDemoDeck } from '#lib/demo/decks.ts';
+	import { invalidate } from '$app/navigation';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import Plus from '@lucide/svelte/icons/plus';
@@ -80,10 +83,13 @@
 			if (captured.deckId) params.set('selectedDeckId', captured.deckId);
 			loading = true;
 			try {
-				const value = await readSavedJSON<DeckChoicePage>('/api/v1/mtg/decks/choices?' + params, {
-					signal: lease.signal,
-					current
-				});
+				const session = page.data.demoSession;
+				const value = session
+					? await demoDeckChoices(session, captured.query, captured.offset, captured.deckId)
+					: await readSavedJSON<DeckChoicePage>('/api/v1/mtg/decks/choices?' + params, {
+							signal: lease.signal,
+							current
+						});
 				if (!current() || !value) return;
 				choices = value;
 				readError = '';
@@ -124,10 +130,46 @@
 		resource.dispose();
 		onPendingChange?.(false);
 	});
+	async function addDemo(session: string, accountId: string, form: FormData) {
+		const deckId = String(form.get('deckId') ?? '');
+		const deckName = selected?.name ?? deckId;
+		pending = true;
+		onPendingChange?.(true);
+		draft.error = '';
+		try {
+			await mutateDemoDeck({
+				session,
+				generation: page.data.demoWriteGeneration,
+				accountId,
+				deckId,
+				operation: 'addCard',
+				form,
+				printing: card
+			});
+			if (!mounted || page.data.demoSession !== session) return;
+			await invalidate('demo:decks');
+			draft.message = language.t('message.Added.p0.of.p1.to.p2', {
+				p0: String(form.get('quantity')),
+				p1: card.name,
+				p2: deckName
+			});
+		} catch (cause) {
+			draft.error = language.t(demoSaveError(cause));
+		} finally {
+			pending = false;
+			if (mounted) onPendingChange?.(false);
+		}
+	}
+
 	const add: SubmitFunction = ({ formData, submitter, cancel }) => {
 		const retry = submitter?.getAttribute('name') === 'retryOriginal';
 		if (blocked || (!retry && (!selected || loading || readError))) {
 			cancel();
+			return;
+		}
+		if (page.data.demoSession && account) {
+			cancel();
+			void addDemo(page.data.demoSession, account, formData);
 			return;
 		}
 		const entered: DeckAdditionIntent = {

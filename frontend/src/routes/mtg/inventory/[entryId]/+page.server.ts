@@ -9,7 +9,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		locals.user,
 		requireUuid(params.entryId, 'entryId')
 	);
-	if (!detail) error(404, 'Inventory entry not found');
+	const { demoSession } = locals;
+	if (!detail && !demoSession) error(404, 'Inventory entry not found');
 	const groups = await inventoryApplication.page(locals.user, {
 		...inventoryBrowseQuery(url).query,
 		view: 'groups',

@@ -40,6 +40,7 @@ import type { LegalityWarning } from '@spellbook/contracts/legality.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks');
+	const { demoSession } = locals;
 	const selectedDeckId = url.searchParams.get('deck') ?? null;
 	const tab: 'library' | 'discovery' =
 		!selectedDeckId && url.searchParams.get('tab') === 'discovery' ? 'discovery' : 'library';
@@ -142,34 +143,32 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			if (!selectedDeckId) throw error(changed ? 409 : 503, deckLibraryReadError);
 		}
 	}
-	let snapshot: DeckSnapshot;
+	const emptySnapshot = (): DeckSnapshot => ({
+		relatedTokens: {
+			status: 'unavailable',
+			items: [],
+			unresolved: [],
+			unavailableEntryIds: []
+		},
+		decks: [],
+		deckCards: [],
+		deckTotals: {},
+		deckCovers: {},
+		availability: {},
+		valueEstimates: null,
+		valuationError: null,
+		ownedByCanonical: {},
+		ownedPrintings: []
+	});
+	let snapshot = emptySnapshot();
 	try {
-		snapshot = selectedDeckId
-			? await application.decks.getDeck(locals.user, selectedDeckId)
-			: {
-					relatedTokens: {
-						status: 'unavailable',
-						items: [],
-						unresolved: [],
-						unavailableEntryIds: []
-					},
-					decks: [],
-					deckCards: [],
-					deckTotals: {},
-					deckCovers: {},
-					availability: {},
-					valueEstimates: null,
-					valuationError: null,
-					ownedByCanonical: {},
-					ownedPrintings: []
-				};
+		if (selectedDeckId) snapshot = await application.decks.getDeck(locals.user, selectedDeckId);
 	} catch (cause) {
-		if (cause instanceof DeckNotFoundError)
-			throw error(404, translate(locals.locale, 'notice.Deck.not.found'));
-		throw cause;
+		if (!(cause instanceof DeckNotFoundError)) throw cause;
+		if (!demoSession) throw error(404, translate(locals.locale, 'notice.Deck.not.found'));
 	}
 	const selectedDeck = snapshot.decks.find((deck) => deck.id === selectedDeckId);
-	if (selectedDeckId && !selectedDeck)
+	if (selectedDeckId && !selectedDeck && !demoSession)
 		throw error(404, translate(locals.locale, 'notice.Deck.not.found'));
 	const query = (url.searchParams.get('q') ?? '').trim().slice(0, 200);
 	const oracleId = url.searchParams.get('printing') ?? '';

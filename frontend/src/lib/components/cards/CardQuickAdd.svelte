@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { demoSaveError } from '#lib/demo/conflict.ts';
 	import { useLanguage } from '#lib/i18n/context.ts';
 	const language = useLanguage();
 	import Minus from '@lucide/svelte/icons/minus';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { page } from '$app/state';
 	import { untrack, onDestroy } from 'svelte';
+	import { mutateDemoInventory } from '#lib/demo/inventory.ts';
+	import { invalidate } from '$app/navigation';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
@@ -75,7 +78,40 @@
 		onPendingChange?.(false);
 	});
 	const hasAvailableFinish = $derived(card.is_nonfoil_available || card.is_foil_available);
+	async function addDemo(session: string, owner: string, form: FormData) {
+		pending = true;
+		onPendingChange?.(true);
+		draft.error = '';
+		try {
+			await mutateDemoInventory(
+				session,
+				'addToInventory',
+				form,
+				owner,
+				page.data.demoWriteGeneration,
+				card
+			);
+			if (!mounted || page.data.demoSession !== session) return;
+			await invalidate('demo:inventory');
+			draft.message = language.t('message.Added.p0.of.p1.to.inventory', {
+				p0: String(form.get('quantity')),
+				p1: card.name
+			});
+		} catch (cause) {
+			draft.error = language.t(demoSaveError(cause));
+		} finally {
+			pending = false;
+			if (mounted) onPendingChange?.(false);
+		}
+	}
+
 	const add: SubmitFunction = ({ formData, submitter, cancel }) => {
+		const session = page.data.demoSession;
+		if (session && account) {
+			cancel();
+			if (!blocked && hasAvailableFinish) void addDemo(session, account, formData);
+			return;
+		}
 		const retry = submitter?.getAttribute('name') === 'retryOriginal';
 		if (blocked || (!retry && !hasAvailableFinish)) {
 			cancel();

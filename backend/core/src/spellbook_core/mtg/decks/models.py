@@ -48,6 +48,13 @@ class AssembledDeckShare(TypedDict):
     quantity: int
 
 
+class TokenSource(TypedDict):
+    id: str
+    catalogCardId: str
+    quantity: int
+    role: str
+
+
 class DeckCard(CardIdentity):
     backFaceName: NotRequired[str]
     backFaceImageUri: NotRequired[str]

@@ -39,6 +39,7 @@ export interface LocalAuthApplication {
 }
 
 export interface SessionInfo {
+	readOnlyDemo?: true;
 	user: AuthUser;
 	expiresAt: string;
 	device: SessionDevice | null;

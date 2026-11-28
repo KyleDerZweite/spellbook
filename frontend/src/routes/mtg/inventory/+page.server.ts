@@ -47,16 +47,23 @@ export const load: PageServerLoad = async ({ locals, parent, url, request }) => 
 		throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
 	}
 
-	const { activeGame } = await parent();
+	const { activeGame, demoSession } = await parent();
 	const game = activeGame ?? DEFAULT_GAME;
 	try {
 		const { query, pagination } = inventoryBrowseQuery(url);
-		let window = await inventoryApplication.page(locals.user, query);
+		let window;
+		try {
+			window = await inventoryApplication.page(locals.user, query);
+		} catch (cause) {
+			if (!demoSession || !query.group || !(cause instanceof InventoryGroupNotFoundError))
+				throw cause;
+			window = await inventoryApplication.page(locals.user, { ...query, group: null });
+		}
 		if (window.kind !== 'Page') throw new Error('Initial window must be current');
 		const total =
 			query.view === 'groups' && !query.group ? window.groupCount : window.matching.entryCount;
 		let clamped = clampBrowsePagination(pagination, total);
-		if (clamped.page !== pagination.page) {
+		if (!demoSession && clamped.page !== pagination.page) {
 			if (request.method !== 'POST') redirect(307, browsePaginationHref(url, clamped));
 			// Native action results must survive range correction without replaying the POST.
 			window = await inventoryApplication.page(
@@ -75,7 +82,8 @@ export const load: PageServerLoad = async ({ locals, parent, url, request }) => 
 			if (window.kind !== 'Page') throw new Error('Initial window must be current');
 		}
 		return {
-			pagination: clamped,
+			pagination: demoSession ? pagination : clamped,
+			requestedDemoQuery: demoSession ? query : null,
 			requestId: crypto.randomUUID(),
 			window,
 

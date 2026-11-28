@@ -265,11 +265,13 @@ or calling the application. The response is HTTP 403 with
 `{"kind": "DEMO_ACCOUNT_READ_ONLY", "message": "The shared Demo account is read-only.", "status": 403}`.
 This covers account and credential changes, QR requests and decisions, linked device changes,
 Inventory, Deck and Physical Box changes, import commits, and Scan uploads and review commits. Read
-operations remain available, including POST Catalog search, Inventory price lookups, import previews
-and missing-card export. Demo device sessions do not slide their expiry. Password sign-in and
-session sign-out may still create and revoke the caller's own session. Unauthenticated QR requesters
-can use the ordinary challenge flow, but a previously approved shared Demo challenge cannot issue a
-session.
+operations remain available, including POST Catalog search, Inventory price lookups, import
+previews, Deck Token previews and missing-card export. Session inspection adds `readOnlyDemo: true`
+for shared Demo sessions so the web can select its
+[local workspace](./frontend.md#shared-demo-workspace). Demo device sessions do not slide their
+expiry. Password sign-in and session sign-out may still create and revoke the caller's own session.
+Unauthenticated QR requesters can use the ordinary challenge flow, but a previously approved shared
+Demo challenge cannot issue a session.
 
 [Demo setup](../operations/local-auth.md#demo-mode) and
 [shared demo login](../operations/local-auth.md#shared-demo-login) own seeding and reset commands.

@@ -24,6 +24,7 @@
     - Shared daily metrics, direct detail links and leased History previews.
     - Private value presentation, inline disclosure and boundary refresh.
     - Static Demo valuation, native Demo evaluation and accessible D3 charts.
+    - Session-scoped Demo workspace persistence and reset.
     - Mebius chart marks and selection behavior.
   - Inventory and Deck workspaces:
     - Inventory ordering, filters, metadata shortcuts and compact read-only rows.
@@ -363,6 +364,19 @@ Native Search route wiring has actual production-route HTML and PostgreSQL evide
 Inventory caller is integrated; local composed rendered evidence is recorded with
 [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192). Shared fixture-route checks alone
 do not establish production caller integration or rendered acceptance.
+
+## Shared Demo workspace
+
+The web server reads the API session's `readOnlyDemo` flag and provides a browser storage key
+derived from the session token. The browser never receives the token. Inventory, Deck and Physical
+Box forms switch to IndexedDB writes for that key. Reads combine prepared API data with the active
+Demo state. Ordinary accounts continue to use the existing web actions and SavedState refresh.
+
+The Demo workspace uses the `spellbook-demo` database, separate from the Catalog image cache. Reset
+and sign-out delete the session's workspace records in a read-write transaction. A generation marker
+prevents writes already in flight from restoring cleared records. A sign-out marker prevents an
+older tab from saving for the revoked session. The reset button reloads the route from the API after
+storage has cleared. Catalog lookups and Deck Token suggestions remain read-only API calls.
 
 ## Shared Deck UI
 

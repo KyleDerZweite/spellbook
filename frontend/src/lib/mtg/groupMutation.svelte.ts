@@ -1,3 +1,8 @@
+import { demoSaveError } from '#lib/demo/conflict.ts';
+import { translate } from '#lib/i18n/messages.ts';
+import { goto } from '$app/navigation';
+import { page } from '$app/state';
+import { demoInventoryOperation, mutateDemoInventory } from '#lib/demo/inventory.ts';
 import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 import type { SubmitFunction } from '$app/forms';
 
@@ -13,12 +18,41 @@ export class GroupMutation {
 		private account: () => string
 	) {}
 
+	private async saveDemo(session: string, account: string, action: URL, form: FormData) {
+		this.pending = true;
+		this.error = '';
+		try {
+			const operation = demoInventoryOperation(action);
+			await mutateDemoInventory(session, operation, form, account, page.data.demoWriteGeneration);
+			if (page.data.demoSession !== session) return;
+			if (operation === 'deleteGroup' && action.searchParams.get('group') === form.get('groupId')) {
+				const next = new URL(action);
+				next.searchParams.delete('group');
+				next.searchParams.delete('/deleteGroup');
+				next.searchParams.set('view', 'groups');
+				next.searchParams.set('page', '1');
+				await goto(next, { invalidateAll: true });
+			} else await this.refresh();
+			this.onSuccess();
+		} catch (cause) {
+			this.error = translate(page.data.locale, demoSaveError(cause));
+		} finally {
+			this.pending = false;
+		}
+	}
+
 	submit: SubmitFunction = ({ cancel, action, formData }) => {
 		if (this.pending) {
 			cancel();
 			return;
 		}
 		const account = this.account();
+		const session = page.data.demoSession;
+		if (session) {
+			cancel();
+			void this.saveDemo(session, account, action, formData);
+			return;
+		}
 		const payload =
 			account +
 			action.pathname +

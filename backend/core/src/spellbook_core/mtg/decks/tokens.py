@@ -1,13 +1,14 @@
 """Deck Token suggestions and persisted adjustments."""
 
 import re
+from collections.abc import Sequence
 
 from psycopg.types.json import Jsonb
 
 from spellbook_core.db import Transaction
 from spellbook_core.errors import ValidationError
 from spellbook_core.mtg.catalog_tokens import TokenFacts, read_transaction_token_facts
-from spellbook_core.mtg.decks.models import DeckCard, Document
+from spellbook_core.mtg.decks.models import DeckCard, Document, TokenSource
 
 _NUMBERS = {
     word: number
@@ -77,7 +78,9 @@ def suggested_quantity(oracle: str, token: Document, copies: int) -> int:
     return max(1, min(number * copies, 10)) if number is not None else 1
 
 
-def related_tokens(cards: list[DeckCard], facts: dict[str, TokenFacts]) -> Document:
+def related_tokens(
+    cards: Sequence[DeckCard | TokenSource], facts: dict[str, TokenFacts]
+) -> Document:
     cards = [card for card in cards if card["role"] in ("commander", "main", "companion")]
     items: dict[str, Document] = {}
     unresolved: dict[str, Document] = {}
@@ -166,7 +169,7 @@ def token_snapshot(tokens: Document) -> Document:
     }
 
 
-async def calculate_tokens(tx: Transaction, cards: list[DeckCard]) -> Document:
+async def calculate_tokens(tx: Transaction, cards: Sequence[DeckCard | TokenSource]) -> Document:
     participants = [card for card in cards if card["role"] in ("commander", "main", "companion")]
     return related_tokens(
         participants,

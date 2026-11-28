@@ -1,11 +1,66 @@
 <script lang="ts">
+	import { demoSaveError } from '#lib/demo/conflict.ts';
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
+	import { updateDemo } from '#lib/demo/storage.ts';
+	import { changePhysicalBoxes } from '#lib/demo/physical-boxes.ts';
+	import { ValidationError } from '@spellbook/contracts/validation.ts';
+	import { invalidate, invalidateAll } from '$app/navigation';
 	import { useLanguage } from '#lib/i18n/context.ts';
+	import type { PhysicalBox } from '@spellbook/contracts/physical-boxes.ts';
 	import type { PageProps } from './$types';
 
 	const language = useLanguage();
 	let { data, form }: PageProps = $props();
+
+	let pending = $state(false);
+	let localError = $state<
+		'physicalBoxes.nameError' | 'physicalBoxes.conditionError' | ReturnType<typeof demoSaveError>
+	>();
+	async function saveLocally(event: SubmitEvent) {
+		const session = page.data.demoSession;
+		if (!session) return;
+		event.preventDefault();
+		if (pending) return;
+		const target = event.currentTarget as HTMLFormElement;
+		const intent = new URL(target.action).search.slice(2);
+		const values = new FormData(target, event.submitter);
+		pending = true;
+		localError = undefined;
+		try {
+			await updateDemo(
+				session,
+				'physical-boxes',
+				data.seedBoxes,
+				(boxes) => changePhysicalBoxes(boxes, intent, values),
+				{ generation: page.data.demoWriteGeneration }
+			);
+			if (intent === 'create') target.reset();
+			await invalidate('demo:physical-boxes');
+		} catch (cause) {
+			localError =
+				cause instanceof ValidationError
+					? intent === 'condition'
+						? 'physicalBoxes.conditionError'
+						: 'physicalBoxes.nameError'
+					: demoSaveError(cause);
+		} finally {
+			pending = false;
+		}
+	}
+
+	async function downloadDemoLabel(box: PhysicalBox) {
+		try {
+			const { renderPhysicalBoxLabel } = await import('#lib/mtg/physical-box-label.ts');
+			const svg = await renderPhysicalBoxLabel(box);
+			const link = document.createElement('a');
+			link.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+			link.download = `spellbook-box-${box.id}.svg`;
+			link.click();
+		} catch {
+			localError = 'ui.Could.not.save.Try.again';
+		}
+	}
 
 	const colors = [
 		['white', 'color.White'],
@@ -22,11 +77,14 @@
 <svelte:head><title>{language.t('physicalBoxes.title')} | Spellbook</title></svelte:head>
 <div class="page-title"><h1>{language.t('physicalBoxes.title')}</h1></div>
 <form
-	use:enhance={() =>
-		async ({ result, update }) => {
+	onsubmit={saveLocally}
+	use:enhance={({ cancel }) => {
+		if (page.data.demoSession) return cancel();
+		return async ({ result, update }) => {
 			if (result.type === 'failure' && result.status === 409) await invalidateAll();
 			await update();
-		}}
+		};
+	}}
 	method="POST"
 	action="?/create"
 >
@@ -42,7 +100,7 @@
 		required
 		value={form?.intent === 'create' ? form.name : ''}
 	/>
-	<button type="submit">{language.t('physicalBoxes.create')}</button>
+	<button disabled={pending} type="submit">{language.t('physicalBoxes.create')}</button>
 	{#if form?.intent === 'create'}
 		<p role="alert">
 			{language.t(
@@ -55,6 +113,8 @@
 		</p>
 	{/if}
 </form>
+
+{#if localError}<p role="alert">{language.t(localError)}</p>{/if}
 
 {#if data.boxes.length === 0}
 	<p>{language.t('physicalBoxes.empty')}</p>
@@ -74,21 +134,39 @@
 		''}
 	<section aria-labelledby={`box-${box.id}`}>
 		<h2 id={`box-${box.id}`}>{box.name}</h2>
-		<a href={`/settings/physical-boxes/${box.id}/label.svg`} download>
-			{language.t('physicalBoxes.label')}
-		</a>
-		<form use:enhance method="POST" action="?/rename">
+		{#if page.data.demoSession}
+			<button type="button" onclick={() => downloadDemoLabel(box)}>
+				{language.t('physicalBoxes.label')}
+			</button>
+		{:else}<a href={`/settings/physical-boxes/${box.id}/label.svg`} download>
+				{language.t('physicalBoxes.label')}
+			</a>{/if}
+		<form
+			onsubmit={saveLocally}
+			use:enhance={({ cancel }) => {
+				if (page.data.demoSession) cancel();
+			}}
+			method="POST"
+			action="?/rename"
+		>
 			<input type="hidden" name="id" value={box.id} />
 			<label for={`name-${box.id}`}>{language.t('ui.Name')}</label>
 			<input id={`name-${box.id}`} name="name" required value={renameError?.name ?? box.name} />
-			<button type="submit">{language.t('ui.Rename')}</button>
+			<button disabled={pending} type="submit">{language.t('ui.Rename')}</button>
 			{#if renameError}<p role="alert">
 					{language.t(
 						renameError.validation ? 'physicalBoxes.nameError' : 'ui.Could.not.save.Try.again'
 					)}
 				</p>{/if}
 		</form>
-		<form use:enhance method="POST" action="?/condition">
+		<form
+			onsubmit={saveLocally}
+			use:enhance={({ cancel }) => {
+				if (page.data.demoSession) cancel();
+			}}
+			method="POST"
+			action="?/condition"
+		>
 			<input type="hidden" name="id" value={box.id} />
 			<h3>{language.t('physicalBoxes.condition')}</h3>
 			<p>{language.t('physicalBoxes.conditionHelp')}</p>
@@ -118,8 +196,10 @@
 			<label for={`set-${box.id}`}>{language.t('physicalBoxes.setCodes')}</label>
 			<input id={`set-${box.id}`} name="setCode" value={setCodes} />
 			<div class="buttons">
-				<button type="submit">{language.t('ui.Save')}</button>
-				<button type="submit" name="clear" value="1">{language.t('physicalBoxes.clear')}</button>
+				<button disabled={pending} type="submit">{language.t('ui.Save')}</button>
+				<button disabled={pending} type="submit" name="clear" value="1">
+					{language.t('physicalBoxes.clear')}
+				</button>
 			</div>
 			{#if conditionError}<p role="alert">
 					{language.t(
@@ -129,6 +209,12 @@
 					)}
 				</p>{/if}
 		</form>
+		{#if page.data.demoSession}
+			<form method="POST" action="?/delete" onsubmit={saveLocally}>
+				<input type="hidden" name="id" value={box.id} />
+				<button type="submit" disabled={pending}>{language.t('ui.Delete.box')}</button>
+			</form>
+		{/if}
 	</section>
 {/each}
 

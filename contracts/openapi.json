@@ -5890,6 +5890,54 @@
 				}
 			}
 		},
+		"/api/v1/mtg/decks/token-preview": {
+			"post": {
+				"summary": "Preview Deck Token suggestions without saving a Deck",
+				"security": [{ "bearerToken": [] }, { "sessionCookie": [] }],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"required": ["cards"],
+								"properties": {
+									"cards": {
+										"type": "array",
+										"maxItems": 1000,
+										"items": {
+											"type": "object",
+											"required": ["id", "catalogCardId", "quantity", "role"],
+											"properties": {
+												"id": { "type": "string", "format": "uuid" },
+												"catalogCardId": { "type": "string", "format": "uuid" },
+												"quantity": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+												"role": {
+													"type": "string",
+													"enum": ["main", "commander", "companion", "sideboard"]
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Suggestions from the active Catalog generation",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/DeckRelatedTokens" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/BadRequest" },
+					"401": { "description": "Authentication required" }
+				}
+			}
+		},
 		"/api/v1/mtg/decks/import/preview": {
 			"post": {
 				"summary": "Preview Arena text, simple text, Spellbook CSV or JSON v1",
@@ -9427,6 +9475,10 @@
 			"SessionInfo": {
 				"type": "object",
 				"properties": {
+					"readOnlyDemo": {
+						"const": true,
+						"description": "The authenticated account is the shared read-only Demo account."
+					},
 					"user": {
 						"$ref": "#/components/schemas/ProfileUser"
 					},

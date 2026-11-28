@@ -40,7 +40,9 @@
 	import SuperbrewDiscovery from '#lib/components/decks/SuperbrewDiscovery.svelte';
 	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import { demoSaveError } from '#lib/demo/conflict.ts';
+	import { mutateDemoDeck, type DemoDeck } from '#lib/demo/decks.ts';
+	import { goto, invalidate } from '$app/navigation';
 	import { page as routePage } from '$app/state';
 	import type { SubmitFunction } from '$app/forms';
 	import type { PageProps } from './$types';
@@ -70,7 +72,7 @@
 		{ value: 'companion', label: language.t('ui.Companion') }
 	]);
 	let { data, form }: PageProps = $props();
-	let savedDecks = $state(
+	let savedDecks = $state<PageProps['data']>(
 		untrack(() => ({
 			...data,
 			deckLibrary: { ...data.deckLibrary, items: [] }
@@ -79,8 +81,9 @@
 	let deckSubscription: ResourceSubscription | undefined = $state();
 	let deletedTarget = $state(false);
 	$effect(() => {
-		data;
-		untrack(() => deckSubscription?.invalidate());
+		const next = data;
+		if (routePage.data.demoSession) savedDecks = next;
+		else untrack(() => deckSubscription?.invalidate());
 	});
 	onMount(() => {
 		deckSubscription = workspaceSavedState.subscribe({
@@ -122,6 +125,7 @@
 				saveLifecycle.destroy();
 			},
 			refresh: async (lease) => {
+				if (routePage.data.demoSession) return;
 				const routeData = data;
 				try {
 					return await refreshSelectedDeck({
@@ -364,6 +368,7 @@
 	let missingExportTrigger = $state<HTMLElement | null>(null);
 	let actionsTrigger = $state<HTMLButtonElement | null>(null);
 	function exportAction(label: string, href: string) {
+		if (data.demoDeckChanged) return { label, icon: exportIcon, disabled: true };
 		if (savedDecks.warnings.length > 0) {
 			return {
 				label,
@@ -472,7 +477,11 @@
 		inspectorQuantityBase = inspectorQuantity;
 		inspectorRoleBase = inspectorRole;
 		inspectorOwned = [];
-		await optionalReads.readOwnership();
+		if (data.demoOwnedPrintings) {
+			inspectorOwned = data.demoOwnedPrintings.filter(
+				(entry) => entry.canonicalCardId === card.oracle_id
+			);
+		} else await optionalReads.readOwnership();
 	}
 	async function findCards(event: SubmitEvent) {
 		event.preventDefault();
@@ -492,14 +501,22 @@
 		Object.values(availability).reduce((sum, entry) => sum + entry.missing, 0)
 	);
 	const ownedByCanonical = $derived(
-		new Map(Object.entries({ ...savedDecks.ownedByCanonical, ...searchOwned }))
+		data.demoOwnedPrintings
+			? data.demoOwnedPrintings.reduce((owned, entry) => {
+					owned.set(
+						entry.canonicalCardId,
+						(owned.get(entry.canonicalCardId) ?? 0) + entry.quantity
+					);
+					return owned;
+				}, new Map<string, number>())
+			: new Map(Object.entries({ ...savedDecks.ownedByCanonical, ...searchOwned }))
 	);
 	const visibleCards = $derived(
 		deckCards
 			.filter(
 				(card) =>
 					card.name.toLowerCase().includes(listQuery.toLowerCase()) &&
-					(!missingOnly || availability[card.id]?.missing > 0)
+					(data.demoAnalysisUnavailable || !missingOnly || availability[card.id]?.missing > 0)
 			)
 			.toSorted((a, b) =>
 				sortBy === 'quantity'
@@ -604,6 +621,60 @@
 		);
 	}
 
+	async function saveDemo(session: string, operation: string, formData: FormData) {
+		if (operation === 'previewImport' || operation === 'commitImport') {
+			saveError = language.t('demo.disabled');
+			return;
+		}
+		const accountId = data.user?.accountId;
+		if (!accountId) return;
+		const deckId =
+			operation === 'createDeck'
+				? crypto.randomUUID()
+				: String(formData.get('deckId') ?? data.selectedDeckId ?? '');
+		const seed: DemoDeck | undefined =
+			selectedDeck && selectedDeck.id === deckId
+				? $state.snapshot({
+						deck: selectedDeck,
+						cards: deckCards,
+						documents: savedDecks.deckDocuments,
+						tokens: savedDecks.relatedTokens
+					})
+				: undefined;
+		busy = true;
+		saveError = '';
+		saveStatus = '';
+		try {
+			await mutateDemoDeck({
+				session,
+				generation: data.demoWriteGeneration,
+				operation,
+				form: formData,
+				accountId,
+				deckId,
+				seed
+			});
+			if (routePage.data.demoSession !== session) return;
+			if (operation === 'createDeck' || operation === 'deleteDeck') {
+				createOpen = deleteOpen = false;
+				await goto(operation === 'createDeck' ? `/mtg/decks?deck=${deckId}` : '/mtg/decks', {
+					invalidateAll: true
+				});
+			} else {
+				await invalidate('demo:decks');
+				if (operation === 'updateDeck') {
+					editOpen = false;
+					if (data.flow === 'edit') await goto(flowHref());
+				}
+				if (operation === 'removeCard' || operation === 'changePrinting') inspected = null;
+			}
+		} catch (cause) {
+			saveError = language.t(demoSaveError(cause));
+		} finally {
+			busy = false;
+		}
+	}
+
 	const save: SubmitFunction = ({ formData, formElement, action: target, cancel }) => {
 		if (
 			busy ||
@@ -613,9 +684,14 @@
 			cancel();
 			return;
 		}
-		const write = deckSubscription?.beginWrite(['decks']);
 		const operation =
 			[...target.searchParams.keys()].find((key) => key.startsWith('/'))?.slice(1) ?? '';
+		if (routePage.data.demoSession) {
+			cancel();
+			void saveDemo(routePage.data.demoSession, operation, formData);
+			return;
+		}
+		const write = deckSubscription?.beginWrite(['decks']);
 		const submission = saveLifecycle.capture(
 			operation,
 			String(formData.get('entryId') || formData.get('catalogCardId') || ''),
@@ -801,7 +877,11 @@
 		{#snippet actions()}
 			<div class="deck-picker">
 				{#if selectedDeck}
-					<Button href={`/mtg/decks/${selectedDeck.id}/playtest`} variant="secondary">
+					<Button
+						href={`/mtg/decks/${selectedDeck.id}/playtest`}
+						variant="secondary"
+						disabled={data.demoDeckChanged}
+					>
 						<Play size={16} aria-hidden="true" class="shrink-0" />{language.t('playtest.title')}
 					</Button>
 					<ActionMenu
@@ -820,7 +900,10 @@
 								onSelect: () => openEditor('details')
 							},
 							{
-								label: language.t('ui.Import.decklist'),
+								label: language.t(
+									routePage.data.demoSession ? 'demo.importDisabled' : 'ui.Import.decklist'
+								),
+								disabled: !!routePage.data.demoSession,
 								icon: importIcon,
 								onSelect: () => openEditor('import')
 							},
@@ -847,6 +930,7 @@
 							),
 							{
 								label: language.t('missingExport.action'),
+								disabled: data.demoAnalysisUnavailable,
 								icon: exportIcon,
 								onSelect: () => {
 									missingExportTrigger = actionsTrigger;
@@ -855,16 +939,19 @@
 							},
 							{
 								label: language.t('deck.phaseRs.action'),
+								disabled: data.demoDeckChanged,
 								icon: externalIcon,
 								onSelect: () => openPhaseRsDialog(selectedDeck.id)
 							},
 							{
 								label: language.t('ui.Print.deck'),
+								disabled: data.demoDeckChanged,
 								icon: printIcon,
 								href: `/mtg/decks/${selectedDeck.id}/print`
 							},
 							{
 								label: language.t('ui.Print.card.sheet.A4'),
+								disabled: data.demoDeckChanged,
 								icon: printIcon,
 								href: `/mtg/decks/${selectedDeck.id}/print/cards`
 							},
@@ -891,9 +978,11 @@
 						{#snippet trigger()}<Ellipsis size={20} aria-hidden="true" />{/snippet}
 					</ActionMenu>
 				{/if}
-				{#if !selectedDeck}<Button href="/mtg/decks/import" variant="secondary">
-						<Upload size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Import.deck')}
-					</Button><Button
+				{#if !selectedDeck}{#if routePage.data.demoSession}<p>
+							{language.t('demo.importDisabled')}
+						</p>{:else}<Button href="/mtg/decks/import" variant="secondary">
+							<Upload size={16} aria-hidden="true" class="shrink-0" />{language.t('ui.Import.deck')}
+						</Button>{/if}<Button
 						href={flowHref('create')}
 						onclick={openCreate}
 						disabled={busy || deletedTarget}
@@ -1041,6 +1130,7 @@
 	{/if}
 	{#if selectedDeck}
 		<section class="deck-overview" aria-label={language.t('ui.Deck.overview')}>
+			{#if data.demoDeckChanged}<p role="status">{language.t('demo.localDeckActions')}</p>{/if}
 			<DeckOverview
 				cards={deckCards}
 				documents={savedDecks.deckDocuments}
@@ -1128,9 +1218,12 @@
 							</Button>
 						</form>{/key}
 				</DeckDialog>
+				{#if routePage.data.demoSession && data.flow === 'import'}
+					<p role="status">{language.t('demo.importDisabled')}</p>
+				{/if}
 				<DeckDialog
 					title={language.t('ui.Import.decklist')}
-					native={data.flow === 'import'}
+					native={!routePage.data.demoSession && data.flow === 'import'}
 					pending={busy}
 					cancelHref={flowHref()}
 					variant="import"
@@ -1162,7 +1255,9 @@
 							bind:value={importText}
 							placeholder={"Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n10 Forest"}
 						></textarea>
-						<label class="label" for="import-file">{language.t('ui.Or.upload.a.UTF.8.file')}</label>
+						<label class="label" for="import-file">
+							{language.t('ui.Or.upload.a.UTF.8.file')}
+						</label>
 						<input
 							id="import-file"
 							type="file"
@@ -1455,26 +1550,28 @@
 						: language.t('deck.assembled.mark')}
 				</Button>
 			</form>
-			<Button
-				variant={missingOnly ? 'secondary' : 'ghost'}
-				aria-pressed={missingOnly}
-				onclick={() => (missingOnly = !missingOnly)}
-			>
-				{missing}
-				{language.t('ui.missing')}
-			</Button>
-			{#if missing > 0}
-				<Button
-					variant="secondary"
-					onclick={(event) => {
-						missingExportTrigger =
-							event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-						missingExportOpen = true;
-					}}
+			{#if data.demoAnalysisUnavailable}
+				<p role="status">{language.t('demo.localAnalysis')}</p>
+			{:else}<Button
+					variant={missingOnly ? 'secondary' : 'ghost'}
+					aria-pressed={missingOnly}
+					onclick={() => (missingOnly = !missingOnly)}
 				>
-					{language.t('missingExport.actionShort')}
+					{missing}
+					{language.t('ui.missing')}
 				</Button>
-			{/if}
+				{#if missing > 0}
+					<Button
+						variant="secondary"
+						onclick={(event) => {
+							missingExportTrigger =
+								event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+							missingExportOpen = true;
+						}}
+					>
+						{language.t('missingExport.actionShort')}
+					</Button>
+				{/if}{/if}
 			<a
 				href="#format-checks"
 				class={[
@@ -1563,7 +1660,11 @@
 				{#if deckCards.length === 0}<div class="empty-state">
 						<Layers size={20} aria-hidden="true" class="mx-auto mb-2 text-text-muted" />
 						<p>
-							{language.t('ui.Search.the.catalog.to.add.a.card.or.import.an.existing.decklist')}
+							{language.t(
+								routePage.data.demoSession
+									? 'demo.emptyDeck'
+									: 'ui.Search.the.catalog.to.add.a.card.or.import.an.existing.decklist'
+							)}
 						</p>
 					</div>{/if}
 				{#each sections as section (section.value)}
@@ -1619,7 +1720,9 @@
 						{language.t('deck.legality.nonBlockingNote')}
 					</p>
 					{#if savedDecks.legalityError}<p class="warning">
-							{savedDecks.legalityError}
+							{data.demoDeckChanged
+								? language.t('ui.Format.checks.unavailable')
+								: savedDecks.legalityError}
 						</p>{:else if savedDecks.warnings.length}<ul>
 							{#each savedDecks.warnings as warning}<li>
 									{localizeLegalityWarning(language.locale, warning)}
@@ -1659,14 +1762,20 @@
 				discovery={data.discovery}
 				state={data.discoveryState}
 				readError={data.discoveryReadError}
+				demo={!!data.demoSession}
 			/>
 		{:else}
-			<DeckLibrary page={data.deckLibrary} accountId={data.user?.accountId ?? ''} />
+			<DeckLibrary
+				page={data.deckLibrary}
+				accountId={data.user?.accountId ?? ''}
+				demoSession={routePage.data.demoSession}
+				analysisUnavailable={data.demoAnalysisUnavailable}
+			/>
 		{/if}
 	{/if}
 </div>
 
-{#if selectedDeck}
+{#if selectedDeck && !data.demoAnalysisUnavailable}
 	<MissingCardsDialog
 		bind:open={missingExportOpen}
 		deckIds={[selectedDeck.id]}
@@ -1736,9 +1845,11 @@
 					{@const sharedNames =
 						entryAvailability?.sharedWith.map((share) => share.deckName).join(', ') ?? ''}
 					<p class="muted">
-						{language.t('sentence.This.deck.p0.missing.Inventory.is.not.reserved', {
-							p0: String(entryAvailability?.missing ?? 0)
-						})}
+						{data.demoAnalysisUnavailable
+							? language.t('ui.Availability.unavailable')
+							: language.t('sentence.This.deck.p0.missing.Inventory.is.not.reserved', {
+									p0: String(entryAvailability?.missing ?? 0)
+								})}
 					</p>
 					{#if entryAvailability && entryAvailability.conflict > 0}
 						<p class="allocation-notice conflict" role="alert">
